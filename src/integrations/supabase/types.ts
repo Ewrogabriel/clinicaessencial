@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamentos: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_horario: string
+          dias_semana: number[] | null
+          duracao_minutos: number
+          frequencia_semanal: number | null
+          id: string
+          observacoes: string | null
+          paciente_id: string
+          profissional_id: string
+          recorrencia_fim: string | null
+          recorrencia_grupo_id: string | null
+          recorrente: boolean
+          status: Database["public"]["Enums"]["status_agendamento"]
+          tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_sessao: Database["public"]["Enums"]["tipo_sessao"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_horario: string
+          dias_semana?: number[] | null
+          duracao_minutos?: number
+          frequencia_semanal?: number | null
+          id?: string
+          observacoes?: string | null
+          paciente_id: string
+          profissional_id: string
+          recorrencia_fim?: string | null
+          recorrencia_grupo_id?: string | null
+          recorrente?: boolean
+          status?: Database["public"]["Enums"]["status_agendamento"]
+          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_horario?: string
+          dias_semana?: number[] | null
+          duracao_minutos?: number
+          frequencia_semanal?: number | null
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string
+          profissional_id?: string
+          recorrencia_fim?: string | null
+          recorrencia_grupo_id?: string | null
+          recorrente?: boolean
+          status?: Database["public"]["Enums"]["status_agendamento"]
+          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pacientes: {
         Row: {
           cpf: string | null
@@ -128,8 +196,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "profissional"
+      status_agendamento:
+        | "agendado"
+        | "confirmado"
+        | "realizado"
+        | "cancelado"
+        | "falta"
       status_paciente: "ativo" | "inativo"
       tipo_atendimento: "fisioterapia" | "pilates" | "rpg"
+      tipo_sessao: "individual" | "grupo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -258,8 +333,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "profissional"],
+      status_agendamento: [
+        "agendado",
+        "confirmado",
+        "realizado",
+        "cancelado",
+        "falta",
+      ],
       status_paciente: ["ativo", "inativo"],
       tipo_atendimento: ["fisioterapia", "pilates", "rpg"],
+      tipo_sessao: ["individual", "grupo"],
     },
   },
 } as const
