@@ -67,6 +67,7 @@ const formSchema = z.object({
   dias_semana: z.array(z.number()).default([]),
   frequencia_semanal: z.number().min(1).max(7).default(1),
   recorrencia_semanas: z.number().min(1).max(52).default(4),
+  horarios_por_dia: z.record(z.string(), z.string()).default({}),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -107,6 +108,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       dias_semana: [],
       frequencia_semanal: 1,
       recorrencia_semanas: 4,
+      horarios_por_dia: {},
     },
   });
 
@@ -150,15 +152,18 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
   const toggleDia = (dia: number) => {
     const current = form.getValues("dias_semana");
+    const currentHorarios = form.getValues("horarios_por_dia");
     if (current.includes(dia)) {
       form.setValue("dias_semana", current.filter((d) => d !== dia));
+      const { [String(dia)]: _, ...rest } = currentHorarios;
+      form.setValue("horarios_por_dia", rest);
     } else {
       form.setValue("dias_semana", [...current, dia].sort());
+      form.setValue("horarios_por_dia", { ...currentHorarios, [String(dia)]: "08:00" });
     }
   };
 
   const generateRecurringDates = (values: FormData): Date[] => {
-    const [hours, minutes] = values.horario.split(":").map(Number);
     const dates: Date[] = [];
     const startDate = values.data;
     const totalWeeks = values.recorrencia_semanas;
@@ -167,12 +172,13 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
     for (let week = 0; week < totalWeeks; week++) {
       for (const dia of values.dias_semana) {
-        // Find the date for this day of week in this week
+        const diaHorario = values.horarios_por_dia[String(dia)] || "08:00";
+        const [hours, minutes] = diaHorario.split(":").map(Number);
+        
         const weekStart = addWeeks(startDate, week);
         const dayOffset = (dia - weekStart.getDay() + 7) % 7;
         const targetDate = addDays(weekStart, dayOffset);
         
-        // Only include dates from today onwards
         if (targetDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
           const dt = setM(setH(targetDate, hours), minutes);
           dates.push(dt);
@@ -180,7 +186,6 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       }
     }
 
-    // Remove duplicates and sort
     const unique = Array.from(
       new Set(dates.map((d) => d.toISOString()))
     ).map((iso) => new Date(iso));
@@ -372,27 +377,58 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="horario"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Horário</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {!isRecorrente && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="horario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horário</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
+                <FormField
+                  control={form.control}
+                  name="duracao_minutos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duração</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(Number(v))}
+                        value={String(field.value)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="30">30 min</SelectItem>
+                          <SelectItem value="45">45 min</SelectItem>
+                          <SelectItem value="50">50 min</SelectItem>
+                          <SelectItem value="60">60 min</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {isRecorrente && (
               <FormField
                 control={form.control}
                 name="duracao_minutos"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duração</FormLabel>
+                    <FormLabel>Duração por sessão</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(Number(v))}
                       value={String(field.value)}
@@ -413,7 +449,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
             {/* Recorrência */}
             <div className="rounded-lg border p-4 space-y-4">
@@ -506,7 +542,36 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                     )}
                   </div>
 
-                  {/* Data início (usa o campo data) */}
+                  {/* Horários individuais por dia */}
+                  {diasSelecionados.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Horário por dia</Label>
+                      <div className="space-y-2">
+                        {DIAS_SEMANA.filter(d => diasSelecionados.includes(d.value)).map((dia) => {
+                          const horariosDia = form.watch("horarios_por_dia");
+                          const horarioDia = horariosDia[String(dia.value)] || "08:00";
+                          return (
+                            <div key={dia.value} className="flex items-center gap-3 rounded-md border p-2">
+                              <span className="text-sm font-medium w-12">{dia.label}</span>
+                              <Input
+                                type="time"
+                                value={horarioDia}
+                                onChange={(e) => {
+                                  const current = form.getValues("horarios_por_dia");
+                                  form.setValue("horarios_por_dia", {
+                                    ...current,
+                                    [String(dia.value)]: e.target.value,
+                                  });
+                                }}
+                                className="w-32"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="data"
