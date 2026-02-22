@@ -133,6 +133,135 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamentos: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_pagamento: string
+          data_vencimento: string | null
+          descricao: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
+          id: string
+          observacoes: string | null
+          paciente_id: string
+          plano_id: string | null
+          profissional_id: string
+          status: Database["public"]["Enums"]["status_pagamento"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_pagamento?: string
+          data_vencimento?: string | null
+          descricao?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          id?: string
+          observacoes?: string | null
+          paciente_id: string
+          plano_id?: string | null
+          profissional_id: string
+          status?: Database["public"]["Enums"]["status_pagamento"]
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_pagamento?: string
+          data_vencimento?: string | null
+          descricao?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string
+          plano_id?: string | null
+          profissional_id?: string
+          status?: Database["public"]["Enums"]["status_pagamento"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planos: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_inicio: string
+          data_vencimento: string | null
+          id: string
+          observacoes: string | null
+          paciente_id: string
+          profissional_id: string
+          sessoes_utilizadas: number
+          status: Database["public"]["Enums"]["status_plano"]
+          tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
+          total_sessoes: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          id?: string
+          observacoes?: string | null
+          paciente_id: string
+          profissional_id: string
+          sessoes_utilizadas?: number
+          status?: Database["public"]["Enums"]["status_plano"]
+          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          total_sessoes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string
+          profissional_id?: string
+          sessoes_utilizadas?: number
+          status?: Database["public"]["Enums"]["status_plano"]
+          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          total_sessoes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -196,6 +325,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "profissional"
+      forma_pagamento:
+        | "dinheiro"
+        | "pix"
+        | "cartao_credito"
+        | "cartao_debito"
+        | "boleto"
+        | "transferencia"
       status_agendamento:
         | "agendado"
         | "confirmado"
@@ -203,6 +339,8 @@ export type Database = {
         | "cancelado"
         | "falta"
       status_paciente: "ativo" | "inativo"
+      status_pagamento: "pendente" | "pago" | "cancelado"
+      status_plano: "ativo" | "vencido" | "cancelado" | "finalizado"
       tipo_atendimento: "fisioterapia" | "pilates" | "rpg"
       tipo_sessao: "individual" | "grupo"
     }
@@ -333,6 +471,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "profissional"],
+      forma_pagamento: [
+        "dinheiro",
+        "pix",
+        "cartao_credito",
+        "cartao_debito",
+        "boleto",
+        "transferencia",
+      ],
       status_agendamento: [
         "agendado",
         "confirmado",
@@ -341,6 +487,8 @@ export const Constants = {
         "falta",
       ],
       status_paciente: ["ativo", "inativo"],
+      status_pagamento: ["pendente", "pago", "cancelado"],
+      status_plano: ["ativo", "vencido", "cancelado", "finalizado"],
       tipo_atendimento: ["fisioterapia", "pilates", "rpg"],
       tipo_sessao: ["individual", "grupo"],
     },
