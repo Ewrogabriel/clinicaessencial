@@ -1,29 +1,275 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { toast } from "@/hooks/use-toast";
+
+const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pago: { label: "Pago", variant: "default" },
+  pendente: { label: "Pendente", variant: "destructive" },
+  cancelado: { label: "Cancelado", variant: "outline" },
+};
+
+const formaLabel: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  cartao_credito: "Cartão Crédito",
+  cartao_debito: "Cartão Débito",
+  boleto: "Boleto",
+  transferencia: "Transferência",
+};
 
 const Financeiro = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [formOpen, setFormOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    paciente_id: "",
+    plano_id: "",
+    valor: "",
+    data_pagamento: format(new Date(), "yyyy-MM-dd"),
+    data_vencimento: "",
+    forma_pagamento: "",
+    status: "pendente" as string,
+    descricao: "",
+    observacoes: "",
+  });
+
+  const { data: pagamentos = [], isLoading } = useQuery({
+    queryKey: ["pagamentos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pagamentos")
+        .select("*, pacientes(nome)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: pacientes = [] } = useQuery({
+    queryKey: ["pacientes-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      return data ?? [];
+    },
+  });
+
+  const createPagamento = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Não autenticado");
+      const { error } = await (supabase as any).from("pagamentos").insert({
+        paciente_id: formData.paciente_id,
+        profissional_id: user.id,
+        plano_id: formData.plano_id || null,
+        valor: parseFloat(formData.valor) || 0,
+        data_pagamento: formData.data_pagamento,
+        data_vencimento: formData.data_vencimento || null,
+        forma_pagamento: formData.forma_pagamento || null,
+        status: formData.status,
+        descricao: formData.descricao || null,
+        observacoes: formData.observacoes || null,
+        created_by: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      setFormOpen(false);
+      setFormData({ paciente_id: "", plano_id: "", valor: "", data_pagamento: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", forma_pagamento: "", status: "pendente", descricao: "", observacoes: "" });
+      toast({ title: "Pagamento registrado!" });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const totalRecebido = pagamentos.filter((p: any) => p.status === "pago").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
+  const totalPendente = pagamentos.filter((p: any) => p.status === "pendente").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
+  const countPagos = pagamentos.filter((p: any) => p.status === "pago").length;
+  const countPendentes = pagamentos.filter((p: any) => p.status === "pendente").length;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
-          Financeiro
-        </h1>
-        <p className="text-muted-foreground">
-          Controle financeiro da clínica
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
+          <p className="text-muted-foreground">Controle de pagamentos e faturamento</p>
+        </div>
+        <Button onClick={() => setFormOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Novo Pagamento
+        </Button>
       </div>
 
+      {/* KPI */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent><p className="text-2xl font-bold">R$ {totalRecebido.toFixed(2)}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Pendente</CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent><p className="text-2xl font-bold text-destructive">R$ {totalPendente.toFixed(2)}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pagos</CardTitle>
+            <CheckCircle className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent><p className="text-2xl font-bold">{countPagos}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            <DollarSign className="h-4 w-4 text-warning" />
+          </CardHeader>
+          <CardContent><p className="text-2xl font-bold">{countPendentes}</p></CardContent>
+        </Card>
+      </div>
+
+      {/* Table */}
       <Card>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <DollarSign className="h-12 w-12 mb-4 opacity-40" />
-            <p className="text-lg font-medium">Financeiro em desenvolvimento</p>
-            <p className="text-sm mt-1">
-              Esta funcionalidade será implementada na Fase 4
-            </p>
-          </div>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
+          ) : pagamentos.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground">
+              <DollarSign className="h-12 w-12 mb-4 opacity-40" />
+              <p className="text-lg font-medium">Nenhum pagamento registrado</p>
+              <Button className="mt-4" onClick={() => setFormOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Forma</TableHead>
+                  <TableHead>Data Pgto</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagamentos.map((pag: any) => {
+                  const st = statusBadge[pag.status] || statusBadge.pendente;
+                  return (
+                    <TableRow key={pag.id}>
+                      <TableCell className="font-medium">{pag.pacientes?.nome ?? "—"}</TableCell>
+                      <TableCell>{pag.descricao || "—"}</TableCell>
+                      <TableCell>R$ {Number(pag.valor).toFixed(2)}</TableCell>
+                      <TableCell>{pag.forma_pagamento ? formaLabel[pag.forma_pagamento] || pag.forma_pagamento : "—"}</TableCell>
+                      <TableCell>{format(new Date(pag.data_pagamento), "dd/MM/yyyy")}</TableCell>
+                      <TableCell>{pag.data_vencimento ? format(new Date(pag.data_vencimento), "dd/MM/yyyy") : "—"}</TableCell>
+                      <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      {/* Form Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Novo Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Paciente</Label>
+              <Select value={formData.paciente_id} onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {pacientes.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input type="number" step="0.01" placeholder="0,00" value={formData.valor} onChange={(e) => setFormData(p => ({ ...p, valor: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData(p => ({ ...p, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Forma de Pagamento</Label>
+              <Select value={formData.forma_pagamento} onValueChange={(v) => setFormData(p => ({ ...p, forma_pagamento: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                  <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Data Pagamento</Label>
+                <Input type="date" value={formData.data_pagamento} onChange={(e) => setFormData(p => ({ ...p, data_pagamento: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Vencimento (opcional)</Label>
+                <Input type="date" value={formData.data_vencimento} onChange={(e) => setFormData(p => ({ ...p, data_vencimento: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input placeholder="Ex: Pacote 10 sessões Pilates" value={formData.descricao} onChange={(e) => setFormData(p => ({ ...p, descricao: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea placeholder="Observações..." value={formData.observacoes} onChange={(e) => setFormData(p => ({ ...p, observacoes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
+              <Button onClick={() => createPagamento.mutate()} disabled={!formData.paciente_id || !formData.valor || createPagamento.isPending}>
+                {createPagamento.isPending ? "Salvando..." : "Registrar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
