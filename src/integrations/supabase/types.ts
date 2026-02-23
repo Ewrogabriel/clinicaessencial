@@ -33,6 +33,8 @@ export type Database = {
           tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
           tipo_sessao: Database["public"]["Enums"]["tipo_sessao"]
           updated_at: string
+          valor_mensal: number | null
+          valor_sessao: number | null
         }
         Insert: {
           created_at?: string
@@ -52,6 +54,8 @@ export type Database = {
           tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
           tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
           updated_at?: string
+          valor_mensal?: number | null
+          valor_sessao?: number | null
         }
         Update: {
           created_at?: string
@@ -71,6 +75,8 @@ export type Database = {
           tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
           tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
           updated_at?: string
+          valor_mensal?: number | null
+          valor_sessao?: number | null
         }
         Relationships: [
           {

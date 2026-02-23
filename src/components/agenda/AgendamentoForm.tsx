@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Repeat } from "lucide-react";
+import { CalendarIcon, Repeat, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,7 +27,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -66,8 +64,10 @@ const formSchema = z.object({
   recorrente: z.boolean().default(false),
   dias_semana: z.array(z.number()).default([]),
   frequencia_semanal: z.number().min(1).max(7).default(1),
-  recorrencia_semanas: z.number().min(1).max(52).default(4),
+  recorrencia_semanas: z.number().min(1).max(200).default(52),
   horarios_por_dia: z.record(z.string(), z.string()).default({}),
+  valor_sessao: z.number().min(0).optional(),
+  valor_mensal: z.number().min(0).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -107,8 +107,10 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       recorrente: false,
       dias_semana: [],
       frequencia_semanal: 1,
-      recorrencia_semanas: 4,
+      recorrencia_semanas: 52,
       horarios_por_dia: {},
+      valor_sessao: undefined,
+      valor_mensal: undefined,
     },
   });
 
@@ -130,7 +132,6 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     }
   }, [open]);
 
-  // Auto-suggest frequency label
   const freqLabel = freqSemanal === 1 ? "1x" : freqSemanal === 2 ? "2x" : freqSemanal === 3 ? "3x" : `${freqSemanal}x`;
 
   const fetchPacientes = async () => {
@@ -200,7 +201,6 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
     try {
       if (values.recorrente && values.dias_semana.length > 0) {
-        // Validate frequency matches selected days
         if (values.dias_semana.length !== values.frequencia_semanal) {
           toast({
             title: "Atenção",
@@ -232,6 +232,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           recorrencia_grupo_id: grupoId,
           dias_semana: values.dias_semana,
           frequencia_semanal: values.frequencia_semanal,
+          valor_mensal: values.valor_mensal || null,
         }));
 
         const { error } = await (supabase as any).from("agendamentos").insert(records);
@@ -239,10 +240,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
         toast({
           title: "Agendamentos recorrentes criados!",
-          description: `${dates.length} sessões agendadas para ${values.recorrencia_semanas} semanas.`,
+          description: `${dates.length} sessões agendadas por tempo indeterminado.`,
         });
       } else {
-        // Single appointment
         const [hours, minutes] = values.horario.split(":").map(Number);
         const dataHorario = new Date(values.data);
         dataHorario.setHours(hours, minutes, 0, 0);
@@ -256,6 +256,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           tipo_sessao: values.tipo_sessao,
           observacoes: values.observacoes || null,
           created_by: user.id,
+          valor_sessao: values.valor_sessao || null,
         });
         if (error) throw error;
 
@@ -336,7 +337,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                 name="tipo_atendimento"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de Atendimento</FormLabel>
+                    <FormLabel>Modalidade</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -451,6 +452,39 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               />
             )}
 
+            {/* Valor - sessão única */}
+            {!isRecorrente && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <Label className="font-medium">Valor da Consulta/Sessão</Label>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="valor_sessao"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0,00"
+                            className="pl-10"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
             {/* Recorrência */}
             <div className="rounded-lg border p-4 space-y-4">
               <div className="flex items-center justify-between">
@@ -480,7 +514,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Frequência semanal
+                          Quantidade por semana
                           <span className="ml-2 text-xs text-muted-foreground">
                             (ex: {tipoAtendimento === "pilates" ? "Pilates" : tipoAtendimento === "rpg" ? "RPG" : "Fisio"} {freqLabel}/semana)
                           </span>
@@ -608,43 +642,52 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                     )}
                   />
 
-                  {/* Duração em semanas */}
-                  <FormField
-                    control={form.control}
-                    name="recorrencia_semanas"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Repetir por</FormLabel>
-                        <Select
-                          onValueChange={(v) => field.onChange(Number(v))}
-                          value={String(field.value)}
-                        >
+                  {/* Valor mensal */}
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <Label className="font-medium text-sm">Pagamento Mensal</Label>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="valor_mensal"
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="Ex: 180,00"
+                                className="pl-10"
+                                value={field.value ?? ""}
+                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                              />
+                            </div>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="2">2 semanas</SelectItem>
-                            <SelectItem value="4">4 semanas (1 mês)</SelectItem>
-                            <SelectItem value="8">8 semanas (2 meses)</SelectItem>
-                            <SelectItem value="12">12 semanas (3 meses)</SelectItem>
-                            <SelectItem value="24">24 semanas (6 meses)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <p className="text-xs text-muted-foreground">
+                            Valor mensal do pacote (ex: Pilates {freqLabel}/semana)
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  {/* Preview */}
-                  {previewCount > 0 && diasSelecionados.length === freqSemanal && (
+                  {/* Preview - tempo indeterminado */}
+                  {diasSelecionados.length > 0 && diasSelecionados.length === freqSemanal && (
                     <div className="rounded-md bg-muted/50 p-3 text-sm">
                       <p className="font-medium text-foreground">
-                        📅 {previewCount} sessões serão criadas
+                        ♾️ Agendamento recorrente por tempo indeterminado
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {freqLabel}/semana · {DIAS_SEMANA.filter(d => diasSelecionados.includes(d.value)).map(d => d.label).join(", ")} · {form.watch("recorrencia_semanas")} semanas
+                        {freqLabel}/semana · {DIAS_SEMANA.filter(d => diasSelecionados.includes(d.value)).map(d => d.label).join(", ")}
+                        {form.watch("valor_mensal") ? ` · R$ ${form.watch("valor_mensal")?.toFixed(2)}/mês` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Serão criadas {previewCount} sessões ({form.watch("recorrencia_semanas")} semanas iniciais)
                       </p>
                     </div>
                   )}
