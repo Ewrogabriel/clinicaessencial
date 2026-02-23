@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from "react";
 import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
 import { DailyView, WeeklyView, MonthlyView, type Agendamento } from "@/components/agenda/AgendaViews";
+import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
+import { toast } from "@/hooks/use-toast";
 
 type ViewMode = "diario" | "semanal" | "mensal";
 
@@ -14,6 +16,7 @@ const Agenda = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [pacientesMap, setPacientesMap] = useState<Record<string, string>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState(false);
@@ -23,17 +26,25 @@ const Agenda = () => {
     try {
       const { data, error } = await (supabase as any)
         .from("agendamentos")
-        .select("*, pacientes(nome), profiles!agendamentos_profissional_id_fkey(nome)")
+        .select("*, pacientes(nome, telefone), profiles!agendamentos_profissional_id_fkey(nome)")
         .order("data_horario", { ascending: true });
 
       if (!error && data) {
-        // Map the joined data
         const mapped = data.map((item: any) => ({
           ...item,
           pacientes: item.pacientes,
           profiles: item.profiles,
         }));
         setAgendamentos(mapped);
+
+        // Build telefone map
+        const telMap: Record<string, string> = {};
+        data.forEach((item: any) => {
+          if (item.paciente_id && item.pacientes?.telefone) {
+            telMap[item.paciente_id] = item.pacientes.telefone;
+          }
+        });
+        setPacientesMap(telMap);
       }
     } catch {
       // Table may not exist yet
@@ -53,6 +64,15 @@ const Agenda = () => {
   const handleNewAgendamento = () => {
     setSelectedDate(new Date());
     setFormOpen(true);
+  };
+
+  const handleExportPDF = () => {
+    const agsWithTel = agendamentos.map((ag) => ({
+      ...ag,
+      paciente_telefone: pacientesMap[ag.paciente_id] || "",
+    }));
+    generateWeeklyPDF(agsWithTel, currentDate, pacientesMap);
+    toast({ title: "PDF gerado!", description: "A agenda semanal foi exportada." });
   };
 
   const navigatePrev = () => {
@@ -86,10 +106,16 @@ const Agenda = () => {
             Gerencie os agendamentos da clínica
           </p>
         </div>
-        <Button onClick={handleNewAgendamento}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Agendamento
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportPDF}>
+            <FileDown className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Button onClick={handleNewAgendamento}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Agendamento
+          </Button>
+        </div>
       </div>
 
       {/* Navigation and View Toggle */}
