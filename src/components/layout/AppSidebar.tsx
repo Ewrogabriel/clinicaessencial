@@ -8,6 +8,8 @@ import {
   Settings,
   LogOut,
   Activity,
+  Layers,
+  UserCog,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -30,6 +32,11 @@ const menuPrincipal = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Agenda", url: "/agenda", icon: Calendar },
+];
+
+const menuCadastros = [
+  { title: "Modalidades", url: "/modalidades", icon: Layers },
+  { title: "Profissionais", url: "/profissionais", icon: UserCog },
 ];
 
 const menuGestao = [
@@ -85,6 +92,31 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/dashboard"}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Cadastros</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuCadastros.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
+                    <NavLink
+                      to={item.url}
                       activeClassName="bg-sidebar-accent text-sidebar-primary"
                     >
                       <item.icon className="h-4 w-4" />

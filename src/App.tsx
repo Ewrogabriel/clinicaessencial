@@ -15,6 +15,8 @@ import Agenda from "./pages/Agenda";
 import Planos from "./pages/Planos";
 import Financeiro from "./pages/Financeiro";
 import Relatorios from "./pages/Relatorios";
+import Modalidades from "./pages/Modalidades";
+import Profissionais from "./pages/Profissionais";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,10 +41,13 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pacientes" element={<Pacientes />} />
               <Route path="/pacientes/novo" element={<PacienteForm />} />
+              <Route path="/pacientes/:id" element={<PacienteForm />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/planos" element={<Planos />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/modalidades" element={<Modalidades />} />
+              <Route path="/profissionais" element={<Profissionais />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

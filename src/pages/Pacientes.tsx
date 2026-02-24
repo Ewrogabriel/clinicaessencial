@@ -142,7 +142,7 @@ const Pacientes = () => {
                 </TableHeader>
                 <TableBody>
                   {filtrados.map((paciente) => (
-                    <TableRow key={paciente.id} className="cursor-pointer">
+                    <TableRow key={paciente.id} className="cursor-pointer" onClick={() => navigate(`/pacientes/${paciente.id}`)}>
                       <TableCell className="font-medium">{paciente.nome}</TableCell>
                       <TableCell className="hidden sm:table-cell">{paciente.telefone}</TableCell>
                       <TableCell className="hidden md:table-cell">{paciente.cpf || "—"}</TableCell>
