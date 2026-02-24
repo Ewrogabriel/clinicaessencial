@@ -26,7 +26,7 @@ const Agenda = () => {
     try {
       const { data, error } = await (supabase as any)
         .from("agendamentos")
-        .select("*, pacientes(nome, telefone), profiles!agendamentos_profissional_id_fkey(nome)")
+        .select("*, pacientes(nome, telefone)")
         .order("data_horario", { ascending: true });
 
       if (!error && data) {
