@@ -141,7 +141,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuGestao
-                .filter(item => !isPatient || item.url === "/financeiro")
+                .filter(item => (!isPatient || isGestor || isAdmin) || item.url === "/financeiro")
                 .map((item) => {
                   const title = isPatient && item.url === "/financeiro" ? "Meus Pagamentos" : item.title;
                   return (

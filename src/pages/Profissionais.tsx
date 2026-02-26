@@ -77,7 +77,7 @@ const Profissionais = () => {
       // Attach roles to profiles
       return (data as any[]).map(p => ({
         ...p,
-        role: roleData?.find(r => r.user_id === p.id)?.role
+        role: roleData?.find(r => r.user_id === p.user_id)?.role || 'profissional'
       })) as Profissional[];
     },
   });

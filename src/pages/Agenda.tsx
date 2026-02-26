@@ -27,7 +27,7 @@ const Agenda = () => {
     try {
       let query = supabase
         .from("agendamentos")
-        .select("*, pacientes(nome, telefone), profiles!agendamentos_profissional_id_fkey(nome)"); // Added profiles select
+        .select("*, pacientes(nome, telefone), profiles(nome)");
 
       if (isPatient) {
         // Find the patient linked to this user
@@ -80,7 +80,7 @@ const Agenda = () => {
   }, [fetchAgendamentos]);
 
   const handleSlotClick = (date: Date) => {
-    if (!isPatient) { // Only allow professionals to create/edit via slot click
+    if (!isPatient || isAdmin || isGestor) { // Allow team to create/edit
       setSelectedDate(date);
       setFormOpen(true);
     }
@@ -125,7 +125,7 @@ const Agenda = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center justify-between w-full"> {/* Adjusted for new header structure */}
           <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
-          {!isPatient && (
+          {(!isPatient || isGestor || isAdmin) && (
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleExportPDF}>
                 <FileDown className="h-4 w-4 mr-2" />
