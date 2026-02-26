@@ -37,7 +37,7 @@ const formaLabel: Record<string, string> = {
 };
 
 const Financeiro = () => {
-  const { user } = useAuth();
+  const { user, isPatient } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -55,10 +55,20 @@ const Financeiro = () => {
   const { data: pagamentos = [], isLoading } = useQuery({
     queryKey: ["pagamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("pagamentos")
-        .select("*, pacientes(nome)")
-        .order("created_at", { ascending: false });
+        .select("*, pacientes(nome)");
+
+      if (isPatient) {
+        const { data: p } = await supabase.from("pacientes").select("id").eq("user_id", user?.id).single();
+        if (p) {
+          query = query.eq("paciente_id", p.id);
+        } else {
+          return [];
+        }
+      }
+
+      const { data, error } = await query.order("data_pagamento", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -106,47 +116,54 @@ const Financeiro = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
-          <p className="text-muted-foreground">Controle de pagamentos e faturamento</p>
-        </div>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Pagamento
-        </Button>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
+        {!isPatient && (
+          <Dialog open={formOpen} onOpenChange={setFormOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Pagamento
+              </Button>
+            </DialogTrigger>
+            {/* DialogContent is rendered below */}
+          </Dialog>
+        )}
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent><p className="text-2xl font-bold">R$ {totalRecebido.toFixed(2)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Pendente</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent><p className="text-2xl font-bold text-destructive">R$ {totalPendente.toFixed(2)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pagos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{countPagos}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <DollarSign className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{countPendentes}</p></CardContent>
-        </Card>
-      </div>
+      {!isPatient && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold">R$ {totalRecebido.toFixed(2)}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Pendente</CardTitle>
+              <AlertCircle className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold text-destructive">R$ {totalPendente.toFixed(2)}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Pagos</CardTitle>
+              <CheckCircle className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold">{countPagos}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+              <DollarSign className="h-4 w-4 text-warning" />
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold">{countPendentes}</p></CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Table */}
       <Card>
@@ -157,15 +174,17 @@ const Financeiro = () => {
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <DollarSign className="h-12 w-12 mb-4 opacity-40" />
               <p className="text-lg font-medium">Nenhum pagamento registrado</p>
-              <Button className="mt-4" onClick={() => setFormOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
-              </Button>
+              {!isPatient && (
+                <Button className="mt-4" onClick={() => setFormOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
+                </Button>
+              )}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Paciente</TableHead>
+                  {!isPatient && <TableHead>Paciente</TableHead>}
                   <TableHead>Descrição</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Forma</TableHead>
@@ -175,17 +194,21 @@ const Financeiro = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(pagamentos as any[]).map((pag) => {
-                  const st = statusBadge[pag.status] || statusBadge.pendente;
+                {(pagamentos as any[]).map((pagamento) => {
                   return (
-                    <TableRow key={pag.id}>
-                      <TableCell className="font-medium">{pag.pacientes?.nome ?? "—"}</TableCell>
-                      <TableCell>{pag.descricao || "—"}</TableCell>
-                      <TableCell>R$ {Number(pag.valor).toFixed(2)}</TableCell>
-                      <TableCell>{pag.forma_pagamento ? formaLabel[pag.forma_pagamento] || pag.forma_pagamento : "—"}</TableCell>
-                      <TableCell>{format(new Date(pag.data_pagamento), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>{pag.data_vencimento ? format(new Date(pag.data_vencimento), "dd/MM/yyyy") : "—"}</TableCell>
-                      <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
+                    <TableRow key={pagamento.id}>
+                      {!isPatient && <TableCell className="font-medium">{pagamento.pacientes?.nome ?? "—"}</TableCell>}
+                      <TableCell>{pagamento.descricao || "—"}</TableCell>
+                      <TableCell>R$ {Number(pagamento.valor).toFixed(2)}</TableCell>
+                      <TableCell>{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</TableCell>
+                      <TableCell>
+                        {format(new Date(pagamento.data_pagamento), "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={pagamento.status === 'pago' ? 'default' : 'destructive'}>
+                          {statusBadge[pagamento.status]?.label || pagamento.status}
+                        </Badge>
+                      </TableCell>
                     </TableRow>
                   );
                 })}

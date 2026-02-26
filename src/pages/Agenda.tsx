@@ -24,10 +24,29 @@ const Agenda = () => {
   const fetchAgendamentos = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("agendamentos")
-        .select("*, pacientes(nome, telefone)")
-        .order("data_horario", { ascending: true });
+        .select("*, pacientes(nome, telefone), profiles!agendamentos_profissional_id_fkey(nome)"); // Added profiles select
+
+      if (isPatient) {
+        // Find the patient linked to this user
+        const { data: p, error: patientError } = await supabase.from("pacientes").select("id").eq("user_id", user?.id).single();
+        if (patientError) {
+          console.error("Error fetching patient ID:", patientError);
+          setAgendamentos([]); // No patient found or error, show no appointments
+          setLoading(false);
+          return;
+        }
+        if (p) {
+          query = query.eq("paciente_id", p.id);
+        } else {
+          setAgendamentos([]); // Patient user not linked yet
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { data, error } = await query.order("data_horario", { ascending: true });
 
       if (!error && data) {
         const mapped = (data as any[]).map((item) => ({
@@ -45,20 +64,25 @@ const Agenda = () => {
           }
         });
         setPacientesMap(telMap);
+      } else if (error) {
+        console.error("Error fetching agendamentos:", error);
       }
-    } catch {
-      // Table may not exist yet
+    } catch (e) {
+      console.error("Unexpected error in fetchAgendamentos:", e);
+      // Table may not exist yet or other unexpected error
     }
     setLoading(false);
-  }, []);
+  }, [isPatient, user?.id]); // Added dependencies for useCallback
 
   useEffect(() => {
     fetchAgendamentos();
   }, [fetchAgendamentos]);
 
   const handleSlotClick = (date: Date) => {
-    setSelectedDate(date);
-    setFormOpen(true);
+    if (!isPatient) { // Only allow professionals to create/edit via slot click
+      setSelectedDate(date);
+      setFormOpen(true);
+    }
   };
 
   const handleNewAgendamento = () => {
@@ -98,23 +122,20 @@ const Agenda = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
-            Agenda
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie os agendamentos da clínica
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportPDF}>
-            <FileDown className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
-          <Button onClick={handleNewAgendamento}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Agendamento
-          </Button>
+        <div className="flex items-center justify-between w-full"> {/* Adjusted for new header structure */}
+          <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
+          {!isPatient && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExportPDF}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Button onClick={handleNewAgendamento}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Agendamento
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -151,6 +172,8 @@ const Agenda = () => {
             agendamentos={agendamentos}
             currentDate={currentDate}
             onSlotClick={handleSlotClick}
+            isPatient={isPatient} // Pass isPatient to views
+          // Additional props for patient actions would be passed here if views supported them
           />
         )}
         {viewMode === "semanal" && (
@@ -158,6 +181,8 @@ const Agenda = () => {
             agendamentos={agendamentos}
             currentDate={currentDate}
             onSlotClick={handleSlotClick}
+            isPatient={isPatient} // Pass isPatient to views
+          // Additional props for patient actions would be passed here if views supported them
           />
         )}
         {viewMode === "mensal" && (
@@ -165,6 +190,8 @@ const Agenda = () => {
             agendamentos={agendamentos}
             currentDate={currentDate}
             onSlotClick={handleSlotClick}
+            isPatient={isPatient} // Pass isPatient to views
+          // Additional props for patient actions would be passed here if views supported them
           />
         )}
       </div>

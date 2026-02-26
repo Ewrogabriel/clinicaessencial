@@ -50,7 +50,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { user, profile, roles, signOut, isAdmin, isPatient } = useAuth();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -79,77 +79,89 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Principal</SidebarGroupLabel>
+          <SidebarGroupLabel>{isPatient ? "Meu Acesso" : "Principal"}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuPrincipal.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/dashboard"}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuPrincipal
+                .filter(item => !isPatient || item.url === "/agenda")
+                .map((item) => {
+                  const title = isPatient && item.url === "/agenda" ? "Minha Agenda" : item.title;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={title}
+                      >
+                        <NavLink
+                          to={item.url}
+                          end={item.url === "/dashboard"}
+                          activeClassName="bg-sidebar-accent text-sidebar-primary"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Profissional</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuProfissional.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink
-                      to={item.url}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary"
+        {!isPatient && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Profissional</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuProfissional.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
                     >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                      <NavLink
+                        to={item.url}
+                        activeClassName="bg-sidebar-accent text-sidebar-primary"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
-          <SidebarGroupLabel>Gestão</SidebarGroupLabel>
+          <SidebarGroupLabel>{isPatient ? "Financeiro" : "Gestão"}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuGestao.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink
-                      to={item.url}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuGestao
+                .filter(item => !isPatient || item.url === "/financeiro")
+                .map((item) => {
+                  const title = isPatient && item.url === "/financeiro" ? "Meus Pagamentos" : item.title;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={title}
+                      >
+                        <NavLink
+                          to={item.url}
+                          activeClassName="bg-sidebar-accent text-sidebar-primary"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

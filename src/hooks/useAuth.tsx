@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
-type AppRole = "admin" | "profissional";
+type AppRole = "admin" | "profissional" | "paciente";
 
 interface AuthContextType {
   user: User | null;
@@ -13,8 +13,10 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   isAdmin: boolean;
+  isPatient: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: AuthError | null }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -104,11 +106,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
+  };
+
   const isAdmin = roles.includes("admin");
+  const isPatient = roles.includes("paciente");
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, roles, loading, isAdmin, signIn, signUp, signOut }}
+      value={{ user, session, profile, roles, loading, isAdmin, isPatient, signIn, signUp, resetPassword, signOut }}
     >
       {children}
     </AuthContext.Provider>

@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const [loading, setLoading] = useState(false);
 
   // Login state
@@ -66,6 +66,34 @@ const Login = () => {
     setLoading(false);
   };
 
+  const handleResetPassword = async () => {
+    if (!loginEmail) {
+      toast({
+        title: "E-mail necessário",
+        description: "Por favor, insira seu e-mail para redefinir a senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await resetPassword(loginEmail);
+
+    if (error) {
+      toast({
+        title: "Erro ao redefinir senha",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "E-mail de redefinição enviado",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+      });
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
@@ -117,10 +145,21 @@ const Login = () => {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    <LogIn className="h-4 w-4 mr-2" />
-                    {loading ? "Entrando..." : "Entrar"}
-                  </Button>
+                  <div className="flex flex-col space-y-2">
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      <LogIn className="h-4 w-4 mr-2" />
+                      {loading ? "Entrando..." : "Entrar"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      onClick={handleResetPassword}
+                      className="text-muted-foreground"
+                    >
+                      Esqueci minha senha
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </TabsContent>
