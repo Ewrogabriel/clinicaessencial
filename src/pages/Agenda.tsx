@@ -3,6 +3,7 @@ import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } fr
 import { ptBR } from "date-fns/locale";
 import { Plus, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
@@ -13,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 type ViewMode = "diario" | "semanal" | "mensal";
 
 const Agenda = () => {
-  const { user, isPatient, isAdmin, isGestor } = useAuth();
+  const { user, isPatient, isAdmin, isGestor, clinicId } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
@@ -23,19 +24,21 @@ const Agenda = () => {
   const [loading, setLoading] = useState(false);
 
   const fetchAgendamentos = useCallback(async () => {
+    if (!clinicId) return;
     setLoading(true);
     try {
-      let query = supabase
+      let query = (supabase
         .from("agendamentos")
         .select(`
           *,
           pacientes (id, nome, telefone),
           profiles (nome)
-        `);
+        `)
+        .eq("clinic_id", clinicId)) as any;
 
       if (isPatient) {
         // Find the patient linked to this user
-        const { data: p, error: patientError } = await supabase.from("pacientes").select("id").eq("user_id", user?.id).single();
+        const { data: p, error: patientError } = await (supabase.from("pacientes").select("id").eq("user_id", user?.id).single() as any);
         if (patientError) {
           console.error("Error fetching patient ID:", patientError);
           setAgendamentos([]); // No patient found or error, show no appointments

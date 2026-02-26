@@ -40,6 +40,8 @@ interface Profissional {
   telefone: string | null;
   role?: string;
   especialidade?: string | null;
+  commission_rate?: number;
+  commission_fixed?: number;
 }
 
 const Profissionais = () => {
@@ -51,6 +53,8 @@ const Profissionais = () => {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [especialidade, setEspecialidade] = useState<string | null>(null);
+  const [commissionRate, setCommissionRate] = useState("0");
+  const [commissionFixed, setCommissionFixed] = useState("0");
   const [loading, setLoading] = useState(false);
 
   const { data: profissionais = [], isLoading } = useQuery({
@@ -88,6 +92,8 @@ const Profissionais = () => {
     setEmail(p.email || "");
     setTelefone(p.telefone || "");
     setEspecialidade(p.especialidade || null);
+    setCommissionRate(String(p.commission_rate || 0));
+    setCommissionFixed(String(p.commission_fixed || 0));
     setDialogOpen(true);
   };
 
@@ -102,7 +108,9 @@ const Profissionais = () => {
           nome: nome.trim(),
           email: email || null,
           telefone: telefone || null,
-          especialidade: especialidade
+          especialidade: especialidade,
+          commission_rate: parseFloat(commissionRate) || 0,
+          commission_fixed: parseFloat(commissionFixed) || 0
         })
         .eq("id", editingId);
       if (error) throw error;
@@ -234,6 +242,16 @@ const Profissionais = () => {
                   <SelectItem value="rpg">RPG</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Comissão (%)</Label>
+                <Input type="number" step="0.01" value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} placeholder="0.00" />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor Fixo (R$)</Label>
+                <Input type="number" step="0.01" value={commissionFixed} onChange={(e) => setCommissionFixed(e.target.value)} placeholder="0.00" />
+              </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

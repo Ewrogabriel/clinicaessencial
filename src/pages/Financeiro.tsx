@@ -19,6 +19,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -37,7 +38,7 @@ const formaLabel: Record<string, string> = {
 };
 
 const Financeiro = () => {
-  const { user, isPatient } = useAuth();
+  const { user, isPatient, clinicId } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -53,11 +54,13 @@ const Financeiro = () => {
   });
 
   const { data: pagamentos = [], isLoading } = useQuery({
-    queryKey: ["pagamentos"],
+    queryKey: ["pagamentos", clinicId],
     queryFn: async () => {
-      let query = supabase
+      if (!clinicId) return [];
+      let query = (supabase
         .from("pagamentos")
-        .select("*, pacientes(nome)") as any;
+        .select("*, pacientes(nome)")
+        .eq("clinic_id", clinicId)) as any;
 
       if (isPatient) {
         const { data: p } = await supabase.from("pacientes").select("id").eq("user_id", user?.id).single();
@@ -75,17 +78,43 @@ const Financeiro = () => {
   });
 
   const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes-ativos"],
+    queryKey: ["pacientes-ativos", clinicId],
     queryFn: async () => {
-      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      if (!clinicId) return [];
+      const { data } = await (supabase.from("pacientes").select("id, nome").eq("status", "ativo").eq("clinic_id", clinicId).order("nome") as any);
       return data ?? [];
     },
+  });
+
+  const { data: despesas = [] } = useQuery({
+    queryKey: ["despesas", clinicId],
+    queryFn: async () => {
+      if (!clinicId) return [];
+      const { data, error } = await (supabase.from("expenses") as any).select("*").eq("clinic_id", clinicId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clinicId && !isPatient,
+  });
+
+  const { data: comissoes = [] } = useQuery({
+    queryKey: ["comissoes", clinicId],
+    queryFn: async () => {
+      if (!clinicId) return [];
+      const { data, error } = await (supabase.from("commissions") as any)
+        .select("*, profiles:professional_id(nome), agendamentos(pacientes(nome))")
+        .eq("clinic_id", clinicId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clinicId && !isPatient,
   });
 
   const createPagamento = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
       const { error } = await supabase.from("pagamentos").insert({
+        clinic_id: clinicId,
         paciente_id: formData.paciente_id,
         profissional_id: user.id,
         plano_id: formData.plano_id || null,
@@ -109,10 +138,15 @@ const Financeiro = () => {
     onError: (e: Error | any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const totalRecebido = (pagamentos as any[]).filter((p) => p.status === "pago").reduce((sum: number, p) => sum + Number(p.valor), 0);
-  const totalPendente = (pagamentos as any[]).filter((p) => p.status === "pendente").reduce((sum: number, p) => sum + Number(p.valor), 0);
-  const countPagos = (pagamentos as any[]).filter((p) => p.status === "pago").length;
-  const countPendentes = (pagamentos as any[]).filter((p) => p.status === "pendente").length;
+  const totalRecebido = (pagamentos || []).filter((p: any) => p.status === "pago").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
+  const totalPendente = (pagamentos || []).filter((p: any) => p.status === "pendente").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
+  const totalDespesas = ((despesas as any[]) || []).filter((d) => d.status === "pago").reduce((sum: number, d) => sum + Number(d.valor), 0);
+  const totalComissoes = ((comissoes as any[]) || []).reduce((sum: number, c) => sum + Number(c.valor), 0);
+  
+  const countPagos = (pagamentos || []).filter((p: any) => p.status === 'pago').length;
+  const countPendentes = (pagamentos || []).filter((p: any) => p.status === 'pendente').length;
+
+  const lucroLiquido = totalRecebido - totalDespesas - totalComissoes;
 
   return (
     <div className="space-y-6">
@@ -165,61 +199,141 @@ const Financeiro = () => {
         </div>
       )}
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
-          ) : pagamentos.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <DollarSign className="h-12 w-12 mb-4 opacity-40" />
-              <p className="text-lg font-medium">Nenhum pagamento registrado</p>
-              {!isPatient && (
-                <Button className="mt-4" onClick={() => setFormOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {!isPatient && <TableHead>Paciente</TableHead>}
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Forma</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Data Pgto</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(pagamentos as any[]).map((pagamento) => {
-                  return (
-                    <TableRow key={pagamento.id}>
-                      {!isPatient && <TableCell className="font-medium">{pagamento.pacientes?.nome ?? "—"}</TableCell>}
-                      <TableCell>{pagamento.descricao || "—"}</TableCell>
-                      <TableCell>R$ {Number(pagamento.valor).toFixed(2)}</TableCell>
-                      <TableCell>{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</TableCell>
-                      <TableCell>
-                        {pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "dd/MM/yyyy") : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {pagamento.status === 'pago' ? format(new Date(pagamento.data_pagamento), "dd/MM/yyyy") : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={pagamento.status === 'pago' ? 'default' : 'destructive'}>
-                          {statusBadge[pagamento.status]?.label || pagamento.status}
-                        </Badge>
-                      </TableCell>
+      {/* Tabs */}
+      <Tabs defaultValue="fluxo" className="space-y-4">
+        {!isPatient && (
+          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+            <TabsTrigger value="fluxo">Pagamentos</TabsTrigger>
+            <TabsTrigger value="dre">DRE Simples</TabsTrigger>
+            <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+          </TabsList>
+        )}
+
+        <TabsContent value="fluxo" className="space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
+              ) : (pagamentos || []).length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-muted-foreground">
+                  <DollarSign className="h-12 w-12 mb-4 opacity-40" />
+                  <p className="text-lg font-medium">Nenhum pagamento registrado</p>
+                  {!isPatient && (
+                    <Button className="mt-4" onClick={() => setFormOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {!isPatient && <TableHead>Paciente</TableHead>}
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Forma</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Data Pgto</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {(pagamentos as any[]).map((pagamento) => (
+                      <TableRow key={pagamento.id}>
+                        {!isPatient && <TableCell className="font-medium">{pagamento.pacientes?.nome ?? "—"}</TableCell>}
+                        <TableCell>{pagamento.descricao || "—"}</TableCell>
+                        <TableCell>R$ {Number(pagamento.valor).toFixed(2)}</TableCell>
+                        <TableCell>{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</TableCell>
+                        <TableCell>
+                          {pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "dd/MM/yyyy") : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {pagamento.status === 'pago' ? format(new Date(pagamento.data_pagamento), "dd/MM/yyyy") : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={pagamento.status === 'pago' ? 'default' : 'destructive'}>
+                            {statusBadge[pagamento.status]?.label || pagamento.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dre" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Demonstrativo de Resultados (DRE)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-green-600">(+) Receita Operacional (Pagamentos Recebidos)</span>
+                  <span className="font-bold text-green-600">R$ {totalRecebido.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-red-600">(-) Despesas Operacionais (Custos Fixos/Variáveis)</span>
+                  <span className="font-bold text-red-600">R$ {totalDespesas.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-red-600">(-) Comissões Profissionais</span>
+                  <span className="font-bold text-red-600">R$ {totalComissoes.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center py-4 bg-muted/50 px-4 rounded-lg">
+                  <span className="text-lg font-bold">(=) LUCRO LÍQUIDO NO PERÍODO</span>
+                  <span className={`text-xl font-black ${lucroLiquido >= 0 ? "text-primary" : "text-destructive"}`}>
+                    R$ {lucroLiquido.toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 italic">
+                  * Este DRE é baseado em contas pagas (regime de caixa). Pagamentos pendentes não são contabilizados aqui.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="comissoes" className="space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              {(comissoes || []).length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground">Nenhuma comissão gerada ainda.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Valor Comissão</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(comissoes || []).map((c: any) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium">{c.profiles?.nome}</TableCell>
+                        <TableCell>{c.agendamentos?.pacientes?.nome || "—"}</TableCell>
+                        <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
+                        <TableCell>R$ {Number(c.valor).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={c.status === "pago" ? "outline" : "secondary"}>
+                            {c.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -233,7 +347,7 @@ const Financeiro = () => {
               <Select value={formData.paciente_id} onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {(pacientes as any[]).map((p) => (
+                  {(pacientes || []).map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                   ))}
                 </SelectContent>

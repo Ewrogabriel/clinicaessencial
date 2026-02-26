@@ -16,6 +16,8 @@ interface AuthContextType {
   isGestor: boolean;
   isPatient: boolean;
   isProfissional: boolean;
+  clinicId: string | null;
+  patientId: string | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -29,15 +31,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [patientId, setPatientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("*")
       .eq("user_id", userId)
       .single();
-    setProfile(data);
+    setProfile(profile);
+
+    // If it's a patient, get their patient_id
+    if (profile) {
+      const { data: patient } = await supabase
+        .from("pacientes")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      setPatientId(patient?.id || null);
+    }
   };
 
   const fetchRoles = async (userId: string) => {
@@ -119,10 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isGestor = roles.includes("gestor");
   const isPatient = roles.includes("paciente");
   const isProfissional = roles.includes("profissional");
+  const clinicId = (profile as any)?.clinic_id || null;
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, roles, loading, isAdmin, isGestor, isPatient, isProfissional, signIn, signUp, resetPassword, signOut }}
+      value={{
+        user, session, profile, roles, loading,
+        isAdmin, isGestor, isPatient, isProfissional,
+        clinicId, patientId,
+        signIn, signUp, resetPassword, signOut
+      }}
     >
       {children}
     </AuthContext.Provider>

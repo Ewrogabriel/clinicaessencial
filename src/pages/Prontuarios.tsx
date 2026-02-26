@@ -1,0 +1,129 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Search, Stethoscope, User, ChevronRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
+const Prontuarios = () => {
+    const navigate = useNavigate();
+    const { clinicId } = useAuth();
+    const [busca, setBusca] = useState("");
+
+    const { data: pacientes = [], isLoading } = useQuery({
+        queryKey: ["prontuarios-list", clinicId],
+        queryFn: async () => {
+            if (!clinicId) return [];
+            // Fetch patients and their last evaluation date
+            const { data, error } = await (supabase
+                .from("pacientes")
+                .select(`
+          id, 
+          nome, 
+          tipo_atendimento,
+          status,
+          evaluations (data_avaliacao)
+        `)
+                .eq("clinic_id", clinicId)
+                .order("nome") as any);
+
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!clinicId,
+    });
+
+    const filtrados = pacientes.filter((p: any) =>
+        p.nome.toLowerCase().includes(busca.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Prontuários</h1>
+                <p className="text-muted-foreground">Gestão clínica e histórico de atendimentos</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar paciente..."
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        className="pl-9"
+                    />
+                </div>
+            </div>
+
+            <Card>
+                <CardContent className="p-0">
+                    {isLoading ? (
+                        <div className="p-8 text-center animate-pulse text-muted-foreground">Carregando prontuários...</div>
+                    ) : filtrados.length === 0 ? (
+                        <div className="p-12 text-center text-muted-foreground">
+                            <Stethoscope className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                            <p>Nenhum prontuário encontrado.</p>
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Paciente</TableHead>
+                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Status Clínico</TableHead>
+                                    <TableHead>Última Avaliação</TableHead>
+                                    <TableHead className="text-right">Ação</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filtrados.map((p: any) => {
+                                    const ultimaAvaliacao = p.evaluations?.[0]?.data_avaliacao;
+                                    return (
+                                        <TableRow key={p.id} className="group cursor-pointer" onClick={() => navigate(`/pacientes/${p.id}/detalhes`)}>
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-4 w-4 text-muted-foreground" />
+                                                    {p.nome}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="capitalize">{p.tipo_atendimento}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={ultimaAvaliacao ? "default" : "destructive"}>
+                                                    {ultimaAvaliacao ? "Avaliado" : "Sem Avaliação"}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {ultimaAvaliacao ? new Date(ultimaAvaliacao).toLocaleDateString() : "—"}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Ver Prontuário
+                                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+export default Prontuarios;

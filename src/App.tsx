@@ -17,10 +17,23 @@ import Financeiro from "./pages/Financeiro";
 import Relatorios from "./pages/Relatorios";
 import Modalidades from "./pages/Modalidades";
 import Profissionais from "./pages/Profissionais";
+import Prontuarios from "./pages/Prontuarios";
+import Despesas from "./pages/Despesas";
+import PacienteDetalhes from "./pages/PacienteDetalhes";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import PatientDashboard from "./pages/PatientDashboard";
+import MinhaAgenda from "./pages/MinhaAgenda";
+import MeusPagamentos from "./pages/MeusPagamentos";
+import Inteligencia from "./pages/Inteligencia";
+import Automacoes from "./pages/Automacoes";
 
 const queryClient = new QueryClient();
+
+const DashboardToggle = () => {
+  const { isPatient } = useAuth();
+  return isPatient ? <PatientDashboard /> : <Dashboard />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -40,16 +53,23 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<DashboardToggle />} />
               <Route path="/pacientes" element={<Pacientes />} />
               <Route path="/pacientes/novo" element={<PacienteForm />} />
               <Route path="/pacientes/:id" element={<PacienteForm />} />
+              <Route path="/pacientes/:id/detalhes" element={<PacienteDetalhes />} />
+              <Route path="/prontuarios" element={<Prontuarios />} />
               <Route path="/agenda" element={<Agenda />} />
+              <Route path="/minha-agenda" element={<MinhaAgenda />} />
+              <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
               <Route path="/planos" element={<Planos />} />
               <Route path="/financeiro" element={<Financeiro />} />
+              <Route path="/despesas" element={<Despesas />} />
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/modalidades" element={<Modalidades />} />
               <Route path="/profissionais" element={<Profissionais />} />
+              <Route path="/inteligencia" element={<Inteligencia />} />
+              <Route path="/automacoes" element={<Automacoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

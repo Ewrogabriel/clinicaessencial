@@ -61,7 +61,7 @@ const formSchema = z.object({
   tipo_atendimento: z.enum(["fisioterapia", "pilates", "rpg"]),
   tipo_sessao: z.enum(["individual", "grupo"]),
   observacoes: z.string().optional(),
-  recorrente: z.boolean().default(false),
+  frequencia: z.enum(["none", "daily", "weekly", "biweekly", "monthly"]).default("none"),
   dias_semana: z.array(z.number()).default([]),
   frequencia_semanal: z.number().min(1).max(7).default(1),
   recorrencia_semanas: z.number().min(1).max(200).default(52),
@@ -91,7 +91,7 @@ interface AgendamentoFormProps {
 }
 
 export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: AgendamentoFormProps) {
-  const { user } = useAuth();
+  const { user, clinicId } = useAuth();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,7 +104,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       tipo_sessao: "individual",
       horario: "08:00",
       observacoes: "",
-      recorrente: false,
+      frequencia: "none",
       dias_semana: [],
       frequencia_semanal: 1,
       recorrencia_semanas: 52,
@@ -114,7 +114,8 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     },
   });
 
-  const isRecorrente = form.watch("recorrente");
+  const frequencia = form.watch("frequencia");
+  const isRecorrente = frequencia !== "none";
   const diasSelecionados = form.watch("dias_semana");
   const freqSemanal = form.watch("frequencia_semanal");
   const tipoAtendimento = form.watch("tipo_atendimento");
@@ -135,18 +136,22 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const freqLabel = freqSemanal === 1 ? "1x" : freqSemanal === 2 ? "2x" : freqSemanal === 3 ? "3x" : `${freqSemanal}x`;
 
   const fetchPacientes = async () => {
+    if (!clinicId) return;
     const { data } = await supabase
       .from("pacientes")
       .select("id, nome")
       .eq("status", "ativo")
+      .eq("clinic_id", clinicId)
       .order("nome");
     setPacientes(data ?? []);
   };
 
   const fetchProfissionais = async () => {
+    if (!clinicId) return;
     const { data } = await supabase
       .from("profiles")
       .select("id, user_id, nome")
+      .eq("clinic_id", clinicId)
       .order("nome");
     setProfissionais(data ?? []);
   };
@@ -169,21 +174,37 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     const startDate = values.data;
     const totalWeeks = values.recorrencia_semanas;
 
-    if (values.dias_semana.length === 0) return dates;
+    if (values.frequencia === 'none') return dates;
 
-    for (let week = 0; week < totalWeeks; week++) {
-      for (const dia of values.dias_semana) {
-        const diaHorario = values.horarios_por_dia[String(dia)] || "08:00";
-        const [hours, minutes] = diaHorario.split(":").map(Number);
+    const [hours, minutes] = values.horario.split(":").map(Number);
 
-        const weekStart = addWeeks(startDate, week);
-        const dayOffset = (dia - weekStart.getDay() + 7) % 7;
-        const targetDate = addDays(weekStart, dayOffset);
+    if (values.frequencia === 'daily') {
+      for (let i = 0; i < totalWeeks * 7; i++) {
+        const d = addDays(startDate, i);
+        // Optional: skip weekends if requested, but prompt didn't specify
+        dates.push(setM(setH(d, hours), minutes));
+      }
+    } else if (values.frequencia === 'weekly' || values.frequencia === 'biweekly') {
+      const interval = values.frequencia === 'weekly' ? 1 : 2;
+      for (let week = 0; week < totalWeeks; week += interval) {
+        for (const dia of values.dias_semana) {
+          const diaHorario = values.horarios_por_dia[String(dia)] || values.horario || "08:00";
+          const [h, m] = diaHorario.split(":").map(Number);
 
-        if (targetDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
-          const dt = setM(setH(targetDate, hours), minutes);
-          dates.push(dt);
+          const weekStart = addWeeks(startDate, week);
+          const dayOffset = (dia - weekStart.getDay() + 7) % 7;
+          const targetDate = addDays(weekStart, dayOffset);
+
+          if (targetDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
+            const dt = setM(setH(targetDate, h), m);
+            dates.push(dt);
+          }
         }
+      }
+    } else if (values.frequencia === 'monthly') {
+      for (let i = 0; i < totalWeeks / 4; i++) {
+        const d = addMonths(startDate, i);
+        dates.push(setM(setH(d, hours), minutes));
       }
     }
 
@@ -200,8 +221,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     setLoading(true);
 
     try {
-      if (values.recorrente && values.dias_semana.length > 0) {
-        if (values.dias_semana.length !== values.frequencia_semanal) {
+      if (isRecorrente) {
+        // Validation for weekly/biweekly
+        if ((values.frequencia === 'weekly' || values.frequencia === 'biweekly') && values.dias_semana.length !== values.frequencia_semanal) {
           toast({
             title: "Atenção",
             description: `Você selecionou ${values.dias_semana.length} dia(s) mas a frequência é ${values.frequencia_semanal}x. Ajuste para que coincidam.`,
@@ -220,6 +242,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
         const grupoId = crypto.randomUUID();
         const records = dates.map((dt) => ({
+          clinic_id: clinicId,
           paciente_id: values.paciente_id,
           profissional_id: values.profissional_id,
           data_horario: dt.toISOString(),
@@ -240,7 +263,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
         toast({
           title: "Agendamentos recorrentes criados!",
-          description: `${dates.length} sessões agendadas por tempo indeterminado.`,
+          description: `${dates.length} sessões agendadas.`,
         });
       } else {
         const [hours, minutes] = values.horario.split(":").map(Number);
@@ -248,6 +271,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
         dataHorario.setHours(hours, minutes, 0, 0);
 
         const { error } = await supabase.from("agendamentos").insert({
+          clinic_id: clinicId,
           paciente_id: values.paciente_id,
           profissional_id: values.profissional_id,
           data_horario: dataHorario.toISOString(),
@@ -495,12 +519,27 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                 </div>
                 <FormField
                   control={form.control}
-                  name="recorrente"
+                  name="frequencia"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
+                    <FormItem className="w-1/2">
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Repetição" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Não Repetir</SelectItem>
+                          <SelectItem value="daily">Diário</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="biweekly">Quinzenal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )}
                 />

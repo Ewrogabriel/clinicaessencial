@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, Activity, AlertTriangle, ArrowRight } from "lucide-react";
+import { Users, Activity, AlertTriangle, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Cell
+} from 'recharts';
 
 const tipoLabels: Record<string, string> = {
   fisioterapia: "Fisioterapia",
@@ -17,22 +21,43 @@ const tipoLabels: Record<string, string> = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, clinicId } = useAuth();
 
   const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes"],
+    queryKey: ["pacientes", clinicId],
     queryFn: async () => {
+      if (!clinicId) return [];
       const { data, error } = await supabase
         .from("pacientes")
         .select("*")
+        .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
+    enabled: !!clinicId,
   });
 
-  const ativos = pacientes.filter((p) => p.status === "ativo");
-  const recentes = pacientes.slice(0, 5);
+  const { data: financeData } = useQuery({
+    queryKey: ["dashboard-finance", clinicId],
+    queryFn: async () => {
+      if (!clinicId) return { receita: 0, custos: 0, repasses: 0, lucro: 0 };
+
+      const { data: pagamentos } = await supabase.from("pagamentos").select("valor, status").eq("clinic_id", clinicId);
+      const { data: despesas } = await (supabase.from("expenses") as any).select("valor, status").eq("clinic_id", clinicId);
+      const { data: comissoes } = await (supabase.from("commissions") as any).select("valor").eq("clinic_id", clinicId);
+
+      const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc, p) => acc + Number(p.valor), 0) || 0;
+      const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc, d) => acc + Number(d.valor), 0) || 0;
+      const repasses = (comissoes || [])?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
+
+      return { receita, custos, repasses, lucro: receita - custos - repasses };
+    },
+    enabled: !!clinicId,
+  });
+
+  const ativos = (pacientes || []).filter((p) => p.status === "ativo");
+  const recentes = (pacientes || []).slice(0, 5);
 
   const hoje = new Date();
   const saudacao =
@@ -47,26 +72,32 @@ const Dashboard = () => {
       color: "text-emerald-600 bg-emerald-50",
     },
     {
-      title: "Atendimentos Hoje",
-      value: "—",
-      icon: Calendar,
-      description: "Aguardando agenda",
+      title: "Receita (Total)",
+      value: `R$ ${(financeData?.receita || 0).toFixed(2)}`,
+      icon: Activity,
+      description: "Pagamentos recebidos",
       color: "text-blue-600 bg-blue-50",
     },
     {
-      title: "Sessões na Semana",
-      value: "—",
+      title: "Lucro Líquido",
+      value: `R$ ${(financeData?.lucro || 0).toFixed(2)}`,
       icon: Activity,
-      description: "Aguardando agenda",
+      description: "Após despesas e comissões",
       color: "text-violet-600 bg-violet-50",
     },
     {
-      title: "Avisos",
+      title: "Alertas",
       value: "0",
       icon: AlertTriangle,
-      description: "Nenhum aviso pendente",
+      description: "Nenhum atraso crítico",
       color: "text-amber-600 bg-amber-50",
     },
+  ];
+
+  const chartData = [
+    { name: 'Receita', valor: financeData?.receita || 0, color: '#10b981' },
+    { name: 'Despesas', valor: financeData?.custos || 0, color: '#ef4444' },
+    { name: 'Comissões', valor: financeData?.repasses || 0, color: '#f59e0b' },
   ];
 
   return (
@@ -103,21 +134,27 @@ const Dashboard = () => {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Próximos Atendimentos</CardTitle>
+          <CardHeader>
+            <CardTitle className="text-lg">Resumo Financeiro</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Calendar className="h-10 w-10 mb-3 opacity-40" />
-              <p className="text-sm">Agenda será ativada após migração do banco</p>
-              <Button
-                variant="link"
-                size="sm"
-                className="mt-2"
-                onClick={() => navigate("/agenda")}
-              >
-                Ir para Agenda <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -152,7 +189,7 @@ const Dashboard = () => {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                        {p.nome.charAt(0).toUpperCase()}
+                        {(p.nome || "?").charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{p.nome}</p>

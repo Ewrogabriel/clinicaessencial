@@ -1,0 +1,111 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
+
+interface EvolutionFormProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    pacienteId: string;
+}
+
+export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormProps) => {
+    const { user, clinicId } = useAuth();
+    const queryClient = useQueryClient();
+    const [descricao, setDescricao] = useState("");
+    const [conduta, setConduta] = useState("");
+
+    const evolutionMutation = useMutation({
+        mutationFn: async () => {
+            if (!user || !clinicId) throw new Error("Usuário não autenticado");
+
+            const { error } = await (supabase.from("evolutions") as any).insert({
+                clinic_id: clinicId,
+                paciente_id: pacienteId,
+                profissional_id: user.id,
+                descricao,
+                conduta,
+                data_evolucao: new Date().toISOString(),
+            });
+
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["evolucoes", pacienteId] });
+            toast({ title: "Evolução registrada com sucesso!" });
+            setDescricao("");
+            setConduta("");
+            onOpenChange(false);
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Erro ao registrar evolução",
+                description: error.message,
+                variant: "destructive",
+            });
+        },
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!descricao) {
+            toast({ title: "A descrição é obrigatória", variant: "destructive" });
+            return;
+        }
+        evolutionMutation.mutate();
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[500px]">
+                <form onSubmit={handleSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Evoluir Sessão</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="descricao">Descrição do Atendimento *</Label>
+                            <Textarea
+                                id="descricao"
+                                placeholder="Descreva o que foi realizado na sessão..."
+                                value={descricao}
+                                onChange={(e) => setDescricao(e.target.value)}
+                                rows={5}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="conduta">Próximos Passos / Conduta</Label>
+                            <Textarea
+                                id="conduta"
+                                placeholder="Plano para a próxima sessão..."
+                                value={conduta}
+                                onChange={(e) => setConduta(e.target.value)}
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={evolutionMutation.isPending}>
+                            {evolutionMutation.isPending ? "Salvando..." : "Salvar Evolução"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+};

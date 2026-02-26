@@ -10,6 +10,9 @@ import {
   Activity,
   Layers,
   UserCog,
+  Receipt,
+  Brain,
+  Send,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -32,6 +35,7 @@ const menuPrincipal = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Agenda", url: "/agenda", icon: Calendar },
+  { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
 ];
 
 const menuProfissional = [
@@ -42,7 +46,19 @@ const menuProfissional = [
 const menuGestao = [
   { title: "Planos", url: "/planos", icon: ClipboardList },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Despesas", url: "/despesas", icon: Receipt },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+];
+
+const menuPatient = [
+  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
+  { title: "Meus Pagamentos", url: "/meus-pagamentos", icon: DollarSign },
+];
+
+const menuIA = [
+  { title: "Inteligência", url: "/inteligencia", icon: Brain },
+  { title: "Automações", url: "/automacoes", icon: Send },
 ];
 
 export function AppSidebar() {
@@ -69,10 +85,10 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">
-              FisioClin
+              Essencial
             </span>
             <span className="text-[11px] text-sidebar-foreground/60">
-              Gestão Clínica
+              FisioPilates
             </span>
           </div>
         )}
@@ -80,32 +96,27 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{isPatient ? "Meu Acesso" : "Principal"}</SidebarGroupLabel>
+          <SidebarGroupLabel>{isPatient ? "Meu Portal" : "Principal"}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuPrincipal
-                .filter(item => isStaff || item.url === "/agenda")
-                .map((item) => {
-                  const title = isPatient && item.url === "/agenda" ? "Minha Agenda" : item.title;
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive(item.url)}
-                        tooltip={title}
-                      >
-                        <NavLink
-                          to={item.url}
-                          end={item.url === "/dashboard"}
-                          activeClassName="bg-sidebar-accent text-sidebar-primary"
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+              {(isPatient ? menuPatient : menuPrincipal).map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
+                    <NavLink
+                      to={item.url}
+                      end={item.url === "/dashboard"}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -137,35 +148,32 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>{isPatient ? "Financeiro" : "Gestão"}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuGestao
-                .filter(item => isStaff || item.url === "/financeiro")
-                .map((item) => {
-                  const title = isPatient && item.url === "/financeiro" ? "Meus Pagamentos" : item.title;
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive(item.url)}
-                        tooltip={title}
+        {isStaff && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Gestão</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuGestao.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                    >
+                      <NavLink
+                        to={item.url}
+                        activeClassName="bg-sidebar-accent text-sidebar-primary"
                       >
-                        <NavLink
-                          to={item.url}
-                          activeClassName="bg-sidebar-accent text-sidebar-primary"
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

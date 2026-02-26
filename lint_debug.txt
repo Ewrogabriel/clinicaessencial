@@ -1,0 +1,143 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\agenda\AgendamentoForm.tsx
+  134:6  warning  React Hook useEffect has missing dependencies: 'fetchPacientes' and 'fetchProfissionais'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\clinical\EvaluationForm.tsx
+  41:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\clinical\EvolutionForm.tsx
+  33:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\profissionais\UserRoleManager.tsx
+   60:34   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:25   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:73   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:120  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:170  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\hooks\useAuth.tsx
+  123:32  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  139:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Agenda.tsx
+  37:40   error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  41:133  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  60:33   error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  69:18   error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  82:6    warning  React Hook useCallback has a missing dependency: 'clinicId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Automacoes.tsx
+  104:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Dashboard.tsx
+  47:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Despesas.tsx
+   61:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  127:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  271:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Financeiro.tsx
+   63:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:142  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:54   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:36   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:12   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:26   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:38   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  214:37   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  290:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  323:34   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Inteligencia.tsx
+  154:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  158:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\MeusPagamentos.tsx
+  35:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\MinhaAgenda.tsx
+  103:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\PacienteDetalhes.tsx
+   42:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   72:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  203:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Pacientes.tsx
+  51:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\PatientDashboard.tsx
+  130:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Planos.tsx
+  108:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  272:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Profissionais.tsx
+  82:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Prontuarios.tsx
+  40:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Relatorios.tsx
+  52:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  75:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 82 problems (72 errors, 10 warnings)
+

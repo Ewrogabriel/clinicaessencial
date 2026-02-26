@@ -23,6 +23,7 @@ import { Plus, Search, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { useAuth } from "@/hooks/useAuth";
 
 type Paciente = Tables<"pacientes">;
 
@@ -33,21 +34,25 @@ const tipoLabels: Record<string, string> = {
 };
 
 const Pacientes = () => {
+  const { clinicId } = useAuth();
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
   const { data: pacientes = [], isLoading } = useQuery({
-    queryKey: ["pacientes"],
+    queryKey: ["pacientes", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!clinicId) return [];
+      const { data, error } = await (supabase
         .from("pacientes")
         .select("*")
-        .order("nome");
+        .eq("clinic_id", clinicId)
+        .order("nome") as any);
       if (error) throw error;
       return data as Paciente[];
     },
+    enabled: !!clinicId,
   });
 
   const filtrados = pacientes.filter((p) => {
@@ -142,7 +147,7 @@ const Pacientes = () => {
                 </TableHeader>
                 <TableBody>
                   {filtrados.map((paciente) => (
-                    <TableRow key={paciente.id} className="cursor-pointer" onClick={() => navigate(`/pacientes/${paciente.id}`)}>
+                    <TableRow key={paciente.id} className="cursor-pointer" onClick={() => navigate(`/pacientes/${paciente.id}/detalhes`)}>
                       <TableCell className="font-medium">{paciente.nome}</TableCell>
                       <TableCell className="hidden sm:table-cell">{paciente.telefone}</TableCell>
                       <TableCell className="hidden md:table-cell">{paciente.cpf || "—"}</TableCell>
