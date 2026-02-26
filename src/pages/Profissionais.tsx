@@ -194,7 +194,9 @@ const Profissionais = () => {
                     Para criar um novo Profissional ou Gestor, peça que ele se cadastre normalmente como Paciente e depois utilize a ferramenta abaixo para elevar o cargo dele.
                   </p>
                 </div>
-                <UserRoleManager />
+                <div className="flex gap-4">
+                  <UserRoleManager />
+                </div>
               </div>
             </CardContent>
           </Card>

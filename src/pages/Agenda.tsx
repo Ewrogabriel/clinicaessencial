@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 type ViewMode = "diario" | "semanal" | "mensal";
 
 const Agenda = () => {
-  const { user, isPatient } = useAuth();
+  const { user, isPatient, isAdmin, isGestor } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
