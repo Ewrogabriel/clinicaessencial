@@ -13,6 +13,7 @@ import {
   Receipt,
   Brain,
   Send,
+  Megaphone,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -59,6 +60,10 @@ const menuPatient = [
 const menuIA = [
   { title: "Inteligência", url: "/inteligencia", icon: Brain },
   { title: "Automações", url: "/automacoes", icon: Send },
+];
+
+const menuComunicacao = [
+  { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
 ];
 
 export function AppSidebar() {
@@ -154,6 +159,33 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {menuGestao.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                    >
+                      <NavLink
+                        to={item.url}
+                        activeClassName="bg-sidebar-accent text-sidebar-primary"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {(isAdmin || isGestor) && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Comunicação</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuComunicacao.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild

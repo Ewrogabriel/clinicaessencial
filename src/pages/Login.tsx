@@ -168,11 +168,15 @@ const Login = () => {
                     <Input
                       id="login-email"
                       type="text"
-                      placeholder="000.000.000-00 ou seu@email.com"
+                      placeholder="Digite apenas os números do CPF"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
+                      autoFocus
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Pacientes: só os números do CPF. Profissionais: use o e-mail.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-senha">Senha</Label>

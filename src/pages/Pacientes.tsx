@@ -19,11 +19,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Users } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Plus, Search, Users, Trash2, UserX } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Paciente = Tables<"pacientes">;
 
@@ -36,9 +47,26 @@ const tipoLabels: Record<string, string> = {
 const Pacientes = () => {
   const { clinicId } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleInativar = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase
+      .from("pacientes")
+      .update({ status: "inativo" })
+      .eq("id", deleteId);
+    if (error) {
+      toast({ title: "Erro ao inativar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Paciente inativado com sucesso." });
+      queryClient.invalidateQueries({ queryKey: ["pacientes", clinicId] });
+    }
+    setDeleteId(null);
+  };
 
   const { data: pacientes = [], isLoading } = useQuery({
     queryKey: ["pacientes", clinicId],
@@ -143,6 +171,7 @@ const Pacientes = () => {
                     <TableHead className="hidden md:table-cell">CPF</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -163,6 +192,19 @@ const Pacientes = () => {
                           {paciente.status === "ativo" ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {paciente.status === "ativo" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            title="Inativar paciente"
+                            onClick={() => setDeleteId(paciente.id)}
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -171,6 +213,23 @@ const Pacientes = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inativar paciente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O paciente será marcado como inativo e não aparecerá nas listas ativas. Esta ação pode ser desfeita editando o paciente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleInativar} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
