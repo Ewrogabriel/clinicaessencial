@@ -1,18 +1,13 @@
-# Debug files
-*debug*.txt
-lint_output.txt
-build_debug.txt
+.gitignore
 
-# Environment files
-.env.local
-.env.*.local
+# Ignore debug files
+*.log
+*.tmp
+*.dbg
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
+# Ignore build artifacts
+build/
+*.o
+*.class
+*.out
+*.exe
