@@ -37,7 +37,7 @@ const PatientOnboarding = () => {
         return;
       }
       
-      if (data.user_id) {
+      if ((data as any).user_id) {
         toast({ title: "Cadastro já finalizado", description: "Você já possui acesso. Faça o login." });
         navigate("/login");
         return;

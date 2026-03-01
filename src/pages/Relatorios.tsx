@@ -16,9 +16,8 @@ const Relatorios = () => {
     queryKey: ["relatorio-agendamentos", clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
-      const { data } = await supabase
-        .from("agendamentos")
-        .select("id, data_horario, tipo_atendimento, tipo_sessao, status, profissional_id, profiles!agendamentos_profissional_id_fkey(nome)")
+      const { data } = await (supabase.from("agendamentos") as any)
+        .select("id, data_horario, tipo_atendimento, tipo_sessao, status, profissional_id")
         .eq("clinic_id", clinicId)
         .gte("data_horario", subMonths(new Date(), 6).toISOString())
         .order("data_horario", { ascending: true });
@@ -31,8 +30,7 @@ const Relatorios = () => {
     queryKey: ["relatorio-pagamentos", clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
-      const { data } = await supabase
-        .from("pagamentos")
+      const { data } = await (supabase.from("pagamentos") as any)
         .select("id, valor, data_pagamento, status, forma_pagamento")
         .eq("clinic_id", clinicId)
         .gte("data_pagamento", format(subMonths(new Date(), 6), "yyyy-MM-dd"))
@@ -46,7 +44,7 @@ const Relatorios = () => {
     queryKey: ["relatorio-pacientes", clinicId],
     queryFn: async () => {
       if (!clinicId) return 0;
-      const { count } = await supabase.from("pacientes").select("id", { count: "exact", head: true }).eq("status", "ativo").eq("clinic_id", clinicId);
+      const { count } = await (supabase.from("pacientes") as any).select("id", { count: "exact", head: true }).eq("status", "ativo").eq("clinic_id", clinicId);
       return count ?? 0;
     },
     enabled: !!clinicId,

@@ -88,6 +88,213 @@ export type Database = {
           },
         ]
       }
+      avisos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string
+          id: string
+          mensagem: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by: string
+          id?: string
+          mensagem: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string
+          id?: string
+          mensagem?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      commissions: {
+        Row: {
+          agendamento_id: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          professional_id: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          agendamento_id?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          professional_id: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          agendamento_id?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          professional_id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluations: {
+        Row: {
+          antecedentes_pessoais: string | null
+          clinic_id: string
+          conduta_inicial: string | null
+          created_at: string
+          data_avaliacao: string
+          historico_doenca: string | null
+          id: string
+          objetivos_tratamento: string | null
+          paciente_id: string
+          profissional_id: string
+          queixa_principal: string
+          updated_at: string
+        }
+        Insert: {
+          antecedentes_pessoais?: string | null
+          clinic_id: string
+          conduta_inicial?: string | null
+          created_at?: string
+          data_avaliacao?: string
+          historico_doenca?: string | null
+          id?: string
+          objetivos_tratamento?: string | null
+          paciente_id: string
+          profissional_id: string
+          queixa_principal: string
+          updated_at?: string
+        }
+        Update: {
+          antecedentes_pessoais?: string | null
+          clinic_id?: string
+          conduta_inicial?: string | null
+          created_at?: string
+          data_avaliacao?: string
+          historico_doenca?: string | null
+          id?: string
+          objetivos_tratamento?: string | null
+          paciente_id?: string
+          profissional_id?: string
+          queixa_principal?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evolutions: {
+        Row: {
+          clinic_id: string
+          conduta: string | null
+          created_at: string
+          data_evolucao: string
+          descricao: string
+          id: string
+          paciente_id: string
+          profissional_id: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          conduta?: string | null
+          created_at?: string
+          data_evolucao?: string
+          descricao: string
+          id?: string
+          paciente_id: string
+          profissional_id: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          conduta?: string | null
+          created_at?: string
+          data_evolucao?: string
+          descricao?: string
+          id?: string
+          paciente_id?: string
+          profissional_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evolutions_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          categoria: string | null
+          clinic_id: string
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string
+          id: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          clinic_id: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao: string
+          id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string | null
+          clinic_id?: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       modalidades: {
         Row: {
           ativo: boolean

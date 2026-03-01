@@ -72,11 +72,10 @@ const Pacientes = () => {
     queryKey: ["pacientes", clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
-      const { data, error } = await (supabase
-        .from("pacientes")
+      const { data, error } = await (supabase.from("pacientes") as any)
         .select("*")
         .eq("clinic_id", clinicId)
-        .order("nome") as any);
+        .order("nome");
       if (error) throw error;
       return data as Paciente[];
     },

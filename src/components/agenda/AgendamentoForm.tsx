@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
+import { format, addWeeks, setHours as setH, setMinutes as setM, addDays, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Repeat, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -144,8 +144,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
   const fetchPacientes = async () => {
     if (!clinicId) return;
-    const { data } = await supabase
-      .from("pacientes")
+    const { data } = await (supabase.from("pacientes") as any)
       .select("id, nome")
       .eq("status", "ativo")
       .eq("clinic_id", clinicId)
@@ -155,8 +154,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
   const fetchProfissionais = async () => {
     if (!clinicId) return;
-    const { data } = await supabase
-      .from("profiles")
+    const { data } = await (supabase.from("profiles") as any)
       .select("id, user_id, nome")
       .eq("clinic_id", clinicId)
       .order("nome");
@@ -274,7 +272,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           valor_mensal: values.valor_mensal || null,
         }));
 
-        const { error } = await supabase.from("agendamentos").insert(records);
+        const { error } = await (supabase.from("agendamentos") as any).insert(records);
         if (error) throw error;
 
         toast({
@@ -286,7 +284,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
         const dataHorario = new Date(values.data);
         dataHorario.setHours(hours, minutes, 0, 0);
 
-        const { error } = await supabase.from("agendamentos").insert({
+        const { error } = await (supabase.from("agendamentos") as any).insert({
           clinic_id: clinicId,
           paciente_id: values.paciente_id,
           profissional_id: values.profissional_id,

@@ -57,13 +57,12 @@ const Financeiro = () => {
     queryKey: ["pagamentos", clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
-      let query = (supabase
-        .from("pagamentos")
+      let query = (supabase.from("pagamentos") as any)
         .select("*, pacientes(nome)")
-        .eq("clinic_id", clinicId)) as any;
+        .eq("clinic_id", clinicId);
 
       if (isPatient) {
-        const { data: p } = await supabase.from("pacientes").select("id").eq("user_id", user?.id).single();
+        const { data: p } = await (supabase.from("pacientes") as any).select("id").eq("user_id", user?.id).single();
         if (p) {
           query = query.eq("paciente_id", p.id);
         } else {
@@ -81,7 +80,7 @@ const Financeiro = () => {
     queryKey: ["pacientes-ativos", clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
-      const { data } = await (supabase.from("pacientes").select("id, nome").eq("status", "ativo").eq("clinic_id", clinicId).order("nome") as any);
+      const { data } = await (supabase.from("pacientes") as any).select("id, nome").eq("status", "ativo").eq("clinic_id", clinicId).order("nome");
       return data ?? [];
     },
   });

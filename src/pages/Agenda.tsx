@@ -27,18 +27,16 @@ const Agenda = () => {
     if (!clinicId) return;
     setLoading(true);
     try {
-      let query = (supabase
-        .from("agendamentos")
+      let query = (supabase.from("agendamentos") as any)
         .select(`
           *,
-          pacientes (id, nome, telefone),
-          profiles (nome)
+          pacientes (id, nome, telefone)
         `)
-        .eq("clinic_id", clinicId)) as any;
+        .eq("clinic_id", clinicId);
 
       if (isPatient) {
         // Find the patient linked to this user
-        const { data: p, error: patientError } = await (supabase.from("pacientes").select("id").eq("user_id", user?.id).single() as any);
+        const { data: p, error: patientError } = await (supabase.from("pacientes") as any).select("id").eq("user_id", user?.id).single();
         if (patientError) {
           console.error("Error fetching patient ID:", patientError);
           setAgendamentos([]); // No patient found or error, show no appointments

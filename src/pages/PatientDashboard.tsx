@@ -83,10 +83,10 @@ const PatientDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {planoAtivo ? `${planoAtivo.sessoes_restantes} / ${planoAtivo.total_sessoes}` : "0 / 0"}
+              {planoAtivo ? `${(planoAtivo as any).sessoes_restantes ?? 0} / ${planoAtivo.total_sessoes}` : "0 / 0"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              No seu plano atual de {planoAtivo?.modalidade || "—"}
+              No seu plano atual de {(planoAtivo as any)?.modalidade || "—"}
             </p>
           </CardContent>
         </Card>
@@ -105,7 +105,7 @@ const PatientDashboard = () => {
                 : "Nenhuma marcada"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {agenda.length > 0 ? `Com ${agenda[0].profiles?.nome}` : "Agende uma nova sessão"}
+              {agenda.length > 0 ? `Com ${(agenda[0] as any).profiles?.nome}` : "Agende uma nova sessão"}
             </p>
           </CardContent>
         </Card>

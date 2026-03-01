@@ -155,7 +155,7 @@ const Inteligencia = () => {
                       if (props.payload.isPrediction) return <circle cx={props.cx} cy={props.cy} r={4} fill="#94a3b8" />;
                       return <circle cx={props.cx} cy={props.cy} r={4} fill="#10b981" />;
                     }}
-                    strokeDasharray={(props: any) => props?.payload?.isPrediction ? "5 5" : "0"}
+                    strokeDasharray="0"
                   />
                 </LineChart>
               </ResponsiveContainer>

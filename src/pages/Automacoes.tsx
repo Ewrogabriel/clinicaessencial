@@ -69,8 +69,7 @@ const Automacoes = () => {
   const { data: patients = [] } = useQuery({
     queryKey: ["automation-patients", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pacientes")
+      const { data, error } = await (supabase.from("pacientes") as any)
         .select("*")
         .eq("clinic_id", clinicId)
         .eq("status", "ativo");

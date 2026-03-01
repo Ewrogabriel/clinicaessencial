@@ -44,8 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // If it's a patient, get their patient_id
     if (profile) {
-      const { data: patient } = await supabase
-        .from("pacientes")
+      const { data: patient } = await (supabase.from("pacientes") as any)
         .select("id")
         .eq("user_id", userId)
         .maybeSingle();

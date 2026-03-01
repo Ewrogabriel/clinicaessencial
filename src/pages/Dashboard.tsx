@@ -27,8 +27,7 @@ const Dashboard = () => {
     queryKey: ["pacientes", clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
-      const { data, error } = await supabase
-        .from("pacientes")
+      const { data, error } = await (supabase.from("pacientes") as any)
         .select("*")
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false });
@@ -47,7 +46,7 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!clinicId) return { receita: 0, custos: 0, repasses: 0, lucro: 0 };
 
-      const { data: pagamentos } = await supabase.from("pagamentos").select("valor, status").eq("clinic_id", clinicId).gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
+      const { data: pagamentos } = await (supabase.from("pagamentos") as any).select("valor, status").eq("clinic_id", clinicId).gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
       const { data: despesas } = await (supabase.from("expenses") as any).select("valor, status").eq("clinic_id", clinicId);
       const { data: comissoes } = await (supabase.from("commissions") as any).select("valor").eq("clinic_id", clinicId);
 
@@ -65,8 +64,7 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!clinicId) return 0;
       // Count overdue pending payments
-      const { count } = await supabase
-        .from("pagamentos")
+      const { count } = await (supabase.from("pagamentos") as any)
         .select("id", { count: "exact", head: true })
         .eq("clinic_id", clinicId)
         .eq("status", "pendente")
