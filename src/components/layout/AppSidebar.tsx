@@ -166,6 +166,12 @@ export function AppSidebar() {
             {renderGroup("Financeiro & Gestão", menuFinanceiro)}
             {renderGroup("Comunicação", menuComunicacao)}
             {renderGroup("IA & Automação", menuIA)}
+            {/* If admin is also a professional, show their profile/commission links */}
+            {isProfissional && (
+              <>
+                {renderGroup("Meu Perfil Profissional", menuProfPerfil)}
+              </>
+            )}
           </>
         ) : isProfissional ? (
           <>

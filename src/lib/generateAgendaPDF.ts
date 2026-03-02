@@ -5,7 +5,9 @@ import { ptBR } from "date-fns/locale";
 
 interface AgendamentoForPDF {
   data_horario: string;
+  profissional_id?: string;
   pacientes?: { nome: string } | null;
+  profiles?: { nome: string } | null;
   paciente_telefone?: string;
 }
 
@@ -20,7 +22,8 @@ function formatPatientName(nome: string): string {
 export function generateWeeklyPDF(
   agendamentos: AgendamentoForPDF[],
   currentDate: Date,
-  pacientesMap: Record<string, string> // paciente_id -> telefone
+  pacientesMap: Record<string, string>,
+  professionalName?: string // if filtering by professional
 ) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
@@ -28,13 +31,14 @@ export function generateWeeklyPDF(
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  const title = `Agenda Semanal - ${format(weekStart, "dd/MM")} a ${format(weekEnd, "dd/MM/yyyy")}`;
+  let title = `Agenda Semanal - ${format(weekStart, "dd/MM")} a ${format(weekEnd, "dd/MM/yyyy")}`;
+  if (professionalName) {
+    title += ` — ${professionalName}`;
+  }
   doc.setFontSize(14);
   doc.text(title, 14, 15);
 
-  // Hours from 6 to 19
   const hours = Array.from({ length: 14 }, (_, i) => i + 6);
-
   const dayHeaders = ["Horário", ...days.map((d) => format(d, "EEE dd/MM", { locale: ptBR }))];
 
   const bodyRows = hours.map((hour) => {
@@ -52,7 +56,8 @@ export function generateWeeklyPDF(
           const time = format(new Date(ag.data_horario), "HH:mm");
           const name = ag.pacientes?.nome ? formatPatientName(ag.pacientes.nome) : "—";
           const tel = ag.paciente_telefone || "";
-          return `${time} ${name}${tel ? "\n" + tel : ""}`;
+          const prof = !professionalName && ag.profiles?.nome ? `[${formatPatientName(ag.profiles.nome)}]` : "";
+          return `${time} ${name}${prof ? " " + prof : ""}${tel ? "\n" + tel : ""}`;
         })
         .join("\n\n");
     });
@@ -88,5 +93,8 @@ export function generateWeeklyPDF(
     },
   });
 
-  doc.save(`agenda-semanal-${format(weekStart, "yyyy-MM-dd")}.pdf`);
+  const fileName = professionalName
+    ? `agenda-semanal-${professionalName.replace(/\s+/g, "_")}-${format(weekStart, "yyyy-MM-dd")}.pdf`
+    : `agenda-semanal-${format(weekStart, "yyyy-MM-dd")}.pdf`;
+  doc.save(fileName);
 }

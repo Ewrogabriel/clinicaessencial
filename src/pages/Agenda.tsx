@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, FileDown, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDialog";
@@ -28,6 +30,26 @@ const Agenda = () => {
   const [rescheduleAg, setRescheduleAg] = useState<Agendamento | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAg, setDetailAg] = useState<Agendamento | null>(null);
+  const [filterProfId, setFilterProfId] = useState<string>("all");
+
+  const isStaff = isAdmin || isGestor;
+
+  // Fetch professionals for filter
+  const { data: profissionais = [] } = useQuery({
+    queryKey: ["prof-for-agenda-filter"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
+      const ids = roles?.map(r => r.user_id) ?? [];
+      // Also include admins who might attend
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const adminIds = adminRoles?.map(r => r.user_id) ?? [];
+      const allIds = [...new Set([...ids, ...adminIds])];
+      if (!allIds.length) return [];
+      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", allIds).order("nome");
+      return data ?? [];
+    },
+    enabled: isStaff,
+  });
 
   const handleAppointmentClick = (ag: Agendamento) => {
     setDetailAg(ag);
@@ -50,21 +72,13 @@ const Agenda = () => {
         `);
 
       if (isPatient) {
-        // Find the patient linked to this user
         const { data: p, error: patientError } = await (supabase.from("pacientes") as any).select("id").eq("user_id", user?.id).single();
-        if (patientError) {
-          console.error("Error fetching patient ID:", patientError);
-          setAgendamentos([]); // No patient found or error, show no appointments
+        if (patientError || !p) {
+          setAgendamentos([]);
           setLoading(false);
           return;
         }
-        if (p) {
-          query = query.eq("paciente_id", p.id);
-        } else {
-          setAgendamentos([]); // Patient user not linked yet
-          setLoading(false);
-          return;
-        }
+        query = query.eq("paciente_id", p.id);
       }
 
       const { data, error } = await query.order("data_horario", { ascending: true });
@@ -77,7 +91,6 @@ const Agenda = () => {
         }));
         setAgendamentos(mapped);
 
-        // Build telefone map
         const telMap: Record<string, string> = {};
         (data as any[]).forEach((item) => {
           if (item.paciente_id && item.pacientes?.telefone) {
@@ -92,14 +105,19 @@ const Agenda = () => {
       console.error("Unexpected error in fetchAgendamentos:", e);
     }
     setLoading(false);
-  }, [isPatient, user?.id]); // Added dependencies for useCallback
+  }, [isPatient, user?.id]);
 
   useEffect(() => {
     fetchAgendamentos();
   }, [fetchAgendamentos]);
 
+  // Apply professional filter
+  const filteredAgendamentos = filterProfId === "all"
+    ? agendamentos
+    : agendamentos.filter(ag => ag.profissional_id === filterProfId);
+
   const handleSlotClick = (date: Date) => {
-    if (!isPatient || isAdmin || isGestor) { // Allow team to create/edit
+    if (!isPatient || isAdmin || isGestor) {
       setSelectedDate(date);
       setFormOpen(true);
     }
@@ -111,12 +129,15 @@ const Agenda = () => {
   };
 
   const handleExportPDF = () => {
-    const agsWithTel = agendamentos.map((ag) => ({
+    const agsWithTel = filteredAgendamentos.map((ag) => ({
       ...ag,
       paciente_telefone: pacientesMap[ag.paciente_id] || "",
     }));
-    generateWeeklyPDF(agsWithTel, currentDate, pacientesMap);
-    toast({ title: "PDF gerado!", description: "A agenda semanal foi exportada." });
+    const profName = filterProfId !== "all"
+      ? (profissionais as any[]).find((p: any) => p.user_id === filterProfId)?.nome
+      : undefined;
+    generateWeeklyPDF(agsWithTel, currentDate, pacientesMap, profName);
+    toast({ title: "PDF gerado!", description: profName ? `Agenda de ${profName} exportada.` : "Agenda completa exportada." });
   };
 
   const navigatePrev = () => {
@@ -137,7 +158,6 @@ const Agenda = () => {
         .from("agendamentos")
         .update({ status: "cancelado" })
         .eq("id", id);
-
       if (error) throw error;
       toast({ title: "Agendamento cancelado" });
       fetchAgendamentos();
@@ -151,12 +171,10 @@ const Agenda = () => {
       const updateData = type === "paciente"
         ? { checkin_paciente: true, checkin_paciente_at: new Date().toISOString() }
         : { checkin_profissional: true, checkin_profissional_at: new Date().toISOString() };
-
       const { error } = await supabase
         .from("agendamentos")
         .update(updateData)
         .eq("id", id);
-
       if (error) throw error;
       toast({ title: "Check-in realizado! ✅" });
       fetchAgendamentos();
@@ -176,26 +194,24 @@ const Agenda = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center justify-between w-full"> {/* Adjusted for new header structure */}
-          <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
-          {(!isPatient || isGestor || isAdmin) && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleExportPDF}>
-                <FileDown className="h-4 w-4 mr-2" />
-                Exportar PDF
-              </Button>
-              <Button onClick={handleNewAgendamento}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Agendamento
-              </Button>
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
+        {(!isPatient || isGestor || isAdmin) && (
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={handleExportPDF}>
+              <FileDown className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
+            <Button onClick={handleNewAgendamento}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Agendamento
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Navigation and View Toggle */}
+      {/* Professional Filter + Navigation + View Toggle */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="icon" onClick={navigatePrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -210,20 +226,37 @@ const Agenda = () => {
           </span>
         </div>
 
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="diario">Diário</TabsTrigger>
-            <TabsTrigger value="semanal">Semanal</TabsTrigger>
-            <TabsTrigger value="mensal">Mensal</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-3">
+          {isStaff && (
+            <Select value={filterProfId} onValueChange={setFilterProfId}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Filtrar profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os profissionais</SelectItem>
+                {(profissionais as any[]).map((p: any) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+            <TabsList>
+              <TabsTrigger value="diario">Diário</TabsTrigger>
+              <TabsTrigger value="semanal">Semanal</TabsTrigger>
+              <TabsTrigger value="mensal">Mensal</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* Calendar View */}
       <div>
         {viewMode === "diario" && (
           <DailyView
-            agendamentos={agendamentos}
+            agendamentos={filteredAgendamentos}
             currentDate={currentDate}
             onSlotClick={handleSlotClick}
             isPatient={isPatient}
@@ -235,7 +268,7 @@ const Agenda = () => {
         )}
         {viewMode === "semanal" && (
           <WeeklyView
-            agendamentos={agendamentos}
+            agendamentos={filteredAgendamentos}
             currentDate={currentDate}
             onSlotClick={handleSlotClick}
             isPatient={isPatient}
@@ -247,7 +280,7 @@ const Agenda = () => {
         )}
         {viewMode === "mensal" && (
           <MonthlyView
-            agendamentos={agendamentos}
+            agendamentos={filteredAgendamentos}
             currentDate={currentDate}
             onSlotClick={handleSlotClick}
             isPatient={isPatient}
