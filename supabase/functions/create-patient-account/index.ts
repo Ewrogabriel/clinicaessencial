@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -35,18 +35,18 @@ Deno.serve(async (req) => {
     }
 
     const email = `${cleanCpf}@paciente.essencial.com`;
-    const defaultPassword = cleanCpf; // CPF as default password
+    const defaultPassword = cleanCpf;
 
     // Check if user already exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
     if (existingUser) {
-      // Link patient to existing user if not already linked
+      // Link patient to existing user
       if (paciente_id) {
         await supabaseAdmin
           .from("pacientes")
-          .update({ user_id: existingUser.id } as any)
+          .update({ user_id: existingUser.id })
           .eq("id", paciente_id);
       }
 
@@ -82,6 +82,14 @@ Deno.serve(async (req) => {
       user_id: newUser.user.id,
       role: "paciente",
     });
+
+    // Link paciente record to new auth user
+    if (paciente_id) {
+      await supabaseAdmin
+        .from("pacientes")
+        .update({ user_id: newUser.user.id })
+        .eq("id", paciente_id);
+    }
 
     return new Response(
       JSON.stringify({ message: "Conta criada com sucesso", user_id: newUser.user.id }),

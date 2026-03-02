@@ -30,6 +30,8 @@ import Automacoes from "./pages/Automacoes";
 import PatientOnboarding from "./pages/PatientOnboarding";
 import AvisosAdmin from "./pages/AvisosAdmin";
 import DisponibilidadeProfissional from "./pages/DisponibilidadeProfissional";
+import MeuPerfil from "./pages/MeuPerfil";
+import MeuHistorico from "./pages/MeuHistorico";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,8 @@ const App = () => (
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/minha-agenda" element={<MinhaAgenda />} />
               <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
+              <Route path="/meu-perfil" element={<MeuPerfil />} />
+              <Route path="/meu-historico" element={<MeuHistorico />} />
               <Route path="/planos" element={<Planos />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/despesas" element={<Despesas />} />

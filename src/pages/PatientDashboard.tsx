@@ -1,29 +1,44 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, Activity, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, DollarSign, Activity, AlertCircle, Phone, TrendingUp, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Progress } from "@/components/ui/progress";
 
 const PatientDashboard = () => {
   const { profile, patientId } = useAuth();
+
+  const { data: paciente } = useQuery({
+    queryKey: ["patient-self", patientId],
+    queryFn: async () => {
+      if (!patientId) return null;
+      const { data, error } = await (supabase
+        .from("pacientes")
+        .select("*")
+        .eq("id", patientId)
+        .single() as any);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!patientId,
+  });
 
   const { data: agenda = [] } = useQuery({
     queryKey: ["patient-agenda", patientId],
     queryFn: async () => {
       if (!patientId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("agendamentos")
-        .select(`
-          *,
-          profiles:profissional_id (nome)
-        `)
+        .select(`*, profiles:profissional_id (nome)`)
         .eq("paciente_id", patientId)
         .gte("data_horario", new Date().toISOString())
+        .in("status", ["agendado", "confirmado"])
         .order("data_horario", { ascending: true })
-        .limit(3);
+        .limit(5) as any);
       if (error) throw error;
       return data;
     },
@@ -34,14 +49,33 @@ const PatientDashboard = () => {
     queryKey: ["patient-plano", patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("planos")
         .select("*")
         .eq("paciente_id", patientId)
         .eq("status", "ativo")
-        .maybeSingle();
+        .maybeSingle() as any);
       if (error) throw error;
       return data;
+    },
+    enabled: !!patientId,
+  });
+
+  const { data: frequencyStats } = useQuery({
+    queryKey: ["patient-frequency", patientId],
+    queryFn: async () => {
+      if (!patientId) return null;
+      const { data, error } = await (supabase
+        .from("agendamentos")
+        .select("status")
+        .eq("paciente_id", patientId) as any);
+      if (error) throw error;
+      const total = data?.length || 0;
+      const realizados = data?.filter((a: any) => a.status === "realizado").length || 0;
+      const cancelados = data?.filter((a: any) => a.status === "cancelado").length || 0;
+      const faltas = data?.filter((a: any) => a.status === "falta").length || 0;
+      const taxa = total > 0 ? Math.round((realizados / total) * 100) : 0;
+      return { total, realizados, cancelados, faltas, taxa };
     },
     enabled: !!patientId,
   });
@@ -59,79 +93,156 @@ const PatientDashboard = () => {
     },
   });
 
+  const { data: pendencias = [] } = useQuery({
+    queryKey: ["patient-pendencias", patientId],
+    queryFn: async () => {
+      if (!patientId) return [];
+      const { data, error } = await (supabase
+        .from("pagamentos")
+        .select("*")
+        .eq("paciente_id", patientId)
+        .eq("status", "pendente")
+        .order("data_vencimento", { ascending: true }) as any);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!patientId,
+  });
+
   const hoje = new Date();
   const saudacao = hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
 
+  const sessoesRestantes = planoAtivo ? (planoAtivo.total_sessoes - planoAtivo.sessoes_utilizadas) : 0;
+  const sessoesPercent = planoAtivo ? Math.round((planoAtivo.sessoes_utilizadas / planoAtivo.total_sessoes) * 100) : 0;
+
+  const planoVencimento = planoAtivo?.data_vencimento ? new Date(planoAtivo.data_vencimento) : null;
+  const diasParaVencer = planoVencimento ? differenceInDays(planoVencimento, hoje) : null;
+
+  const openWhatsAppClinic = () => {
+    // Default clinic phone - can be configured
+    window.open("https://wa.me/55", "_blank");
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
-          {saudacao}, {profile?.nome?.split(" ")[0]}! 👋
-        </h1>
-        <p className="text-muted-foreground">
-          Bem-vindo ao seu portal de saúde.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
+            {saudacao}, {profile?.nome?.split(" ")[0]}! 👋
+          </h1>
+          <p className="text-muted-foreground">Bem-vindo ao seu portal de saúde.</p>
+        </div>
+        <Button variant="outline" onClick={openWhatsAppClinic} className="gap-2">
+          <Phone className="h-4 w-4" /> Falar com a Clínica
+        </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* KPI Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Sessões Restantes
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Sessões Restantes</CardTitle>
             <Activity className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {planoAtivo ? `${(planoAtivo as any).sessoes_restantes ?? 0} / ${planoAtivo.total_sessoes}` : "0 / 0"}
+              {planoAtivo ? `${sessoesRestantes} / ${planoAtivo.total_sessoes}` : "—"}
             </div>
+            {planoAtivo && (
+              <Progress value={sessoesPercent} className="mt-2 h-2" />
+            )}
             <p className="text-xs text-muted-foreground mt-1">
-              No seu plano atual de {(planoAtivo as any)?.modalidade || "—"}
+              {planoAtivo ? `Plano de ${planoAtivo.tipo_atendimento}` : "Nenhum plano ativo"}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Próxima Consulta
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Próxima Consulta</CardTitle>
+            <Calendar className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
-              {agenda.length > 0 
+              {agenda.length > 0
                 ? format(new Date(agenda[0].data_horario), "dd 'de' MMM, HH:mm", { locale: ptBR })
-                : "Nenhuma marcada"}
+                : "Nenhuma"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {agenda.length > 0 ? `Com ${(agenda[0] as any).profiles?.nome}` : "Agende uma nova sessão"}
+              {agenda.length > 0 ? `Com ${agenda[0].profiles?.nome}` : "Nenhuma sessão agendada"}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Status Financeiro
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-emerald-600" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Frequência</CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200">
-              Em dia
-            </Badge>
-            <p className="text-xs text-muted-foreground mt-2">
-              Nenhuma pendência encontrada
+            <div className="text-2xl font-bold">{frequencyStats?.taxa ?? 0}%</div>
+            <Progress value={frequencyStats?.taxa ?? 0} className="mt-2 h-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              {frequencyStats?.realizados ?? 0} realizadas • {frequencyStats?.faltas ?? 0} faltas
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Financeiro</CardTitle>
+            <DollarSign className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            {pendencias.length > 0 ? (
+              <>
+                <Badge variant="destructive" className="mb-1">
+                  {pendencias.length} pendência(s)
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-1">
+                  R$ {pendencias.reduce((s: number, p: any) => s + Number(p.valor), 0).toFixed(2)} em aberto
+                </p>
+              </>
+            ) : (
+              <>
+                <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200 mb-1">Em dia</Badge>
+                <p className="text-xs text-muted-foreground mt-1">Nenhuma pendência</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
+      {/* Plan expiry warning */}
+      {planoVencimento && diasParaVencer !== null && diasParaVencer <= 15 && diasParaVencer >= 0 && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+          <Clock className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <strong>Seu plano vence em {diasParaVencer} dia(s)!</strong>
+            <p className="text-xs mt-1">
+              Vencimento: {format(planoVencimento, "dd/MM/yyyy")}. Entre em contato com a clínica para renovação.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {planoVencimento && diasParaVencer !== null && diasParaVencer < 0 && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <strong>Seu plano está vencido!</strong>
+            <p className="text-xs mt-1">
+              Venceu em {format(planoVencimento, "dd/MM/yyyy")}. Regularize junto à clínica.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Next sessions & Notices */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Suas Próximas Sessões</CardTitle>
+            <CardTitle className="text-lg">Próximas Sessões</CardTitle>
           </CardHeader>
           <CardContent>
             {agenda.length === 0 ? (
@@ -139,14 +250,18 @@ const PatientDashboard = () => {
                 Nenhum agendamento futuro encontrado.
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {agenda.map((item: any) => (
                   <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
                     <div>
-                      <p className="font-medium text-sm">{format(new Date(item.data_horario), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}</p>
-                      <p className="text-xs text-muted-foreground">{item.profiles?.nome} • {item.modalidade}</p>
+                      <p className="font-medium text-sm">
+                        {format(new Date(item.data_horario), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.profiles?.nome} • {item.tipo_atendimento}
+                      </p>
                     </div>
-                    <Badge variant="secondary">Confirmado</Badge>
+                    <Badge variant="secondary" className="capitalize">{item.status}</Badge>
                   </div>
                 ))}
               </div>
@@ -161,23 +276,55 @@ const PatientDashboard = () => {
               Mural de Avisos
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-4">
+          <CardContent className="text-sm space-y-3">
             {avisos.length === 0 ? (
-               <p className="text-muted-foreground text-center py-4">Nenhum aviso no momento.</p>
+              <p className="text-muted-foreground text-center py-4">Nenhum aviso no momento.</p>
             ) : (
-               avisos.map((aviso) => (
-                 <div key={aviso.id} className="bg-white p-3 rounded-md border shadow-sm">
-                   <h4 className="font-semibold text-primary">{aviso.titulo}</h4>
-                   <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{aviso.mensagem}</p>
-                   <span className="text-[10px] text-muted-foreground mt-2 block">
-                     {format(new Date(aviso.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                   </span>
-                 </div>
-               ))
+              avisos.map((aviso: any) => (
+                <div key={aviso.id} className="bg-background p-3 rounded-md border shadow-sm">
+                  <h4 className="font-semibold text-primary">{aviso.titulo}</h4>
+                  <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{aviso.mensagem}</p>
+                  <span className="text-[10px] text-muted-foreground mt-2 block">
+                    {format(new Date(aviso.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </span>
+                </div>
+              ))
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Frequency Stats Card */}
+      {frequencyStats && frequencyStats.total > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Estatísticas de Frequência
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="text-2xl font-bold">{frequencyStats.total}</p>
+                <p className="text-xs text-muted-foreground">Total de sessões</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-50">
+                <p className="text-2xl font-bold text-green-700">{frequencyStats.realizados}</p>
+                <p className="text-xs text-muted-foreground">Realizadas</p>
+              </div>
+              <div className="p-3 rounded-lg bg-amber-50">
+                <p className="text-2xl font-bold text-amber-700">{frequencyStats.cancelados}</p>
+                <p className="text-xs text-muted-foreground">Canceladas</p>
+              </div>
+              <div className="p-3 rounded-lg bg-red-50">
+                <p className="text-2xl font-bold text-red-700">{frequencyStats.faltas}</p>
+                <p className="text-xs text-muted-foreground">Faltas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

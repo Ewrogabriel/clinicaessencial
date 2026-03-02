@@ -42,8 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     setProfile(profile);
 
-    // Patient lookup not needed for admin/profissional users
-    setPatientId(null);
+    // Look up patient record linked to this user
+    const { data: paciente } = await (supabase
+      .from("pacientes")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle() as any);
+    setPatientId(paciente?.id || null);
   };
 
   const fetchRoles = async (userId: string) => {
