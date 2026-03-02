@@ -46,7 +46,8 @@ interface Profissional {
 }
 
 const Profissionais = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isGestor } = useAuth();
+  const canManage = isAdmin || isGestor;
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,6 +58,7 @@ const Profissionais = () => {
   const [commissionRate, setCommissionRate] = useState("0");
   const [commissionFixed, setCommissionFixed] = useState("0");
   const [corAgenda, setCorAgenda] = useState("#3b82f6");
+  const [registroProfissional, setRegistroProfissional] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { data: profissionais = [], isLoading } = useQuery({
@@ -97,6 +99,7 @@ const Profissionais = () => {
     setCommissionRate(String(p.commission_rate || 0));
     setCommissionFixed(String(p.commission_fixed || 0));
     setCorAgenda(p.cor_agenda || "#3b82f6");
+    setRegistroProfissional((p as any).registro_profissional || "");
     setDialogOpen(true);
   };
 
@@ -115,6 +118,7 @@ const Profissionais = () => {
           commission_rate: parseFloat(commissionRate) || 0,
           commission_fixed: parseFloat(commissionFixed) || 0,
           cor_agenda: corAgenda,
+          registro_profissional: registroProfissional || null,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
@@ -182,9 +186,11 @@ const Profissionais = () => {
                     <TableCell className="hidden sm:table-cell text-muted-foreground">{p.email || "—"}</TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">{p.telefone || "—"}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      {canManage && (
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -194,7 +200,7 @@ const Profissionais = () => {
         </CardContent>
       </Card>
 
-      {isAdmin && (
+      {canManage && (
         <div className="mt-12 space-y-6">
           <div>
             <h2 className="text-xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Gestão de Usuários</h2>
@@ -260,6 +266,10 @@ const Profissionais = () => {
                 <Label>Valor Fixo (R$)</Label>
                 <Input type="number" step="0.01" value={commissionFixed} onChange={(e) => setCommissionFixed(e.target.value)} placeholder="0.00" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Registro Profissional (CREFITO)</Label>
+              <Input value={registroProfissional} onChange={(e) => setRegistroProfissional(e.target.value)} placeholder="Ex: CREFITO-3/12345-F" />
             </div>
             <div className="space-y-2">
               <Label>Cor na Agenda</Label>
