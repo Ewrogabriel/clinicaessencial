@@ -801,6 +801,7 @@ export type Database = {
       profiles: {
         Row: {
           bio: string | null
+          cnpj: string | null
           commission_fixed: number | null
           commission_rate: number | null
           cor_agenda: string | null
@@ -815,11 +816,13 @@ export type Database = {
           nome: string
           registro_profissional: string | null
           telefone: string | null
+          tipo_contratacao: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           bio?: string | null
+          cnpj?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
           cor_agenda?: string | null
@@ -834,11 +837,13 @@ export type Database = {
           nome: string
           registro_profissional?: string | null
           telefone?: string | null
+          tipo_contratacao?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           bio?: string | null
+          cnpj?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
           cor_agenda?: string | null
@@ -853,6 +858,7 @@ export type Database = {
           nome?: string
           registro_profissional?: string | null
           telefone?: string | null
+          tipo_contratacao?: string | null
           updated_at?: string
           user_id?: string
         }
