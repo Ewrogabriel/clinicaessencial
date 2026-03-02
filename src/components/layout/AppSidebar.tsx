@@ -5,7 +5,6 @@ import {
   ClipboardList,
   DollarSign,
   BarChart3,
-  Settings,
   LogOut,
   Activity,
   Layers,
@@ -17,6 +16,7 @@ import {
   Clock,
   FileText,
   Tag,
+  CreditCard,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,35 +35,31 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
+/* ── Staff menus ── */
 const menuPrincipal = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Agenda", url: "/agenda", icon: Calendar },
+  { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
 ];
 
-const menuProfissional = [
-  { title: "Cadastro", url: "/modalidades", icon: Layers },
-  { title: "Profissional", url: "/profissionais", icon: UserCog },
+const menuServicos = [
+  { title: "Modalidades", url: "/modalidades", icon: Layers },
+  { title: "Profissionais", url: "/profissionais", icon: UserCog },
   { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
 ];
 
-const menuGestao = [
-  { title: "Planos", url: "/planos", icon: ClipboardList },
-  { title: "Preços", url: "/precos-planos", icon: Tag },
-  { title: "Contratos", url: "/contratos", icon: FileText },
+const menuFinanceiro = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Planos", url: "/planos", icon: ClipboardList },
+  { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
   { title: "Despesas", url: "/despesas", icon: Receipt },
+  { title: "Contratos", url: "/contratos", icon: FileText },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
-const menuPatient = [
-  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
-  { title: "Histórico", url: "/meu-historico", icon: ClipboardList },
-  { title: "Pagamentos", url: "/meus-pagamentos", icon: DollarSign },
-  { title: "Meu Contrato", url: "/contratos", icon: FileText },
-  { title: "Meu Perfil", url: "/meu-perfil", icon: Users },
+const menuComunicacao = [
+  { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
 ];
 
 const menuIA = [
@@ -71,8 +67,14 @@ const menuIA = [
   { title: "Automações", url: "/automacoes", icon: Send },
 ];
 
-const menuComunicacao = [
-  { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
+/* ── Patient menu ── */
+const menuPatient = [
+  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
+  { title: "Histórico", url: "/meu-historico", icon: ClipboardList },
+  { title: "Pagamentos", url: "/meus-pagamentos", icon: CreditCard },
+  { title: "Meu Contrato", url: "/contratos", icon: FileText },
+  { title: "Meu Perfil", url: "/meu-perfil", icon: Users },
 ];
 
 export function AppSidebar() {
@@ -80,7 +82,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, roles, signOut, isAdmin, isGestor, isPatient, isProfissional } = useAuth();
+  const { profile, signOut, isAdmin, isGestor, isPatient, isProfissional } = useAuth();
   const isStaff = isAdmin || isGestor || isProfissional;
 
   const isActive = (path: string) => location.pathname.startsWith(path);
@@ -89,6 +91,34 @@ export function AppSidebar() {
     await signOut();
     navigate("/login");
   };
+
+  const renderGroup = (label: string, items: typeof menuPrincipal) => (
+    <SidebarGroup>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive(item.url)}
+                tooltip={item.title}
+              >
+                <NavLink
+                  to={item.url}
+                  end={item.url === "/dashboard"}
+                  activeClassName="bg-sidebar-accent text-sidebar-primary"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -109,138 +139,16 @@ export function AppSidebar() {
       </div>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{isStaff ? "Principal" : "Meu Portal"}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {(isStaff ? menuPrincipal : menuPatient).map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/dashboard"}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {isStaff && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Profissional</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {menuProfissional.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink
-                        to={item.url}
-                        activeClassName="bg-sidebar-accent text-sidebar-primary"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isStaff && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Gestão</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {menuGestao.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink
-                        to={item.url}
-                        activeClassName="bg-sidebar-accent text-sidebar-primary"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {(isAdmin || isGestor) && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Comunicação</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {menuComunicacao.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink
-                        to={item.url}
-                        activeClassName="bg-sidebar-accent text-sidebar-primary"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isStaff && (
-          <SidebarGroup>
-            <SidebarGroupLabel>IA & Automação</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {menuIA.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink
-                        to={item.url}
-                        activeClassName="bg-sidebar-accent text-sidebar-primary"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        {isStaff ? (
+          <>
+            {renderGroup("Principal", menuPrincipal)}
+            {renderGroup("Serviços", menuServicos)}
+            {renderGroup("Financeiro & Gestão", menuFinanceiro)}
+            {(isAdmin || isGestor) && renderGroup("Comunicação", menuComunicacao)}
+            {renderGroup("IA & Automação", menuIA)}
+          </>
+        ) : (
+          renderGroup("Meu Portal", menuPatient)
         )}
       </SidebarContent>
 

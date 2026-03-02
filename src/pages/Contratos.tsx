@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -115,10 +115,11 @@ const Contratos = () => {
     window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
   };
 
-  // For patient view, auto-select themselves
-  if (isPatient && patientId && !selectedPaciente && pacientes.length > 0) {
-    setSelectedPaciente(patientId);
-  }
+  useEffect(() => {
+    if (isPatient && patientId && !selectedPaciente && pacientes.length > 0) {
+      setSelectedPaciente(patientId);
+    }
+  }, [isPatient, patientId, selectedPaciente, pacientes]);
 
   const valorFinal = plano
     ? plano.valor * (1 - (desconto?.percentual_desconto || 0) / 100)
