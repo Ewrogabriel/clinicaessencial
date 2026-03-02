@@ -60,6 +60,15 @@ const PacienteForm = () => {
   const [respEmail, setRespEmail] = useState("");
   const [respParentesco, setRespParentesco] = useState("");
   const [respEndereco, setRespEndereco] = useState("");
+  const [respCep, setRespCep] = useState("");
+  const [respRua, setRespRua] = useState("");
+  const [respNumero, setRespNumero] = useState("");
+  const [respComplemento, setRespComplemento] = useState("");
+  const [respBairro, setRespBairro] = useState("");
+  const [respCidade, setRespCidade] = useState("");
+  const [respEstado, setRespEstado] = useState("");
+
+  const [rg, setRg] = useState("");
 
   const { data: modalidades = [] } = useQuery({
     queryKey: ["modalidades-ativas"],
@@ -88,6 +97,7 @@ const PacienteForm = () => {
           }
           setNome(data.nome);
           setCpf(data.cpf || "");
+          setRg(data.rg || "");
           setTelefone(data.telefone || "");
           setEmail(data.email || "");
           setDataNascimento(data.data_nascimento || "");
@@ -110,6 +120,13 @@ const PacienteForm = () => {
           setRespEmail(data.responsavel_email || "");
           setRespParentesco(data.responsavel_parentesco || "");
           setRespEndereco(data.responsavel_endereco || "");
+          setRespCep(data.responsavel_cep || "");
+          setRespRua(data.responsavel_rua || "");
+          setRespNumero(data.responsavel_numero || "");
+          setRespComplemento(data.responsavel_complemento || "");
+          setRespBairro(data.responsavel_bairro || "");
+          setRespCidade(data.responsavel_cidade || "");
+          setRespEstado(data.responsavel_estado || "");
           setLoadingData(false);
         });
     }
@@ -138,17 +155,24 @@ const PacienteForm = () => {
     setUploadingPhoto(false);
   };
 
-  const fetchAddress = async (cepCode: string) => {
+  const fetchAddressFor = async (cepCode: string, target: "paciente" | "responsavel") => {
     const cleanCep = cepCode.replace(/\D/g, "");
     if (cleanCep.length !== 8) return;
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
       if (!data.erro) {
-        setRua(data.logradouro || "");
-        setBairro(data.bairro || "");
-        setCidade(data.localidade || "");
-        setEstado(data.uf || "");
+        if (target === "paciente") {
+          setRua(data.logradouro || "");
+          setBairro(data.bairro || "");
+          setCidade(data.localidade || "");
+          setEstado(data.uf || "");
+        } else {
+          setRespRua(data.logradouro || "");
+          setRespBairro(data.bairro || "");
+          setRespCidade(data.localidade || "");
+          setRespEstado(data.uf || "");
+        }
       }
     } catch (err) {
       console.error("Erro ao buscar CEP", err);
@@ -158,7 +182,24 @@ const PacienteForm = () => {
   const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newCep = e.target.value;
     setCep(newCep);
-    fetchAddress(newCep);
+    fetchAddressFor(newCep, "paciente");
+  };
+
+  const handleRespCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newCep = e.target.value;
+    setRespCep(newCep);
+    fetchAddressFor(newCep, "responsavel");
+  };
+
+  const copyAddressToGuardian = () => {
+    setRespCep(cep);
+    setRespRua(rua);
+    setRespNumero(numero);
+    setRespComplemento(complemento);
+    setRespBairro(bairro);
+    setRespCidade(cidade);
+    setRespEstado(estado);
+    toast({ title: "Endereço copiado! 📋" });
   };
 
   const generateInviteLink = () => {
@@ -180,6 +221,7 @@ const PacienteForm = () => {
     const payload: any = {
       nome,
       cpf: cpf || null,
+      rg: rg || null,
       telefone: telefone || null,
       email: email || null,
       data_nascimento: dataNascimento || null,
@@ -202,6 +244,13 @@ const PacienteForm = () => {
       responsavel_email: temResponsavel ? respEmail || null : null,
       responsavel_parentesco: temResponsavel ? respParentesco || null : null,
       responsavel_endereco: temResponsavel ? respEndereco || null : null,
+      responsavel_cep: temResponsavel ? respCep || null : null,
+      responsavel_rua: temResponsavel ? respRua || null : null,
+      responsavel_numero: temResponsavel ? respNumero || null : null,
+      responsavel_complemento: temResponsavel ? respComplemento || null : null,
+      responsavel_bairro: temResponsavel ? respBairro || null : null,
+      responsavel_cidade: temResponsavel ? respCidade || null : null,
+      responsavel_estado: temResponsavel ? respEstado || null : null,
     };
 
     let error;
@@ -341,6 +390,10 @@ const PacienteForm = () => {
                 <Input id="cpf" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="rg">RG</Label>
+                <Input id="rg" placeholder="00.000.000-0" value={rg} onChange={(e) => setRg(e.target.value)} />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="data_nascimento">Data de Nascimento</Label>
                 <Input id="data_nascimento" type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
               </div>
@@ -406,9 +459,43 @@ const PacienteForm = () => {
                 <Label>E-mail do Responsável</Label>
                 <Input type="email" placeholder="email@exemplo.com" value={respEmail} onChange={(e) => setRespEmail(e.target.value)} />
               </div>
+
+              {/* Guardian Address */}
+              <div className="sm:col-span-2 pt-2 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-base font-semibold">Endereço do Responsável</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={copyAddressToGuardian}>
+                    <Copy className="h-4 w-4 mr-1" /> Mesmo endereço do paciente
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>CEP</Label>
+                <Input placeholder="00000-000" value={respCep} onChange={handleRespCepChange} />
+              </div>
               <div className="sm:col-span-2 space-y-2">
-                <Label>Endereço do Responsável</Label>
-                <Input placeholder="Endereço completo" value={respEndereco} onChange={(e) => setRespEndereco(e.target.value)} />
+                <Label>Rua / Logradouro</Label>
+                <Input placeholder="Nome da rua" value={respRua} onChange={(e) => setRespRua(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Número</Label>
+                <Input placeholder="123" value={respNumero} onChange={(e) => setRespNumero(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Complemento</Label>
+                <Input placeholder="Apto, Bloco, etc." value={respComplemento} onChange={(e) => setRespComplemento(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Bairro</Label>
+                <Input placeholder="Bairro" value={respBairro} onChange={(e) => setRespBairro(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Cidade</Label>
+                <Input placeholder="Cidade" value={respCidade} onChange={(e) => setRespCidade(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado (UF)</Label>
+                <Input placeholder="SP" value={respEstado} onChange={(e) => setRespEstado(e.target.value)} maxLength={2} />
               </div>
             </CardContent>
           )}

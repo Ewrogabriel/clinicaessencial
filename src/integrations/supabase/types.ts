@@ -443,12 +443,19 @@ export type Database = {
           numero: string | null
           observacoes: string | null
           profissional_id: string | null
+          responsavel_bairro: string | null
+          responsavel_cep: string | null
+          responsavel_cidade: string | null
+          responsavel_complemento: string | null
           responsavel_cpf: string | null
           responsavel_email: string | null
           responsavel_endereco: string | null
+          responsavel_estado: string | null
           responsavel_nome: string | null
+          responsavel_numero: string | null
           responsavel_parentesco: string | null
           responsavel_rg: string | null
+          responsavel_rua: string | null
           responsavel_telefone: string | null
           rg: string | null
           rua: string | null
@@ -477,12 +484,19 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           profissional_id?: string | null
+          responsavel_bairro?: string | null
+          responsavel_cep?: string | null
+          responsavel_cidade?: string | null
+          responsavel_complemento?: string | null
           responsavel_cpf?: string | null
           responsavel_email?: string | null
           responsavel_endereco?: string | null
+          responsavel_estado?: string | null
           responsavel_nome?: string | null
+          responsavel_numero?: string | null
           responsavel_parentesco?: string | null
           responsavel_rg?: string | null
+          responsavel_rua?: string | null
           responsavel_telefone?: string | null
           rg?: string | null
           rua?: string | null
@@ -511,12 +525,19 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           profissional_id?: string | null
+          responsavel_bairro?: string | null
+          responsavel_cep?: string | null
+          responsavel_cidade?: string | null
+          responsavel_complemento?: string | null
           responsavel_cpf?: string | null
           responsavel_email?: string | null
           responsavel_endereco?: string | null
+          responsavel_estado?: string | null
           responsavel_nome?: string | null
+          responsavel_numero?: string | null
           responsavel_parentesco?: string | null
           responsavel_rg?: string | null
+          responsavel_rua?: string | null
           responsavel_telefone?: string | null
           rg?: string | null
           rua?: string | null
