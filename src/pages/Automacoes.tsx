@@ -15,24 +15,65 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { MessageSquare, Mail, Bell, UserPlus, FileCheck, Send, Users, FileText, Download, Save } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MessageSquare, Bell, UserPlus, FileCheck, Send, Users, FileText, Download, Save, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-// Sub-component so that useState is not called inside a .map()
-const PatientDispatchRow = ({ p, triggers, sendWhatsApp }: { p: any; triggers: any[]; sendWhatsApp: (phone: string, msg: string) => void }) => {
+const APP_URL = window.location.origin;
+
+// Sub-component for each patient row in manual dispatches
+const PatientDispatchRow = ({
+  p,
+  triggers,
+  sendWhatsApp,
+  nextAppointment,
+}: {
+  p: any;
+  triggers: any[];
+  sendWhatsApp: (phone: string, msg: string) => void;
+  nextAppointment?: { data_horario: string; profissional_nome: string; id: string } | null;
+}) => {
   const [selectedMsgId, setSelectedMsgId] = useState<number>(triggers[0]?.id ?? 1);
-  const selectedMsg = triggers.find(t => t.id === selectedMsgId);
-  const firstName = p.nome?.split(' ')[0] || 'paciente';
-  const personalizedMsg = selectedMsg
-    ? `Olá, ${firstName}! ${selectedMsg.message.replace(/^Olá[!,]?\s*/i, '')}`
-    : "";
+  const selectedMsg = triggers.find((t) => t.id === selectedMsgId);
+  const firstName = p.nome?.split(" ")[0] || "paciente";
+
+  const buildMessage = () => {
+    if (!selectedMsg) return "";
+
+    // For "Lembrete de Consulta" (id=1), auto-include appointment info
+    if (selectedMsg.id === 1 && nextAppointment) {
+      const dt = new Date(nextAppointment.data_horario);
+      const dataFormatada = format(dt, "dd/MM/yyyy (EEEE)", { locale: ptBR });
+      const horaFormatada = format(dt, "HH:mm");
+      const profNome = nextAppointment.profissional_nome || "seu profissional";
+      const confirmLink = `${APP_URL}/patient-dashboard`;
+
+      return (
+        `Olá, ${firstName}! Confirmamos sua sessão no dia *${dataFormatada}* às *${horaFormatada}* ` +
+        `com *${profNome}* no Essencial FisioPilates. ` +
+        `Podemos contar com sua presença?\n\n` +
+        `✅ Confirmar ou ❌ Desmarcar pelo link:\n${confirmLink}`
+      );
+    }
+
+    // Other messages: simple personalization
+    return `Olá, ${firstName}! ${selectedMsg.message.replace(/^Olá[!,]?\s*/i, "")}`;
+  };
 
   return (
     <div className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
       <div>
         <p className="text-sm font-medium">{p.nome}</p>
-        <p className="text-xs text-muted-foreground">{p.telefone}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground">{p.telefone}</p>
+          {nextAppointment && (
+            <span className="text-xs text-primary flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {format(new Date(nextAppointment.data_horario), "dd/MM HH:mm")}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <select
@@ -40,19 +81,24 @@ const PatientDispatchRow = ({ p, triggers, sendWhatsApp }: { p: any; triggers: a
           value={selectedMsgId}
           onChange={(e) => setSelectedMsgId(Number(e.target.value))}
         >
-          {triggers.map(t => (
-            <option key={t.id} value={t.id}>{t.title}</option>
+          {triggers.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}
+            </option>
           ))}
         </select>
         <Button
           size="sm"
           variant="ghost"
           className="text-green-600 hover:text-green-700 hover:bg-green-50 shrink-0"
-          onClick={() => sendWhatsApp(p.telefone || "", personalizedMsg)}
+          onClick={() => sendWhatsApp(p.telefone || "", buildMessage())}
         >
           <MessageSquare className="h-4 w-4 mr-1" /> WhatsApp
         </Button>
       </div>
+      {selectedMsgId === 1 && !nextAppointment && (
+        <p className="text-xs text-amber-600">⚠ Sem consulta agendada — a mensagem será enviada sem data/horário.</p>
+      )}
     </div>
   );
 };
@@ -79,6 +125,33 @@ const Automacoes = () => {
     },
   });
 
+  // Fetch next upcoming appointment per patient
+  const { data: upcomingAppointments = [] } = useQuery({
+    queryKey: ["automation-upcoming-appointments"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data, error } = await (supabase.from("agendamentos") as any)
+        .select("id, paciente_id, data_horario, profissional_id, profiles:profissional_id(nome)")
+        .gte("data_horario", now)
+        .in("status", ["agendado", "confirmado"])
+        .order("data_horario", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Map: paciente_id -> next appointment
+  const nextAppointmentMap: Record<string, { data_horario: string; profissional_nome: string; id: string }> = {};
+  for (const ag of upcomingAppointments) {
+    if (!nextAppointmentMap[ag.paciente_id]) {
+      nextAppointmentMap[ag.paciente_id] = {
+        data_horario: ag.data_horario,
+        profissional_nome: ag.profiles?.nome || "Profissional",
+        id: ag.id,
+      };
+    }
+  }
+
   const sendWhatsApp = (phone: string, message: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
     if (!cleanPhone) {
@@ -93,11 +166,11 @@ const Automacoes = () => {
     {
       id: 1,
       title: "Lembrete de Consulta",
-      description: "Mensagem para confirmar presença 24h antes.",
+      description: "Mensagem com dia, horário e link de confirmação.",
       icon: MessageSquare,
       color: "bg-green-100 text-green-700",
       delay: "24",
-      message: "Olá! Confirmamos sua sessão amanhã no Essencial FisioPilates. Podemos contar com sua presença?",
+      message: "Olá! Confirmamos sua sessão no Essencial FisioPilates. Podemos contar com sua presença?",
     },
     {
       id: 2,
@@ -131,7 +204,7 @@ const Automacoes = () => {
   };
 
   const saveRule = () => {
-    setTriggers(triggers.map(t => t.id === selectedRule.id ? selectedRule : t));
+    setTriggers(triggers.map((t) => (t.id === selectedRule.id ? selectedRule : t)));
     setRuleDialogOpen(false);
     toast.success("Regra de automação atualizada com sucesso!");
   };
@@ -189,6 +262,9 @@ const Automacoes = () => {
             <Users className="h-5 w-5" />
             Disparos Manuais Rápidos
           </CardTitle>
+          <CardDescription>
+            O lembrete de consulta inclui automaticamente data, horário, profissional e link de confirmação.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -205,7 +281,13 @@ const Automacoes = () => {
                 {patients
                   .filter((p: any) => !searchPatient || p.nome?.toLowerCase().includes(searchPatient.toLowerCase()))
                   .map((p: any) => (
-                    <PatientDispatchRow key={p.id} p={p} triggers={triggers} sendWhatsApp={sendWhatsApp} />
+                    <PatientDispatchRow
+                      key={p.id}
+                      p={p}
+                      triggers={triggers}
+                      sendWhatsApp={sendWhatsApp}
+                      nextAppointment={nextAppointmentMap[p.id] || null}
+                    />
                   ))}
               </div>
             )}
@@ -223,7 +305,7 @@ const Automacoes = () => {
             <CardDescription>Acesso rápido aos documentos mais utilizados na clínica.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {docs.map(doc => (
+            {docs.map((doc) => (
               <Button
                 key={doc.id}
                 variant="outline"
@@ -270,8 +352,12 @@ const Automacoes = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={saveRule}><Save className="mr-2 h-4 w-4" /> Salvar Regra</Button>
+            <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveRule}>
+              <Save className="mr-2 h-4 w-4" /> Salvar Regra
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -281,18 +367,20 @@ const Automacoes = () => {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{selectedDoc?.title}</DialogTitle>
-            <DialogDescription>
-              {selectedDoc?.desc}
-            </DialogDescription>
+            <DialogDescription>{selectedDoc?.desc}</DialogDescription>
           </DialogHeader>
           <div className="py-6 flex justify-center">
             <div className="p-8 border-2 border-dashed border-muted-foreground/20 rounded-xl bg-muted/10 flex flex-col items-center text-center">
               <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />
-              <p className="text-sm text-muted-foreground">O documento será gerado com os dados preenchidos automaticamente pelo sistema.</p>
+              <p className="text-sm text-muted-foreground">
+                O documento será gerado com os dados preenchidos automaticamente pelo sistema.
+              </p>
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
-            <Button variant="outline" onClick={() => setDocDialogOpen(false)}>Fechar</Button>
+            <Button variant="outline" onClick={() => setDocDialogOpen(false)}>
+              Fechar
+            </Button>
             <Button onClick={simulateDownload} className="gap-2">
               <Download className="h-4 w-4" /> Gerar PDF
             </Button>
@@ -304,4 +392,3 @@ const Automacoes = () => {
 };
 
 export default Automacoes;
-
