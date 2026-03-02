@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { EvolutionForm } from "@/components/clinical/EvolutionForm";
 import { EvaluationForm } from "@/components/clinical/EvaluationForm";
+import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
@@ -240,16 +241,8 @@ const PacienteDetalhes = () => {
                     )}
                 </TabsContent>
 
-                <TabsContent value="atendimentos">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Agenda do Paciente</CardTitle>
-                            <CardDescription>Histórico e próximos atendimentos</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground text-center py-8 italic">Funcionalidade em desenvolvimento...</p>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="atendimentos" className="space-y-4">
+                    <PatientScheduleTab pacienteId={id!} />
                 </TabsContent>
 
                 <TabsContent value="cadastro">
