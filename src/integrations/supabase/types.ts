@@ -30,7 +30,7 @@ export type Database = {
           recorrencia_grupo_id: string | null
           recorrente: boolean
           status: Database["public"]["Enums"]["status_agendamento"]
-          tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento: string
           tipo_sessao: Database["public"]["Enums"]["tipo_sessao"]
           updated_at: string
           valor_mensal: number | null
@@ -51,7 +51,7 @@ export type Database = {
           recorrencia_grupo_id?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_agendamento"]
-          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento?: string
           tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
           updated_at?: string
           valor_mensal?: number | null
@@ -72,7 +72,7 @@ export type Database = {
           recorrencia_grupo_id?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_agendamento"]
-          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento?: string
           tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
           updated_at?: string
           valor_mensal?: number | null
@@ -346,7 +346,7 @@ export type Database = {
           rua: string | null
           status: Database["public"]["Enums"]["status_paciente"]
           telefone: string
-          tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento: string
           updated_at: string
         }
         Insert: {
@@ -369,7 +369,7 @@ export type Database = {
           rua?: string | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone: string
-          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento?: string
           updated_at?: string
         }
         Update: {
@@ -392,7 +392,7 @@ export type Database = {
           rua?: string | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone?: string
-          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento?: string
           updated_at?: string
         }
         Relationships: []
@@ -479,7 +479,7 @@ export type Database = {
           profissional_id: string
           sessoes_utilizadas: number
           status: Database["public"]["Enums"]["status_plano"]
-          tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento: string
           total_sessoes: number
           updated_at: string
           valor: number
@@ -495,7 +495,7 @@ export type Database = {
           profissional_id: string
           sessoes_utilizadas?: number
           status?: Database["public"]["Enums"]["status_plano"]
-          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento?: string
           total_sessoes?: number
           updated_at?: string
           valor?: number
@@ -511,7 +511,7 @@ export type Database = {
           profissional_id?: string
           sessoes_utilizadas?: number
           status?: Database["public"]["Enums"]["status_plano"]
-          tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo_atendimento?: string
           total_sessoes?: number
           updated_at?: string
           valor?: number

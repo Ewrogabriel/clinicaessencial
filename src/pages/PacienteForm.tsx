@@ -16,8 +16,7 @@ import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Enums } from "@/integrations/supabase/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const PacienteForm = () => {
   const navigate = useNavigate();
@@ -43,9 +42,21 @@ const PacienteForm = () => {
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
 
-  const [tipoAtendimento, setTipoAtendimento] = useState<Enums<"tipo_atendimento">>("fisioterapia");
-  const [status, setStatus] = useState<Enums<"status_paciente">>("ativo");
+  const [tipoAtendimento, setTipoAtendimento] = useState("fisioterapia");
+  const [status, setStatus] = useState<"ativo" | "inativo">("ativo");
   const [observacoes, setObservacoes] = useState("");
+
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-ativas"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("modalidades")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      return data ?? [];
+    },
+  });
 
   useEffect(() => {
     if (id) {
@@ -295,21 +306,21 @@ const PacienteForm = () => {
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Tipo de Atendimento *</Label>
-              <Select value={tipoAtendimento} onValueChange={(v) => setTipoAtendimento(v as Enums<"tipo_atendimento">)}>
+              <Label>Modalidade *</Label>
+              <Select value={tipoAtendimento} onValueChange={(v) => setTipoAtendimento(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder="Selecione a modalidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
-                  <SelectItem value="pilates">Pilates</SelectItem>
-                  <SelectItem value="rpg">RPG</SelectItem>
+                  {(modalidades || []).map((mod: any) => (
+                    <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as Enums<"status_paciente">)}>
+              <Select value={status} onValueChange={(v) => setStatus(v as "ativo" | "inativo")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

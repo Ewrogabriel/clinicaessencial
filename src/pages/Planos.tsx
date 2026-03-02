@@ -36,7 +36,7 @@ const Planos = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [formData, setFormData] = useState({
     paciente_id: "",
-    tipo_atendimento: "fisioterapia" as "fisioterapia" | "pilates" | "rpg",
+    tipo_atendimento: "",
     total_sessoes: 10,
     valor: "",
     data_inicio: format(new Date(), "yyyy-MM-dd"),
@@ -63,6 +63,18 @@ const Planos = () => {
         .from("pacientes")
         .select("id, nome")
         .eq("status", "ativo")
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-ativas"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("modalidades")
+        .select("id, nome")
+        .eq("ativo", true)
         .order("nome");
       return data ?? [];
     },
@@ -102,7 +114,7 @@ const Planos = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["planos"] });
       setFormOpen(false);
-      setFormData({ paciente_id: "", tipo_atendimento: "fisioterapia", total_sessoes: 10, valor: "", data_inicio: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", observacoes: "" });
+      setFormData({ paciente_id: "", tipo_atendimento: "", total_sessoes: 10, valor: "", data_inicio: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", observacoes: "" });
       toast({ title: "Plano criado com sucesso!" });
     },
     onError: (e: Error | any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -268,13 +280,13 @@ const Planos = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Tipo de Atendimento</Label>
+                <Label>Modalidade</Label>
                 <Select value={formData.tipo_atendimento} onValueChange={(v: any) => setFormData(p => ({ ...p, tipo_atendimento: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
-                    <SelectItem value="pilates">Pilates</SelectItem>
-                    <SelectItem value="rpg">RPG</SelectItem>
+                    {(modalidades as any[]).map((mod) => (
+                      <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
