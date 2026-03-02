@@ -6,17 +6,44 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, differenceInYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  Cell
+  Cell, PieChart, Pie, Legend
 } from 'recharts';
 
 const tipoLabels: Record<string, string> = {
   fisioterapia: "Fisioterapia",
   pilates: "Pilates",
   rpg: "RPG",
+};
+
+const AGE_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#7c3aed', '#4f46e5'];
+
+const getAgeDistribution = (pacientes: any[]) => {
+  const ranges = [
+    { label: '0-17', min: 0, max: 17 },
+    { label: '18-30', min: 18, max: 30 },
+    { label: '31-45', min: 31, max: 45 },
+    { label: '46-60', min: 46, max: 60 },
+    { label: '61-75', min: 61, max: 75 },
+    { label: '76+', min: 76, max: 200 },
+  ];
+
+  const today = new Date();
+  const counts = ranges.map(r => ({ name: r.label, value: 0 }));
+  let semData = 0;
+
+  pacientes.forEach((p: any) => {
+    if (!p.data_nascimento) { semData++; return; }
+    const age = differenceInYears(today, new Date(p.data_nascimento));
+    const idx = ranges.findIndex(r => age >= r.min && age <= r.max);
+    if (idx >= 0) counts[idx].value++;
+  });
+
+  if (semData > 0) counts.push({ name: 'Sem data', value: semData });
+  return counts.filter(c => c.value > 0);
 };
 
 const Dashboard = () => {
@@ -66,6 +93,7 @@ const Dashboard = () => {
 
   const ativos = (pacientes || []).filter((p: any) => p.status === "ativo");
   const recentes = (pacientes || []).slice(0, 5);
+  const ageData = getAgeDistribution(pacientes);
 
   const saudacao =
     hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
@@ -167,60 +195,90 @@ const Dashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Pacientes Recentes</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/pacientes")}>
-              Ver todos <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
+          <CardHeader>
+            <CardTitle className="text-lg">Pacientes por Faixa Etária</CardTitle>
           </CardHeader>
           <CardContent>
-            {recentes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <Users className="h-10 w-10 mb-3 opacity-40" />
-                <p className="text-sm">Nenhum paciente cadastrado ainda</p>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => navigate("/pacientes/novo")}
-                >
-                  Cadastrar primeiro paciente <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentes.map((p: any) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                        {(p.nome || "?").charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{p.nome}</p>
-                        <p className="text-xs text-muted-foreground">{p.telefone}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {tipoLabels[p.tipo_atendimento] || p.tipo_atendimento}
-                      </Badge>
-                      <Badge
-                        variant={p.status === "ativo" ? "default" : "outline"}
-                        className="text-[10px]"
-                      >
-                        {p.status === "ativo" ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="h-[240px] w-full">
+              {ageData.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                  Nenhum paciente cadastrado
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={ageData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {ageData.map((_, index) => (
+                        <Cell key={`age-${index}`} fill={AGE_COLORS[index % AGE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">Pacientes Recentes</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/pacientes")}>
+            Ver todos <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {recentes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Users className="h-10 w-10 mb-3 opacity-40" />
+              <p className="text-sm">Nenhum paciente cadastrado ainda</p>
+              <Button
+                variant="link"
+                size="sm"
+                className="mt-2"
+                onClick={() => navigate("/pacientes/novo")}
+              >
+                Cadastrar primeiro paciente <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {recentes.map((p: any) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                      {(p.nome || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{p.nome}</p>
+                      <p className="text-xs text-muted-foreground">{p.telefone}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {tipoLabels[p.tipo_atendimento] || p.tipo_atendimento}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

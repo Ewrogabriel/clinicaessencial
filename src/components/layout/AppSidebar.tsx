@@ -33,7 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const menuPrincipal = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Agenda", url: "/agenda", icon: Calendar },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
@@ -52,7 +52,7 @@ const menuGestao = [
 ];
 
 const menuPatient = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
   { title: "Meus Pagamentos", url: "/meus-pagamentos", icon: DollarSign },
 ];
