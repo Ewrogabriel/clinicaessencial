@@ -515,6 +515,50 @@ export type Database = {
           },
         ]
       }
+      patient_attachments: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          paciente_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          paciente_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          paciente_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_attachments_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           created_at: string

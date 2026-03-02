@@ -23,6 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { EvolutionForm } from "@/components/clinical/EvolutionForm";
 import { EvaluationForm } from "@/components/clinical/EvaluationForm";
 import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
+import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
@@ -195,6 +196,8 @@ const PacienteDetalhes = () => {
                             )}
                         </CardContent>
                     </Card>
+
+                    <PatientAttachments pacienteId={id!} />
                 </TabsContent>
 
                 <TabsContent value="evolucoes" className="space-y-4">
