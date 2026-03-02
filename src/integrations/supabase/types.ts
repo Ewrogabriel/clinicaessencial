@@ -800,63 +800,93 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bairro: string | null
           bio: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
           commission_fixed: number | null
           commission_rate: number | null
           cor_agenda: string | null
+          cpf: string | null
           created_at: string
           cursos: string[] | null
+          data_nascimento: string | null
           email: string | null
+          endereco: string | null
           especialidade: string | null
           especializacoes: string[] | null
+          estado: string | null
+          estado_civil: string | null
           foto_url: string | null
           graduacao: string | null
           id: string
           nome: string
+          numero: string | null
           registro_profissional: string | null
+          rg: string | null
           telefone: string | null
           tipo_contratacao: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          bairro?: string | null
           bio?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
           cor_agenda?: string | null
+          cpf?: string | null
           created_at?: string
           cursos?: string[] | null
+          data_nascimento?: string | null
           email?: string | null
+          endereco?: string | null
           especialidade?: string | null
           especializacoes?: string[] | null
+          estado?: string | null
+          estado_civil?: string | null
           foto_url?: string | null
           graduacao?: string | null
           id?: string
           nome: string
+          numero?: string | null
           registro_profissional?: string | null
+          rg?: string | null
           telefone?: string | null
           tipo_contratacao?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          bairro?: string | null
           bio?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
           cor_agenda?: string | null
+          cpf?: string | null
           created_at?: string
           cursos?: string[] | null
+          data_nascimento?: string | null
           email?: string | null
+          endereco?: string | null
           especialidade?: string | null
           especializacoes?: string[] | null
+          estado?: string | null
+          estado_civil?: string | null
           foto_url?: string | null
           graduacao?: string | null
           id?: string
           nome?: string
+          numero?: string | null
           registro_profissional?: string | null
+          rg?: string | null
           telefone?: string | null
           tipo_contratacao?: string | null
           updated_at?: string
