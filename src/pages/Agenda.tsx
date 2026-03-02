@@ -129,6 +129,25 @@ const Agenda = () => {
     }
   };
 
+  const handleCheckin = async (id: string, type: "paciente" | "profissional") => {
+    try {
+      const updateData = type === "paciente"
+        ? { checkin_paciente: true, checkin_paciente_at: new Date().toISOString() }
+        : { checkin_profissional: true, checkin_profissional_at: new Date().toISOString() };
+
+      const { error } = await supabase
+        .from("agendamentos")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+      toast({ title: "Check-in realizado! ✅" });
+      fetchAgendamentos();
+    } catch (err) {
+      toast({ title: "Erro ao fazer check-in", variant: "destructive" });
+    }
+  };
+
   const goToToday = () => setCurrentDate(new Date());
 
   const getTitle = () => {
@@ -192,6 +211,7 @@ const Agenda = () => {
             onSlotClick={handleSlotClick}
             isPatient={isPatient}
             onCancel={handleCancelAppointment}
+            onCheckin={handleCheckin}
           />
         )}
         {viewMode === "semanal" && (
@@ -201,6 +221,7 @@ const Agenda = () => {
             onSlotClick={handleSlotClick}
             isPatient={isPatient}
             onCancel={handleCancelAppointment}
+            onCheckin={handleCheckin}
           />
         )}
         {viewMode === "mensal" && (
@@ -210,6 +231,7 @@ const Agenda = () => {
             onSlotClick={handleSlotClick}
             isPatient={isPatient}
             onCancel={handleCancelAppointment}
+            onCheckin={handleCheckin}
           />
         )}
       </div>

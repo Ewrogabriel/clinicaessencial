@@ -179,6 +179,17 @@ const PacienteForm = () => {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+
+      // Auto-create auth account if CPF is provided
+      if (cpf && cpf.replace(/\D/g, "").length === 11) {
+        try {
+          await supabase.functions.invoke("create-patient-account", {
+            body: { cpf, nome, paciente_id: savedPatientId },
+          });
+        } catch (err) {
+          console.error("Erro ao criar conta do paciente:", err);
+        }
+      }
       
       if (!isEditing && savedPatientId) {
           toast({

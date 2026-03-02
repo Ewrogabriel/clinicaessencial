@@ -16,6 +16,10 @@ export type Database = {
     Tables: {
       agendamentos: {
         Row: {
+          checkin_paciente: boolean | null
+          checkin_paciente_at: string | null
+          checkin_profissional: boolean | null
+          checkin_profissional_at: string | null
           created_at: string
           created_by: string
           data_horario: string
@@ -37,6 +41,10 @@ export type Database = {
           valor_sessao: number | null
         }
         Insert: {
+          checkin_paciente?: boolean | null
+          checkin_paciente_at?: string | null
+          checkin_profissional?: boolean | null
+          checkin_profissional_at?: string | null
           created_at?: string
           created_by: string
           data_horario: string
@@ -58,6 +66,10 @@ export type Database = {
           valor_sessao?: number | null
         }
         Update: {
+          checkin_paciente?: boolean | null
+          checkin_paciente_at?: string | null
+          checkin_profissional?: boolean | null
+          checkin_profissional_at?: string | null
           created_at?: string
           created_by?: string
           data_horario?: string
