@@ -755,6 +755,7 @@ export type Database = {
           bio: string | null
           commission_fixed: number | null
           commission_rate: number | null
+          cor_agenda: string | null
           created_at: string
           cursos: string[] | null
           email: string | null
@@ -773,6 +774,7 @@ export type Database = {
           bio?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
+          cor_agenda?: string | null
           created_at?: string
           cursos?: string[] | null
           email?: string | null
@@ -791,6 +793,7 @@ export type Database = {
           bio?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
+          cor_agenda?: string | null
           created_at?: string
           cursos?: string[] | null
           email?: string | null

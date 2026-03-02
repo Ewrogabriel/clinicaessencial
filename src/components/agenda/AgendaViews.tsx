@@ -8,9 +8,6 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isSameDay,
-  addHours,
-  setHours,
-  setMinutes,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +40,7 @@ interface ViewProps {
   onCheckin?: (id: string, type: "paciente" | "profissional") => void;
   onReschedule?: (ag: Agendamento) => void;
   onAppointmentClick?: (ag: Agendamento) => void;
+  profColors?: Record<string, string>;
 }
 
 const statusColors: Record<string, string> = {
@@ -53,65 +51,105 @@ const statusColors: Record<string, string> = {
   falta: "bg-warning text-warning-foreground",
 };
 
-const tipoColors: Record<string, string> = {
-  fisioterapia: "border-l-primary",
-  pilates: "border-l-info",
-  rpg: "border-l-warning",
-};
-
-function AppointmentCard({ ag, isPatient, onCancel, onCheckin, onReschedule, onAppointmentClick }: { ag: Agendamento, isPatient?: boolean, onCancel?: (id: string) => void, onCheckin?: (id: string, type: "paciente" | "profissional") => void, onReschedule?: (ag: Agendamento) => void, onAppointmentClick?: (ag: Agendamento) => void }) {
+function AppointmentCard({
+  ag,
+  isPatient,
+  onCancel,
+  onCheckin,
+  onReschedule,
+  onAppointmentClick,
+  profColor,
+}: {
+  ag: Agendamento;
+  isPatient?: boolean;
+  onCancel?: (id: string) => void;
+  onCheckin?: (id: string, type: "paciente" | "profissional") => void;
+  onReschedule?: (ag: Agendamento) => void;
+  onAppointmentClick?: (ag: Agendamento) => void;
+  profColor?: string;
+}) {
   const time = format(new Date(ag.data_horario), "HH:mm");
   const pacienteNome = ag.pacientes?.nome ?? "Paciente";
   const checkedIn = isPatient ? ag.checkin_paciente : ag.checkin_profissional;
   const canCheckin = ag.status !== "cancelado" && ag.status !== "falta";
+  const color = profColor || "#3b82f6";
 
   return (
     <div
-      className={cn(
-        "rounded-md border-l-4 bg-card p-2 text-xs shadow-sm relative group cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all",
-        tipoColors[ag.tipo_atendimento] ?? "border-l-muted"
-      )}
-      onClick={(e) => { e.stopPropagation(); onAppointmentClick?.(ag); }}
+      className="rounded-md bg-card p-2 text-xs shadow-sm relative group cursor-pointer hover:shadow-md transition-all border-l-4 overflow-hidden"
+      style={{ borderLeftColor: color }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onAppointmentClick?.(ag);
+      }}
     >
-      <div className="font-semibold text-foreground truncate flex items-center gap-1">
-        {pacienteNome}
-        {ag.checkin_paciente && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-        {ag.checkin_profissional && <CheckCircle2 className="h-3 w-3 text-primary" />}
-      </div>
-      <div className="text-muted-foreground flex items-center gap-1">
-        <span>{time}</span>
-        <span>·</span>
-        <span>{ag.duracao_minutos}min</span>
-      </div>
-      <div className="flex items-center justify-between mt-1 gap-1">
-        <Badge variant="secondary" className={cn("text-[10px]", statusColors[ag.status])}>
-          {ag.status}
-        </Badge>
-        <div className="flex items-center gap-1">
-          {canCheckin && !checkedIn && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onCheckin?.(ag.id, isPatient ? "paciente" : "profissional"); }}
-              className="text-[10px] text-primary hover:underline font-medium"
-            >
-              Check-in
-            </button>
+      {/* Subtle colored background tint */}
+      <div
+        className="absolute inset-0 opacity-[0.06] pointer-events-none"
+        style={{ backgroundColor: color }}
+      />
+      <div className="relative z-10">
+        <div className="font-semibold text-foreground truncate flex items-center gap-1">
+          <span className="truncate">{pacienteNome}</span>
+          {ag.checkin_paciente && (
+            <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />
           )}
-          {isPatient && ag.status !== 'cancelado' && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); onReschedule?.(ag); }}
-                className="text-[10px] text-amber-600 hover:underline font-medium"
-              >
-                Remarcar
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onCancel?.(ag.id); }}
-                className="text-[10px] text-destructive hover:underline font-medium"
-              >
-                Cancelar
-              </button>
-            </>
+          {ag.checkin_profissional && (
+            <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" />
           )}
+        </div>
+        <div className="text-muted-foreground flex items-center gap-1 mt-0.5">
+          <span>{time}</span>
+          <span>·</span>
+          <span>{ag.duracao_minutos}min</span>
+        </div>
+        {ag.profiles?.nome && (
+          <div className="text-[10px] mt-0.5 font-medium truncate" style={{ color }}>
+            {ag.profiles.nome}
+          </div>
+        )}
+        <div className="flex items-center justify-between mt-1 gap-1">
+          <Badge
+            variant="secondary"
+            className={cn("text-[10px] px-1.5 py-0", statusColors[ag.status])}
+          >
+            {ag.status}
+          </Badge>
+          <div className="flex items-center gap-1">
+            {canCheckin && !checkedIn && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCheckin?.(ag.id, isPatient ? "paciente" : "profissional");
+                }}
+                className="text-[10px] text-primary hover:underline font-medium"
+              >
+                Check-in
+              </button>
+            )}
+            {isPatient && ag.status !== "cancelado" && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReschedule?.(ag);
+                  }}
+                  className="text-[10px] text-amber-600 hover:underline font-medium"
+                >
+                  Remarcar
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel?.(ag.id);
+                  }}
+                  className="text-[10px] text-destructive hover:underline font-medium"
+                >
+                  Cancelar
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -119,9 +157,19 @@ function AppointmentCard({ ag, isPatient, onCancel, onCheckin, onReschedule, onA
 }
 
 // ─── Daily View ──────────────────────────────────────────────
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 6); // 6h-19h
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 6);
 
-export function DailyView({ agendamentos, currentDate, onSlotClick, isPatient, onCancel, onCheckin, onReschedule, onAppointmentClick }: ViewProps) {
+export function DailyView({
+  agendamentos,
+  currentDate,
+  onSlotClick,
+  isPatient,
+  onCancel,
+  onCheckin,
+  onReschedule,
+  onAppointmentClick,
+  profColors = {},
+}: ViewProps) {
   const dayAgendamentos = agendamentos.filter((ag) =>
     isSameDay(new Date(ag.data_horario), currentDate)
   );
@@ -141,19 +189,28 @@ export function DailyView({ agendamentos, currentDate, onSlotClick, isPatient, o
           return (
             <div
               key={hour}
-              className="flex min-h-[60px] hover:bg-muted/20 cursor-pointer transition-colors"
+              className="flex min-h-[56px] hover:bg-muted/20 cursor-pointer transition-colors"
               onClick={() => {
                 const d = new Date(currentDate);
                 d.setHours(hour, 0, 0, 0);
                 onSlotClick?.(d);
               }}
             >
-              <div className="w-16 shrink-0 text-xs text-muted-foreground py-2 text-right pr-3 border-r">
+              <div className="w-14 shrink-0 text-xs text-muted-foreground py-2 text-right pr-2 border-r">
                 {String(hour).padStart(2, "0")}:00
               </div>
-              <div className="flex-1 p-1 flex flex-col gap-1">
+              <div className="flex-1 p-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
                 {hourAgs.map((ag) => (
-                  <AppointmentCard key={ag.id} ag={ag} isPatient={isPatient} onCancel={onCancel} onCheckin={onCheckin} onReschedule={onReschedule} onAppointmentClick={onAppointmentClick} />
+                  <AppointmentCard
+                    key={ag.id}
+                    ag={ag}
+                    isPatient={isPatient}
+                    onCancel={onCancel}
+                    onCheckin={onCheckin}
+                    onReschedule={onReschedule}
+                    onAppointmentClick={onAppointmentClick}
+                    profColor={profColors[ag.profissional_id]}
+                  />
                 ))}
               </div>
             </div>
@@ -165,7 +222,17 @@ export function DailyView({ agendamentos, currentDate, onSlotClick, isPatient, o
 }
 
 // ─── Weekly View ─────────────────────────────────────────────
-export function WeeklyView({ agendamentos, currentDate, onSlotClick, isPatient, onCancel, onCheckin, onReschedule, onAppointmentClick }: ViewProps) {
+export function WeeklyView({
+  agendamentos,
+  currentDate,
+  onSlotClick,
+  isPatient,
+  onCancel,
+  onCheckin,
+  onReschedule,
+  onAppointmentClick,
+  profColors = {},
+}: ViewProps) {
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -173,7 +240,7 @@ export function WeeklyView({ agendamentos, currentDate, onSlotClick, isPatient, 
   }, [currentDate]);
 
   return (
-    <div className="grid grid-cols-7 gap-1">
+    <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
       {weekDays.map((day) => {
         const dayAgs = agendamentos.filter((ag) =>
           isSameDay(new Date(ag.data_horario), day)
@@ -184,13 +251,13 @@ export function WeeklyView({ agendamentos, currentDate, onSlotClick, isPatient, 
           <div
             key={day.toISOString()}
             className={cn(
-              "border rounded-lg p-2 min-h-[200px] cursor-pointer hover:bg-muted/20 transition-colors bg-card",
-              isToday && "ring-2 ring-primary"
+              "bg-card p-1.5 min-h-[180px] cursor-pointer hover:bg-muted/20 transition-colors flex flex-col",
+              isToday && "ring-2 ring-primary ring-inset"
             )}
             onClick={() => onSlotClick?.(day)}
           >
-            <div className="text-center mb-2">
-              <div className="text-[10px] uppercase text-muted-foreground">
+            <div className="text-center mb-1.5 pb-1 border-b">
+              <div className="text-[10px] uppercase text-muted-foreground leading-tight">
                 {format(day, "EEE", { locale: ptBR })}
               </div>
               <div
@@ -202,13 +269,22 @@ export function WeeklyView({ agendamentos, currentDate, onSlotClick, isPatient, 
                 {format(day, "dd")}
               </div>
             </div>
-            <div className="space-y-1">
-              {dayAgs.slice(0, 4).map((ag) => (
-                <AppointmentCard key={ag.id} ag={ag} isPatient={isPatient} onCancel={onCancel} onCheckin={onCheckin} onReschedule={onReschedule} onAppointmentClick={onAppointmentClick} />
+            <div className="space-y-1 flex-1 overflow-y-auto">
+              {dayAgs.slice(0, 5).map((ag) => (
+                <AppointmentCard
+                  key={ag.id}
+                  ag={ag}
+                  isPatient={isPatient}
+                  onCancel={onCancel}
+                  onCheckin={onCheckin}
+                  onReschedule={onReschedule}
+                  onAppointmentClick={onAppointmentClick}
+                  profColor={profColors[ag.profissional_id]}
+                />
               ))}
-              {dayAgs.length > 4 && (
-                <div className="text-[10px] text-muted-foreground text-center">
-                  +{dayAgs.length - 4} mais
+              {dayAgs.length > 5 && (
+                <div className="text-[10px] text-muted-foreground text-center py-0.5">
+                  +{dayAgs.length - 5} mais
                 </div>
               )}
             </div>
@@ -220,7 +296,17 @@ export function WeeklyView({ agendamentos, currentDate, onSlotClick, isPatient, 
 }
 
 // ─── Monthly View ────────────────────────────────────────────
-export function MonthlyView({ agendamentos, currentDate, onSlotClick, isPatient, onCancel, onCheckin, onReschedule, onAppointmentClick }: ViewProps) {
+export function MonthlyView({
+  agendamentos,
+  currentDate,
+  onSlotClick,
+  isPatient,
+  onCancel,
+  onCheckin,
+  onReschedule,
+  onAppointmentClick,
+  profColors = {},
+}: ViewProps) {
   const monthDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
     const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 });
@@ -234,12 +320,15 @@ export function MonthlyView({ agendamentos, currentDate, onSlotClick, isPatient,
     <div>
       <div className="grid grid-cols-7 mb-1">
         {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">
+          <div
+            key={d}
+            className="text-center text-xs font-medium text-muted-foreground py-2"
+          >
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
         {monthDays.map((day) => {
           const dayAgs = agendamentos.filter((ag) =>
             isSameDay(new Date(ag.data_horario), day)
@@ -250,9 +339,9 @@ export function MonthlyView({ agendamentos, currentDate, onSlotClick, isPatient,
             <div
               key={day.toISOString()}
               className={cn(
-                "border rounded-md p-1.5 min-h-[80px] cursor-pointer hover:bg-muted/20 transition-colors bg-card text-xs",
+                "bg-card p-1.5 min-h-[80px] cursor-pointer hover:bg-muted/20 transition-colors text-xs",
                 !isCurrentMonth(day) && "opacity-40",
-                isToday && "ring-2 ring-primary"
+                isToday && "ring-2 ring-primary ring-inset"
               )}
               onClick={() => onSlotClick?.(day)}
             >
@@ -264,27 +353,40 @@ export function MonthlyView({ agendamentos, currentDate, onSlotClick, isPatient,
               >
                 {format(day, "dd")}
               </div>
-              {dayAgs.slice(0, 2).map((ag) => (
-                <div
-                  key={ag.id}
-                  className={cn(
-                    "truncate rounded px-1 py-0.5 mb-0.5 text-[10px] border-l-2 flex justify-between items-center",
-                    tipoColors[ag.tipo_atendimento]
-                  )}
-                >
-                  <span className="truncate">{format(new Date(ag.data_horario), "HH:mm")} {ag.pacientes?.nome?.split(" ")[0]}</span>
-                  {isPatient && ag.status !== 'cancelado' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onCancel?.(ag.id); }}
-                      className="ml-1 text-[8px] text-destructive font-bold"
-                    >
-                      X
-                    </button>
-                  )}
+              {dayAgs.slice(0, 3).map((ag) => {
+                const color = profColors[ag.profissional_id] || "#3b82f6";
+                return (
+                  <div
+                    key={ag.id}
+                    className="truncate rounded px-1 py-0.5 mb-0.5 text-[10px] border-l-2 flex justify-between items-center bg-card"
+                    style={{ borderLeftColor: color }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAppointmentClick?.(ag);
+                    }}
+                  >
+                    <span className="truncate">
+                      {format(new Date(ag.data_horario), "HH:mm")}{" "}
+                      {ag.pacientes?.nome?.split(" ")[0]}
+                    </span>
+                    {isPatient && ag.status !== "cancelado" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCancel?.(ag.id);
+                        }}
+                        className="ml-1 text-[8px] text-destructive font-bold"
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {dayAgs.length > 3 && (
+                <div className="text-[10px] text-muted-foreground">
+                  +{dayAgs.length - 3}
                 </div>
-              ))}
-              {dayAgs.length > 2 && (
-                <div className="text-[10px] text-muted-foreground">+{dayAgs.length - 2}</div>
               )}
             </div>
           );

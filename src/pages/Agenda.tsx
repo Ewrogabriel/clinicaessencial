@@ -40,15 +40,20 @@ const Agenda = () => {
     queryFn: async () => {
       const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
       const ids = roles?.map(r => r.user_id) ?? [];
-      // Also include admins who might attend
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       const adminIds = adminRoles?.map(r => r.user_id) ?? [];
       const allIds = [...new Set([...ids, ...adminIds])];
       if (!allIds.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", allIds).order("nome");
+      const { data } = await (supabase.from("profiles") as any).select("user_id, nome, cor_agenda").in("user_id", allIds).order("nome");
       return data ?? [];
     },
     enabled: isStaff,
+  });
+
+  // Build color map: profissional_id -> color
+  const profColors: Record<string, string> = {};
+  (profissionais as any[]).forEach((p: any) => {
+    profColors[p.user_id] = p.cor_agenda || "#3b82f6";
   });
 
   const handleAppointmentClick = (ag: Agendamento) => {
@@ -251,6 +256,19 @@ const Agenda = () => {
         </div>
       </div>
 
+      {/* Color Legend */}
+      {isStaff && (profissionais as any[]).length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-muted-foreground font-medium">Legenda:</span>
+          {(profissionais as any[]).map((p: any) => (
+            <div key={p.user_id} className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.cor_agenda || '#3b82f6' }} />
+              <span>{p.nome}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Calendar View */}
       <div>
         {viewMode === "diario" && (
@@ -263,6 +281,7 @@ const Agenda = () => {
             onCheckin={handleCheckin}
             onReschedule={handleReschedule}
             onAppointmentClick={handleAppointmentClick}
+            profColors={profColors}
           />
         )}
         {viewMode === "semanal" && (
@@ -275,6 +294,7 @@ const Agenda = () => {
             onCheckin={handleCheckin}
             onReschedule={handleReschedule}
             onAppointmentClick={handleAppointmentClick}
+            profColors={profColors}
           />
         )}
         {viewMode === "mensal" && (
@@ -287,6 +307,7 @@ const Agenda = () => {
             onCheckin={handleCheckin}
             onReschedule={handleReschedule}
             onAppointmentClick={handleAppointmentClick}
+            profColors={profColors}
           />
         )}
       </div>

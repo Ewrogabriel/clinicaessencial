@@ -42,6 +42,7 @@ interface Profissional {
   especialidade?: string | null;
   commission_rate?: number;
   commission_fixed?: number;
+  cor_agenda?: string | null;
 }
 
 const Profissionais = () => {
@@ -55,6 +56,7 @@ const Profissionais = () => {
   const [especialidade, setEspecialidade] = useState<string | null>(null);
   const [commissionRate, setCommissionRate] = useState("0");
   const [commissionFixed, setCommissionFixed] = useState("0");
+  const [corAgenda, setCorAgenda] = useState("#3b82f6");
   const [loading, setLoading] = useState(false);
 
   const { data: profissionais = [], isLoading } = useQuery({
@@ -94,6 +96,7 @@ const Profissionais = () => {
     setEspecialidade(p.especialidade || null);
     setCommissionRate(String(p.commission_rate || 0));
     setCommissionFixed(String(p.commission_fixed || 0));
+    setCorAgenda(p.cor_agenda || "#3b82f6");
     setDialogOpen(true);
   };
 
@@ -110,8 +113,9 @@ const Profissionais = () => {
           telefone: telefone || null,
           especialidade: especialidade,
           commission_rate: parseFloat(commissionRate) || 0,
-          commission_fixed: parseFloat(commissionFixed) || 0
-        })
+          commission_fixed: parseFloat(commissionFixed) || 0,
+          cor_agenda: corAgenda,
+        } as any)
         .eq("id", editingId);
       if (error) throw error;
       toast({ title: "Profissional atualizado!" });
@@ -146,6 +150,7 @@ const Profissionais = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">Cor</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead className="hidden sm:table-cell">Cargo</TableHead>
                   <TableHead className="hidden sm:table-cell">Especialidade</TableHead>
@@ -157,6 +162,9 @@ const Profissionais = () => {
               <TableBody>
                 {profissionais.map((p) => (
                   <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="w-5 h-5 rounded-full border" style={{ backgroundColor: p.cor_agenda || '#3b82f6' }} />
+                    </TableCell>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant={p.role === 'admin' ? 'default' : 'secondary'}>
@@ -251,6 +259,18 @@ const Profissionais = () => {
               <div className="space-y-2">
                 <Label>Valor Fixo (R$)</Label>
                 <Input type="number" step="0.01" value={commissionFixed} onChange={(e) => setCommissionFixed(e.target.value)} placeholder="0.00" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Cor na Agenda</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={corAgenda}
+                  onChange={(e) => setCorAgenda(e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+                />
+                <span className="text-sm text-muted-foreground">{corAgenda}</span>
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
