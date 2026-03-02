@@ -67,8 +67,7 @@ const Agenda = () => {
       let query = (supabase.from("agendamentos") as any)
         .select(`
           *,
-          pacientes (id, nome, telefone),
-          profiles:profissional_id (nome)
+          pacientes (id, nome, telefone)
         `);
 
       if (isPatient) {
@@ -87,7 +86,7 @@ const Agenda = () => {
         const mapped = (data as any[]).map((item) => ({
           ...item,
           pacientes: item.pacientes,
-          profiles: item.profiles,
+          profiles: { nome: (profissionais as any[]).find((p: any) => p.user_id === item.profissional_id)?.nome || "Profissional" },
         }));
         setAgendamentos(mapped);
 
@@ -105,7 +104,7 @@ const Agenda = () => {
       console.error("Unexpected error in fetchAgendamentos:", e);
     }
     setLoading(false);
-  }, [isPatient, user?.id]);
+  }, [isPatient, user?.id, profissionais]);
 
   useEffect(() => {
     fetchAgendamentos();
