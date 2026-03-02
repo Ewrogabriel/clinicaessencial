@@ -34,6 +34,9 @@ import MeuPerfil from "./pages/MeuPerfil";
 import MeuHistorico from "./pages/MeuHistorico";
 import Contratos from "./pages/Contratos";
 import PrecosPlanos from "./pages/PrecosPlanos";
+import Comissoes from "./pages/Comissoes";
+import PerfilProfissional from "./pages/PerfilProfissional";
+import PerfilProfissionalPublico from "./pages/PerfilProfissionalPublico";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +88,9 @@ const App = () => (
               <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
               <Route path="/contratos" element={<Contratos />} />
               <Route path="/precos-planos" element={<PrecosPlanos />} />
+              <Route path="/comissoes" element={<Comissoes />} />
+              <Route path="/perfil-profissional" element={<PerfilProfissional />} />
+              <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

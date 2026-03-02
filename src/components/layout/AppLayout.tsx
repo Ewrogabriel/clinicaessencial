@@ -1,8 +1,11 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
+import { GlobalSearch } from "./GlobalSearch";
 import { Outlet } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AppLayout() {
+  const { isPatient } = useAuth();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -10,6 +13,7 @@ export function AppLayout() {
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
             <SidebarTrigger />
+            {!isPatient && <GlobalSearch />}
             <div className="flex-1" />
           </header>
           <main className="flex-1 p-4 lg:p-6 overflow-auto">

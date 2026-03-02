@@ -714,30 +714,93 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
+      professional_documents: {
         Row: {
           created_at: string
-          email: string | null
+          descricao: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
           id: string
           nome: string
+          profissional_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          nome: string
+          profissional_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          nome?: string
+          profissional_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          bio: string | null
+          commission_fixed: number | null
+          commission_rate: number | null
+          created_at: string
+          cursos: string[] | null
+          email: string | null
+          especialidade: string | null
+          especializacoes: string[] | null
+          foto_url: string | null
+          graduacao: string | null
+          id: string
+          nome: string
+          registro_profissional: string | null
           telefone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          bio?: string | null
+          commission_fixed?: number | null
+          commission_rate?: number | null
           created_at?: string
+          cursos?: string[] | null
           email?: string | null
+          especialidade?: string | null
+          especializacoes?: string[] | null
+          foto_url?: string | null
+          graduacao?: string | null
           id?: string
           nome: string
+          registro_profissional?: string | null
           telefone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          bio?: string | null
+          commission_fixed?: number | null
+          commission_rate?: number | null
           created_at?: string
+          cursos?: string[] | null
           email?: string | null
+          especialidade?: string | null
+          especializacoes?: string[] | null
+          foto_url?: string | null
+          graduacao?: string | null
           id?: string
           nome?: string
+          registro_profissional?: string | null
           telefone?: string | null
           updated_at?: string
           user_id?: string

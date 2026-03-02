@@ -17,6 +17,8 @@ import {
   FileText,
   Tag,
   CreditCard,
+  User,
+  Calculator,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,7 +37,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-/* ── Staff menus ── */
+/* ── Admin / Gestor menus ── */
 const menuPrincipal = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Agenda", url: "/agenda", icon: Calendar },
@@ -51,6 +53,7 @@ const menuServicos = [
 
 const menuFinanceiro = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Comissões", url: "/comissoes", icon: Calculator },
   { title: "Planos", url: "/planos", icon: ClipboardList },
   { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
   { title: "Despesas", url: "/despesas", icon: Receipt },
@@ -65,6 +68,23 @@ const menuComunicacao = [
 const menuIA = [
   { title: "Inteligência", url: "/inteligencia", icon: Brain },
   { title: "Automações", url: "/automacoes", icon: Send },
+];
+
+/* ── Professional menu ── */
+const menuProfissional = [
+  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
+  { title: "Pacientes", url: "/pacientes", icon: Users },
+  { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
+  { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
+];
+
+const menuProfFinanceiro = [
+  { title: "Minhas Comissões", url: "/comissoes", icon: Calculator },
+];
+
+const menuProfPerfil = [
+  { title: "Meu Perfil", url: "/perfil-profissional", icon: User },
 ];
 
 /* ── Patient menu ── */
@@ -139,13 +159,19 @@ export function AppSidebar() {
       </div>
 
       <SidebarContent>
-        {isStaff ? (
+        {(isAdmin || isGestor) ? (
           <>
             {renderGroup("Principal", menuPrincipal)}
             {renderGroup("Serviços", menuServicos)}
             {renderGroup("Financeiro & Gestão", menuFinanceiro)}
-            {(isAdmin || isGestor) && renderGroup("Comunicação", menuComunicacao)}
+            {renderGroup("Comunicação", menuComunicacao)}
             {renderGroup("IA & Automação", menuIA)}
+          </>
+        ) : isProfissional ? (
+          <>
+            {renderGroup("Principal", menuProfissional)}
+            {renderGroup("Financeiro", menuProfFinanceiro)}
+            {renderGroup("Perfil", menuProfPerfil)}
           </>
         ) : (
           renderGroup("Meu Portal", menuPatient)

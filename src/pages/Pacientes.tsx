@@ -19,8 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Users, Trash2, UserX } from "lucide-react";
+import { Plus, Search, Users, Trash2, UserX, Download, FileSpreadsheet } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,6 +53,7 @@ const Pacientes = () => {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroProfissional, setFiltroProfissional] = useState("todos");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleInativar = async () => {
@@ -79,16 +82,55 @@ const Pacientes = () => {
     },
   });
 
+  const { data: profissionais = [] } = useQuery({
+    queryKey: ["profissionais-filter"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+      const ids = roles?.map(r => r.user_id) ?? [];
+      if (!ids.length) return [];
+      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
+      return data ?? [];
+    },
+  });
+
   const filtrados = pacientes.filter((p) => {
     const matchBusca =
       !busca ||
       p.nome.toLowerCase().includes(busca.toLowerCase()) ||
       p.cpf?.includes(busca) ||
-      p.telefone.includes(busca);
+      p.telefone.includes(busca) ||
+      p.email?.toLowerCase().includes(busca.toLowerCase());
     const matchTipo = filtroTipo === "todos" || p.tipo_atendimento === filtroTipo;
     const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
-    return matchBusca && matchTipo && matchStatus;
+    const matchProf = filtroProfissional === "todos" || p.profissional_id === filtroProfissional;
+    return matchBusca && matchTipo && matchStatus && matchProf;
   });
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Lista de Pacientes — Essencial Fisio Pilates", 14, 15);
+    doc.setFontSize(8);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 22);
+    autoTable(doc, {
+      startY: 28,
+      head: [["Nome", "Telefone", "CPF", "Tipo", "Status"]],
+      body: filtrados.map(p => [p.nome, p.telefone, p.cpf || "—", p.tipo_atendimento, p.status]),
+      styles: { fontSize: 8 },
+    });
+    doc.save("pacientes.pdf");
+  };
+
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.json_to_sheet(filtrados.map(p => ({
+      Nome: p.nome, Telefone: p.telefone, CPF: p.cpf || "", Email: p.email || "",
+      Tipo: p.tipo_atendimento, Status: p.status,
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pacientes");
+    XLSX.writeFile(wb, "pacientes.xlsx");
+  };
 
   return (
     <div className="space-y-6">
@@ -105,6 +147,14 @@ const Pacientes = () => {
           <Plus className="h-4 w-4 mr-2" />
           Novo Paciente
         </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportPDF}>
+            <Download className="h-4 w-4 mr-1" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportExcel}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -138,6 +188,17 @@ const Pacientes = () => {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="ativo">Ativo</SelectItem>
                 <SelectItem value="inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroProfissional} onValueChange={setFiltroProfissional}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos profissionais</SelectItem>
+                {profissionais.map((p: any) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
