@@ -46,16 +46,22 @@ export function GlobalSearch() {
       const q = query.trim();
       const items: SearchResult[] = [];
 
-      // Search patients
+      // Search patients (including legal guardian data)
       const { data: pacientes } = await (supabase.from("pacientes") as any)
-        .select("id, nome, cpf, telefone")
-        .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%`)
+        .select("id, nome, cpf, telefone, responsavel_nome, responsavel_cpf, responsavel_telefone")
+        .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%,responsavel_nome.ilike.%${q}%,responsavel_cpf.ilike.%${q}%,responsavel_telefone.ilike.%${q}%`)
         .limit(5);
-      pacientes?.forEach((p: any) => items.push({
-        type: "paciente", id: p.id, title: p.nome,
-        subtitle: [p.cpf, p.telefone].filter(Boolean).join(" • "),
-        link: `/pacientes/${p.id}/detalhes`,
-      }));
+      pacientes?.forEach((p: any) => {
+        const isGuardianMatch = p.responsavel_nome?.toLowerCase().includes(q.toLowerCase()) ||
+          p.responsavel_cpf?.includes(q) || p.responsavel_telefone?.includes(q);
+        items.push({
+          type: "paciente", id: p.id, title: p.nome,
+          subtitle: isGuardianMatch
+            ? `Resp: ${p.responsavel_nome || ''} • ${[p.responsavel_cpf, p.responsavel_telefone].filter(Boolean).join(" • ")}`
+            : [p.cpf, p.telefone].filter(Boolean).join(" • "),
+          link: `/pacientes/${p.id}/detalhes`,
+        });
+      });
 
       // Search appointments
       const { data: agendamentos } = await (supabase.from("agendamentos") as any)
