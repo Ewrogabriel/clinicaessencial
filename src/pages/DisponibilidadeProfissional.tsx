@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye } from "lucide-react";
+import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -23,6 +23,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { generateAvailabilityPDF } from "@/lib/generateAvailabilityPDF";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const DIAS_SEMANA = [
   { value: 1, label: "Segunda-feira", short: "Seg" },
@@ -82,6 +85,7 @@ const DisponibilidadeProfissional = () => {
 
   // Vacancy grid dialog
   const [showVacancyGrid, setShowVacancyGrid] = useState(false);
+  const [vacancyWeek, setVacancyWeek] = useState<Date>(new Date());
 
   const profId = canManage ? selectedProfissional : (user?.id || "");
 
@@ -132,14 +136,20 @@ const DisponibilidadeProfissional = () => {
     },
   });
 
-  // Agendamentos for vacancy grid
+  const vacancyWeekStart = startOfWeek(vacancyWeek, { weekStartsOn: 1 });
+  const vacancyWeekEnd = endOfWeek(vacancyWeek, { weekStartsOn: 1 });
+  const vacancyDays = eachDayOfInterval({ start: vacancyWeekStart, end: vacancyWeekEnd });
+
+  // Agendamentos for vacancy grid - scoped to selected week
   const { data: agendamentos = [] } = useQuery({
-    queryKey: ["agendamentos-vagas", profId],
+    queryKey: ["agendamentos-vagas", profId, vacancyWeekStart.toISOString()],
     queryFn: async () => {
       const { data } = await (supabase.from("agendamentos") as any)
         .select("data_horario, status")
         .eq("profissional_id", profId)
-        .in("status", ["agendado", "confirmado"]);
+        .in("status", ["agendado", "confirmado"])
+        .gte("data_horario", vacancyWeekStart.toISOString())
+        .lte("data_horario", vacancyWeekEnd.toISOString());
       return data ?? [];
     },
     enabled: !!profId && showVacancyGrid,
@@ -226,16 +236,19 @@ const DisponibilidadeProfissional = () => {
     toast({ title: "PDF da grade semanal exportado!" });
   };
 
-  // Vacancy calculation
-  const getVacancyForSlot = (slot: Slot) => {
+  // Vacancy calculation for specific day
+  const getVacancyForSlotOnDate = (slot: Slot, date: Date) => {
     const dayAgendamentos = agendamentos.filter((a: any) => {
       const d = new Date(a.data_horario);
-      return d.getDay() === slot.dia_semana &&
+      return isSameDay(d, date) &&
         d.toTimeString().slice(0, 5) >= slot.hora_inicio.slice(0, 5) &&
         d.toTimeString().slice(0, 5) < slot.hora_fim.slice(0, 5);
     });
     return Math.max(0, slot.max_pacientes - dayAgendamentos.length);
   };
+
+  // Collect all unique time ranges across all days
+  const allTimeRanges = [...new Set(slots.map(s => `${s.hora_inicio.slice(0, 5)}-${s.hora_fim.slice(0, 5)}`))].sort();
 
   const totalSlots = slots.length;
   const totalCapacity = slots.reduce((sum, s) => sum + s.max_pacientes, 0);
@@ -536,39 +549,82 @@ const DisponibilidadeProfissional = () => {
 
       {/* Vacancy Grid Dialog */}
       <Dialog open={showVacancyGrid} onOpenChange={setShowVacancyGrid}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Vagas Disponíveis – {currentProfName}</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vagas Disponíveis – {currentProfName}</DialogTitle>
+          </DialogHeader>
+
+          {/* Week navigation */}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <Button variant="outline" size="icon" onClick={() => setVacancyWeek(d => subWeeks(d, 1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    {format(vacancyWeekStart, "dd/MM")} – {format(vacancyWeekEnd, "dd/MM/yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={vacancyWeek}
+                    onSelect={(d) => { if (d) setVacancyWeek(d); }}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button variant="ghost" size="sm" onClick={() => setVacancyWeek(new Date())}>Hoje</Button>
+            </div>
+            <Button variant="outline" size="icon" onClick={() => setVacancyWeek(d => addWeeks(d, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Grid: columns = days, rows = time ranges */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="border p-2 bg-muted text-left">Dia</th>
-                  <th className="border p-2 bg-muted">Horário</th>
-                  <th className="border p-2 bg-muted">Capacidade</th>
-                  <th className="border p-2 bg-muted">Agendados</th>
-                  <th className="border p-2 bg-muted">Vagas</th>
+                  <th className="border p-2 bg-muted text-left min-w-[100px]">Horário</th>
+                  {vacancyDays.map((day) => (
+                    <th key={day.toISOString()} className="border p-2 bg-muted text-center min-w-[90px]">
+                      <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
+                      <div className="text-xs text-muted-foreground font-normal">{format(day, "dd/MM")}</div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {DIAS_SEMANA.map(dia => {
-                  const daySlots = slots.filter(s => s.dia_semana === dia.value);
-                  if (daySlots.length === 0) return null;
-                  return daySlots.map((slot, idx) => {
-                    const vacancy = getVacancyForSlot(slot);
-                    const occupied = slot.max_pacientes - vacancy;
+                {allTimeRanges.length === 0 ? (
+                  <tr><td colSpan={8} className="border p-8 text-center text-muted-foreground">Nenhum horário configurado</td></tr>
+                ) : (
+                  allTimeRanges.map((range) => {
+                    const [inicio, fim] = range.split("-");
                     return (
-                      <tr key={slot.id}>
-                        {idx === 0 && <td className="border p-2 font-medium bg-muted/30" rowSpan={daySlots.length}>{dia.short}</td>}
-                        <td className="border p-2 text-center">{slot.hora_inicio.slice(0, 5)} — {slot.hora_fim.slice(0, 5)}</td>
-                        <td className="border p-2 text-center">{slot.max_pacientes}</td>
-                        <td className="border p-2 text-center">{occupied}</td>
-                        <td className={`border p-2 text-center font-bold ${vacancy === 0 ? "text-destructive bg-destructive/10" : "text-green-700 bg-green-50"}`}>
-                          {vacancy === 0 ? "Lotado" : vacancy}
-                        </td>
+                      <tr key={range}>
+                        <td className="border p-2 font-medium text-center bg-muted/30">{inicio} — {fim}</td>
+                        {vacancyDays.map((day) => {
+                          const dayOfWeek = day.getDay();
+                          const slot = slots.find(s => s.dia_semana === dayOfWeek && s.hora_inicio.slice(0, 5) === inicio && s.hora_fim.slice(0, 5) === fim);
+                          if (!slot) return <td key={day.toISOString()} className="border p-2 text-center text-muted-foreground">—</td>;
+                          const vacancy = getVacancyForSlotOnDate(slot, day);
+                          const occupied = slot.max_pacientes - vacancy;
+                          return (
+                            <td key={day.toISOString()} className={cn("border p-2 text-center", vacancy === 0 ? "bg-destructive/10" : "bg-primary/5")}>
+                              <div className={cn("text-sm font-bold", vacancy === 0 ? "text-destructive" : "text-primary")}>
+                                {vacancy === 0 ? "Lotado" : `${vacancy} vaga${vacancy > 1 ? "s" : ""}`}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">{occupied}/{slot.max_pacientes}</div>
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
-                  });
-                })}
+                  })
+                )}
               </tbody>
             </table>
           </div>
