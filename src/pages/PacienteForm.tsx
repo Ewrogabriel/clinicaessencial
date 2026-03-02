@@ -16,6 +16,7 @@ import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, User } from "lucide-
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { maskCPF, maskPhone, maskCEP, maskRG } from "@/lib/masks";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -387,11 +388,11 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} />
+                <Input id="cpf" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rg">RG</Label>
-                <Input id="rg" placeholder="00.000.000-0" value={rg} onChange={(e) => setRg(e.target.value)} />
+                <Input id="rg" placeholder="00.000.000-0" value={rg} onChange={(e) => setRg(maskRG(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="data_nascimento">Data de Nascimento</Label>
@@ -399,7 +400,7 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone / WhatsApp</Label>
-                <Input id="telefone" placeholder="(00) 00000-0000" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                <Input id="telefone" placeholder="(00) 00000-0000" value={telefone} onChange={(e) => setTelefone(maskPhone(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
@@ -428,11 +429,11 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label>CPF do Responsável</Label>
-                <Input placeholder="000.000.000-00" value={respCpf} onChange={(e) => setRespCpf(e.target.value)} />
+                <Input placeholder="000.000.000-00" value={respCpf} onChange={(e) => setRespCpf(maskCPF(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>RG do Responsável</Label>
-                <Input placeholder="00.000.000-0" value={respRg} onChange={(e) => setRespRg(e.target.value)} />
+                <Input placeholder="00.000.000-0" value={respRg} onChange={(e) => setRespRg(maskRG(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>Parentesco</Label>
@@ -453,7 +454,7 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label>Telefone do Responsável</Label>
-                <Input placeholder="(00) 00000-0000" value={respTelefone} onChange={(e) => setRespTelefone(e.target.value)} />
+                <Input placeholder="(00) 00000-0000" value={respTelefone} onChange={(e) => setRespTelefone(maskPhone(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>E-mail do Responsável</Label>
@@ -471,7 +472,7 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label>CEP</Label>
-                <Input placeholder="00000-000" value={respCep} onChange={handleRespCepChange} />
+                <Input placeholder="00000-000" value={respCep} onChange={(e) => { const v = maskCEP(e.target.value); setRespCep(v); fetchAddressFor(v, "responsavel"); }} />
               </div>
               <div className="sm:col-span-2 space-y-2">
                 <Label>Rua / Logradouro</Label>
@@ -510,7 +511,7 @@ const PacienteForm = () => {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="cep">CEP</Label>
-              <Input id="cep" placeholder="00000-000" value={cep} onChange={handleCepChange} />
+              <Input id="cep" placeholder="00000-000" value={cep} onChange={(e) => { const v = maskCEP(e.target.value); setCep(v); fetchAddressFor(v, "paciente"); }} />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="rua">Rua / Logradouro</Label>
@@ -580,7 +581,7 @@ const PacienteForm = () => {
 
         <div className="flex gap-3 justify-end pb-12">
           <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || !nome.trim() || !telefone.trim()}>
             {loading ? "Salvando..." : isEditing ? "Atualizar Paciente" : "Salvar e Gerar Convite"}
           </Button>
         </div>

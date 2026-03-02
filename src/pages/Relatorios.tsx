@@ -119,6 +119,20 @@ const Relatorios = () => {
     return Object.entries(months).map(([name, valor]) => ({ name, valor }));
   }, [filteredPag]);
 
+  // Payment method breakdown
+  const paymentMethodBreakdown = useMemo(() => {
+    const methods: Record<string, number> = {};
+    const labels: Record<string, string> = {
+      pix: "PIX", dinheiro: "Dinheiro", cartao_credito: "Cartão Crédito",
+      cartao_debito: "Cartão Débito", boleto: "Boleto", transferencia: "Transferência",
+    };
+    (filteredPag as any[]).filter(p => p.status === "pago").forEach(p => {
+      const key = p.forma_pagamento || "não informado";
+      methods[key] = (methods[key] || 0) + Number(p.valor);
+    });
+    return Object.entries(methods).map(([key, valor]) => ({ name: labels[key] || key, valor }));
+  }, [filteredPag]);
+
   // Absences by professional chart
   const absencesByProf = profStats.map(p => ({ name: p.nome.split(" ")[0], faltas: p.faltas, cancelados: p.cancelados }));
 
@@ -362,35 +376,58 @@ const Relatorios = () => {
             <Button variant="outline" size="sm" onClick={() => exportPacientes("pdf")}><FileDown className="h-4 w-4 mr-1" />Lista Pacientes PDF</Button>
             <Button variant="outline" size="sm" onClick={() => exportPacientes("xlsx")}><FileSpreadsheet className="h-4 w-4 mr-1" />Lista Pacientes Excel</Button>
           </div>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Pagamentos Recentes</CardTitle></CardHeader>
-            <CardContent className="p-0 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>Profissional</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Forma</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(filteredPag as any[]).slice(0, 20).map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell>{format(new Date(p.data_pagamento), "dd/MM/yy")}</TableCell>
-                      <TableCell>{p.pacientes?.nome || "—"}</TableCell>
-                      <TableCell>{p.profiles?.nome || "—"}</TableCell>
-                      <TableCell className="font-medium">R$ {Number(p.valor).toFixed(2)}</TableCell>
-                      <TableCell><Badge variant={p.status === "pago" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
-                      <TableCell>{p.forma_pagamento || "—"}</TableCell>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Pagamentos Recentes</CardTitle></CardHeader>
+              <CardContent className="p-0 overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Forma</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {(filteredPag as any[]).slice(0, 15).map((p: any) => (
+                      <TableRow key={p.id}>
+                        <TableCell>{format(new Date(p.data_pagamento), "dd/MM/yy")}</TableCell>
+                        <TableCell>{p.pacientes?.nome || "—"}</TableCell>
+                        <TableCell>{p.profiles?.nome || "—"}</TableCell>
+                        <TableCell className="font-medium">R$ {Number(p.valor).toFixed(2)}</TableCell>
+                        <TableCell><Badge variant={p.status === "pago" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
+                        <TableCell>{p.forma_pagamento || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Recebimento por Forma de Pagamento</CardTitle></CardHeader>
+              <CardContent>
+                {paymentMethodBreakdown.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-8">Sem dados de pagamento no período.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={paymentMethodBreakdown}
+                        cx="50%" cy="50%" outerRadius={100} dataKey="valor"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {paymentMethodBreakdown.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <Legend /><Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Evasão & Inadimplência Tab */}

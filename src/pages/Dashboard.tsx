@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Activity, AlertTriangle, ArrowRight, Trophy } from "lucide-react";
+import { Users, Activity, AlertTriangle, ArrowRight, Trophy, CalendarCheck, Clock, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { format, differenceInYears } from "date-fns";
+import { format, differenceInYears, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -91,6 +91,45 @@ const Dashboard = () => {
     },
   });
 
+  // Today's agenda stats
+  const { data: todayStats } = useQuery({
+    queryKey: ["dashboard-today-stats"],
+    queryFn: async () => {
+      const todayStart = startOfDay(new Date()).toISOString();
+      const todayEnd = endOfDay(new Date()).toISOString();
+      const { data } = await (supabase.from("agendamentos") as any)
+        .select("id, status")
+        .gte("data_horario", todayStart)
+        .lte("data_horario", todayEnd);
+      const all = data || [];
+      return {
+        total: all.length,
+        realizados: all.filter((a: any) => a.status === "realizado").length,
+        confirmados: all.filter((a: any) => a.status === "confirmado" || a.status === "agendado").length,
+        faltas: all.filter((a: any) => a.status === "falta").length,
+      };
+    },
+  });
+
+  // Occupancy rate (this month)
+  const { data: occupancyRate = 0 } = useQuery({
+    queryKey: ["dashboard-occupancy", inicioMes],
+    queryFn: async () => {
+      const { data: disp } = await (supabase.from("disponibilidade_profissional") as any)
+        .select("hora_inicio, hora_fim, max_pacientes, dia_semana")
+        .eq("ativo", true);
+      const { data: agendamentosMes } = await (supabase.from("agendamentos") as any)
+        .select("id")
+        .gte("data_horario", `${inicioMes}T00:00:00`)
+        .lte("data_horario", `${fimMes}T23:59:59`)
+        .in("status", ["agendado", "confirmado", "realizado"]);
+      
+      // Estimate total slots per month (availability * ~4 weeks)
+      const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
+      if (totalSlots === 0) return 0;
+      return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
+    },
+  });
   // Ranking de frequência - pacientes que menos cancelam
   const { data: frequencyRanking = [] } = useQuery({
     queryKey: ["dashboard-frequency-ranking"],
@@ -140,17 +179,24 @@ const Dashboard = () => {
       color: "text-emerald-600 bg-emerald-50",
     },
     {
-      title: "Receita (Total)",
-      value: `R$ ${(financeData?.receita || 0).toFixed(2)}`,
-      icon: Activity,
-      description: "Pagamentos recebidos",
+      title: "Agenda Hoje",
+      value: String(todayStats?.total || 0),
+      icon: CalendarCheck,
+      description: todayStats?.confirmados ? `${todayStats.confirmados} pendentes · ${todayStats.realizados} realizados` : "Nenhum agendamento",
       color: "text-blue-600 bg-blue-50",
     },
     {
-      title: "Lucro Líquido",
-      value: `R$ ${(financeData?.lucro || 0).toFixed(2)}`,
+      title: "Ocupação (Mês)",
+      value: `${occupancyRate}%`,
+      icon: TrendingUp,
+      description: occupancyRate >= 80 ? "Alta demanda" : occupancyRate >= 50 ? "Demanda moderada" : "Baixa ocupação",
+      color: occupancyRate >= 80 ? "text-emerald-600 bg-emerald-50" : occupancyRate >= 50 ? "text-blue-600 bg-blue-50" : "text-amber-600 bg-amber-50",
+    },
+    {
+      title: "Receita do Mês",
+      value: `R$ ${((financeData?.receita || 0) / 1000).toFixed(1)}k`,
       icon: Activity,
-      description: "Após despesas e comissões",
+      description: `Lucro: R$ ${((financeData?.lucro || 0) / 1000).toFixed(1)}k`,
       color: "text-violet-600 bg-violet-50",
     },
     {
@@ -179,7 +225,7 @@ const Dashboard = () => {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => (
           <Card key={stat.title} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
