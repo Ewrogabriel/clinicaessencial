@@ -327,48 +327,69 @@ export type Database = {
       }
       pacientes: {
         Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           cpf: string | null
           created_at: string
           created_by: string
           data_nascimento: string | null
           email: string | null
           endereco: string | null
+          estado: string | null
           id: string
           nome: string
+          numero: string | null
           observacoes: string | null
           profissional_id: string | null
+          rua: string | null
           status: Database["public"]["Enums"]["status_paciente"]
           telefone: string
           tipo_atendimento: Database["public"]["Enums"]["tipo_atendimento"]
           updated_at: string
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           created_by: string
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
+          estado?: string | null
           id?: string
           nome: string
+          numero?: string | null
           observacoes?: string | null
           profissional_id?: string | null
+          rua?: string | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone: string
           tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
           updated_at?: string
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
+          estado?: string | null
           id?: string
           nome?: string
+          numero?: string | null
           observacoes?: string | null
           profissional_id?: string | null
+          rua?: string | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone?: string
           tipo_atendimento?: Database["public"]["Enums"]["tipo_atendimento"]
