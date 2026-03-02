@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_extra: {
+        Row: {
+          created_at: string
+          data: string
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          max_pacientes: number
+          motivo: string | null
+          profissional_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          max_pacientes?: number
+          motivo?: string | null
+          profissional_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          max_pacientes?: number
+          motivo?: string | null
+          profissional_id?: string
+        }
+        Relationships: []
+      }
       agendamentos: {
         Row: {
           checkin_paciente: boolean | null

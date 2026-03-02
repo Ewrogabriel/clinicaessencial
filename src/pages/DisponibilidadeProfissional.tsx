@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks } from "date-fns";
@@ -61,6 +61,16 @@ interface Feriado {
   descricao: string;
 }
 
+interface AgendaExtra {
+  id: string;
+  profissional_id: string;
+  data: string;
+  hora_inicio: string;
+  hora_fim: string;
+  max_pacientes: number;
+  motivo: string | null;
+}
+
 const DisponibilidadeProfissional = () => {
   const { user, isAdmin, isGestor } = useAuth();
   const queryClient = useQueryClient();
@@ -82,6 +92,13 @@ const DisponibilidadeProfissional = () => {
   // Feriado state
   const [feriadoData, setFeriadoData] = useState("");
   const [feriadoDescricao, setFeriadoDescricao] = useState("");
+
+  // Agenda extra state
+  const [extraData, setExtraData] = useState("");
+  const [extraHoraInicio, setExtraHoraInicio] = useState("08:00");
+  const [extraHoraFim, setExtraHoraFim] = useState("12:00");
+  const [extraMaxPacientes, setExtraMaxPacientes] = useState(3);
+  const [extraMotivo, setExtraMotivo] = useState("");
 
   // Vacancy grid dialog
   const [showVacancyGrid, setShowVacancyGrid] = useState(false);
@@ -137,6 +154,18 @@ const DisponibilidadeProfissional = () => {
         .order("data");
       return (data ?? []) as Feriado[];
     },
+  });
+
+  const { data: agendaExtra = [], refetch: refetchExtra } = useQuery({
+    queryKey: ["agenda-extra", profId],
+    queryFn: async () => {
+      const { data } = await (supabase.from("agenda_extra") as any)
+        .select("*").eq("profissional_id", profId)
+        .gte("data", new Date().toISOString().split("T")[0])
+        .order("data");
+      return (data ?? []) as AgendaExtra[];
+    },
+    enabled: !!profId,
   });
 
   const vacancyWeekStart = startOfWeek(vacancyWeek, { weekStartsOn: 1 });
@@ -246,6 +275,27 @@ const DisponibilidadeProfissional = () => {
     toast({ title: "Feriado removido" }); refetchFeriados();
   };
 
+  const handleAddExtra = async () => {
+    if (!profId || !extraData) { toast({ title: "Selecione uma data", variant: "destructive" }); return; }
+    if (extraHoraInicio >= extraHoraFim) { toast({ title: "Horário inválido", variant: "destructive" }); return; }
+    const { error } = await (supabase.from("agenda_extra") as any).insert({
+      profissional_id: profId, data: extraData,
+      hora_inicio: extraHoraInicio, hora_fim: extraHoraFim,
+      max_pacientes: extraMaxPacientes, motivo: extraMotivo || null,
+    });
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Agenda extra adicionada! ✅" });
+      setExtraData(""); setExtraMotivo("");
+      refetchExtra();
+    }
+  };
+
+  const handleDeleteExtra = async (id: string) => {
+    await (supabase.from("agenda_extra") as any).delete().eq("id", id);
+    toast({ title: "Agenda extra removida" }); refetchExtra();
+  };
+
   const handleExportPDF = () => {
     generateAvailabilityPDF(slots, currentProfName);
     toast({ title: "PDF da grade semanal exportado!" });
@@ -328,8 +378,9 @@ const DisponibilidadeProfissional = () => {
 
       {/* Main Tabs */}
       <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="grade" className="gap-1"><Clock className="h-4 w-4" /> Grade Semanal</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="grade" className="gap-1"><Clock className="h-4 w-4" /> Grade</TabsTrigger>
+          <TabsTrigger value="extra" className="gap-1"><CalendarPlus className="h-4 w-4" /> Agenda Extra</TabsTrigger>
           <TabsTrigger value="bloqueios" className="gap-1"><CalendarOff className="h-4 w-4" /> Bloqueios</TabsTrigger>
           <TabsTrigger value="feriados" className="gap-1"><PartyPopper className="h-4 w-4" /> Feriados</TabsTrigger>
         </TabsList>
@@ -455,6 +506,60 @@ const DisponibilidadeProfissional = () => {
                   );
                 })}
               </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ===== AGENDA EXTRA TAB ===== */}
+        <TabsContent value="extra" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2"><CalendarPlus className="h-5 w-5 text-primary" /> Abrir Agenda Extra</CardTitle>
+              <CardDescription>Abra horários em dias que normalmente não atende</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input type="date" value={extraData} onChange={e => setExtraData(e.target.value)} min={new Date().toISOString().split("T")[0]} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Motivo (opcional)</Label>
+                  <Input value={extraMotivo} onChange={e => setExtraMotivo(e.target.value)} placeholder="Ex: reposição de aula, demanda extra..." />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-1"><Label className="text-xs">Início</Label><Input type="time" value={extraHoraInicio} onChange={e => setExtraHoraInicio(e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-xs">Fim</Label><Input type="time" value={extraHoraFim} onChange={e => setExtraHoraFim(e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-xs">Máx. Pacientes</Label><Input type="number" min={1} max={20} value={extraMaxPacientes} onChange={e => setExtraMaxPacientes(Number(e.target.value))} /></div>
+              </div>
+              <Button onClick={handleAddExtra} className="gap-1"><Plus className="h-4 w-4" /> Abrir Agenda Extra</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-lg">Agendas Extras Ativas</CardTitle></CardHeader>
+            <CardContent>
+              {agendaExtra.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground text-sm">Nenhuma agenda extra configurada</p>
+              ) : (
+                <div className="space-y-2">
+                  {agendaExtra.map(e => (
+                    <div key={e.id} className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
+                      <div>
+                        <p className="text-sm font-medium">{format(new Date(e.data + "T12:00:00"), "dd/MM/yyyy (EEEE)", { locale: ptBR })}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {e.hora_inicio.slice(0, 5)} — {e.hora_fim.slice(0, 5)} • Máx: {e.max_pacientes} pacientes
+                          {e.motivo && ` • ${e.motivo}`}
+                        </p>
+                      </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDeleteExtra(e.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
