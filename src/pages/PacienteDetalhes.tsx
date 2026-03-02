@@ -105,6 +105,14 @@ const PacienteDetalhes = () => {
                 <Button variant="ghost" size="icon" onClick={() => navigate("/pacientes")}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
+                {/* Patient avatar */}
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {paciente.foto_url ? (
+                        <img src={paciente.foto_url} alt={paciente.nome} className="w-full h-full object-cover" />
+                    ) : (
+                        <User className="h-6 w-6 text-muted-foreground" />
+                    )}
+                </div>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
@@ -249,7 +257,6 @@ const PacienteDetalhes = () => {
                 </TabsContent>
 
                 <TabsContent value="cadastro">
-                    {/* We will eventually move the PatientForm logic here or just a redirect */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Dados de Cadastro</CardTitle>
@@ -273,6 +280,46 @@ const PacienteDetalhes = () => {
                                     <p className="font-medium">{paciente.data_nascimento ? format(new Date(paciente.data_nascimento), "dd/MM/yyyy") : "Não informado"}</p>
                                 </div>
                             </div>
+
+                            {/* Legal Guardian Section */}
+                            {paciente.tem_responsavel_legal && (
+                                <div className="mt-6 pt-4 border-t">
+                                    <h4 className="font-semibold text-sm mb-3">Responsável Legal</h4>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground">Nome</p>
+                                            <p className="font-medium">{paciente.responsavel_nome || "—"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Parentesco</p>
+                                            <p className="font-medium capitalize">{paciente.responsavel_parentesco || "—"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">CPF</p>
+                                            <p className="font-medium">{paciente.responsavel_cpf || "—"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Telefone</p>
+                                            <p className="font-medium">{paciente.responsavel_telefone || "—"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">E-mail</p>
+                                            <p className="font-medium">{paciente.responsavel_email || "—"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">RG</p>
+                                            <p className="font-medium">{paciente.responsavel_rg || "—"}</p>
+                                        </div>
+                                        {paciente.responsavel_endereco && (
+                                            <div className="col-span-2">
+                                                <p className="text-muted-foreground">Endereço</p>
+                                                <p className="font-medium">{paciente.responsavel_endereco}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="mt-6">
                                 <Button variant="outline" onClick={() => navigate(`/pacientes/${paciente.id}`)}>
                                     Editar Cadastro Completo

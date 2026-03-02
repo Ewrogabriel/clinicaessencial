@@ -437,15 +437,24 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado: string | null
+          foto_url: string | null
           id: string
           nome: string
           numero: string | null
           observacoes: string | null
           profissional_id: string | null
+          responsavel_cpf: string | null
+          responsavel_email: string | null
+          responsavel_endereco: string | null
+          responsavel_nome: string | null
+          responsavel_parentesco: string | null
+          responsavel_rg: string | null
+          responsavel_telefone: string | null
           rg: string | null
           rua: string | null
           status: Database["public"]["Enums"]["status_paciente"]
           telefone: string
+          tem_responsavel_legal: boolean | null
           tipo_atendimento: string
           updated_at: string
           user_id: string | null
@@ -462,15 +471,24 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          foto_url?: string | null
           id?: string
           nome: string
           numero?: string | null
           observacoes?: string | null
           profissional_id?: string | null
+          responsavel_cpf?: string | null
+          responsavel_email?: string | null
+          responsavel_endereco?: string | null
+          responsavel_nome?: string | null
+          responsavel_parentesco?: string | null
+          responsavel_rg?: string | null
+          responsavel_telefone?: string | null
           rg?: string | null
           rua?: string | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone: string
+          tem_responsavel_legal?: boolean | null
           tipo_atendimento?: string
           updated_at?: string
           user_id?: string | null
@@ -487,15 +505,24 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          foto_url?: string | null
           id?: string
           nome?: string
           numero?: string | null
           observacoes?: string | null
           profissional_id?: string | null
+          responsavel_cpf?: string | null
+          responsavel_email?: string | null
+          responsavel_endereco?: string | null
+          responsavel_nome?: string | null
+          responsavel_parentesco?: string | null
+          responsavel_rg?: string | null
+          responsavel_telefone?: string | null
           rg?: string | null
           rua?: string | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone?: string
+          tem_responsavel_legal?: boolean | null
           tipo_atendimento?: string
           updated_at?: string
           user_id?: string | null
