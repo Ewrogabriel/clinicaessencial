@@ -379,7 +379,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                       </FormControl>
                       <SelectContent>
                         {modalidades.map((mod) => (
-                          <SelectItem key={mod.id} value={mod.nome}>{mod.nome}</SelectItem>
+                          <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
