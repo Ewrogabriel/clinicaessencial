@@ -20,6 +20,9 @@ import {
   User,
   Calculator,
   MessageSquare,
+  Cake,
+  TrendingUp,
+  Lightbulb,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -56,6 +59,7 @@ const menuFinanceiro = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Matrículas", url: "/matriculas", icon: Receipt },
   { title: "Planos", url: "/planos", icon: ClipboardList },
+  { title: "Produtos", url: "/produtos", icon: Tag },
   { title: "Comissões", url: "/comissoes", icon: Calculator },
   { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
   { title: "Despesas", url: "/despesas", icon: Receipt },
@@ -66,12 +70,15 @@ const menuFinanceiro = [
 const menuComunicacao = [
   { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
+  { title: "Aniversariantes", url: "/aniversariantes", icon: Cake },
   { title: "Dados da Clínica", url: "/clinica", icon: Activity },
 ];
 
 const menuIA = [
+  { title: "Dicas Diárias", url: "/dicas-diarias", icon: Lightbulb },
   { title: "Inteligência", url: "/inteligencia", icon: Brain },
   { title: "Automações", url: "/automacoes", icon: Send },
+  { title: "Indicadores", url: "/indicadores", icon: TrendingUp },
 ];
 
 /* ── Professional menu ── */
