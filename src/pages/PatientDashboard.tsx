@@ -32,7 +32,11 @@ const PatientDashboard = () => {
   const { data: agenda = [] } = useQuery({
     queryKey: ["patient-agenda", patientId],
     queryFn: async () => {
-      if (!patientId) return [];
+      if (!patientId) {
+        console.log("[v0] PatientId not available in patient-agenda query");
+        return [];
+      }
+      console.log("[v0] Fetching patient-agenda for patientId:", patientId);
       const { data, error } = await (supabase
         .from("agendamentos")
         .select("*")
@@ -41,7 +45,11 @@ const PatientDashboard = () => {
         .in("status", ["agendado", "confirmado"])
         .order("data_horario", { ascending: true })
         .limit(5) as any);
-      if (error) throw error;
+      if (error) {
+        console.error("[v0] Error in patient-agenda query:", error);
+        throw error;
+      }
+      console.log("[v0] Patient-agenda found:", data?.length, "items");
       // Manual profile lookup (no FK join)
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
       let profMap: Record<string, string> = {};
@@ -137,6 +145,8 @@ const PatientDashboard = () => {
 
   const hoje = new Date();
   const saudacao = hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
+  const horaAtual = format(hoje, "HH:mm");
+  const dataAtual = format(hoje, "EEEE, dd 'de' MMMM", { locale: ptBR });
 
   const sessoesRestantes = planoAtivo ? (planoAtivo.total_sessoes - planoAtivo.sessoes_utilizadas) : 0;
   const sessoesPercent = planoAtivo ? Math.round((planoAtivo.sessoes_utilizadas / planoAtivo.total_sessoes) * 100) : 0;
@@ -162,7 +172,7 @@ const PatientDashboard = () => {
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
             {saudacao}, {profile?.nome?.split(" ")[0]}! 👋
           </h1>
-          <p className="text-muted-foreground">Bem-vindo ao seu portal de saúde.</p>
+          <p className="text-muted-foreground">{dataAtual} • {horaAtual}</p>
         </div>
         <Button variant="outline" onClick={openWhatsAppClinic} className="gap-2">
           <MessageCircle className="h-4 w-4" /> Falar com a Clínica

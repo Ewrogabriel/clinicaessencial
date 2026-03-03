@@ -33,13 +33,21 @@ const MinhaAgenda = () => {
   const { data: agendamentos = [], isLoading } = useQuery({
     queryKey: ["patient-full-agenda", patientId],
     queryFn: async () => {
-      if (!patientId) return [];
+      if (!patientId) {
+        console.log("[v0] PatientId not available");
+        return [];
+      }
+      console.log("[v0] Fetching agendamentos for patientId:", patientId);
       const { data, error } = await (supabase
         .from("agendamentos")
         .select("*")
         .eq("paciente_id", patientId)
         .order("data_horario", { ascending: false }) as any);
-      if (error) throw error;
+      if (error) {
+        console.error("[v0] Error fetching agendamentos:", error);
+        throw error;
+      }
+      console.log("[v0] Found agendamentos:", data?.length);
       // Fetch professional names
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
       let profMap: Record<string, string> = {};
