@@ -13,6 +13,9 @@ import Pacientes from "./pages/Pacientes";
 import PacienteForm from "./pages/PacienteForm";
 import Agenda from "./pages/Agenda";
 import Planos from "./pages/Planos";
+import Matriculas from "./pages/Matriculas";
+import CheckInProfissional from "./pages/CheckInProfissional";
+import MeusPlanos from "./pages/MeusPlanos";
 import Financeiro from "./pages/Financeiro";
 import Relatorios from "./pages/Relatorios";
 import Modalidades from "./pages/Modalidades";
@@ -75,10 +78,13 @@ const App = () => (
               <Route path="/prontuarios" element={<Prontuarios />} />
               <Route path="/agenda" element={<Agenda />} />
               <Route path="/minha-agenda" element={<MinhaAgenda />} />
+              <Route path="/check-in" element={<CheckInProfissional />} />
               <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
+              <Route path="/meus-planos" element={<MeusPlanos />} />
               <Route path="/meu-perfil" element={<MeuPerfil />} />
               <Route path="/meu-historico" element={<MeuHistorico />} />
               <Route path="/planos" element={<Planos />} />
+              <Route path="/matriculas" element={<Matriculas />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/despesas" element={<Despesas />} />
               <Route path="/relatorios" element={<Relatorios />} />
