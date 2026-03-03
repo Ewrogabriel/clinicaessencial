@@ -20,6 +20,9 @@ import {
   User,
   Calculator,
   MessageSquare,
+  Cake,
+  TrendingUp,
+  Lightbulb,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -54,8 +57,10 @@ const menuServicos = [
 
 const menuFinanceiro = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Comissões", url: "/comissoes", icon: Calculator },
+  { title: "Matrículas", url: "/matriculas", icon: Receipt },
   { title: "Planos", url: "/planos", icon: ClipboardList },
+  { title: "Produtos", url: "/produtos", icon: Tag },
+  { title: "Comissões", url: "/comissoes", icon: Calculator },
   { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
   { title: "Despesas", url: "/despesas", icon: Receipt },
   { title: "Contratos", url: "/contratos", icon: FileText },
@@ -65,18 +70,22 @@ const menuFinanceiro = [
 const menuComunicacao = [
   { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
+  { title: "Aniversariantes", url: "/aniversariantes", icon: Cake },
   { title: "Dados da Clínica", url: "/clinica", icon: Activity },
 ];
 
 const menuIA = [
+  { title: "Dicas Diárias", url: "/dicas-diarias", icon: Lightbulb },
   { title: "Inteligência", url: "/inteligencia", icon: Brain },
   { title: "Automações", url: "/automacoes", icon: Send },
+  { title: "Indicadores", url: "/indicadores", icon: TrendingUp },
 ];
 
 /* ── Professional menu ── */
 const menuProfissional = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
+  { title: "Check-in", url: "/check-in", icon: Users },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
   { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
@@ -98,6 +107,7 @@ const menuProfPerfil = [
 const menuPatient = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
+  { title: "Meus Planos", url: "/meus-planos", icon: ClipboardList },
   { title: "Histórico", url: "/meu-historico", icon: ClipboardList },
   { title: "Pagamentos", url: "/meus-pagamentos", icon: CreditCard },
   { title: "Meu Contrato", url: "/contratos", icon: FileText },

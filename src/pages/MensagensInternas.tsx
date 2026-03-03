@@ -41,13 +41,14 @@ const MensagensInternas = () => {
     queryKey: ["msg-profiles", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data: allProfiles } = await supabase.from("profiles").select("user_id, nome, email");
+      const { data: allProfiles, error: profileError } = await supabase.from("profiles").select("user_id, nome, email");
+      if (profileError) return [];
       const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
       const roleMap: Record<string, string> = {};
       (allRoles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
       return (allProfiles || [])
         .filter((p: any) => p.user_id !== user.id)
-        .map((p: any) => ({ ...p, role: roleMap[p.user_id] || "" }));
+        .map((p: any) => ({ ...p, role: roleMap[p.user_id] || "Usuário" }));
     },
     enabled: !!user,
   });
