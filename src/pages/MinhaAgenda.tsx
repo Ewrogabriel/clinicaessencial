@@ -36,11 +36,21 @@ const MinhaAgenda = () => {
       if (!patientId) return [];
       const { data, error } = await (supabase
         .from("agendamentos")
-        .select(`*, profiles:profissional_id (nome)`)
+        .select("*")
         .eq("paciente_id", patientId)
         .order("data_horario", { ascending: false }) as any);
       if (error) throw error;
-      return data;
+      // Fetch professional names
+      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
+      let profMap: Record<string, string> = {};
+      if (profIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
+        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+      }
+      return (data || []).map((a: any) => ({
+        ...a,
+        profiles: { nome: profMap[a.profissional_id] || "Profissional" },
+      }));
     },
     enabled: !!patientId,
   });

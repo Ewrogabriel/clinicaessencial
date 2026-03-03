@@ -36,12 +36,18 @@ const MensagensInternas = () => {
   const [assunto, setAssunto] = useState("");
   const [conteudo, setConteudo] = useState("");
 
-  // Fetch profiles for recipient select
+  // Fetch profiles for recipient select (fetch roles to show proper labels)
   const { data: profiles = [] } = useQuery({
-    queryKey: ["msg-profiles"],
+    queryKey: ["msg-profiles", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, nome, email");
-      return (data || []).filter((p: any) => p.user_id !== user?.id);
+      if (!user) return [];
+      const { data: allProfiles } = await supabase.from("profiles").select("user_id, nome, email");
+      const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+      const roleMap: Record<string, string> = {};
+      (allRoles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
+      return (allProfiles || [])
+        .filter((p: any) => p.user_id !== user.id)
+        .map((p: any) => ({ ...p, role: roleMap[p.user_id] || "" }));
     },
     enabled: !!user,
   });
@@ -201,8 +207,12 @@ const MensagensInternas = () => {
               <Select value={destinatario} onValueChange={setDestinatario}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
-                  {profiles.map((p: any) => (
-                    <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
+                  {profiles.length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground text-center">Nenhum destinatário encontrado</div>
+                  ) : profiles.map((p: any) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.nome}{p.role ? ` (${p.role})` : ""}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

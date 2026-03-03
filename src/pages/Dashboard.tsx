@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Activity, AlertTriangle, ArrowRight, Trophy, CalendarCheck, Clock, TrendingUp } from "lucide-react";
@@ -49,6 +50,12 @@ const getAgeDistribution = (pacientes: any[]) => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes"],
@@ -220,8 +227,12 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
           {saudacao}{profile?.nome ? `, ${profile.nome.split(" ")[0]}` : ""}! 👋
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground flex items-center gap-2">
           {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          <span className="inline-flex items-center gap-1 text-foreground font-medium">
+            <Clock className="h-4 w-4" />
+            {format(currentTime, "HH:mm:ss")}
+          </span>
         </p>
       </div>
 

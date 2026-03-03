@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Send } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -350,10 +351,11 @@ const Financeiro = () => {
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Novo Pagamento</DialogTitle>
           </DialogHeader>
+          <ScrollArea className="max-h-[70vh] pr-4">
           <div className="space-y-4">
             <div>
               <Label>Paciente</Label>
@@ -421,6 +423,7 @@ const Financeiro = () => {
               </Button>
             </div>
           </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

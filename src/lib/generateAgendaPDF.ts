@@ -38,7 +38,11 @@ export function generateWeeklyPDF(
   doc.setFontSize(14);
   doc.text(title, 14, 15);
 
-  const hours = Array.from({ length: 14 }, (_, i) => i + 6);
+  // Determine hour range from actual agendamentos
+  const agHours = agendamentos.map(ag => new Date(ag.data_horario).getHours());
+  const minHour = agHours.length > 0 ? Math.min(...agHours, 6) : 6;
+  const maxHour = agHours.length > 0 ? Math.max(...agHours, 8) + 1 : 20;
+  const hours = Array.from({ length: maxHour - minHour }, (_, i) => i + minHour);
   const dayHeaders = ["Horário", ...days.map((d) => format(d, "EEE dd/MM", { locale: ptBR }))];
 
   const bodyRows = hours.map((hour) => {
