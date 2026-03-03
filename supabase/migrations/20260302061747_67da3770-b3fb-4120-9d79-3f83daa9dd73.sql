@@ -18,7 +18,7 @@ ALTER TABLE public.notificacoes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notif_self_select" ON public.notificacoes FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "notif_self_update" ON public.notificacoes FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "notif_admin_insert" ON public.notificacoes FOR INSERT WITH CHECK (
-  has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'profissional')
+  has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'gestor') OR has_role(auth.uid(), 'profissional') OR has_role(auth.uid(), 'paciente')
 );
 CREATE POLICY "notif_admin_select" ON public.notificacoes FOR SELECT USING (has_role(auth.uid(), 'admin'));
 

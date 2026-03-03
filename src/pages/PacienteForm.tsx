@@ -162,24 +162,21 @@ const PacienteForm = () => {
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
-      if (data.erro) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
-        return;
-      }
-      if (target === "paciente") {
-        setRua(data.logradouro || "");
-        setBairro(data.bairro || "");
-        setCidade(data.localidade || "");
-        setEstado(data.uf || "");
-      } else {
-        setRespRua(data.logradouro || "");
-        setRespBairro(data.bairro || "");
-        setRespCidade(data.localidade || "");
-        setRespEstado(data.uf || "");
+      if (!data.erro) {
+        if (target === "paciente") {
+          setRua(data.logradouro || "");
+          setBairro(data.bairro || "");
+          setCidade(data.localidade || "");
+          setEstado(data.uf || "");
+        } else {
+          setRespRua(data.logradouro || "");
+          setRespBairro(data.bairro || "");
+          setRespCidade(data.localidade || "");
+          setRespEstado(data.uf || "");
+        }
       }
     } catch (err) {
       console.error("Erro ao buscar CEP", err);
-      toast({ title: "Erro ao buscar endereço", variant: "destructive" });
     }
   };
 

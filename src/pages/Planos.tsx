@@ -44,24 +44,13 @@ const Planos = () => {
     observacoes: "",
   });
 
-  const [filterPaciente, setFilterPaciente] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ativo");
-
   const { data: planos = [], isLoading } = useQuery({
-    queryKey: ["planos", filterPaciente, filterStatus],
+    queryKey: ["planos"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("planos")
-        .select("*, pacientes(nome), profiles(nome)");
-      
-      if (filterStatus) {
-        query = query.eq("status", filterStatus);
-      }
-      if (filterPaciente) {
-        query = query.ilike("pacientes.nome", `%${filterPaciente}%`);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
+        .select("*, pacientes(nome)")
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -170,36 +159,6 @@ const Planos = () => {
           <Plus className="h-4 w-4 mr-2" /> Novo Plano
         </Button>
       </div>
-
-      {/* Filtros */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label>Paciente</Label>
-              <Input
-                placeholder="Filtrar por nome..."
-                value={filterPaciente}
-                onChange={(e) => setFilterPaciente(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ativo">Ativo</SelectItem>
-                  <SelectItem value="vencido">Vencido</SelectItem>
-                  <SelectItem value="finalizado">Finalizado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

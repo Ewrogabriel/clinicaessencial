@@ -74,14 +74,14 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-                <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
-                    <DialogHeader className="shrink-0">
+            <DialogContent className="sm:max-w-[600px] h-[90vh]">
+                <form onSubmit={handleSubmit} className="flex flex-col h-full">
+                    <DialogHeader>
                         <DialogTitle>Avaliação Inicial / Anamnese</DialogTitle>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 overflow-hidden">
-                        <div className="space-y-4 py-4 pr-4">
+                    <ScrollArea className="flex-1 pr-4">
+                        <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label htmlFor="queixa_principal">Queixa Principal *</Label>
                                 <Textarea
@@ -137,7 +137,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                         </div>
                     </ScrollArea>
 
-                    <DialogFooter className="shrink-0 pt-4 border-t mt-4">
+                    <DialogFooter className="pt-4 border-t mt-auto">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancelar
                         </Button>
