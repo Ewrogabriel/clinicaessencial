@@ -136,12 +136,12 @@ const Produtos = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Categoria</Label>
-              <Select value={filterCategoria} onValueChange={setFilterCategoria}>
+              <Select value={filterCategoria || "todas"} onValueChange={(v) => setFilterCategoria(v === "todas" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="todas">Todas</SelectItem>
                   {categorias.map((cat: string) => (
                     <SelectItem key={cat} value={cat.toLowerCase()}>
                       {cat}
