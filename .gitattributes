@@ -1,0 +1,5 @@
+package-lock.json export-ignore
+bun.lockb export-ignore
+pnpm-lock.yaml export-ignore
+yarn.lock export-ignore
+npm-shrinkwrap.json export-ignore
