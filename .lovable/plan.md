@@ -1,84 +1,44 @@
 
 
-# Sistema de Gestão para Clínica de Fisioterapia e Pilates
+# Plan: Fix Build Errors and Verify Feature Status
 
-Aplicativo web (PWA) completo para gerenciamento de clínicas de Fisioterapia, Pilates e RPG — em Português (Brasil), com design limpo e profissional.
+## Summary of Issues Found
 
----
+There are **7 build errors** to fix, stemming from missing database tables, incorrect enum values, and type mismatches.
 
-## Fase 1 — Base e Cadastro de Pacientes
+## Fixes Required
 
-### Estrutura e Layout
-- Layout principal com **sidebar de navegação** (menu lateral colapsável)
-- Design com cores suaves e acolhedoras (tons de verde/azul, remetendo a saúde e bem-estar)
-- Interface responsiva e otimizada para uso no celular (PWA)
-- Idioma 100% em Português (Brasil)
+### 1. Database Migration: Create `produtos` table and add `suspenso` to `status_plano` enum
+- The `produtos` table doesn't exist yet but `Produtos.tsx` references it
+- The `status_plano` enum lacks `suspenso` — needed by Matriculas
+- Add FK from `planos.profissional_id` to `profiles` (via `auth.users`) so the join `profiles(nome)` works in MeusPlanos and Planos pages
 
-### Tela de Login e Autenticação
-- Login por e-mail e senha
-- Dois perfis iniciais: **Administrador** e **Profissional**
-- Controle de acesso por perfil (admin vê tudo, profissional vê apenas seus pacientes e agenda)
+### 2. Fix `CheckInProfissional.tsx` (line 47)
+- Change `"faltou"` to `"falta"` to match the `status_agendamento` enum
 
-### Cadastro de Pacientes
-- Formulário completo: nome, CPF, telefone/WhatsApp, e-mail, data de nascimento, endereço
-- Campo de observações clínicas
-- Tipo de atendimento: Fisioterapia, Pilates ou RPG
-- Status: Ativo / Inativo
-- Lista de pacientes com busca e filtros
-- Visualização detalhada do perfil do paciente
+### 3. Fix `Indicadores.tsx` — references non-existent `matriculas` table
+- Replace all `supabase.from("matriculas")` calls with `supabase.from("planos")` since matriculas are stored in the `planos` table
+- Cast queries with `as any` where needed to resolve deep type instantiation errors
 
----
+### 4. Fix `Matriculas.tsx`
+- Line 65: Cast `filterStatus` properly for the enum type
+- Line 130: Change `forma_pagamento: "pendente"` to `null` (it's not a valid enum value)
+- Line 173: `"suspenso"` will work after the enum migration
 
-## Fase 2 — Agenda Inteligente
+### 5. Fix `MeusPlanos.tsx` (line 85) and `Planos.tsx` (line 58)
+- The join `profiles(nome)` fails because there's no FK from `planos.profissional_id` to `profiles`
+- After adding the FK via migration, this will resolve
+- As a fallback, use manual profile lookup (same pattern used elsewhere)
 
-### Calendário e Agendamento
-- Visualização da agenda em modo **diário, semanal e mensal**
-- Criação de agendamentos associando **paciente + profissional + tipo de atendimento**
-- Tipos: Sessão individual ou Aula em grupo
-- Duração configurável (30, 45, 60 minutos)
-- Bloqueio de horários indisponíveis
-- Reagendamento rápido e intuitivo
+### 6. Fix `Produtos.tsx` — will work after `produtos` table is created
 
-### Dashboard Principal
-- Visão geral do dia: próximos atendimentos, pacientes do dia
-- Indicadores rápidos: total de pacientes ativos, sessões do dia, avisos importantes
+### 7. Fix `ai-insights/index.ts` (line 90)
+- Cast `error` as `Error`: `(error as Error).message`
 
----
+## Feature Status Review
 
-## Fase 3 — Controle de Planos e Sessões
-
-### Gestão de Planos
-- Criação de planos por pacote (ex: 10, 20 sessões)
-- Controle automático de sessões utilizadas vs. restantes
-- Alerta visual quando o plano estiver perto de vencer
-- Histórico completo de atendimentos por paciente
-
-### Notificações Internas
-- Avisos dentro do sistema para:
-  - Plano perto de vencer
-  - Falta/no-show em atendimento
-  - Sessão próxima (lembrete para o profissional)
-
----
-
-## Fase 4 — Financeiro e Relatórios
-
-### Financeiro Básico
-- Registro de valor do plano e forma de pagamento
-- Controle de situação: Pago / Pendente
-- Resumo de faturamento mensal
-
-### Relatórios
-- Pacientes ativos e inativos
-- Atendimentos por período
-- Sessões realizadas por profissional
-- Horários mais utilizados
-- Exportação básica dos dados
-
----
-
-## Tecnologia e Backend
-- **Lovable Cloud (Supabase)** para banco de dados, autenticação e armazenamento seguro
-- Estrutura modular preparada para escalar
-- Dados sensíveis protegidos com políticas de segurança (RLS)
+Most features from the original list have already been implemented. The remaining build errors are blocking deployment. Once fixed, the key pending items are:
+- CEP auto-fill (partially done)
+- File upload fixes (bucket exists but UI may have issues)
+- Some UI polish items
 
