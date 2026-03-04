@@ -351,12 +351,12 @@ const Financeiro = () => {
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[480px] max-h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[480px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Novo Pagamento</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] pr-4">
-          <div className="space-y-4">
+          <ScrollArea className="flex-1 overflow-hidden">
+          <div className="space-y-4 pr-4">
             <div>
               <Label>Paciente</Label>
               <Select value={formData.paciente_id} onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}>
@@ -416,14 +416,14 @@ const Financeiro = () => {
               <Label>Observações</Label>
               <Textarea placeholder="Observações..." value={formData.observacoes} onChange={(e) => setFormData(p => ({ ...p, observacoes: e.target.value }))} />
             </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-              <Button onClick={() => createPagamento.mutate()} disabled={!formData.paciente_id || !formData.valor || createPagamento.isPending}>
-                {createPagamento.isPending ? "Salvando..." : "Registrar"}
-              </Button>
-            </div>
           </div>
           </ScrollArea>
+          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
+            <Button onClick={() => createPagamento.mutate()} disabled={!formData.paciente_id || !formData.valor || createPagamento.isPending}>
+              {createPagamento.isPending ? "Salvando..." : "Registrar"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
