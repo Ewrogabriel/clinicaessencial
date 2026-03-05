@@ -58,6 +58,7 @@ export type Database = {
           data_horario: string
           dias_semana: number[] | null
           duracao_minutos: number
+          enrollment_id: string | null
           frequencia_semanal: number | null
           id: string
           observacoes: string | null
@@ -83,6 +84,7 @@ export type Database = {
           data_horario: string
           dias_semana?: number[] | null
           duracao_minutos?: number
+          enrollment_id?: string | null
           frequencia_semanal?: number | null
           id?: string
           observacoes?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           data_horario?: string
           dias_semana?: number[] | null
           duracao_minutos?: number
+          enrollment_id?: string | null
           frequencia_semanal?: number | null
           id?: string
           observacoes?: string | null
@@ -124,6 +127,13 @@ export type Database = {
           valor_sessao?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "agendamentos_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "matriculas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agendamentos_paciente_id_fkey"
             columns: ["paciente_id"]
@@ -540,6 +550,74 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      matriculas: {
+        Row: {
+          auto_renew: boolean
+          cancellation_date: string | null
+          created_at: string
+          criada_por: string
+          data_inicio: string
+          data_vencimento: string | null
+          desconto: number | null
+          due_day: number
+          id: string
+          observacoes: string | null
+          paciente_id: string
+          profissional_id: string
+          status: string
+          tipo: string
+          tipo_atendimento: string
+          updated_at: string
+          valor_mensal: number
+        }
+        Insert: {
+          auto_renew?: boolean
+          cancellation_date?: string | null
+          created_at?: string
+          criada_por: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          desconto?: number | null
+          due_day?: number
+          id?: string
+          observacoes?: string | null
+          paciente_id: string
+          profissional_id: string
+          status?: string
+          tipo?: string
+          tipo_atendimento?: string
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Update: {
+          auto_renew?: boolean
+          cancellation_date?: string | null
+          created_at?: string
+          criada_por?: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          desconto?: number | null
+          due_day?: number
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string
+          profissional_id?: string
+          status?: string
+          tipo?: string
+          tipo_atendimento?: string
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriculas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mensagens_internas: {
         Row: {
@@ -1217,6 +1295,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      weekly_schedules: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          id: string
+          professional_id: string
+          session_duration: number
+          time: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          professional_id: string
+          session_duration?: number
+          time: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          professional_id?: string
+          session_duration?: number
+          time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_schedules_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "matriculas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

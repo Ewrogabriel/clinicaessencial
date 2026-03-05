@@ -235,8 +235,9 @@ const Matriculas = () => {
       setFormData(getEmptyForm());
       toast({ title: "✅ Matrícula criada com sucesso!" });
     },
-    onError: (err) => {
-      toast({ title: "Erro ao criar matrícula", description: String(err), variant: "destructive" });
+    onError: (err: any) => {
+      const msg = err?.message || err?.details || JSON.stringify(err);
+      toast({ title: "Erro ao criar matrícula", description: msg, variant: "destructive" });
     },
   });
 
