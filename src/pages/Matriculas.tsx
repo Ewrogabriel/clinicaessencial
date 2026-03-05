@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Calendar, DollarSign, Clock, User, AlertTriangle, CheckCircle2, Pause, Trash2 } from "lucide-react";
+import {
+  Plus, Pause, X, ChevronRight, BarChart2, Calendar,
+  RefreshCw, User, DollarSign
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -18,67 +20,107 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  EnrollmentForm, EnrollmentFormData, WeeklyScheduleEntry
+} from "@/components/enrollments/EnrollmentForm";
+import { EnrollmentDetails } from "@/components/enrollments/EnrollmentDetails";
+import { CommissionReport } from "@/components/reports/CommissionReport";
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  ativo: { label: "Ativo", variant: "default" },
-  vencido: { label: "Vencido", variant: "destructive" },
-  cancelado: { label: "Cancelado", variant: "outline" },
-  suspenso: { label: "Suspenso", variant: "secondary" },
+const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  ativa: { label: "Ativa", variant: "default" },
+  suspensa: { label: "Suspensa", variant: "secondary" },
+  cancelada: { label: "Cancelada", variant: "destructive" },
+  vencida: { label: "Vencida", variant: "outline" },
 };
+
+function getEmptyForm(): EnrollmentFormData {
+  return {
+    paciente_id: "",
+    monthly_value: "",
+    due_day: "10",
+    start_date: format(new Date(), "yyyy-MM-dd"),
+    auto_renew: true,
+    tipo_atendimento: "pilates",
+    desconto: "0",
+    desconto_tipo: "percentual",
+    observacoes: "",
+    weekly_schedules: [],
+  };
+}
+
+// Helper: generate agendamentos dates from weekly_schedules for a period
+function getDatesForWeekday(startDateStr: string, endDateStr: string, weekday: number): string[] {
+  const dates: string[] = [];
+  const end = new Date(endDateStr);
+  let current = new Date(startDateStr);
+  // Normalize to noon to avoid DST issues
+  current = new Date(current.getFullYear(), current.getMonth(), current.getDate(), 12, 0, 0);
+
+  while (current <= end) {
+    if (current.getDay() === weekday) {
+      dates.push(current.toISOString().split("T")[0]);
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
 
 const Matriculas = () => {
   const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
+
+  const [mainTab, setMainTab] = useState("matriculas");
   const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<EnrollmentFormData>(getEmptyForm());
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const [formData, setFormData] = useState({
-    paciente_id: "",
-    profissional_id: "",
-    tipo_atendimento: "pilates",
-    valor: "",
-    data_inicio: format(new Date(), "yyyy-MM-dd"),
-    data_vencimento: format(addMonths(new Date(), 1), "yyyy-MM-dd"),
-    desconto: "0",
-    desconto_tipo: "percentual",
-    horario: "08:00",
-    dias_semana: [] as number[],
-    observacoes: "",
-    ativo: true,
-    total_sessoes: 4,
-  });
+  // Detail view
+  const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: matriculas = [] } = useQuery({
+  // Confirm dialogs
+  const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+
+  // --------------- Queries ---------------
+  const { data: matriculas = [], isLoading } = useQuery({
     queryKey: ["matriculas", filterPaciente, filterStatus],
     queryFn: async () => {
-      let query = supabase.from("matriculas").select("*, pacientes(nome), profiles(nome), modalidades(nome)").eq("status", "ativa");
+      let query = (supabase as any)
+        .from("matriculas")
+        .select("*, pacientes(nome), profiles:profissional_id(nome)")
+        .order("created_at", { ascending: false });
 
-      if (filterPaciente) {
-        query = query.ilike("pacientes.nome", `%${filterPaciente}%`);
-      }
-      if (filterStatus) {
-        query = query.eq("status", filterStatus as any);
-      }
+      if (filterStatus) query = query.eq("status", filterStatus);
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+
+      let result = data || [];
+      if (filterPaciente) {
+        result = result.filter((m: any) =>
+          m.pacientes?.nome?.toLowerCase().includes(filterPaciente.toLowerCase())
+        );
+      }
+      return result;
     },
   });
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-list"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("pacientes")
-        .select("id, nome")
-        .eq("status", "ativo")
-        .order("nome");
+      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
       return data ?? [];
     },
   });
@@ -86,37 +128,36 @@ const Matriculas = () => {
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-list"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, nome")
-        .order("nome");
+      const { data } = await supabase.from("profiles").select("user_id, nome").order("nome");
       return data ?? [];
     },
   });
+
+  // --------------- Mutations ---------------
 
   const createMatricula = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
 
-      const desconto = parseFloat(formData.desconto) || 0;
-      const valor = parseFloat(formData.valor) || 0;
-      const desconto_valor = formData.desconto_tipo === "percentual"
-        ? (valor * desconto) / 100
-        : desconto;
-      const valor_final = valor - desconto_valor;
+      const monthly = parseFloat(formData.monthly_value) || 0;
+      const desc = parseFloat(formData.desconto) || 0;
+      const descValue = formData.desconto_tipo === "percentual" ? (monthly * desc) / 100 : desc;
+      const finalValue = monthly - descValue;
 
-      const { data, error } = await supabase
+      // Create enrollment
+      const { data: mat, error } = await (supabase as any)
         .from("matriculas")
         .insert({
           paciente_id: formData.paciente_id,
-          profissional_id: formData.profissional_id || user.id,
-          tipo: "mensal", // default
-          valor_mensal: valor_final,
-          data_inicio: formData.data_inicio,
-          data_vencimento: formData.data_vencimento,
-          total_sessoes_mes: formData.total_sessoes,
+          profissional_id: user.id,
+          tipo: "mensal",
+          valor_mensal: finalValue,
+          data_inicio: formData.start_date,
+          data_vencimento: format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-dd"),
+          due_day: parseInt(formData.due_day) || 10,
+          auto_renew: formData.auto_renew,
           observacoes: formData.observacoes || null,
-          desconto: desconto_valor,
+          desconto: descValue,
           criada_por: user.id,
           status: "ativa",
         })
@@ -125,116 +166,137 @@ const Matriculas = () => {
 
       if (error) throw error;
 
-      // Criar pagamento associado
-      if (valor_final > 0) {
-        await supabase.from("pagamentos").insert({
-          paciente_id: formData.paciente_id,
-          matricula_id: data.id, // Assuming pagamentos has matricula_id, if not, use plano_id
-          profissional_id: formData.profissional_id || user.id,
-          valor: valor_final,
-          data_vencimento: formData.data_vencimento,
-          status: "pendente",
-          forma_pagamento: null,
-          descricao: `Matrícula - Mensal`,
-          created_by: user.id,
-        });
-      }
+      // Create weekly_schedules
+      if (formData.weekly_schedules.length > 0) {
+        const schedInserts = formData.weekly_schedules.map((s: WeeklyScheduleEntry) => ({
+          enrollment_id: mat.id,
+          weekday: s.weekday,
+          time: s.time,
+          professional_id: s.professional_id,
+          session_duration: s.session_duration,
+        }));
+        const { error: schedsErr } = await (supabase as any).from("weekly_schedules").insert(schedInserts);
+        if (schedsErr) throw schedsErr;
 
-      // Helper function to get dates for a specific day of week in a range
-      const getDatesForWeekday = (startDateStr: string, endDateStr: string, weekday: number) => {
-        const dates: string[] = [];
-        const start = new Date(startDateStr);
-        const end = new Date(endDateStr);
-        // Avoid timezone shift issues by creating at noon
-        let current = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 12, 0, 0);
-
-        while (current <= end) {
-          if (current.getDay() === weekday) {
-            dates.push(current.toISOString().split('T')[0]);
-          }
-          current.setDate(current.getDate() + 1);
-        }
-        return dates;
-      };
-
-      // Criar agendamentos recorrentes se selecionado dias
-      if (formData.dias_semana.length > 0) {
-        const agendamentosBase = [];
+        // Generate sessions for the next 30 days
+        const endDate = format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-dd");
         const groupId = crypto.randomUUID();
+        const toInsert: any[] = [];
 
-        for (const dia of formData.dias_semana) {
-          const dates = getDatesForWeekday(formData.data_inicio, formData.data_vencimento, dia);
-          for (const date of dates) {
-            agendamentosBase.push({
+        for (const s of formData.weekly_schedules) {
+          const dates = getDatesForWeekday(formData.start_date, endDate, s.weekday);
+          for (const dt of dates) {
+            toInsert.push({
               paciente_id: formData.paciente_id,
-              profissional_id: formData.profissional_id || user.id,
-              matricula_id: data.id,
-              data_horario: `${date}T${formData.horario}:00-03:00`,
-              duracao_minutos: 60, // Fixed default or make it dynamic
-              tipo_atendimento: "fisioterapia", // Since `tipo` in matricula is 'mensal', we use default or allow selection
+              profissional_id: s.professional_id,
+              data_horario: `${dt}T${s.time}:00-03:00`,
+              duracao_minutos: s.session_duration,
+              tipo_atendimento: formData.tipo_atendimento,
               tipo_sessao: "individual",
               status: "agendado",
               recorrente: true,
               recorrencia_grupo_id: groupId,
-              dias_semana: formData.dias_semana,
-              frequencia_semanal: 1,
-              recorrencia_fim: formData.data_vencimento,
+              recorrencia_fim: endDate,
+              enrollment_id: mat.id,
+              valor_sessao: finalValue > 0 && formData.weekly_schedules.length > 0
+                ? parseFloat((finalValue / Math.round(formData.weekly_schedules.length * 4.33)).toFixed(2))
+                : 0,
               created_by: user.id,
             });
           }
         }
 
-        if (agendamentosBase.length > 0) {
-          const { error: agError } = await supabase.from("agendamentos").insert(agendamentosBase);
-          if (agError) throw agError;
+        if (toInsert.length > 0) {
+          const { error: agErr } = await supabase.from("agendamentos").insert(toInsert);
+          if (agErr) throw agErr;
         }
       }
 
-      return data;
+      // Create initial payment record
+      if (finalValue > 0) {
+        await supabase.from("pagamentos").insert({
+          paciente_id: formData.paciente_id,
+          plano_id: mat.id,
+          profissional_id: user.id,
+          valor: finalValue,
+          data_vencimento: format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-dd"),
+          status: "pendente",
+          descricao: `Matrícula Mensal - ${formData.tipo_atendimento}`,
+          created_by: user.id,
+        });
+      }
+
+      return mat;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       setFormOpen(false);
-      setFormData({
-        paciente_id: "",
-        profissional_id: "",
-        tipo_atendimento: "pilates",
-        valor: "",
-        data_inicio: format(new Date(), "yyyy-MM-dd"),
-        data_vencimento: format(addMonths(new Date(), 1), "yyyy-MM-dd"),
-        desconto: "0",
-        desconto_tipo: "percentual",
-        horario: "08:00",
-        dias_semana: [],
-        observacoes: "",
-        ativo: true,
-        total_sessoes: 4,
-      });
-      toast({ title: "Matrícula criada com sucesso!" });
+      setFormData(getEmptyForm());
+      toast({ title: "✅ Matrícula criada com sucesso!" });
     },
-    onError: (error) => {
-      toast({ title: "Erro ao criar matrícula", description: String(error), variant: "destructive" });
+    onError: (err) => {
+      toast({ title: "Erro ao criar matrícula", description: String(err), variant: "destructive" });
     },
   });
 
   const suspenderMatricula = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any).from("matriculas").update({ status: "suspensa" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      setSuspendTarget(null);
+      toast({ title: "Matrícula suspensa." });
+    },
+  });
+
+  const cancelarMatricula = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
         .from("matriculas")
-        .update({ status: "suspensa" })
+        .update({ status: "cancelada", cancellation_date: new Date().toISOString().split("T")[0] })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
-      toast({ title: "Matrícula suspensa com sucesso!" });
+      setCancelTarget(null);
+      toast({ title: "Matrícula cancelada." });
     },
   });
 
+  const ativarMatricula = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("matriculas").update({ status: "ativa" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      toast({ title: "Matrícula reativada." });
+    },
+  });
+
+  const openDetail = (mat: any) => {
+    setSelectedEnrollment(mat);
+    setDetailOpen(true);
+  };
+
+  // --------------- Stats for header ---------------
+  const totalAtivas = matriculas.filter((m: any) => m.status === "ativa").length;
+  const mrr = matriculas
+    .filter((m: any) => m.status === "ativa")
+    .reduce((acc: number, m: any) => acc + (parseFloat(m.valor_mensal) || 0), 0);
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Matrículas e Mensalidades</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Matrículas Recorrentes</h1>
+          <p className="text-muted-foreground text-sm mt-1">Assinaturas mensais com agenda automática e comissão proporcional</p>
+        </div>
         {isAdmin && (
           <Button onClick={() => setFormOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -243,299 +305,269 @@ const Matriculas = () => {
         )}
       </div>
 
-      {/* Filtros */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label>Paciente</Label>
-              <Input
-                placeholder="Filtrar por nome..."
-                value={filterPaciente}
-                onChange={(e) => setFilterPaciente(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={filterStatus || "todos"} onValueChange={(v) => setFilterStatus(v === "todos" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="ativo">Ativo</SelectItem>
-                  <SelectItem value="vencido">Vencido</SelectItem>
-                  <SelectItem value="suspenso">Suspenso</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabela de Matrículas */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Matrículas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Paciente</TableHead>
-                  <TableHead>Profissional</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Data Início</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {matriculas.map((mat: any) => (
-                  <TableRow key={mat.id}>
-                    <TableCell className="font-medium">{mat.pacientes?.nome || "N/A"}</TableCell>
-                    <TableCell>{mat.profiles?.nome || "N/A"}</TableCell>
-                    <TableCell>{mat.modalidades?.nome || "Mensalidade"}</TableCell>
-                    <TableCell>R$ {parseFloat(mat.valor_mensal || 0).toFixed(2)}</TableCell>
-                    <TableCell>{format(new Date(mat.data_inicio), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                    <TableCell>{format(new Date(mat.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusConfig[mat.status]?.variant || "outline"}>
-                        {statusConfig[mat.status]?.label || mat.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="space-x-2">
-                      {isAdmin && mat.status === "ativo" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => suspenderMatricula.mutate(mat.id)}
-                          className="gap-1"
-                        >
-                          <Pause className="h-3 w-3" />
-                          Suspender
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Dialog de Nova Matrícula */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-          <DialogHeader className="shrink-0">
-            <DialogTitle>Nova Matrícula</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto pr-4 space-y-4">
-            <div>
-              <Label>Paciente *</Label>
-              <Select
-                value={formData.paciente_id}
-                onValueChange={(value) => setFormData({ ...formData, paciente_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um paciente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pacientes.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Profissional</Label>
-              <Select
-                value={formData.profissional_id}
-                onValueChange={(value) => setFormData({ ...formData, profissional_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seu perfil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profissionais.map((p: any) => (
-                    <SelectItem key={p.user_id} value={p.user_id}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex gap-2 items-center">
+              <User className="h-4 w-4 text-muted-foreground" />
               <div>
-                <Label>Tipo de Atendimento *</Label>
-                <Select
-                  value={formData.tipo_atendimento}
-                  onValueChange={(value) => setFormData({ ...formData, tipo_atendimento: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pilates">Pilates</SelectItem>
-                    <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
-                    <SelectItem value="yoga">Yoga</SelectItem>
-                    <SelectItem value="personal">Personal Trainer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Total de Sessões</Label>
-                <Input
-                  type="number"
-                  value={formData.total_sessoes}
-                  onChange={(e) => setFormData({ ...formData, total_sessoes: parseInt(e.target.value) || 4 })}
-                  min="1"
-                />
+                <div className="text-xs text-muted-foreground">Matrículas Ativas</div>
+                <div className="text-2xl font-bold">{totalAtivas}</div>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex gap-2 items-center">
+              <DollarSign className="h-4 w-4 text-green-500" />
               <div>
-                <Label>Valor (R$) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.valor}
-                  onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                  placeholder="0.00"
-                />
+                <div className="text-xs text-muted-foreground">MRR Total</div>
+                <div className="text-2xl font-bold text-green-600">R$ {mrr.toFixed(0)}</div>
               </div>
-
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex gap-2 items-center">
+              <Calendar className="h-4 w-4 text-blue-500" />
               <div>
-                <Label>Desconto</Label>
-                <div className="flex gap-2">
+                <div className="text-xs text-muted-foreground">Total Matrículas</div>
+                <div className="text-2xl font-bold">{matriculas.length}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex gap-2 items-center">
+              <BarChart2 className="h-4 w-4 text-purple-500" />
+              <div>
+                <div className="text-xs text-muted-foreground">Ticket Médio</div>
+                <div className="text-2xl font-bold">
+                  R$ {totalAtivas > 0 ? (mrr / totalAtivas).toFixed(0) : "0"}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main tabs */}
+      <Tabs value={mainTab} onValueChange={setMainTab}>
+        <TabsList className="grid grid-cols-2 sm:w-[400px]">
+          <TabsTrigger value="matriculas" className="gap-2">
+            <User className="h-4 w-4" /> Matrículas
+          </TabsTrigger>
+          <TabsTrigger value="relatorios" className="gap-2">
+            <BarChart2 className="h-4 w-4" /> Relatórios
+          </TabsTrigger>
+        </TabsList>
+
+        {/* MATRÍCULAS TAB */}
+        <TabsContent value="matriculas" className="mt-4 space-y-4">
+          {/* Filters */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-xs">Filtrar por Paciente</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.desconto}
-                    onChange={(e) => setFormData({ ...formData, desconto: e.target.value })}
-                    placeholder="0"
+                    className="mt-1"
+                    placeholder="Nome do paciente..."
+                    value={filterPaciente}
+                    onChange={(e) => setFilterPaciente(e.target.value)}
                   />
-                  <Select
-                    value={formData.desconto_tipo}
-                    onValueChange={(value) => setFormData({ ...formData, desconto_tipo: value })}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
+                </div>
+                <div>
+                  <Label className="text-xs">Status</Label>
+                  <Select value={filterStatus || "todos"} onValueChange={(v) => setFilterStatus(v === "todos" ? "" : v)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="percentual">%</SelectItem>
-                      <SelectItem value="fixo">R$</SelectItem>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="ativa">Ativa</SelectItem>
+                      <SelectItem value="suspensa">Suspensa</SelectItem>
+                      <SelectItem value="cancelada">Cancelada</SelectItem>
+                      <SelectItem value="vencida">Vencida</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Data de Início</Label>
-                <Input
-                  type="date"
-                  value={formData.data_inicio}
-                  onChange={(e) => setFormData({ ...formData, data_inicio: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <Label>Data de Vencimento</Label>
-                <Input
-                  type="date"
-                  value={formData.data_vencimento}
-                  onChange={(e) => setFormData({ ...formData, data_vencimento: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Horário Fixo</Label>
-                <Input
-                  type="time"
-                  value={formData.horario}
-                  onChange={(e) => setFormData({ ...formData, horario: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <Label>Dias da Semana</Label>
-                <Select
-                  value="" // controlled via custom UI usually, but doing simplest multi-select possible
-                  onValueChange={(val) => {
-                    const dia = parseInt(val);
-                    setFormData({
-                      ...formData,
-                      dias_semana: formData.dias_semana.includes(dia)
-                        ? formData.dias_semana.filter(d => d !== dia)
-                        : [...formData.dias_semana, dia]
-                    });
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder={formData.dias_semana.length > 0 ? `${formData.dias_semana.length} selecionados` : "Selecione dias"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Segunda-feira</SelectItem>
-                    <SelectItem value="2">Terça-feira</SelectItem>
-                    <SelectItem value="3">Quarta-feira</SelectItem>
-                    <SelectItem value="4">Quinta-feira</SelectItem>
-                    <SelectItem value="5">Sexta-feira</SelectItem>
-                    <SelectItem value="6">Sábado</SelectItem>
-                    <SelectItem value="0">Domingo</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex gap-1 mt-2 flex-wrap">
-                  {formData.dias_semana.includes(1) && <Badge variant="secondary">Seg</Badge>}
-                  {formData.dias_semana.includes(2) && <Badge variant="secondary">Ter</Badge>}
-                  {formData.dias_semana.includes(3) && <Badge variant="secondary">Qua</Badge>}
-                  {formData.dias_semana.includes(4) && <Badge variant="secondary">Qui</Badge>}
-                  {formData.dias_semana.includes(5) && <Badge variant="secondary">Sex</Badge>}
-                  {formData.dias_semana.includes(6) && <Badge variant="secondary">Sáb</Badge>}
-                  {formData.dias_semana.includes(0) && <Badge variant="secondary">Dom</Badge>}
+          {/* Table */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Lista de Matrículas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
+              ) : matriculas.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Nenhuma matrícula encontrada.</p>
+                  {isAdmin && <Button size="sm" className="mt-3 gap-2" onClick={() => setFormOpen(true)}><Plus className="h-3 w-3" />Criar primeira matrícula</Button>}
                 </div>
-              </div>
-            </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Paciente</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Valor Mensal</TableHead>
+                        <TableHead>Início</TableHead>
+                        <TableHead>Renovação</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {matriculas.map((mat: any) => (
+                        <TableRow key={mat.id} className="cursor-pointer hover:bg-muted/30"
+                          onClick={() => openDetail(mat)}>
+                          <TableCell className="font-medium">{mat.pacientes?.nome || "—"}</TableCell>
+                          <TableCell className="capitalize">{mat.tipo_atendimento || mat.tipo || "mensal"}</TableCell>
+                          <TableCell>R$ {parseFloat(mat.valor_mensal || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {mat.data_inicio ? format(new Date(mat.data_inicio), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {mat.auto_renew ? (
+                              <Badge variant="secondary" className="text-xs"><RefreshCw className="h-2.5 w-2.5 mr-1" />Auto</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Manual</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={STATUS_CONFIG[mat.status]?.variant || "outline"}>
+                              {STATUS_CONFIG[mat.status]?.label || mat.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()} className="space-x-1">
+                            {isAdmin && mat.status === "ativa" && (
+                              <Button size="sm" variant="outline" className="gap-1 text-xs h-7"
+                                onClick={() => setSuspendTarget(mat.id)}>
+                                <Pause className="h-3 w-3" /> Suspender
+                              </Button>
+                            )}
+                            {isAdmin && mat.status === "suspensa" && (
+                              <Button size="sm" variant="outline" className="gap-1 text-xs h-7"
+                                onClick={() => ativarMatricula.mutate(mat.id)}>
+                                Reativar
+                              </Button>
+                            )}
+                            {isAdmin && mat.status !== "cancelada" && (
+                              <Button size="sm" variant="ghost" className="gap-1 text-xs h-7 text-destructive hover:text-destructive"
+                                onClick={() => setCancelTarget(mat.id)}>
+                                <X className="h-3 w-3" /> Cancelar
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="gap-1 text-xs h-7"
+                              onClick={() => openDetail(mat)}>
+                              <ChevronRight className="h-3 w-3" /> Detalhes
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <div>
-              <Label>Observações</Label>
-              <Textarea
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                placeholder="Notas adicionais sobre a matrícula..."
-                rows={3}
-              />
-            </div>
+        {/* REPORTS TAB */}
+        <TabsContent value="relatorios" className="mt-4">
+          <CommissionReport />
+        </TabsContent>
+      </Tabs>
+
+      {/* ---- Dialog: Nova Matrícula ---- */}
+      <Dialog open={formOpen} onOpenChange={(v) => { setFormOpen(v); if (!v) setFormData(getEmptyForm()); }}>
+        <DialogContent className="sm:max-w-[640px] max-h-[92vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Nova Matrícula Recorrente</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <EnrollmentForm
+              formData={formData}
+              setFormData={setFormData}
+              pacientes={pacientes as { id: string; nome: string }[]}
+              profissionais={profissionais as { user_id: string; nome: string }[]}
+            />
           </div>
-
-          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setFormOpen(false)}>
-              Cancelar
-            </Button>
+          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t mt-2">
+            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
             <Button
               onClick={() => createMatricula.mutate()}
-              disabled={!formData.paciente_id || !formData.valor || createMatricula.isPending}
+              disabled={!formData.paciente_id || !formData.monthly_value || createMatricula.isPending}
             >
               {createMatricula.isPending ? "Criando..." : "Criar Matrícula"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ---- Dialog: Enrollment Details ---- */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>
+              Matrícula — {selectedEnrollment?.pacientes?.nome || ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            {selectedEnrollment && (
+              <EnrollmentDetails enrollment={selectedEnrollment} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- Confirm: Suspend ---- */}
+      <AlertDialog open={!!suspendTarget} onOpenChange={(v) => !v && setSuspendTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspender matrícula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A geração de novas sessões será pausada até a reativação. Sessões já geradas não serão afetadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => suspendTarget && suspenderMatricula.mutate(suspendTarget)}>
+              Suspender
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ---- Confirm: Cancel ---- */}
+      <AlertDialog open={!!cancelTarget} onOpenChange={(v) => !v && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar matrícula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação encerrará a recorrência permanentemente. Sessões futuras não serão mais geradas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90"
+              onClick={() => cancelTarget && cancelarMatricula.mutate(cancelTarget)}>
+              Confirmar Cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
