@@ -10,6 +10,7 @@ import {
   isSameDay,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +69,7 @@ function AppointmentCard({
   onAppointmentClick?: (ag: Agendamento) => void;
   profColor?: string;
 }) {
+  const navigate = useNavigate();
   const time = format(new Date(ag.data_horario), "HH:mm");
   const pacienteNome = ag.pacientes?.nome ?? "Paciente";
   const checkedIn = isPatient ? ag.checkin_paciente : ag.checkin_profissional;
@@ -90,7 +92,15 @@ function AppointmentCard({
       />
       <div className="relative z-10">
         <div className="font-semibold text-foreground truncate flex items-center gap-1">
-          <span className="truncate">{pacienteNome}</span>
+          <span
+            className="truncate text-blue-600 hover:underline cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/pacientes/${ag.paciente_id}/detalhes`);
+            }}
+          >
+            {pacienteNome}
+          </span>
           {ag.checkin_paciente && (
             <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />
           )}

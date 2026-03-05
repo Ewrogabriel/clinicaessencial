@@ -252,17 +252,36 @@ const Pacientes = () => {
                         </Badge>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {paciente.status === "ativo" && (
+                        <div className="flex items-center gap-1">
                           <Button
+                            size="sm"
                             variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            title="Inativar paciente"
-                            onClick={() => setDeleteId(paciente.id)}
+                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Conversar no WhatsApp"
+                            onClick={() => {
+                              const cleanPhone = paciente.telefone.replace(/\D/g, "");
+                              if (cleanPhone) {
+                                const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+                                window.open(`https://wa.me/${fullPhone}`, "_blank");
+                              } else {
+                                toast({ title: "Paciente sem telefone cadastrado", variant: "destructive" });
+                              }
+                            }}
                           >
-                            <UserX className="h-4 w-4" />
+                            <MessageCircle className="h-4 w-4" />
                           </Button>
-                        )}
+                          {paciente.status === "ativo" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive h-8 w-8"
+                              title="Inativar paciente"
+                              onClick={() => setDeleteId(paciente.id)}
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

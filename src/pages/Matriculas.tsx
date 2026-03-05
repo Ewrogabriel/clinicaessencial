@@ -59,6 +59,18 @@ function getEmptyForm(): EnrollmentFormData {
   };
 }
 
+// Add a separate type for Edit Form to include effective date
+export type EnrollmentEditData = EnrollmentFormData & {
+  valid_from: string;
+};
+
+function getEmptyEditForm(): EnrollmentEditData {
+  return {
+    ...getEmptyForm(),
+    valid_from: format(new Date(), "yyyy-MM-dd"),
+  };
+}
+
 // Helper: generate agendamentos dates from weekly_schedules for a period
 function getDatesForWeekday(startDateStr: string, endDateStr: string, weekday: number): string[] {
   const dates: string[] = [];
@@ -82,7 +94,10 @@ const Matriculas = () => {
 
   const [mainTab, setMainTab] = useState("matriculas");
   const [formOpen, setFormOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [formData, setFormData] = useState<EnrollmentFormData>(getEmptyForm());
+  const [editData, setEditData] = useState<EnrollmentEditData>(getEmptyEditForm());
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
@@ -136,6 +151,102 @@ const Matriculas = () => {
 
   // --------------- Mutations ---------------
 
+  const updateMatricula = useMutation({
+    mutationFn: async () => {
+      if (!user || !editingId) throw new Error("Não autenticado ou ID faltando");
+
+      const monthly = parseFloat(editData.monthly_value) || 0;
+      const descLine = parseFloat(editData.desconto) || 0;
+      const descValue = editData.desconto_tipo === "percentual" ? (monthly * descLine) / 100 : descLine;
+      const finalValue = monthly - descValue;
+
+      // 1. Update enrollment metadata
+      const { error: updateErr } = await supabase
+        .from("matriculas")
+        .update({
+          valor_mensal: finalValue,
+          due_day: parseInt(editData.due_day) || 10,
+          auto_renew: editData.auto_renew,
+          observacoes: editData.observacoes || null,
+          desconto: descLine,
+          tipo_atendimento: editData.tipo_atendimento,
+        })
+        .eq("id", editingId);
+
+      if (updateErr) throw updateErr;
+
+      // 2. Update weekly_schedules (Full replace for this enrollment)
+      // Delete old ones first
+      await supabase.from("weekly_schedules").delete().eq("enrollment_id", editingId);
+
+      const schedInserts = editData.weekly_schedules.map((s: WeeklyScheduleEntry) => ({
+        enrollment_id: editingId,
+        weekday: s.weekday,
+        time: s.time,
+        professional_id: s.professional_id,
+        session_duration: s.session_duration,
+        tipo_sessao: s.tipo_sessao,
+      }));
+      const { error: schedsErr } = await supabase.from("weekly_schedules").insert(schedInserts);
+      if (schedsErr) throw schedsErr;
+
+      // 3. Handle Sessions based on "Valid From" date
+      const validFrom = editData.valid_from;
+
+      // Delete future sessions from this enrollment (agendado/confirmado only)
+      await supabase
+        .from("agendamentos")
+        .delete()
+        .eq("enrollment_id", editingId)
+        .gte("data_horario", `${validFrom}T00:00:00`)
+        .in("status", ["agendado", "confirmado"]);
+
+      // Generate new sessions from validFrom to next 30 days
+      const endDate = format(addMonths(new Date(validFrom), 1), "yyyy-MM-dd");
+      const groupId = crypto.randomUUID();
+      const toInsert: any[] = [];
+
+      for (const s of editData.weekly_schedules) {
+        const dates = getDatesForWeekday(validFrom, endDate, s.weekday);
+        for (const dt of dates) {
+          toInsert.push({
+            paciente_id: editData.paciente_id,
+            profissional_id: s.professional_id,
+            data_horario: `${dt}T${s.time}:00`,
+            duracao_minutos: s.session_duration,
+            tipo_atendimento: editData.tipo_atendimento,
+            tipo_sessao: s.tipo_sessao,
+            status: "agendado",
+            recorrente: true,
+            recorrencia_grupo_id: groupId,
+            recorrencia_fim: endDate,
+            enrollment_id: editingId,
+            valor_sessao: finalValue > 0 && editData.weekly_schedules.length > 0
+              ? parseFloat((finalValue / Math.round(editData.weekly_schedules.length * 4.33)).toFixed(2))
+              : 0,
+            created_by: user.id,
+          });
+        }
+      }
+
+      if (toInsert.length > 0) {
+        const { error: agErr } = await supabase.from("agendamentos").insert(toInsert);
+        if (agErr) throw agErr;
+      }
+
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+      setEditOpen(false);
+      toast({ title: "✅ Matrícula atualizada com sucesso!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao atualizar matrícula", description: err.message, variant: "destructive" });
+    }
+  });
+
   const createMatricula = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
@@ -175,6 +286,7 @@ const Matriculas = () => {
           time: s.time,
           professional_id: s.professional_id,
           session_duration: s.session_duration,
+          tipo_sessao: s.tipo_sessao,
         }));
         const { error: schedsErr } = await supabase.from("weekly_schedules").insert(schedInserts);
         if (schedsErr) throw schedsErr;
@@ -193,7 +305,7 @@ const Matriculas = () => {
               data_horario: `${dt}T${s.time}:00`,
               duracao_minutos: s.session_duration,
               tipo_atendimento: formData.tipo_atendimento,
-              tipo_sessao: "individual",
+              tipo_sessao: s.tipo_sessao,
               status: "agendado",
               recorrente: true,
               recorrencia_grupo_id: groupId,
@@ -283,6 +395,32 @@ const Matriculas = () => {
   const openDetail = (mat: any) => {
     setSelectedEnrollment(mat);
     setDetailOpen(true);
+  };
+
+  const openEdit = async (mat: any) => {
+    // Need to fetch weekly_schedules for this enrollment
+    const { data: scheds } = await supabase.from("weekly_schedules").select("*").eq("enrollment_id", mat.id);
+
+    setEditingId(mat.id);
+    setEditData({
+      paciente_id: mat.paciente_id,
+      monthly_value: String(mat.valor_mensal),
+      due_day: String(mat.due_day),
+      start_date: mat.data_inicio,
+      auto_renew: mat.auto_renew,
+      tipo_atendimento: mat.tipo_atendimento || "pilates",
+      desconto: String(mat.desconto || 0),
+      desconto_tipo: "percentual",
+      observacoes: mat.observacoes || "",
+      weekly_schedules: (scheds || []).map(s => ({
+        weekday: s.weekday,
+        time: s.time,
+        professional_id: s.professional_id,
+        session_duration: s.session_duration
+      })),
+      valid_from: format(new Date(), "yyyy-MM-dd"), // Defaults to today for changes
+    });
+    setEditOpen(true);
   };
 
   // --------------- Stats for header ---------------
@@ -439,7 +577,17 @@ const Matriculas = () => {
                       {matriculas.map((mat: any) => (
                         <TableRow key={mat.id} className="cursor-pointer hover:bg-muted/30"
                           onClick={() => openDetail(mat)}>
-                          <TableCell className="font-medium">{mat.pacientes?.nome || "—"}</TableCell>
+                          <TableCell className="font-medium">
+                            <span
+                              className="text-blue-600 hover:underline cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/pacientes/${mat.pacientes?.id}/detalhes`);
+                              }}
+                            >
+                              {mat.pacientes?.nome || "—"}
+                            </span>
+                          </TableCell>
                           <TableCell className="capitalize">{mat.tipo_atendimento || mat.tipo || "mensal"}</TableCell>
                           <TableCell>R$ {parseFloat(mat.valor_mensal || 0).toFixed(2)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
@@ -457,29 +605,35 @@ const Matriculas = () => {
                               {STATUS_CONFIG[mat.status]?.label || mat.status}
                             </Badge>
                           </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()} className="space-x-1">
-                            {isAdmin && mat.status === "ativa" && (
-                              <Button size="sm" variant="outline" className="gap-1 text-xs h-7"
-                                onClick={() => setSuspendTarget(mat.id)}>
-                                <Pause className="h-3 w-3" /> Suspender
+                          <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
+                            <div className="flex flex-wrap gap-1">
+                              {isAdmin && mat.status === "ativa" && (
+                                <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2"
+                                  onClick={() => setSuspendTarget(mat.id)}>
+                                  <Pause className="h-3 w-3" /> Suspender
+                                </Button>
+                              )}
+                              {isAdmin && mat.status === "suspensa" && (
+                                <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2"
+                                  onClick={() => ativarMatricula.mutate(mat.id)}>
+                                  Reativar
+                                </Button>
+                              )}
+                              {isAdmin && mat.status !== "cancelada" && (
+                                <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2 text-destructive hover:text-destructive"
+                                  onClick={() => setCancelTarget(mat.id)}>
+                                  <X className="h-3 w-3" /> Cancelar
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2"
+                                onClick={() => openEdit(mat)}>
+                                <Calendar className="h-3 w-3" /> Editar
                               </Button>
-                            )}
-                            {isAdmin && mat.status === "suspensa" && (
-                              <Button size="sm" variant="outline" className="gap-1 text-xs h-7"
-                                onClick={() => ativarMatricula.mutate(mat.id)}>
-                                Reativar
+                              <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2"
+                                onClick={() => openDetail(mat)}>
+                                <ChevronRight className="h-3 w-3" /> Detalhes
                               </Button>
-                            )}
-                            {isAdmin && mat.status !== "cancelada" && (
-                              <Button size="sm" variant="ghost" className="gap-1 text-xs h-7 text-destructive hover:text-destructive"
-                                onClick={() => setCancelTarget(mat.id)}>
-                                <X className="h-3 w-3" /> Cancelar
-                              </Button>
-                            )}
-                            <Button size="sm" variant="ghost" className="gap-1 text-xs h-7"
-                              onClick={() => openDetail(mat)}>
-                              <ChevronRight className="h-3 w-3" /> Detalhes
-                            </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -525,6 +679,45 @@ const Matriculas = () => {
               disabled={!formData.paciente_id || !formData.monthly_value || createMatricula.isPending}
             >
               {createMatricula.isPending ? "Criando..." : "Criar Matrícula"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- Dialog: Editar Matrícula ---- */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[640px] max-h-[92vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Editar Matrícula — Paciente: {editData.paciente_id && (pacientes.find((p: any) => p.id === editData.paciente_id) as any)?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <Label className="block mb-2 font-bold">A partir de qual data as alterações valem? *</Label>
+              <Input
+                type="date"
+                value={editData.valid_from}
+                onChange={(e) => setEditData({ ...editData, valid_from: e.target.value })}
+                className="bg-white"
+              />
+              <p className="mt-2 text-xs opacity-80">
+                Sessões agendadas após esta data serão removidas e recriadas com o novo cronograma.
+              </p>
+            </div>
+
+            <EnrollmentForm
+              formData={editData}
+              setFormData={(d: any) => setEditData(d)}
+              pacientes={pacientes as { id: string; nome: string }[]}
+              profissionais={profissionais as { user_id: string; nome: string }[]}
+            />
+          </div>
+          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t mt-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => updateMatricula.mutate()}
+              disabled={updateMatricula.isPending}
+            >
+              {updateMatricula.isPending ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </div>
         </DialogContent>

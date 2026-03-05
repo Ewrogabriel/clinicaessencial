@@ -33,14 +33,24 @@ export function CommissionReport() {
     const { data: sessions = [] } = useQuery({
         queryKey: ["sessions-month", start, end],
         queryFn: async () => {
-            const { data, error } = await (supabase as any)
+            const { data: agendamentos, error } = await (supabase as any)
                 .from("agendamentos")
-                .select("id, status, profissional_id, valor_sessao, profiles:profissional_id(nome)")
+                .select("id, status, profissional_id, valor_sessao")
                 .not("enrollment_id", "is", null)
                 .gte("data_horario", `${start}T00:00:00`)
                 .lte("data_horario", `${end}T23:59:59`);
+
             if (error) throw error;
-            return data || [];
+
+            if (!agendamentos || agendamentos.length === 0) return [];
+
+            // Fetch profiles to get names
+            const { data: profs } = await supabase.from("profiles").select("user_id, nome");
+
+            return agendamentos.map((s: any) => ({
+                ...s,
+                profiles: { nome: profs?.find(p => p.user_id === s.profissional_id)?.nome || "—" }
+            }));
         },
     });
 
@@ -50,12 +60,23 @@ export function CommissionReport() {
         queryFn: async () => {
             const sessionIds = sessions.map((s: any) => s.id);
             if (sessionIds.length === 0) return [];
-            const { data, error } = await (supabase as any)
+
+            const { data: splitData, error } = await (supabase as any)
                 .from("commission_splits")
-                .select("*, profiles:professional_id(nome)")
+                .select("*")
                 .in("session_id", sessionIds);
+
             if (error) throw error;
-            return data || [];
+
+            if (!splitData || splitData.length === 0) return [];
+
+            // Fetch profiles for splits
+            const { data: profs } = await supabase.from("profiles").select("user_id, nome");
+
+            return splitData.map((sp: any) => ({
+                ...sp,
+                profiles: { nome: profs?.find(p => p.user_id === sp.professional_id)?.nome || "—" }
+            }));
         },
         enabled: sessions.length > 0,
     });

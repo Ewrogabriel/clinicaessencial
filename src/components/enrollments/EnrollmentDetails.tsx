@@ -69,13 +69,22 @@ export function EnrollmentDetails({ enrollment }: Props) {
     const { data: sessions = [], isLoading: loadingSessions } = useQuery({
         queryKey: ["enrollment-sessions", enrollment.id],
         queryFn: async () => {
-            const { data, error } = await (supabase as any)
+            const { data: agendamentos, error: sErr } = await supabase
                 .from("agendamentos")
-                .select("*, profiles:profissional_id(nome)")
+                .select("*")
                 .eq("enrollment_id", enrollment.id)
                 .order("data_horario", { ascending: true });
-            if (error) throw error;
-            return data as Session[];
+
+            if (sErr) throw sErr;
+            if (!agendamentos || agendamentos.length === 0) return [];
+
+            // Fetch professionals to map names
+            const { data: profs } = await supabase.from("profiles").select("user_id, nome");
+
+            return agendamentos.map(s => ({
+                ...s,
+                profiles: { nome: profs?.find(p => p.user_id === s.profissional_id)?.nome || "—" }
+            })) as Session[];
         },
     });
 

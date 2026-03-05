@@ -6,7 +6,7 @@ import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from 
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
+import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,6 +108,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const [loading, setLoading] = useState(false);
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -139,6 +142,24 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const isRepetir = form.watch("repetir");
   const repetirTipo = form.watch("repetir_tipo");
   const repetirQuantidade = form.watch("repetir_quantidade");
+  const watchedTipoSessao = form.watch("tipo_sessao");
+
+  // Fetch monthly availability summary
+  useEffect(() => {
+    if (!watchedProfId) {
+      setMonthlyAvail({});
+      return;
+    }
+    const fetchMonthly = async () => {
+      const result = await getMonthlyAvailability(
+        watchedProfId,
+        currentMonth.getFullYear(),
+        currentMonth.getMonth()
+      );
+      setMonthlyAvail(result);
+    };
+    fetchMonthly();
+  }, [watchedProfId, currentMonth]);
 
   // Check availability when professional, date, or time changes (single appointments only)
   useEffect(() => {
@@ -157,6 +178,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     }, 300);
     return () => clearTimeout(timer);
   }, [watchedProfId, watchedDate, watchedHorario, isRecorrente]);
+
 
   useEffect(() => {
     if (defaultDate) {
@@ -428,7 +450,6 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                 </FormItem>
               )}
             />
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -475,6 +496,28 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                 )}
               />
             </div>
+
+            {availabilityResult && (
+              <Alert variant={availabilityResult.isOverCapacity ? "destructive" : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? "destructive" : (watchedTipoSessao === 'grupo' && availabilityResult.existingSessions?.some((s: any) => s.tipo_sessao === 'individual')) ? "destructive" : "default"}>
+                <div className="flex items-center gap-2">
+                  {availabilityResult.isOverCapacity ? (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  ) : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') || (watchedTipoSessao === 'grupo' && availabilityResult.existingSessions?.some((s: any) => s.tipo_sessao === 'individual')) ? (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  )}
+                  <AlertDescription>
+                    {availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual'
+                      ? "⚠️ Este horário já possui pacientes agendados. Para sessão individual, o horário deve estar vazio."
+                      : (watchedTipoSessao === 'grupo' && availabilityResult.existingSessions?.some((s: any) => s.tipo_sessao === 'individual'))
+                        ? "⚠️ Já existe uma sessão INDIVIDUAL marcada neste horário. Não é possível agendar em grupo."
+                        : availabilityResult.message}
+                  </AlertDescription>
+                </div>
+              </Alert>
+            )}
+
 
             {!isRecorrente && (
               <div className="grid grid-cols-2 gap-4">
@@ -797,8 +840,32 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
+                              onMonthChange={setCurrentMonth}
                               locale={ptBR}
-                              className="p-3 pointer-events-auto"
+                              disabled={(date) =>
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
+                              components={{
+                                DayContent: ({ date }) => {
+                                  const day = date.getDate();
+                                  const isSameMonth = date.getMonth() === currentMonth.getMonth();
+                                  const slots = isSameMonth ? monthlyAvail[day] : null;
+                                  return (
+                                    <div className="relative w-full h-full flex items-center justify-center">
+                                      <span className="relative z-10">{day}</span>
+                                      {slots !== undefined && slots !== null && watchedProfId && (
+                                        <span className={cn(
+                                          "absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold px-0.5 rounded-full z-20",
+                                          slots > 0 ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"
+                                        )}>
+                                          {slots}v
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                              }}
+                              initialFocus
                             />
                           </PopoverContent>
                         </Popover>
@@ -888,8 +955,29 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
+                          onMonthChange={setCurrentMonth}
                           locale={ptBR}
                           className="p-3 pointer-events-auto"
+                          components={{
+                            DayContent: ({ date }) => {
+                              const day = date.getDate();
+                              const isSameMonth = date.getMonth() === currentMonth.getMonth();
+                              const slots = isSameMonth ? monthlyAvail[day] : null;
+                              return (
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                  <span className="relative z-10">{day}</span>
+                                  {slots !== undefined && slots !== null && watchedProfId && (
+                                    <span className={cn(
+                                      "absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold px-0.5 rounded-full z-20",
+                                      slots > 0 ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"
+                                    )}>
+                                      {slots}v
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            }
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -949,6 +1037,6 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }

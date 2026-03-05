@@ -8,9 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { pt } from "date-fns/locale";
+import { ptBR } from "date-fns/locale";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { getMonthlyAvailability, getAvailableSlots, AvailabilitySlot } from "@/lib/availabilityCheck";
+import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface ReagendamentoDialogProps {
   open: boolean;
@@ -30,12 +33,44 @@ export const ReagendamentoDialog = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedProf, setSelectedProf] = useState(profissionalId || "");
+  const [availableSlots, setAvailableSlots] = useState<{ slot: AvailabilitySlot; currentCount: number; available: number }[]>([]);
+  const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [loading, setLoading] = useState(false);
 
-  const horarios = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-    "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-    "16:00", "16:30", "17:00", "17:30", "18:00",
-  ];
+  // Update selected professional if prop changes
+  useEffect(() => {
+    if (profissionalId) setSelectedProf(profissionalId);
+  }, [profissionalId]);
+
+  // Fetch monthly availability
+  useEffect(() => {
+    if (!selectedProf) return;
+    const fetchMonthly = async () => {
+      const result = await getMonthlyAvailability(
+        selectedProf,
+        currentMonth.getFullYear(),
+        currentMonth.getMonth()
+      );
+      setMonthlyAvail(result);
+    };
+    fetchMonthly();
+  }, [selectedProf, currentMonth]);
+
+  // Fetch slots for selected date
+  useEffect(() => {
+    if (!selectedProf || !selectedDate) {
+      setAvailableSlots([]);
+      return;
+    }
+    const fetchSlots = async () => {
+      setLoading(true);
+      const slots = await getAvailableSlots(selectedProf, selectedDate);
+      setAvailableSlots(slots);
+      setLoading(false);
+    };
+    fetchSlots();
+  }, [selectedProf, selectedDate]);
 
   const handleConfirm = () => {
     if (selectedDate && selectedTime && selectedProf) {
@@ -67,6 +102,7 @@ export const ReagendamentoDialog = ({
               value={selectedProf}
               onChange={(e) => setSelectedProf(e.target.value)}
               className="w-full p-2 border rounded-lg"
+              aria-label="Selecionar Profissional"
             >
               <option value="">Selecione um profissional</option>
               {profissionaisList.map((prof) => (
@@ -84,38 +120,81 @@ export const ReagendamentoDialog = ({
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
+              onMonthChange={setCurrentMonth}
               disabled={(date) => isBefore(date, startOfDay(new Date()))}
-              locale={pt}
+              locale={ptBR}
               className="rounded-lg border p-2"
+              components={{
+                DayContent: ({ date }) => {
+                  const day = date.getDate();
+                  const isSameMonth = date.getMonth() === currentMonth.getMonth();
+                  const slots = isSameMonth ? monthlyAvail[day] : null;
+                  return (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      <span className="relative z-10">{day}</span>
+                      {slots !== undefined && slots !== null && selectedProf && (
+                        <span className={cn(
+                          "absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold px-0.5 rounded-full z-20",
+                          slots > 0 ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"
+                        )}>
+                          {slots}v
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+              }}
             />
           </div>
         </div>
 
         {/* Seletor de Hora */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Horário</label>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-            {horarios.map((hora) => (
-              <button
-                key={hora}
-                onClick={() => setSelectedTime(hora)}
-                className={`p-2 text-sm rounded-lg border transition-colors ${
-                  selectedTime === hora
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "hover:border-blue-400"
-                }`}
-              >
-                {hora}
-              </button>
-            ))}
-          </div>
+          <label className="text-sm font-medium flex items-center gap-2">
+            Horários Disponíveis
+            {loading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+          </label>
+          {availableSlots.length > 0 ? (
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {availableSlots.map(({ slot, available }) => {
+                const timeStr = slot.hora_inicio.slice(0, 5);
+                const isSelected = selectedTime === timeStr;
+                const isFull = available <= 0;
+
+                return (
+                  <button
+                    key={slot.id}
+                    disabled={isFull}
+                    onClick={() => setSelectedTime(timeStr)}
+                    className={cn(
+                      "p-2 text-xs rounded-lg border transition-all flex flex-col items-center gap-0.5",
+                      isSelected
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : isFull
+                          ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                          : "hover:border-blue-400 bg-background"
+                    )}
+                  >
+                    <span className="font-medium">{timeStr}</span>
+                    <span className="text-[9px] opacity-80">{available} vagas</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-4 text-center text-sm text-muted-foreground border rounded-lg border-dashed">
+              {!selectedProf
+                ? "Selecione um profissional para ver horários"
+                : "Nenhum horário disponível para esta data"}
+            </div>
+          )}
         </div>
 
         {/* Data Selecionada */}
         {selectedDate && (
           <div className="p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-900">
-              <strong>Resumo:</strong> {format(selectedDate, "dd 'de' MMMM", { locale: pt })} às {selectedTime || "??:??"}
+              <strong>Resumo:</strong> {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} às {selectedTime || "??:??"}
             </p>
           </div>
         )}

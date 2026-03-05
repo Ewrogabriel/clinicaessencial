@@ -53,7 +53,7 @@ export async function checkAvailability(
   });
 
   if (!matchingSlot) {
-    const available = slots.map((s: AvailabilitySlot) => 
+    const available = slots.map((s: AvailabilitySlot) =>
       `${s.hora_inicio.slice(0, 5)}-${s.hora_fim.slice(0, 5)}`
     ).join(", ");
     return {
@@ -87,8 +87,9 @@ export async function checkAvailability(
     return aTimeStr >= matchingSlot.hora_inicio && aTimeStr < matchingSlot.hora_fim;
   });
 
+  const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
   const currentCount = slotAppointments.length;
-  const isOverCapacity = currentCount >= matchingSlot.max_pacientes;
+  const isOverCapacity = hasIndividual || currentCount >= matchingSlot.max_pacientes;
 
   return {
     isWithinSchedule: true,
@@ -135,16 +136,83 @@ export async function getAvailableSlots(
     .not("status", "in", '("cancelado","falta")');
 
   return slots.map((slot: AvailabilitySlot) => {
-    const count = (appointments ?? []).filter((a: any) => {
+    const slotAppointments = (appointments ?? []).filter((a: any) => {
       const aTime = new Date(a.data_horario);
       const aTimeStr = `${String(aTime.getHours()).padStart(2, "0")}:${String(aTime.getMinutes()).padStart(2, "0")}:00`;
       return aTimeStr >= slot.hora_inicio && aTimeStr < slot.hora_fim;
-    }).length;
+    });
+
+    const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
+    const count = slotAppointments.length;
+    const available = hasIndividual ? 0 : Math.max(0, slot.max_pacientes - count);
 
     return {
       slot,
       currentCount: count,
-      available: slot.max_pacientes - count,
+      available,
     };
   });
 }
+
+
+/**
+ * Fetch a summary of available slots for each day of a month for a professional
+ */
+export async function getMonthlyAvailability(
+  profissionalId: string,
+  year: number,
+  month: number
+): Promise<Record<number, number>> {
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+
+  // 1. Get all availability slots for this professional
+  const { data: availabilitySlots } = await (supabase
+    .from("disponibilidade_profissional") as any)
+    .select("*")
+    .eq("profissional_id", profissionalId)
+    .eq("ativo", true);
+
+  if (!availabilitySlots || availabilitySlots.length === 0) return {};
+
+  // 2. Get all appointments for this professional in this month
+  const { data: appointments } = await supabase
+    .from("agendamentos")
+    .select("data_horario, status")
+    .eq("profissional_id", profissionalId)
+    .gte("data_horario", startDate.toISOString())
+    .lte("data_horario", endDate.toISOString())
+    .not("status", "in", '("cancelado","falta")');
+
+  const dailyAvailability: Record<number, number> = {};
+  const lastDay = endDate.getDate();
+
+  for (let day = 1; day <= lastDay; day++) {
+    const currentDate = new Date(year, month, day);
+    const dayOfWeek = currentDate.getDay();
+
+    const daySlots = (availabilitySlots as AvailabilitySlot[]).filter(s => s.dia_semana === dayOfWeek);
+    if (daySlots.length === 0) {
+      dailyAvailability[day] = 0;
+      continue;
+    }
+
+    let totalAvailable = 0;
+    for (const slot of daySlots) {
+      const slotAppointments = (appointments ?? []).filter((a: any) => {
+        const aDate = new Date(a.data_horario);
+        if (aDate.getDate() !== day) return false;
+
+        const aTimeStr = `${String(aDate.getHours()).padStart(2, "0")}:${String(aDate.getMinutes()).padStart(2, "0")}:00`;
+        return aTimeStr >= slot.hora_inicio && aTimeStr < slot.hora_fim;
+      });
+
+      const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
+      totalAvailable += hasIndividual ? 0 : Math.max(0, slot.max_pacientes - slotAppointments.length);
+    }
+    dailyAvailability[day] = totalAvailable;
+  }
+
+  return dailyAvailability;
+}
+
