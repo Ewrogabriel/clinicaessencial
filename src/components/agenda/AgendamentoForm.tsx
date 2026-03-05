@@ -247,6 +247,25 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     setLoading(true);
 
     try {
+      // Check if patient enrollment is blocked
+      const { data: enrollment } = await (supabase as any)
+        .from("matriculas")
+        .select("bloqueado_admin, bloqueio_motivo")
+        .eq("paciente_id", values.paciente_id)
+        .eq("status", "ativa")
+        .eq("bloqueado_admin", true)
+        .maybeSingle();
+
+      if (enrollment) {
+        toast({
+          title: "❌ Atendimento bloqueado",
+          description: `A matrícula deste paciente está bloqueada pelo administrador. ${enrollment.bloqueio_motivo ? "Motivo: " + enrollment.bloqueio_motivo : ""}`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       if (isRecorrente) {
         // Validation: days must match frequency
         if (values.dias_semana.length !== values.frequencia_semanal) {

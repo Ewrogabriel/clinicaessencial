@@ -4,7 +4,7 @@ import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus, Pause, X, ChevronRight, BarChart2, Calendar,
-  RefreshCw, User, DollarSign
+  RefreshCw, User, DollarSign, Settings
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,7 @@ import {
 } from "@/components/enrollments/EnrollmentForm";
 import { EnrollmentDetails } from "@/components/enrollments/EnrollmentDetails";
 import { CommissionReport } from "@/components/reports/CommissionReport";
+import { EnrollmentAdminPanel } from "@/components/enrollments/EnrollmentAdminPanel";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   ativa: { label: "Ativa", variant: "default" },
@@ -358,13 +359,18 @@ const Matriculas = () => {
 
       {/* Main tabs */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
-        <TabsList className="grid grid-cols-2 sm:w-[400px]">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 sm:w-[550px]">
           <TabsTrigger value="matriculas" className="gap-2">
             <User className="h-4 w-4" /> Matrículas
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-2">
             <BarChart2 className="h-4 w-4" /> Relatórios
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="admin" className="gap-2">
+              <Settings className="h-4 w-4" /> Administração
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* MATRÍCULAS TAB */}
@@ -489,6 +495,13 @@ const Matriculas = () => {
         <TabsContent value="relatorios" className="mt-4">
           <CommissionReport />
         </TabsContent>
+
+        {/* ADMIN TAB */}
+        {isAdmin && (
+          <TabsContent value="admin" className="mt-4">
+            <EnrollmentAdminPanel />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ---- Dialog: Nova Matrícula ---- */}

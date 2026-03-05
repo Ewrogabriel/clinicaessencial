@@ -2,17 +2,18 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle, DollarSign } from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RescheduleDialog } from "./RescheduleDialog";
 
 type Session = {
     id: string;
@@ -62,6 +63,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
     const queryClient = useQueryClient();
     const [justificationDialog, setJustificationDialog] = useState<{ open: boolean; sessionId: string; text: string }>({ open: false, sessionId: "", text: "" });
     const [activeTab, setActiveTab] = useState("sessions");
+    const [rescheduleSession, setRescheduleSession] = useState<Session | null>(null);
 
     // Sessions (agendamentos linked to this enrollment)
     const { data: sessions = [], isLoading: loadingSessions } = useQuery({
@@ -238,7 +240,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                         <TableHead>Profissional</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Valor</TableHead>
-                                        {isAdmin && <TableHead>Ações</TableHead>}
+                                        <TableHead>Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -257,22 +259,29 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-sm">R$ {(s.valor_sessao || 0).toFixed(2)}</TableCell>
-                                            {isAdmin && (
-                                                <TableCell className="space-x-1">
-                                                    {s.justification_status === "pending" && (
-                                                        <>
-                                                            <Button size="sm" variant="outline" className="text-xs"
-                                                                onClick={() => reviewJustification.mutate({ sessionId: s.id, action: "approved" })}>
-                                                                Aprovar
-                                                            </Button>
-                                                            <Button size="sm" variant="outline" className="text-xs text-destructive"
-                                                                onClick={() => reviewJustification.mutate({ sessionId: s.id, action: "denied" })}>
-                                                                Negar
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                </TableCell>
-                                            )}
+                                            <TableCell className="space-x-1">
+                                                {/* Reagendar: disponível para agendado/confirmado */}
+                                                {["agendado", "confirmado"].includes(s.status) && (
+                                                    <Button size="sm" variant="outline" className="text-xs gap-1"
+                                                        onClick={() => setRescheduleSession(s)}>
+                                                        <RefreshCw className="h-3 w-3" />
+                                                        Reagendar
+                                                    </Button>
+                                                )}
+                                                {/* Admin: aprovar/negar justificativa */}
+                                                {isAdmin && s.justification_status === "pending" && (
+                                                    <>
+                                                        <Button size="sm" variant="outline" className="text-xs"
+                                                            onClick={() => reviewJustification.mutate({ sessionId: s.id, action: "approved" })}>
+                                                            Aprovar
+                                                        </Button>
+                                                        <Button size="sm" variant="outline" className="text-xs text-destructive"
+                                                            onClick={() => reviewJustification.mutate({ sessionId: s.id, action: "denied" })}>
+                                                            Negar
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -374,6 +383,16 @@ export function EnrollmentDetails({ enrollment }: Props) {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* RescheduleDialog */}
+            {rescheduleSession && (
+                <RescheduleDialog
+                    session={rescheduleSession}
+                    enrollmentId={enrollment.id}
+                    open={!!rescheduleSession}
+                    onClose={() => setRescheduleSession(null)}
+                />
+            )}
         </div>
     );
 }
