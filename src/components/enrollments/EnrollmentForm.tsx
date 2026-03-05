@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, addMonths } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,19 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
     const [newTime, setNewTime] = useState("08:00");
     const [newProfessional, setNewProfessional] = useState("");
     const [newDuration, setNewDuration] = useState("60");
+    const [modalidades, setModalidades] = useState<{ id: string; nome: string }[]>([]);
+
+    useEffect(() => {
+        const fetchModalidades = async () => {
+            const { data } = await supabase
+                .from("modalidades")
+                .select("id, nome")
+                .eq("ativo", true)
+                .order("nome");
+            setModalidades(data ?? []);
+        };
+        fetchModalidades();
+    }, []);
 
     const valor = parseFloat(formData.monthly_value) || 0;
     const desconto = parseFloat(formData.desconto) || 0;
@@ -122,14 +136,12 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                     <Label>Tipo de Atendimento *</Label>
                     <Select value={formData.tipo_atendimento} onValueChange={(v) => setFormData({ ...formData, tipo_atendimento: v })}>
                         <SelectTrigger className="mt-1">
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="pilates">Pilates</SelectItem>
-                            <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
-                            <SelectItem value="yoga">Yoga</SelectItem>
-                            <SelectItem value="personal">Personal Trainer</SelectItem>
-                            <SelectItem value="outro">Outro</SelectItem>
+                            {modalidades.map((mod) => (
+                                <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>

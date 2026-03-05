@@ -70,6 +70,9 @@ const formSchema = z.object({
   horarios_por_dia: z.record(z.string(), z.string()).default({}),
   valor_sessao: z.number().min(0).optional(),
   valor_mensal: z.number().min(0).optional(),
+  repetir: z.boolean().default(false),
+  repetir_tipo: z.enum(["vezes", "semanas"]).default("vezes"),
+  repetir_quantidade: z.number().min(1).max(52).default(4),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -120,6 +123,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       horarios_por_dia: {},
       valor_sessao: undefined,
       valor_mensal: undefined,
+      repetir: false,
+      repetir_tipo: "vezes",
+      repetir_quantidade: 4,
     },
   });
 
@@ -130,6 +136,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const watchedProfId = form.watch("profissional_id");
   const watchedDate = form.watch("data");
   const watchedHorario = form.watch("horario");
+  const isRepetir = form.watch("repetir");
+  const repetirTipo = form.watch("repetir_tipo");
+  const repetirQuantidade = form.watch("repetir_quantidade");
 
   // Check availability when professional, date, or time changes (single appointments only)
   useEffect(() => {
@@ -286,20 +295,50 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
         const dataHorario = new Date(values.data);
         dataHorario.setHours(hours, minutes, 0, 0);
 
-        const { error } = await (supabase.from("agendamentos") as any).insert({
-          paciente_id: values.paciente_id,
-          profissional_id: values.profissional_id,
-          data_horario: dataHorario.toISOString(),
-          duracao_minutos: values.duracao_minutos,
-          tipo_atendimento: values.tipo_atendimento,
-          tipo_sessao: values.tipo_sessao,
-          observacoes: values.observacoes || null,
-          created_by: user.id,
-          valor_sessao: values.valor_sessao || null,
-        });
-        if (error) throw error;
-
-        toast({ title: "Agendamento criado com sucesso!" });
+        if (values.repetir && values.repetir_quantidade > 1) {
+          // Repeat same day/time for X occurrences (weekly interval)
+          const totalOccurrences = values.repetir_tipo === "vezes"
+            ? values.repetir_quantidade
+            : values.repetir_quantidade; // semanas = same number
+          const grupoId = crypto.randomUUID();
+          const records = [];
+          for (let i = 0; i < totalOccurrences; i++) {
+            const dt = addWeeks(dataHorario, i);
+            records.push({
+              paciente_id: values.paciente_id,
+              profissional_id: values.profissional_id,
+              data_horario: dt.toISOString(),
+              duracao_minutos: values.duracao_minutos,
+              tipo_atendimento: values.tipo_atendimento,
+              tipo_sessao: values.tipo_sessao,
+              observacoes: values.observacoes || null,
+              created_by: user.id,
+              recorrente: true,
+              recorrencia_grupo_id: grupoId,
+              valor_sessao: values.valor_sessao || null,
+            });
+          }
+          const { error } = await (supabase.from("agendamentos") as any).insert(records);
+          if (error) throw error;
+          toast({
+            title: "Sessões repetidas criadas!",
+            description: `${totalOccurrences} sessões agendadas (mesmo dia/horário, semanalmente).`,
+          });
+        } else {
+          const { error } = await (supabase.from("agendamentos") as any).insert({
+            paciente_id: values.paciente_id,
+            profissional_id: values.profissional_id,
+            data_horario: dataHorario.toISOString(),
+            duracao_minutos: values.duracao_minutos,
+            tipo_atendimento: values.tipo_atendimento,
+            tipo_sessao: values.tipo_sessao,
+            observacoes: values.observacoes || null,
+            created_by: user.id,
+            valor_sessao: values.valor_sessao || null,
+          });
+          if (error) throw error;
+          toast({ title: "Agendamento criado com sucesso!" });
+        }
       }
 
       form.reset();
@@ -525,7 +564,71 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               </div>
             )}
 
-            {/* Recorrência */}
+            {/* Repetir sessão (para agendamento único) */}
+            {!isRecorrente && (
+              <div className="rounded-lg border p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="h-4 w-4 text-muted-foreground" />
+                    <Label className="font-medium">Repetir esta sessão</Label>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="repetir"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {isRepetir && (
+                  <div className="space-y-3 pt-1">
+                    <p className="text-xs text-muted-foreground">
+                      Repete no mesmo dia da semana e horário, semanalmente.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Repetir por</Label>
+                        <Input
+                          type="number"
+                          min={2}
+                          max={52}
+                          className="mt-1"
+                          value={repetirQuantidade}
+                          onChange={(e) => form.setValue("repetir_quantidade", Number(e.target.value) || 4)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Tipo</Label>
+                        <Select
+                          value={repetirTipo}
+                          onValueChange={(v) => form.setValue("repetir_tipo", v as "vezes" | "semanas")}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vezes">vezes</SelectItem>
+                            <SelectItem value="semanas">semanas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                      Serão criadas <span className="font-semibold text-foreground">{repetirQuantidade}</span> sessões no mesmo dia/horário, uma por semana.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="rounded-lg border p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -815,7 +918,13 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                 Cancelar
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : isRecorrente ? `Agendar ${previewCount} sessões` : "Agendar"}
+                {loading
+                  ? "Salvando..."
+                  : isRecorrente
+                    ? `Agendar ${previewCount} sessões`
+                    : isRepetir
+                      ? `Agendar ${repetirQuantidade} sessões`
+                      : "Agendar"}
               </Button>
             </div>
           </form>
