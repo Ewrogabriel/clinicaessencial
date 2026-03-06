@@ -68,10 +68,12 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
   }, [open, agendamento]);
 
   const fetchProfissionais = async () => {
-    const { data } = await (supabase.from("profiles") as any)
-      .select("id, nome")
-      .order("nome");
-    setProfissionais(data || []);
+    // First get professional user_ids from user_roles
+    const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+    const profUserIds = (roles || []).map((r: any) => r.user_id);
+    if (profUserIds.length === 0) { setProfissionais([]); return; }
+    const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", profUserIds).order("nome");
+    setProfissionais((data || []).map((p: any) => ({ id: p.user_id, nome: p.nome })));
   };
 
   // Busca disponibilidade mensal quando o profissional ou mês mudam

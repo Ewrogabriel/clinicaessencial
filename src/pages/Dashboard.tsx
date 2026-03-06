@@ -171,7 +171,14 @@ const Dashboard = () => {
     },
   });
 
-  const dailyTips: any[] = []; // daily_tips table not yet created
+  // Daily tips for professionals - simulated based on day
+  const dicasProfissional = [
+    { id: 1, titulo: "Comunicação Efetiva com Pacientes", conteudo: "Sempre explique o motivo de cada exercício. Pacientes que entendem os benefícios têm maior adesão ao tratamento.", target_role: "profissional" },
+    { id: 2, titulo: "Limite de Uso de Celular", conteudo: "Durante as aulas, minimize o uso de celular. Sua atenção integral cria um ambiente mais profissional e seguro.", target_role: "profissional" },
+    { id: 3, titulo: "Postura Correta no Ensino", conteudo: "Demonstre os exercícios com postura perfeita. Você é um modelo para seus pacientes.", target_role: "profissional" },
+    { id: 4, titulo: "Feedback Positivo", conteudo: "Reconheça o progresso dos pacientes, mesmo pequeno. Feedback positivo aumenta a motivação.", target_role: "profissional" },
+  ];
+  const dailyTips = [dicasProfissional[new Date().getDate() % dicasProfissional.length]];
 
   // Upcoming Birthdays
   const birthdays: any[] = []; // get_upcoming_birthdays RPC not yet created
