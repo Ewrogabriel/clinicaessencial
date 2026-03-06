@@ -41,7 +41,6 @@ import {
 type Paciente = Tables<"pacientes">;
 
 const Pacientes = () => {
-  const { clinicId } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
@@ -66,16 +65,11 @@ const Pacientes = () => {
   };
 
   const { data: pacientes = [], isLoading } = useQuery({
-    queryKey: ["pacientes", clinicId],
+    queryKey: ["pacientes"],
     queryFn: async () => {
-      let query = (supabase.from("pacientes") as any).select("*");
-      
-      // Filtrar por clínica se o usuário tiver uma clínica associada
-      if (clinicId) {
-        query = query.eq("clinic_id", clinicId);
-      }
-      
-      const { data, error } = await query.order("nome");
+      const { data, error } = await (supabase.from("pacientes") as any)
+        .select("*")
+        .order("nome");
       if (error) throw error;
       return data as Paciente[];
     },

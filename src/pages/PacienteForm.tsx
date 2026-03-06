@@ -23,7 +23,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 const PacienteForm = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user, clinicId } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -268,9 +268,6 @@ const PacienteForm = () => {
         created_by: user.id,
         profissional_id: user.id,
       };
-      if (clinicId) {
-        Object.assign(insertData, { clinic_id: clinicId });
-      }
       const { data, error: insertError } = await (supabase.from("pacientes") as any).insert(insertData).select("id").single();
       error = insertError;
       if (data) savedPatientId = data.id;
