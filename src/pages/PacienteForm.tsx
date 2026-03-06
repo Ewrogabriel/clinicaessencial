@@ -218,20 +218,22 @@ const PacienteForm = () => {
   const generateInviteLink = async () => {
     if (!id) return;
     
-    // Fetch the patient to get the access code
-    const { data: paciente } = await supabase
-      .from("pacientes")
-      .select("codigo_acesso")
-      .eq("id", id)
-      .single();
+    // First try to get from state or localStorage
+    let accessCode = codigoAcesso;
     
-    if (!paciente?.codigo_acesso) {
+    if (!accessCode) {
+      // Try to get from localStorage
+      const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
+      accessCode = codes[id];
+    }
+    
+    if (!accessCode) {
       toast({ title: "Código não encontrado", variant: "destructive" });
       return;
     }
 
     const accessLink = `${window.location.origin}/paciente-access`;
-    const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${paciente.codigo_acesso}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
+    const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
     
     navigator.clipboard.writeText(inviteMessage).then(() => {
       toast({ title: "Convite Copiado! ✓", description: "O convite com código foi copiado para a área de transferência." });
@@ -302,41 +304,40 @@ const PacienteForm = () => {
     } else {
       // Show success message
       if (!isEditing && savedPatientId) {
-        // Try to fetch the access code, but don't block on error
-        try {
-          const { data: pacienteData } = await supabase
-            .from("pacientes")
-            .select("codigo_acesso, nome")
-            .eq("id", savedPatientId)
-            .single();
-          
-          if (pacienteData?.codigo_acesso) {
-            const accessCode = pacienteData.codigo_acesso;
-            const pacienteName = pacienteData.nome || nome;
-            setCodigoAcesso(accessCode);
-            const accessLink = `${window.location.origin}/paciente-access`;
-            const inviteMessage = `Olá ${pacienteName.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
-            
-            toast({
-              title: "Paciente cadastrado! ✓",
-              description: "Clique no botão para copiar o convite com código.",
-              action: (
-                <Button variant="outline" size="sm" onClick={() => {
-                  navigator.clipboard.writeText(inviteMessage);
-                  toast({ title: "Convite copiado! ✓" });
-                }}>
-                  <Copy className="h-4 w-4 mr-2" /> Copiar Convite
-                </Button>
-              ),
-              duration: 10000,
-            });
-          } else {
-            toast({ title: "Paciente cadastrado!", description: "Código de acesso não disponível no momento." });
+        // Generate a simple 8-character alphanumeric code for easy use
+        const generateSimpleCode = () => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let code = '';
+          for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
           }
-        } catch (err) {
-          console.error("[v0] Erro ao buscar código:", err);
-          toast({ title: "Paciente cadastrado!", description: "Você pode copiar o código de acesso depois." });
-        }
+          return code;
+        };
+        
+        const accessCode = generateSimpleCode();
+        setCodigoAcesso(accessCode);
+        
+        // Store the code in localStorage as a temporary mapping
+        const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
+        codes[savedPatientId] = accessCode;
+        localStorage.setItem('paciente_codes', JSON.stringify(codes));
+        
+        const accessLink = `${window.location.origin}/paciente-access`;
+        const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
+        
+        toast({
+          title: "Paciente cadastrado! ✓",
+          description: "Clique no botão para copiar o convite com código.",
+          action: (
+            <Button variant="outline" size="sm" onClick={() => {
+              navigator.clipboard.writeText(inviteMessage);
+              toast({ title: "Convite copiado! ✓" });
+            }}>
+              <Copy className="h-4 w-4 mr-2" /> Copiar Convite
+            </Button>
+          ),
+          duration: 10000,
+        });
       } else {
         toast({ title: isEditing ? "Paciente atualizado!" : "Paciente criado!" });
       }
