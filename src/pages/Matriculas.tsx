@@ -186,7 +186,6 @@ const Matriculas = () => {
         time: s.time,
         professional_id: s.professional_id,
         session_duration: s.session_duration,
-        tipo_sessao: s.tipo_sessao,
       }));
       const { error: schedsErr } = await supabase.from("weekly_schedules").insert(schedInserts);
       if (schedsErr) throw schedsErr;
@@ -216,7 +215,6 @@ const Matriculas = () => {
             data_horario: `${dt}T${s.time}:00`,
             duracao_minutos: s.session_duration,
             tipo_atendimento: editData.tipo_atendimento,
-            tipo_sessao: s.tipo_sessao,
             status: "agendado",
             recorrente: true,
             recorrencia_grupo_id: groupId,
@@ -240,6 +238,7 @@ const Matriculas = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["current-patient"] });
       setEditOpen(false);
       toast({ title: "✅ Matrícula atualizada com sucesso!" });
     },
@@ -287,7 +286,6 @@ const Matriculas = () => {
           time: s.time,
           professional_id: s.professional_id,
           session_duration: s.session_duration,
-          tipo_sessao: s.tipo_sessao,
         }));
         const { error: schedsErr } = await supabase.from("weekly_schedules").insert(schedInserts);
         if (schedsErr) throw schedsErr;
@@ -306,7 +304,6 @@ const Matriculas = () => {
               data_horario: `${dt}T${s.time}:00`,
               duracao_minutos: s.session_duration,
               tipo_atendimento: formData.tipo_atendimento,
-              tipo_sessao: s.tipo_sessao,
               status: "agendado",
               recorrente: true,
               recorrencia_grupo_id: groupId,
@@ -345,6 +342,7 @@ const Matriculas = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["current-patient"] });
       setFormOpen(false);
       setFormData(getEmptyForm());
       toast({ title: "✅ Matrícula criada com sucesso!" });
@@ -418,7 +416,6 @@ const Matriculas = () => {
         time: s.time,
         professional_id: s.professional_id,
         session_duration: s.session_duration,
-        tipo_sessao: 'grupo' as const
       })),
       valid_from: format(new Date(), "yyyy-MM-dd"), // Defaults to today for changes
     });

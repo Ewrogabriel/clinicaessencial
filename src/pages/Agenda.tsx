@@ -25,7 +25,6 @@ const Agenda = () => {
   const [pacientesMap, setPacientesMap] = useState<Record<string, string>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [loading, setLoading] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleAg, setRescheduleAg] = useState<Agendamento | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -66,54 +65,66 @@ const Agenda = () => {
     setRescheduleOpen(true);
   };
 
-  const fetchAgendamentos = useCallback(async () => {
-    setLoading(true);
-    try {
+  // Fetch patient ID if current user is a patient
+  const { data: patientData } = useQuery({
+    queryKey: ["current-patient", user?.id],
+    queryFn: async () => {
+      if (!isPatient || !user?.id) return null;
+      const { data, error } = await (supabase.from("pacientes") as any).select("id").eq("user_id", user.id).single();
+      if (error) {
+        console.error("Error fetching patient:", error);
+        return null;
+      }
+      return data;
+    },
+    enabled: isPatient && !!user?.id,
+  });
+
+  // Fetch agendamentos using React Query
+  const { data: agendamentosData = [], isLoading, refetch: refetchAgendamentos } = useQuery({
+    queryKey: ["agendamentos", patientData?.id, isPatient],
+    queryFn: async () => {
       let query = (supabase.from("agendamentos") as any)
         .select(`
           *,
           pacientes (id, nome, telefone)
         `);
 
-      if (isPatient) {
-        const { data: p, error: patientError } = await (supabase.from("pacientes") as any).select("id").eq("user_id", user?.id).single();
-        if (patientError || !p) {
-          setAgendamentos([]);
-          setLoading(false);
-          return;
-        }
-        query = query.eq("paciente_id", p.id);
+      if (isPatient && patientData?.id) {
+        query = query.eq("paciente_id", patientData.id);
       }
 
       const { data, error } = await query.order("data_horario", { ascending: true });
 
-      if (!error && data) {
-        const mapped = (data as any[]).map((item) => ({
-          ...item,
-          pacientes: item.pacientes,
-          profiles: { nome: (profissionais as any[]).find((p: any) => p.user_id === item.profissional_id)?.nome || "Profissional" },
-        }));
-        setAgendamentos(mapped);
-
-        const telMap: Record<string, string> = {};
-        (data as any[]).forEach((item) => {
-          if (item.paciente_id && item.pacientes?.telefone) {
-            telMap[item.paciente_id] = item.pacientes.telefone;
-          }
-        });
-        setPacientesMap(telMap);
-      } else if (error) {
+      if (error) {
         console.error("Error fetching agendamentos:", error);
+        return [];
       }
-    } catch (e) {
-      console.error("Unexpected error in fetchAgendamentos:", e);
-    }
-    setLoading(false);
-  }, [isPatient, user?.id, profissionais]);
 
+      return data || [];
+    },
+    enabled: !isPatient || !!patientData?.id,
+  });
+
+  // Update state when data changes
   useEffect(() => {
-    fetchAgendamentos();
-  }, [fetchAgendamentos]);
+    const mapped = (agendamentosData as any[]).map((item) => ({
+      ...item,
+      pacientes: item.pacientes,
+      profiles: { nome: (profissionais as any[]).find((p: any) => p.user_id === item.profissional_id)?.nome || "Profissional" },
+    }));
+    setAgendamentos(mapped);
+
+    const telMap: Record<string, string> = {};
+    (agendamentosData as any[]).forEach((item) => {
+      if (item.paciente_id && item.pacientes?.telefone) {
+        telMap[item.paciente_id] = item.pacientes.telefone;
+      }
+    });
+    setPacientesMap(telMap);
+  }, [agendamentosData, profissionais]);
+
+
 
   // Apply professional filter
   const filteredAgendamentos = filterProfId === "all"
@@ -164,7 +175,7 @@ const Agenda = () => {
         .eq("id", id);
       if (error) throw error;
       toast({ title: "Agendamento cancelado" });
-      fetchAgendamentos();
+      refetchAgendamentos();
     } catch (err) {
       toast({ title: "Erro ao cancelar", variant: "destructive" });
     }
@@ -181,7 +192,7 @@ const Agenda = () => {
         .eq("id", id);
       if (error) throw error;
       toast({ title: "Check-in realizado! ✅" });
-      fetchAgendamentos();
+      refetchAgendamentos();
     } catch (err) {
       toast({ title: "Erro ao fazer check-in", variant: "destructive" });
     }
