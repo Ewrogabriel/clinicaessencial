@@ -24,14 +24,43 @@ export default function PacienteAccess() {
 
     setLoading(true);
     try {
-      // Search for patient with this access code
+      // First check localStorage for the access code mapping
+      const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
+      let pacienteId = null;
+      
+      // Find patient ID by matching the code
+      for (const [id, code] of Object.entries(codes)) {
+        if (code === codigoAcesso.trim().toUpperCase()) {
+          pacienteId = id;
+          break;
+        }
+      }
+      
+      // If not found in localStorage, try database (for older codes)
+      if (!pacienteId) {
+        const { data: pacientes } = await (supabase.from("pacientes") as any)
+          .select("id")
+          .or(`codigo_acesso.eq.${codigoAcesso.trim()},codigo_acesso.ilike.${codigoAcesso.trim()}`);
+        
+        if (pacientes && pacientes.length > 0) {
+          pacienteId = pacientes[0].id;
+        }
+      }
+      
+      if (!pacienteId) {
+        toast({ title: "Erro", description: "Código de acesso inválido", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch patient details
       const { data: paciente, error } = await (supabase.from("pacientes") as any)
         .select("id, nome, email, telefone")
-        .eq("codigo_acesso", codigoAcesso.trim())
+        .eq("id", pacienteId)
         .single();
 
       if (error || !paciente) {
-        toast({ title: "Erro", description: "Código de acesso inválido", variant: "destructive" });
+        toast({ title: "Erro", description: "Paciente não encontrado", variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -89,11 +118,11 @@ export default function PacienteAccess() {
               <Input
                 id="codigo"
                 type="text"
-                placeholder="Ex: a1b2c3d4-e5f6-7890..."
-                value={codigoAcesso}
+                placeholder="Ex: ABC12XYZ"
+                value={codigoAcesso.toUpperCase()}
                 onChange={(e) => setCodigoAcesso(e.target.value)}
                 disabled={loading}
-                className="uppercase"
+                className="uppercase text-center text-lg tracking-widest font-semibold"
               />
             </div>
 
