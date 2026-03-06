@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Users, Trash2, UserX, Download, FileSpreadsheet, MessageCircle } from "lucide-react";
+import { Plus, Search, Users, Trash2, UserX, Download, FileSpreadsheet, MessageCircle, Copy } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -252,6 +252,24 @@ const Pacientes = () => {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            title="Copiar convite com código de acesso"
+                            onClick={() => {
+                              if (!paciente.codigo_acesso) {
+                                toast({ title: "Código não disponível", variant: "destructive" });
+                                return;
+                              }
+                              const accessLink = `${window.location.origin}/paciente-access`;
+                              const inviteMessage = `Olá ${paciente.nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${paciente.codigo_acesso}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
+                              navigator.clipboard.writeText(inviteMessage);
+                              toast({ title: "Convite copiado!", description: "Mensagem pronta para enviar via WhatsApp" });
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
