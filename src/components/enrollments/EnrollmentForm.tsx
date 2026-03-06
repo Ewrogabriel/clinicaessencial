@@ -75,7 +75,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
     useEffect(() => {
-        if (!newProfessional) {
+        if (!newProfessional || !newTime) {
             setMonthlyAvail({});
             return;
         }
@@ -83,12 +83,13 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
             const result = await getMonthlyAvailability(
                 newProfessional,
                 currentMonth.getFullYear(),
-                currentMonth.getMonth()
+                currentMonth.getMonth(),
+                newTime // Pass the specific time to filter availability
             );
             setMonthlyAvail(result);
         };
         fetchMonthly();
-    }, [newProfessional, currentMonth]);
+    }, [newProfessional, currentMonth, newTime]);
 
     useEffect(() => {
         const fetchModalidades = async () => {
@@ -115,34 +116,49 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
         if (newWeekday === "" || !newTime || !newProfessional) return;
         const weekday = Number(newWeekday);
 
-        // Availability Check
-        // We check for the next 4 weeks to see if there's any conflict
-        const { data: existing } = await supabase
-            .from("agendamentos")
-            .select("id, tipo_sessao, status")
-            .eq("profissional_id", newProfessional)
-            .eq("status", "agendado")
-            .filter("data_horario", "gte", format(new Date(), "yyyy-MM-dd") + "T" + newTime + ":00")
-            .limit(10);
+        // Check for schedule conflicts
+        // First check if the professional already has this day/time in weekly_schedules
+        const existingOnWeekday = formData.weekly_schedules.some(
+            (s: WeeklyScheduleEntry) => s.weekday === weekday && s.professional_id === newProfessional
+        );
 
-        // Basic check: if any individual session exists at this time (approximate, since we don't have exact same-time-of-day filter easily in JS simple select without RLS/Functions)
-        // For simplicity and to follow requested logic, we alert if there's any session in the "buffer" of that day/time
-        // However, a better way is to just let the user add and the DB trigger/logic handle strictness, 
-        // but the user asked for "show alert if try to mark individual in a slot already occupied".
+        if (existingOnWeekday) {
+            toast({
+                title: "⚠️ Conflito de Horário",
+                description: "Este profissional já possui um agendamento neste dia da semana.",
+                variant: "destructive"
+            });
+            return;
+        }
 
-        const isTimeMatch = (isoStr: string) => isoStr.includes(`T${newTime}`);
-
-        // This is a simplified check for the frontend UI feedback
-        const hasConflict = existing?.some((s: any) => {
-            if (newTipoSessao === 'individual' && s.status !== 'cancelado') return true;
-            if (newTipoSessao === 'grupo' && s.tipo_sessao === 'individual') return true;
+        // Check for time conflicts on the same day with other professionals
+        const timeConflict = formData.weekly_schedules.some((s: WeeklyScheduleEntry) => {
+            if (s.weekday !== weekday) return false;
+            
+            const existingTime = s.time;
+            const existingStart = new Date(`2000-01-01T${existingTime}:00`);
+            const existingEnd = new Date(existingStart.getTime() + s.session_duration * 60000);
+            
+            const newStart = new Date(`2000-01-01T${newTime}:00`);
+            const newEnd = new Date(newStart.getTime() + parseInt(newDuration) * 60000);
+            
+            // If this is an individual session, it cannot overlap with any other session
+            if (newTipoSessao === 'individual' && existingStart < newEnd && newStart < existingEnd) {
+                return true;
+            }
+            
+            // If an existing session is individual, a new group session cannot overlap
+            if (s.tipo_sessao === 'individual' && existingStart < newEnd && newStart < existingEnd) {
+                return true;
+            }
+            
             return false;
         });
 
-        if (hasConflict) {
+        if (timeConflict) {
             toast({
                 title: "⚠️ Conflito de Horário",
-                description: "Já existe uma sessão que impede este agendamento (conflito de tipo Individual).",
+                description: "Existe conflito de horário com outra sessão. Sessões individuais não podem sobrepor outras sessões.",
                 variant: "destructive"
             });
             return;
@@ -348,8 +364,9 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="end">
-                                    <div className="p-3 border-b bg-muted/50">
+                                    <div className="p-3 border-b bg-muted/50 space-y-1">
                                         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Grade de Vagas por Dia</p>
+                                        <p className="text-xs text-muted-foreground">Horário: <span className="font-semibold">{newTime}</span></p>
                                     </div>
                                     <Calendar
                                         mode="single"
