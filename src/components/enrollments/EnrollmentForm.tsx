@@ -21,7 +21,6 @@ export type WeeklyScheduleEntry = {
     time: string;
     professional_id: string;
     session_duration: number;
-    tipo_sessao: 'individual' | 'grupo';
 };
 
 export type EnrollmentFormData = {
@@ -69,7 +68,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
     const [newTime, setNewTime] = useState("08:00");
     const [newProfessional, setNewProfessional] = useState("");
     const [newDuration, setNewDuration] = useState("60");
-    const [newTipoSessao, setNewTipoSessao] = useState<'individual' | 'grupo'>("grupo");
     const [modalidades, setModalidades] = useState<{ id: string; nome: string }[]>([]);
     const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -131,7 +129,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
             return;
         }
 
-        // Check for time conflicts on the same day with other professionals
+        // Check for time conflicts on the same day
         const timeConflict = formData.weekly_schedules.some((s: WeeklyScheduleEntry) => {
             if (s.weekday !== weekday) return false;
             
@@ -142,13 +140,8 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
             const newStart = new Date(`2000-01-01T${newTime}:00`);
             const newEnd = new Date(newStart.getTime() + parseInt(newDuration) * 60000);
             
-            // If this is an individual session, it cannot overlap with any other session
-            if (newTipoSessao === 'individual' && existingStart < newEnd && newStart < existingEnd) {
-                return true;
-            }
-            
-            // If an existing session is individual, a new group session cannot overlap
-            if (s.tipo_sessao === 'individual' && existingStart < newEnd && newStart < existingEnd) {
+            // Check if there's a time overlap
+            if (existingStart < newEnd && newStart < existingEnd) {
                 return true;
             }
             
@@ -171,7 +164,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 time: newTime,
                 professional_id: newProfessional,
                 session_duration: parseInt(newDuration) || 60,
-                tipo_sessao: newTipoSessao,
             },
         ];
         setFormData({ ...formData, weekly_schedules: updated });
@@ -179,7 +171,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
         setNewTime("08:00");
         setNewProfessional("");
         setNewDuration("60");
-        setNewTipoSessao("grupo");
     };
 
     const removeSchedule = (index: number) => {
@@ -409,18 +400,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                             onChange={(e) => setNewDuration(e.target.value)}
                         />
                     </div>
-                    <div>
-                        <Label className="text-xs">Tipo de Sessão</Label>
-                        <Select value={newTipoSessao} onValueChange={(v: any) => setNewTipoSessao(v)}>
-                            <SelectTrigger className="mt-1">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="grupo">Grupo</SelectItem>
-                                <SelectItem value="individual">Individual</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </div>
 
                 <Button type="button" size="sm" variant="secondary" className="gap-2 w-full" onClick={addSchedule}
@@ -440,9 +419,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                                     <span className="text-sm font-medium">{s.time}</span>
                                     <span className="text-sm text-muted-foreground">• {getProfessionalName(s.professional_id)}</span>
                                     <span className="text-xs text-muted-foreground">{s.session_duration}min</span>
-                                    <Badge variant={s.tipo_sessao === 'individual' ? 'default' : 'secondary'} className="text-[10px] h-4">
-                                        {s.tipo_sessao === 'individual' ? 'Indiv.' : 'Grupo'}
-                                    </Badge>
                                 </div>
                                 <Button variant="ghost" size="sm" onClick={() => removeSchedule(index)}
                                     className="h-7 w-7 p-0 text-destructive hover:text-destructive">
