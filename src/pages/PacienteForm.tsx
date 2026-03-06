@@ -70,6 +70,7 @@ const PacienteForm = () => {
   const [respEstado, setRespEstado] = useState("");
 
   const [rg, setRg] = useState("");
+  const [codigoAcesso, setCodigoAcesso] = useState<string | null>(null);
 
   const { data: modalidades = [] } = useQuery({
     queryKey: ["modalidades-ativas"],
@@ -277,6 +278,20 @@ const PacienteForm = () => {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+      
+      // Generate access code for new patients
+      let accessCode = null;
+      if (!isEditing && savedPatientId) {
+        accessCode = crypto.randomUUID();
+        const { error: codeError } = await (supabase.from("pacientes") as any)
+          .update({ codigo_acesso: accessCode })
+          .eq("id", savedPatientId);
+        
+        if (!codeError) {
+          setCodigoAcesso(accessCode);
+        }
+      }
+      
       if (cpf && cpf.replace(/\D/g, "").length === 11) {
         try {
           await supabase.functions.invoke("create-patient-account", {
@@ -286,20 +301,26 @@ const PacienteForm = () => {
           console.error("Erro ao criar conta do paciente:", err);
         }
       }
-      if (!isEditing && savedPatientId) {
+      
+      if (!isEditing && savedPatientId && accessCode) {
+        const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema. Para acessar sua área de atendimento, use o código:\n\n📱 CÓDIGO: ${accessCode}\n\nAcesse: ${window.location.origin}/paciente-access\n\nQualquer dúvida, entre em contato conosco!`;
+        
         toast({
           title: "Paciente cadastrado! 🎉",
-          description: "Clique no botão para copiar o link de convite.",
+          description: "Clique no botão para copiar o convite com código.",
           action: (
             <Button variant="outline" size="sm" onClick={() => {
-              const link = `${window.location.origin}/onboarding/${savedPatientId}`;
-              const text = `Olá ${nome.split(' ')[0]}! Complete seu cadastro neste link: ${link}`;
-              navigator.clipboard.writeText(text);
-              toast({ title: "Copiado!" });
+              navigator.clipboard.writeText(inviteMessage);
+              toast({ title: "Convite copiado! ✓" });
             }}>
               <Copy className="h-4 w-4 mr-2" /> Copiar Convite
             </Button>
           ),
+        });
+      } else if (!isEditing && savedPatientId) {
+        toast({
+          title: "Paciente cadastrado!",
+          description: "Aguarde, gerando código de acesso...",
         });
       } else {
         toast({ title: "Paciente atualizado com sucesso!" });

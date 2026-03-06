@@ -47,6 +47,8 @@ import PerfilProfissional from "./pages/PerfilProfissional";
 import PerfilProfissionalPublico from "./pages/PerfilProfissionalPublico";
 import ClinicSettings from "./pages/ClinicSettings";
 import MensagensInternas from "./pages/MensagensInternas";
+import PacienteAccess from "./pages/PacienteAccess";
+import DashboardPaciente from "./pages/DashboardPaciente";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/paciente-access" element={<PacienteAccess />} />
+            <Route path="/dashboard-paciente" element={<DashboardPaciente />} />
             <Route path="/onboarding/:id" element={<PatientOnboarding />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Index />} />
