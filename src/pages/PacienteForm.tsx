@@ -143,8 +143,15 @@ const PacienteForm = () => {
       return;
     }
     setUploadingPhoto(true);
-    const ext = file.name.split(".").pop();
-    const path = `pacientes/${id || crypto.randomUUID()}/foto.${ext}`;
+      const ext = file.name.split(".").pop();
+      // Generate UUID v4 manually
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+      const path = `pacientes/${id || generateUUID()}/foto.${ext}`;
     const { error } = await supabase.storage
       .from("patient-documents")
       .upload(path, file, { upsert: true });
@@ -295,7 +302,14 @@ const PacienteForm = () => {
     } else {
       // Generate access code for new patients
       if (!isEditing && savedPatientId) {
-        const accessCode = crypto.randomUUID();
+        // Generate UUID v4 manually
+        const generateUUID = () => {
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        };
+        const accessCode = generateUUID();
         const { error: codeError } = await (supabase.from("pacientes") as any)
           .update({ codigo_acesso: accessCode })
           .eq("id", savedPatientId);
