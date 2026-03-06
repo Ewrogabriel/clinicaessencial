@@ -26,11 +26,15 @@ export default function PacienteAccess() {
     try {
       // First check localStorage for the access code mapping
       const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
+      console.log("[v0] Códigos no localStorage:", codes);
+      console.log("[v0] Código inserido:", codigoAcesso.trim().toUpperCase());
       let pacienteId = null;
       
       // Find patient ID by matching the code
       for (const [id, code] of Object.entries(codes)) {
+        console.log("[v0] Comparando:", code, "===", codigoAcesso.trim().toUpperCase());
         if (code === codigoAcesso.trim().toUpperCase()) {
+          console.log("[v0] MATCH encontrado! ID:", id);
           pacienteId = id;
           break;
         }
