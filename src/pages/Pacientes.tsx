@@ -258,12 +258,16 @@ const Pacientes = () => {
                             className="h-8 w-8 p-0"
                             title="Copiar convite com código de acesso"
                             onClick={() => {
-                              if (!paciente.codigo_acesso) {
+                              // Try to get from localStorage first
+                              const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
+                              let accessCode = codes[paciente.id] || paciente.codigo_acesso;
+                              
+                              if (!accessCode) {
                                 toast({ title: "Código não disponível", variant: "destructive" });
                                 return;
                               }
                               const accessLink = `${window.location.origin}/paciente-access`;
-                              const inviteMessage = `Olá ${paciente.nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${paciente.codigo_acesso}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
+                              const inviteMessage = `Olá ${paciente.nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
                               navigator.clipboard.writeText(inviteMessage);
                               toast({ title: "Convite copiado!", description: "Mensagem pronta para enviar via WhatsApp" });
                             }}
