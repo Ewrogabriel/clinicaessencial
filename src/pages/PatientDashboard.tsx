@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ const PatientDashboard = () => {
       if (error) throw error;
       // Manual profile lookup (no FK join)
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, string> = {};
+      let profMap: Record<string, { nome: string; telefone: string }> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
         (profs || []).forEach((p: any) => {
@@ -171,24 +172,7 @@ const PatientDashboard = () => {
     enabled: !!patientId,
   });
 
-  const { data: dailyTip } = useQuery({
-    queryKey: ["daily-tip", profile?.id],
-    queryFn: async () => {
-      let query = supabase.from("daily_tips").select("*").eq("ativo", true);
-
-      // Se for paciente, ver apenas dicas de pacientes ou todos
-      query = query.or("target_role.eq.paciente,target_role.eq.todos");
-
-      const { data, error } = await (query
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle() as any);
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!profile?.id,
-  });
+  const dailyTip = null; // daily_tips table not yet created
 
   const { data: pastAgenda = [] } = useQuery({
 
@@ -205,7 +189,7 @@ const PatientDashboard = () => {
       if (error) throw error;
 
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, string> = {};
+      let profMap: Record<string, { nome: string; telefone: string }> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
         (profs || []).forEach((p: any) => {
