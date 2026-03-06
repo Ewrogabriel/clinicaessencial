@@ -172,7 +172,14 @@ const PatientDashboard = () => {
     enabled: !!patientId,
   });
 
-  const dailyTip = null; // daily_tips table not yet created
+  // Daily tips - simulated based on day
+  const dicasPaciente = [
+    { id: 1, titulo: "Hidratação e Bem-estar", conteudo: "Beba pelo menos 2 litros de água por dia. A hidratação adequada melhora a flexibilidade muscular e previne cãibras durante os exercícios de pilates." },
+    { id: 2, titulo: "Respiração Correta em Pilates", conteudo: "Inspire pelo nariz e expire pela boca. A respiração coordenada durante os movimentos ativa o transverso do abdômen, potencializando os resultados." },
+    { id: 3, titulo: "Postura no Dia a Dia", conteudo: "Mantenha a coluna reta ao sentar. Uma boa postura reduz dores nas costas e melhora a qualidade de vida." },
+    { id: 4, titulo: "Alimentação Pré-aula", conteudo: "Evite refeições pesadas 2 horas antes da aula. Uma pequena banana ou barra de cereal é ideal para fornecer energia sem desconforto." },
+  ];
+  const dailyTip = dicasPaciente[new Date().getDate() % dicasPaciente.length];
 
   const { data: pastAgenda = [] } = useQuery({
 
@@ -256,7 +263,7 @@ const PatientDashboard = () => {
       </div>
 
       {/* Highlights: Daily Tip */}
-      {(dailyTip as any) && (
+      {dailyTip && (
         <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none shadow-lg overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Lightbulb className="h-24 w-24" />
@@ -268,8 +275,8 @@ const PatientDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <h3 className="font-bold text-xl mb-1">{(dailyTip as any).titulo}</h3>
-            <p className="text-indigo-100 italic text-sm">"{(dailyTip as any).conteudo}"</p>
+            <h3 className="font-bold text-xl mb-1">{dailyTip.titulo}</h3>
+            <p className="text-indigo-100 italic text-sm">"{dailyTip.conteudo}"</p>
           </CardContent>
         </Card>
       )}
@@ -488,6 +495,46 @@ const PatientDashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Cancelled appointments - option to reschedule */}
+        {pastAgenda.filter((item: any) => item.status === "cancelado").length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-destructive" />
+                Sessões Canceladas
+              </CardTitle>
+              <CardDescription>Você pode solicitar o reagendamento dessas sessões.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {pastAgenda.filter((item: any) => item.status === "cancelado").slice(0, 5).map((item: any) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {format(new Date(item.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.profiles?.nome} • {item.tipo_atendimento}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => {
+                        setRescheduleData(item);
+                        setIsRescheduleOpen(true);
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4" /> Reagendar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-4">
           <Card className="bg-primary/5 border-primary/20">
