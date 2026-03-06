@@ -611,11 +611,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             </div>
 
             {availabilityResult && (
-              <Alert variant={availabilityResult.isOverCapacity ? "destructive" : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? "destructive" : (watchedTipoSessao === 'grupo' && availabilityResult.existingSessions?.some((s: any) => s.tipo_sessao === 'individual')) ? "destructive" : "default"}>
+              <Alert variant={availabilityResult.isOverCapacity ? "destructive" : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? "destructive" : "default"}>
                 <div className="flex items-center gap-2">
-                  {availabilityResult.isOverCapacity ? (
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                  ) : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') || (watchedTipoSessao === 'grupo' && availabilityResult.existingSessions?.some((s: any) => s.tipo_sessao === 'individual')) ? (
+                  {availabilityResult.isOverCapacity || (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? (
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                   ) : (
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -623,9 +621,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                   <AlertDescription>
                     {availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual'
                       ? "⚠️ Este horário já possui pacientes agendados. Para sessão individual, o horário deve estar vazio."
-                      : (watchedTipoSessao === 'grupo' && availabilityResult.existingSessions?.some((s: any) => s.tipo_sessao === 'individual'))
-                        ? "⚠️ Já existe uma sessão INDIVIDUAL marcada neste horário. Não é possível agendar em grupo."
-                        : availabilityResult.message}
+                      : availabilityResult.message}
                   </AlertDescription>
                 </div>
               </Alert>

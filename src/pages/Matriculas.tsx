@@ -416,7 +416,8 @@ const Matriculas = () => {
         weekday: s.weekday,
         time: s.time,
         professional_id: s.professional_id,
-        session_duration: s.session_duration
+        session_duration: s.session_duration,
+        tipo_sessao: 'grupo' as const
       })),
       valid_from: format(new Date(), "yyyy-MM-dd"), // Defaults to today for changes
     });

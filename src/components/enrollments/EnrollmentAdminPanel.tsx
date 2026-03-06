@@ -275,15 +275,15 @@ function EnrollmentBlockManager() {
 
     const generateSessions = useMutation({
         mutationFn: async (enrollmentId: string) => {
-            const { data, error } = await supabase.rpc("generate_monthly_sessions", {
-                p_enrollment_id: enrollmentId,
-            });
-            if (error) throw error;
-            return data;
+            // TODO: implement generate_monthly_sessions RPC
+            toast({ title: "Funcionalidade ainda não implementada", variant: "destructive" });
+            return 0;
         },
         onSuccess: (count) => {
-            queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-            toast({ title: `✅ ${count} sessões geradas para o próximo mês!` });
+            if (count > 0) {
+                queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+                toast({ title: `✅ ${count} sessões geradas para o próximo mês!` });
+            }
         },
         onError: (err) => {
             toast({ title: "Erro ao gerar sessões", description: String(err), variant: "destructive" });

@@ -171,40 +171,10 @@ const Dashboard = () => {
     },
   });
 
-  const { data: dailyTips = [] } = useQuery({
-    queryKey: ["daily-tips", profile?.id, isAdmin, isGestor],
-    queryFn: async () => {
-      let query = supabase.from("daily_tips").select("*").eq("ativo", true);
-
-      if (isAdmin || isGestor) {
-        // Admins veem tudo (limit 2 para mostrar uma de cada se possível)
-        const { data, error } = await query
-          .order("created_at", { ascending: false })
-          .limit(2);
-        if (error) throw error;
-        return data || [];
-      } else {
-        // Profissionais veem apenas dicas de profissionais ou todos
-        const { data, error } = await query
-          .or("target_role.eq.profissional,target_role.eq.todos")
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (error) throw error;
-        return data || [];
-      }
-    },
-    enabled: !!profile?.id
-  });
+  const dailyTips: any[] = []; // daily_tips table not yet created
 
   // Upcoming Birthdays
-  const { data: birthdays = [] } = useQuery({
-    queryKey: ["upcoming-birthdays"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_upcoming_birthdays", { days_offset: 7 });
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const birthdays: any[] = []; // get_upcoming_birthdays RPC not yet created
 
   // Today's Detailed Agenda
   const { data: todayAgenda = [] } = useQuery({

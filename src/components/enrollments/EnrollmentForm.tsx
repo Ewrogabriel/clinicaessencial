@@ -14,6 +14,7 @@ import { getMonthlyAvailability } from "@/lib/availabilityCheck";
 import { cn } from "@/lib/utils";
 import { startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
 
 export type WeeklyScheduleEntry = {
     weekday: number;
