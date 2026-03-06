@@ -129,6 +129,7 @@ const PacienteForm = () => {
           setRespBairro(data.responsavel_bairro || "");
           setRespCidade(data.responsavel_cidade || "");
           setRespEstado(data.responsavel_estado || "");
+          setCodigoAcesso(data.codigo_acesso || null);
           setLoadingData(false);
         });
     }
@@ -207,14 +208,28 @@ const PacienteForm = () => {
     toast({ title: "Endereço copiado! 📋" });
   };
 
-  const generateInviteLink = () => {
+  const generateInviteLink = async () => {
     if (!id) return;
-    const link = `${window.location.origin}/onboarding/${id}`;
-    const text = `Olá ${nome.split(' ')[0]}! Complete seu cadastro no Essencial FisioPilates através deste link: ${link}`;
-    navigator.clipboard.writeText(text).then(() => {
-      toast({ title: "Link Copiado! 🔗", description: "Enviaremos o link pelo WhatsApp para o paciente." });
+    
+    // Fetch the patient to get the access code
+    const { data: paciente } = await supabase
+      .from("pacientes")
+      .select("codigo_acesso")
+      .eq("id", id)
+      .single();
+    
+    if (!paciente?.codigo_acesso) {
+      toast({ title: "Código não encontrado", variant: "destructive" });
+      return;
+    }
+
+    const accessLink = `${window.location.origin}/paciente-access`;
+    const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${paciente.codigo_acesso}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
+    
+    navigator.clipboard.writeText(inviteMessage).then(() => {
+      toast({ title: "Convite Copiado! ✓", description: "O convite com código foi copiado para a área de transferência." });
     }).catch(() => {
-      toast({ title: "Erro ao copiar o link.", variant: "destructive" });
+      toast({ title: "Erro ao copiar o convite.", variant: "destructive" });
     });
   };
 
@@ -276,20 +291,43 @@ const PacienteForm = () => {
 
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      setLoading(false);
     } else {
-      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
-      
       // Generate access code for new patients
-      let accessCode = null;
       if (!isEditing && savedPatientId) {
-        accessCode = crypto.randomUUID();
+        const accessCode = crypto.randomUUID();
         const { error: codeError } = await (supabase.from("pacientes") as any)
           .update({ codigo_acesso: accessCode })
           .eq("id", savedPatientId);
         
-        if (!codeError) {
+        if (codeError) {
+          console.error("Erro ao gerar código:", codeError);
+          toast({ 
+            title: "Aviso",
+            description: "Paciente criado, mas houve erro ao gerar código de acesso.",
+            variant: "destructive"
+          });
+        } else {
           setCodigoAcesso(accessCode);
+          const accessLink = `${window.location.origin}/paciente-access`;
+          const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
+          
+          toast({
+            title: "Paciente cadastrado! ✓",
+            description: "Clique no botão para copiar o convite com código.",
+            action: (
+              <Button variant="outline" size="sm" onClick={() => {
+                navigator.clipboard.writeText(inviteMessage);
+                toast({ title: "Convite copiado! ✓" });
+              }}>
+                <Copy className="h-4 w-4 mr-2" /> Copiar Convite
+              </Button>
+            ),
+            duration: 10000,
+          });
         }
+      } else {
+        toast({ title: isEditing ? "Paciente atualizado!" : "Paciente criado!" });
       }
       
       if (cpf && cpf.replace(/\D/g, "").length === 11) {
@@ -302,32 +340,10 @@ const PacienteForm = () => {
         }
       }
       
-      if (!isEditing && savedPatientId && accessCode) {
-        const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema. Para acessar sua área de atendimento, use o código:\n\n📱 CÓDIGO: ${accessCode}\n\nAcesse: ${window.location.origin}/paciente-access\n\nQualquer dúvida, entre em contato conosco!`;
-        
-        toast({
-          title: "Paciente cadastrado! 🎉",
-          description: "Clique no botão para copiar o convite com código.",
-          action: (
-            <Button variant="outline" size="sm" onClick={() => {
-              navigator.clipboard.writeText(inviteMessage);
-              toast({ title: "Convite copiado! ✓" });
-            }}>
-              <Copy className="h-4 w-4 mr-2" /> Copiar Convite
-            </Button>
-          ),
-        });
-      } else if (!isEditing && savedPatientId) {
-        toast({
-          title: "Paciente cadastrado!",
-          description: "Aguarde, gerando código de acesso...",
-        });
-      } else {
-        toast({ title: "Paciente atualizado com sucesso!" });
-      }
+      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+      setLoading(false);
       navigate("/pacientes");
     }
-    setLoading(false);
   };
 
   if (loadingData) {
@@ -351,9 +367,11 @@ const PacienteForm = () => {
           </div>
         </div>
         {isEditing && (
-          <Button variant="outline" className="gap-2" onClick={generateInviteLink}>
-            <LinkIcon className="h-4 w-4" /> Enviar Convite
-          </Button>
+          <div className="flex gap-2 items-center">
+            <Button variant="outline" className="gap-2" onClick={generateInviteLink}>
+              <LinkIcon className="h-4 w-4" /> Enviar Convite
+            </Button>
+          </div>
         )}
       </div>
 
@@ -430,6 +448,41 @@ const PacienteForm = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Access Code */}
+        {isEditing && codigoAcesso && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span className="text-2xl">🔐</span> Código de Acesso do Paciente
+              </CardTitle>
+              <CardDescription>Compartilhe este código com o paciente para que ele acesse sua área</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-white border-2 border-blue-300 rounded-lg p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Código de Acesso</p>
+                  <p className="text-2xl font-bold font-mono text-blue-600 tracking-widest">{codigoAcesso}</p>
+                </div>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(codigoAcesso);
+                    toast({ title: "Código copiado! ✓" });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" /> Copiar
+                </Button>
+              </div>
+              <div className="bg-white p-3 rounded border text-sm text-muted-foreground">
+                <p className="font-semibold mb-2">Link de Acesso:</p>
+                <p className="font-mono text-xs break-all text-blue-600">{window.location.origin}/paciente-access</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Legal Guardian */}
         <Card>
