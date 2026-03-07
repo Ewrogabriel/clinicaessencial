@@ -19,6 +19,10 @@ if not postgres_url:
     print("[v0] ERROR: POSTGRES_URL environment variable not set")
     sys.exit(1)
 
+# Fix Supabase URL format (replace supabase:// with postgres://)
+if postgres_url.startswith("supabase://"):
+    postgres_url = postgres_url.replace("supabase://", "postgres://", 1)
+
 print(f"[v0] Connecting to database...")
 
 try:
