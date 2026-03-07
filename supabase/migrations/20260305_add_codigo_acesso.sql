@@ -1,8 +1,8 @@
 -- Add codigo_acesso column to pacientes table for patient access codes
-ALTER TABLE pacientes ADD COLUMN codigo_acesso UUID UNIQUE DEFAULT gen_random_uuid();
+ALTER TABLE pacientes ADD COLUMN IF NOT EXISTS codigo_acesso VARCHAR(8) UNIQUE;
 
 -- Create index for faster lookups
-CREATE INDEX idx_pacientes_codigo_acesso ON pacientes(codigo_acesso);
+CREATE INDEX IF NOT EXISTS idx_pacientes_codigo_acesso ON pacientes(codigo_acesso);
 
 -- Create table for patient sessions to track login history
 CREATE TABLE IF NOT EXISTS paciente_sessions (
@@ -16,5 +16,5 @@ CREATE TABLE IF NOT EXISTS paciente_sessions (
 );
 
 -- Create index for faster session lookups
-CREATE INDEX idx_paciente_sessions_token ON paciente_sessions(session_token);
-CREATE INDEX idx_paciente_sessions_paciente_id ON paciente_sessions(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_paciente_sessions_token ON paciente_sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_paciente_sessions_paciente_id ON paciente_sessions(paciente_id);
