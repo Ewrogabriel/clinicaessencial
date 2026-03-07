@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, LogIn } from "lucide-react";
@@ -13,7 +12,6 @@ export default function PacienteAccess() {
   const navigate = useNavigate();
   const [codigoAcesso, setCodigoAcesso] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   const handleAccessSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,11 +22,11 @@ export default function PacienteAccess() {
 
     setLoading(true);
     try {
-      // Search database for patient with matching access code
       const cleanCode = codigoAcesso.trim().toUpperCase();
       
+      // Find patient by access code
       const { data: pacientes, error: searchError } = await (supabase.from("pacientes") as any)
-        .select("id")
+        .select("id, nome, cpf")
         .eq("codigo_acesso", cleanCode);
       
       if (searchError) {
@@ -38,52 +36,37 @@ export default function PacienteAccess() {
         return;
       }
       
-      let pacienteId = null;
-      if (pacientes && pacientes.length > 0) {
-        pacienteId = pacientes[0].id;
-      }
-      
-      if (!pacienteId) {
+      if (!pacientes || pacientes.length === 0) {
         toast({ title: "Erro", description: "Código de acesso inválido", variant: "destructive" });
         setLoading(false);
         return;
       }
-      
-      // Fetch patient details
-      const { data: paciente, error } = await (supabase.from("pacientes") as any)
-        .select("id, nome, email, telefone")
-        .eq("id", pacienteId)
-        .single();
 
-      if (error || !paciente) {
-        toast({ title: "Erro", description: "Paciente não encontrado", variant: "destructive" });
+      const paciente = pacientes[0];
+      const cpfClean = paciente.cpf?.replace(/\D/g, "");
+
+      if (!cpfClean || cpfClean.length !== 11) {
+        toast({ title: "Erro", description: "Paciente sem CPF cadastrado. Entre em contato com a clínica.", variant: "destructive" });
         setLoading(false);
         return;
       }
 
-      // Create session
-      const sessionToken = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(rememberMe ? expiresAt.getDate() + 30 : expiresAt.getDate() + 1);
-
-      const { error: sessionError } = await (supabase.from("paciente_sessions") as any).insert({
-        paciente_id: paciente.id,
-        session_token: sessionToken,
-        expires_at: expiresAt.toISOString(),
+      // Sign in via Supabase Auth using CPF-based credentials
+      const email = `${cpfClean}@paciente.essencial.com`;
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: cpfClean,
       });
 
-      if (sessionError) throw sessionError;
-
-      // Store session in localStorage
-      localStorage.setItem("paciente_session", JSON.stringify({
-        paciente_id: paciente.id,
-        session_token: sessionToken,
-        nome: paciente.nome,
-        expires_at: expiresAt.toISOString(),
-      }));
+      if (signInError) {
+        console.error("Sign in error:", signInError);
+        toast({ title: "Erro", description: "Erro ao autenticar. Sua conta pode não estar configurada. Entre em contato com a clínica.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
 
       toast({ title: "Bem-vindo!", description: `Olá ${paciente.nome}!` });
-      navigate("/dashboard-paciente");
+      navigate("/dashboard");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erro ao acessar";
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
@@ -96,8 +79,8 @@ export default function PacienteAccess() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Lock className="h-8 w-8 text-blue-600" />
+            <div className="bg-primary/10 p-3 rounded-lg">
+              <Lock className="h-8 w-8 text-primary" />
             </div>
           </div>
           <CardTitle className="text-2xl">Acesso do Paciente</CardTitle>
@@ -121,17 +104,6 @@ export default function PacienteAccess() {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              />
-              <Label htmlFor="remember" className="text-sm cursor-pointer font-normal">
-                Manter-me conectado por 30 dias
-              </Label>
-            </div>
-
             <Button
               type="submit"
               disabled={loading || !codigoAcesso.trim()}
@@ -142,8 +114,8 @@ export default function PacienteAccess() {
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-slate-600">
+          <div className="mt-6 p-4 bg-muted rounded-lg border">
+            <p className="text-sm text-muted-foreground">
               <strong>Precisa de ajuda?</strong> Se você não recebeu o código, entre em contato com seu profissional de atendimento.
             </p>
           </div>
