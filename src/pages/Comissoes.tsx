@@ -79,7 +79,7 @@ const Comissoes = () => {
   const { data: regrasComissao = [] } = useQuery({
     queryKey: ["regras-comissao"],
     queryFn: async () => {
-      const { data } = await (supabase.from("regras_comissao") as any).select("*").order("created_at", { ascending: false });
+      const { data } = await (supabase.from("regras_comissao" as any) as any).select("*").order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: isAdmin || isGestor,

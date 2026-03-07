@@ -37,11 +37,11 @@ const MeuPerfil = () => {
     queryFn: async () => {
       if (!patientId) return [];
       const { data, error } = await (supabase
-        .from("solicitacoes_alteracao_dados")
+        .from("solicitacoes_alteracao_dados" as any) as any)
         .select("*")
         .eq("paciente_id", patientId)
         .eq("status", "pendente")
-        .order("created_at", { ascending: false }) as any);
+        .order("created_at", { ascending: false });
       if (error) {
         console.error("Error fetching pending changes:", error);
         return [];
@@ -57,14 +57,14 @@ const MeuPerfil = () => {
 
       // Create change request for admin approval
       const { error } = await (supabase
-        .from("solicitacoes_alteracao_dados")
+        .from("solicitacoes_alteracao_dados" as any) as any)
         .insert([{
           paciente_id: patientId,
           dados_atuais: paciente,
           dados_novos: editData,
           status: "pendente",
           motivo: "Alteração de dados do perfil"
-        }]) as any);
+        }]);
 
       if (error) throw error;
     },

@@ -197,10 +197,10 @@ const PatientDashboard = () => {
     queryKey: ["formas-pagamento-ativas"],
     queryFn: async () => {
       const { data, error } = await (supabase
-        .from("formas_pagamento")
+        .from("formas_pagamento" as any) as any)
         .select("*")
         .eq("ativo", true)
-        .order("ordem") as any);
+        .order("ordem");
       if (error) throw error;
       return data ?? [];
     },
@@ -211,11 +211,11 @@ const PatientDashboard = () => {
     queryFn: async () => {
       if (!patientId) return [];
       const { data, error } = await (supabase
-        .from("pagamentos_mensalidade")
+        .from("pagamentos_mensalidade" as any) as any)
         .select("*")
         .eq("paciente_id", patientId)
         .eq("status", "aberto")
-        .order("mes_referencia", { ascending: true }) as any);
+        .order("mes_referencia", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -227,11 +227,11 @@ const PatientDashboard = () => {
     queryFn: async () => {
       if (!patientId) return [];
       const { data, error } = await (supabase
-        .from("pagamentos_sessoes")
+        .from("pagamentos_sessoes" as any) as any)
         .select("*")
         .eq("paciente_id", patientId)
         .eq("status", "aberto")
-        .order("created_at", { ascending: true }) as any);
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -242,8 +242,8 @@ const PatientDashboard = () => {
     queryKey: ["config-pix-map"],
     queryFn: async () => {
       const { data } = await (supabase
-        .from("config_pix")
-        .select("forma_pagamento_id, chave_pix, tipo_chave, nome_beneficiario") as any);
+        .from("config_pix" as any) as any)
+        .select("forma_pagamento_id, chave_pix, tipo_chave, nome_beneficiario");
       const map: any = {};
       (data || []).forEach((p: any) => {
         map[p.forma_pagamento_id] = p;
