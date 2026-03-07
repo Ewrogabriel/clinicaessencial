@@ -242,6 +242,16 @@ const MinhaAgenda = () => {
               Sua sessão será marcada como cancelada. Informe o motivo abaixo.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          {/* Aviso importante sobre cancelamento */}
+          <div className="flex gap-3 rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-900">
+            <AlertCircle className="h-5 w-5 shrink-0 text-blue-600 mt-0.5" />
+            <div>
+              <p className="font-semibold">Importante:</p>
+              <p>O cancelamento desta sessão <strong>NÃO reduz o valor da sua mensalidade</strong>. Você continua pagando a mensalidade integral conforme seu contrato.</p>
+            </div>
+          </div>
+
           <Textarea value={cancelObs} onChange={(e) => setCancelObs(e.target.value)} placeholder="Motivo do cancelamento..." className="min-h-[80px]" />
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>

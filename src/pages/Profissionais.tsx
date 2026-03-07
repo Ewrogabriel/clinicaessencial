@@ -232,14 +232,19 @@ const Profissionais = () => {
       if (roleError) throw roleError;
 
       toast({ title: "Profissional criado com sucesso!", description: "Um email de confirmação foi enviado." });
-      queryClient.invalidateQueries({ queryKey: ["profissionais"] });
+      await queryClient.invalidateQueries({ queryKey: ["profissionais"] });
       setDialogOpen(false);
+      setNome("");
+      setCreateEmail("");
+      setCreatePassword("");
+      setCreatePasswordConfirm("");
+      setTelefone("");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -274,14 +279,14 @@ const Profissionais = () => {
         .eq("id", editingId);
       if (error) throw error;
       toast({ title: "Profissional atualizado!" });
-      queryClient.invalidateQueries({ queryKey: ["profissionais"] });
+      await queryClient.invalidateQueries({ queryKey: ["profissionais"] });
       setDialogOpen(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleGenerateContract = (p: Profissional) => {

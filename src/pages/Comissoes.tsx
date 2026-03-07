@@ -22,6 +22,10 @@ const Comissoes = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedProf, setSelectedProf] = useState("");
   const [mesRef, setMesRef] = useState(format(new Date(), "yyyy-MM"));
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<"modalidade" | "profissional">("modalidade");
+  const [selectedEntity, setSelectedEntity] = useState("");
+  const [ruleForm, setRuleForm] = useState({ percentual: "", valorFixo: "", observacoes: "" });
 
   // Fetch professionals
   const { data: profissionais = [] } = useQuery({
@@ -62,6 +66,25 @@ const Comissoes = () => {
     },
   });
 
+  // Fetch modalidades
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-comissoes"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("modalidades") as any).select("*").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  // Fetch commission rules
+  const { data: regrasComissao = [] } = useQuery({
+    queryKey: ["regras-comissao"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("regras_comissao") as any).select("*").order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: isAdmin || isGestor,
+  });
+
   // My commissions (for professional view)
   const { data: minhasComissoes = [] } = useQuery({
     queryKey: ["my-commissions", user?.id],
@@ -74,6 +97,34 @@ const Comissoes = () => {
       return data ?? [];
     },
     enabled: isProfissional,
+  });
+
+  // Save commission rule
+  const saveRule = useMutation({
+    mutationFn: async () => {
+      if (!selectedEntity || !ruleForm.percentual && !ruleForm.valorFixo) {
+        throw new Error("Preencha os campos obrigatórios");
+      }
+
+      const { error } = await (supabase.from("regras_comissao").insert([{
+        tipo: selectedType,
+        entidade_id: selectedEntity,
+        percentual: ruleForm.percentual ? parseFloat(ruleForm.percentual) : null,
+        valor_fixo: ruleForm.valorFixo ? parseFloat(ruleForm.valorFixo) : null,
+        observacoes: ruleForm.observacoes || null
+      }]) as any);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Regra de comissão salva com sucesso!" });
+      setRuleDialogOpen(false);
+      setRuleForm({ percentual: "", valorFixo: "", observacoes: "" });
+      queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar regra", description: err.message, variant: "destructive" });
+    }
   });
 
   // Calculate summary per professional
@@ -182,13 +233,127 @@ const Comissoes = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Comissões</h1>
-          <p className="text-muted-foreground">Calcule e gere recibos de comissão para profissionais</p>
+          <p className="text-muted-foreground">Calcule, gere recibos e configure regras de comissão</p>
         </div>
         <div className="flex gap-3 items-center">
           <Label className="text-sm">Mês:</Label>
           <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} className="w-auto" />
         </div>
       </div>
+
+      {/* Regras de Comissão */}
+      {(isAdmin || isGestor) && (
+        <Card className="border-purple-200 bg-purple-50/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Configurar Regras de Comissão
+              </CardTitle>
+              <Button onClick={() => setRuleDialogOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" /> Nova Regra
+              </Button>
+            </div>
+            <CardDescription>Estabeleça regras de comissão por modalidade ou profissional</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {regrasComissao.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma regra configurada. Crie uma para começar.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {regrasComissao.map((regra: any) => (
+                  <div key={regra.id} className="p-4 rounded-lg border bg-white">
+                    <p className="font-semibold text-sm mb-2 capitalize">{regra.tipo}</p>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      {regra.percentual && <p>Percentual: <span className="font-medium text-foreground">{regra.percentual}%</span></p>}
+                      {regra.valor_fixo && <p>Valor Fixo: <span className="font-medium text-foreground">R$ {Number(regra.valor_fixo).toFixed(2)}</span></p>}
+                      {regra.observacoes && <p className="text-xs italic mt-2">{regra.observacoes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dialog para nova regra */}
+      <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Regra de Comissão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={selectedType} onValueChange={(val: any) => setSelectedType(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="modalidade">Por Modalidade</SelectItem>
+                  <SelectItem value="profissional">Por Profissional</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>{selectedType === "modalidade" ? "Modalidade" : "Profissional"}</Label>
+              <Select value={selectedEntity} onValueChange={setSelectedEntity}>
+                <SelectTrigger>
+                  <SelectValue placeholder={`Selecione uma ${selectedType}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedType === "modalidade" ? (
+                    modalidades.map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                    ))
+                  ) : (
+                    profissionais.map((p: any) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Percentual de Comissão (%)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={ruleForm.percentual}
+                onChange={(e) => setRuleForm({ ...ruleForm, percentual: e.target.value })}
+                placeholder="Ex: 10.5"
+              />
+            </div>
+
+            <div>
+              <Label>Valor Fixo por Atendimento (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={ruleForm.valorFixo}
+                onChange={(e) => setRuleForm({ ...ruleForm, valorFixo: e.target.value })}
+                placeholder="Ex: 25.00"
+              />
+            </div>
+
+            <div>
+              <Label>Observações (opcional)</Label>
+              <Input
+                value={ruleForm.observacoes}
+                onChange={(e) => setRuleForm({ ...ruleForm, observacoes: e.target.value })}
+                placeholder="Notas sobre esta regra"
+              />
+            </div>
+
+            <Button onClick={() => saveRule.mutate()} disabled={saveRule.isPending} className="w-full">
+              {saveRule.isPending ? "Salvando..." : "Salvar Regra"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>

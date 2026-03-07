@@ -50,17 +50,31 @@ const ClinicSettings = () => {
     const file = e.target.files?.[0];
     if (!file || !settings?.id) return;
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `clinic/logo.${ext}`;
-    const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: true });
-    if (upErr) { toast({ title: "Erro no upload", variant: "destructive" }); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
-    const logo_url = urlData.publicUrl;
-    setForm(f => ({ ...f, logo_url }));
-    updateMutation.mutate({ id: settings.id, logo_url }, {
-      onSuccess: () => toast({ title: "Logo atualizada!" }),
-    });
-    setUploading(false);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `clinic/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
+      
+      if (upErr) { 
+        console.error("Upload error:", upErr);
+        toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); 
+        return;
+      }
+      
+      const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
+      const logo_url = urlData.publicUrl;
+      setForm(f => ({ ...f, logo_url }));
+      
+      updateMutation.mutate({ id: settings.id, logo_url }, {
+        onSuccess: () => toast({ title: "Logo atualizada!" }),
+        onError: (err: any) => toast({ title: "Erro ao salvar logo", description: err.message, variant: "destructive" }),
+      });
+    } catch (err: any) {
+      console.error("Logo upload error:", err);
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const fetchAddressFor = async (cepCode: string) => {

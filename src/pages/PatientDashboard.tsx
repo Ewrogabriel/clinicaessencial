@@ -21,6 +21,9 @@ const PatientDashboard = () => {
   const queryClient = useQueryClient();
   const [rescheduleData, setRescheduleData] = useState<any>(null);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [selectedProduto, setSelectedProduto] = useState<any>(null);
+  const [observacao, setObservacao] = useState("");
+  const [isReservaDialogOpen, setIsReservaDialogOpen] = useState(false);
 
   if (loading) {
     return (
@@ -130,10 +133,14 @@ const PatientDashboard = () => {
   const { data: feriados = [] } = useQuery({
     queryKey: ["feriados-patient"],
     queryFn: async () => {
+      const hoje = new Date();
+      const dataFutura = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
+      
       const { data, error } = await (supabase
         .from("feriados")
         .select("*")
-        .gte("data", new Date().toISOString().split("T")[0])
+        .gte("data", hoje.toISOString().split("T")[0])
+        .lte("data", dataFutura.toISOString().split("T")[0])
         .order("data")
         .limit(10) as any);
       if (error) throw error;
@@ -170,6 +177,79 @@ const PatientDashboard = () => {
       return data || [];
     },
     enabled: !!patientId,
+  });
+
+  const { data: produtosDisponiveis = [] } = useQuery({
+    queryKey: ["produtos-disponiveis"],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("produtos")
+        .select("*")
+        .gt("estoque", 0)
+        .eq("ativo", true)
+        .order("nome") as any);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: formasPagamento = [] } = useQuery({
+    queryKey: ["formas-pagamento-ativas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("formas_pagamento")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem") as any);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: pagamentosMensalidade = [] } = useQuery({
+    queryKey: ["pagamentos-mensalidade-paciente", patientId],
+    queryFn: async () => {
+      if (!patientId) return [];
+      const { data, error } = await (supabase
+        .from("pagamentos_mensalidade")
+        .select("*")
+        .eq("paciente_id", patientId)
+        .eq("status", "aberto")
+        .order("mes_referencia", { ascending: true }) as any);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!patientId,
+  });
+
+  const { data: pagamentosSessoes = [] } = useQuery({
+    queryKey: ["pagamentos-sessoes-paciente", patientId],
+    queryFn: async () => {
+      if (!patientId) return [];
+      const { data, error } = await (supabase
+        .from("pagamentos_sessoes")
+        .select("*")
+        .eq("paciente_id", patientId)
+        .eq("status", "aberto")
+        .order("created_at", { ascending: true }) as any);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!patientId,
+  });
+
+  const { data: configPixMap = {} } = useQuery({
+    queryKey: ["config-pix-map"],
+    queryFn: async () => {
+      const { data } = await (supabase
+        .from("config_pix")
+        .select("forma_pagamento_id, chave_pix, tipo_chave, nome_beneficiario") as any);
+      const map: any = {};
+      (data || []).forEach((p: any) => {
+        map[p.forma_pagamento_id] = p;
+      });
+      return map;
+    },
   });
 
   // Daily tips - simulated based on day
@@ -224,6 +304,52 @@ const PatientDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
       toast({ title: "Sessão atualizada!" });
     },
+  });
+
+  const reservarProduto = useMutation({
+    mutationFn: async () => {
+      if (!patientId || !selectedProduto) throw new Error("Dados inválidos");
+      
+      // Create reservation
+      const { data: reserva, error: reservaError } = await (supabase
+        .from("reservas_produtos")
+        .insert([{
+          paciente_id: patientId,
+          produto_id: selectedProduto.id,
+          quantidade: 1,
+          observacao: observacao || null,
+          status: "pendente"
+        }])
+        .select()
+        .single() as any);
+      
+      if (reservaError) throw reservaError;
+
+      // Create alert for admin
+      const { error: avisoError } = await (supabase
+        .from("avisos")
+        .insert([{
+          tipo: "reserva_produto",
+          titulo: `Nova reserva de ${selectedProduto.nome}`,
+          mensagem: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}${observacao ? ` - Observação: ${observacao}` : ""}`,
+          reserva_id: reserva?.id,
+          lido: false
+        }]) as any);
+      
+      if (avisoError) console.error("Erro ao criar aviso:", avisoError);
+      
+      return reserva;
+    },
+    onSuccess: () => {
+      toast({ title: "Reserva realizada!", description: "Você receberá um contato para finalizar a compra." });
+      setIsReservaDialogOpen(false);
+      setSelectedProduto(null);
+      setObservacao("");
+      queryClient.invalidateQueries({ queryKey: ["produtos-disponiveis"] });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao reservar", description: (error as any).message, variant: "destructive" });
+    }
   });
 
   const hoje = new Date();
@@ -662,6 +788,193 @@ const PatientDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Formas de Pagamento - Mensalidade e Sessões Abertas */}
+      {(pagamentosMensalidade.length > 0 || pagamentosSessoes.length > 0) && formasPagamento.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-orange-600" />
+              Formas de Pagamento
+            </CardTitle>
+            <CardDescription>Escolha como deseja realizar o pagamento de sua mensalidade ou sessões abertas</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Mensalidades em Aberto */}
+            {pagamentosMensalidade.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Mensalidades em Aberto</h4>
+                  <Badge variant="destructive">{pagamentosMensalidade.length}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {pagamentosMensalidade.map((pag: any) => (
+                    <div key={pag.id} className="p-3 rounded-lg border bg-white flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{format(new Date(pag.mes_referencia), "MMMM 'de' yyyy", { locale: ptBR })}</p>
+                        <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
+                      </div>
+                      <Badge variant="outline" className="ml-2">Pendente</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sessões em Aberto */}
+            {pagamentosSessoes.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Sessões em Aberto</h4>
+                  <Badge variant="destructive">{pagamentosSessoes.length}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {pagamentosSessoes.slice(0, 3).map((pag: any) => (
+                    <div key={pag.id} className="p-3 rounded-lg border bg-white flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Sessão</p>
+                        <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
+                      </div>
+                      <Badge variant="outline" className="ml-2">Pendente</Badge>
+                    </div>
+                  ))}
+                  {pagamentosSessoes.length > 3 && (
+                    <p className="text-xs text-muted-foreground">+ {pagamentosSessoes.length - 3} sessões pendentes</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Formas de Pagamento Disponíveis */}
+            <div className="border-t pt-4 space-y-3">
+              <h4 className="font-semibold text-sm">Escolha uma forma de pagamento:</h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                {formasPagamento.map((forma: any) => {
+                  const pixConfig = configPixMap[forma.id];
+                  return (
+                    <button
+                      key={forma.id}
+                      className="p-4 rounded-lg border border-orange-200 bg-white hover:bg-orange-50 hover:border-orange-400 transition-colors text-left"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h5 className="font-semibold text-sm">{forma.nome}</h5>
+                        {forma.tipo === "pix" && <QrCode className="h-4 w-4 text-orange-600" />}
+                      </div>
+                      {forma.descricao && <p className="text-xs text-muted-foreground mb-2">{forma.descricao}</p>}
+                      
+                      {/* PIX Details */}
+                      {forma.tipo === "pix" && pixConfig && (
+                        <div className="bg-blue-50 rounded p-2 text-xs space-y-1">
+                          <p className="text-blue-900"><strong>Chave PIX:</strong> {pixConfig.chave_pix}</p>
+                          <p className="text-blue-900"><strong>Beneficiário:</strong> {pixConfig.nome_beneficiario}</p>
+                        </div>
+                      )}
+                      
+                      <Button size="sm" className="w-full mt-3 bg-orange-600 hover:bg-orange-700">
+                        Pagar com {forma.nome}
+                      </Button>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Produtos Disponíveis */}
+      {produtosDisponiveis.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Produtos em Estoque
+            </CardTitle>
+            <CardDescription>Confira nossos produtos disponíveis para compra ou reserva</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {produtosDisponiveis.map((produto: any) => (
+                <div key={produto.id} className="p-4 rounded-lg border border-blue-200 bg-white hover:border-blue-400 transition-colors">
+                  <div className="mb-3">
+                    <h4 className="font-semibold text-sm mb-1 line-clamp-2">{produto.nome}</h4>
+                    {produto.descricao && <p className="text-xs text-muted-foreground line-clamp-2">{produto.descricao}</p>}
+                  </div>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-lg font-bold text-blue-600">
+                      R$ {Number(produto.preco).toFixed(2)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {produto.estoque} em estoque
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      setSelectedProduto(produto);
+                      setIsReservaDialogOpen(true);
+                    }}
+                  >
+                    Reservar Agora
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reserva Produto Dialog */}
+      {isReservaDialogOpen && selectedProduto && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Reservar {selectedProduto.nome}</CardTitle>
+              <CardDescription>Preencha os dados para reservar este produto</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Preço</p>
+                <p className="text-2xl font-bold text-blue-600">R$ {Number(selectedProduto.preco).toFixed(2)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Observação (opcional)</label>
+                <textarea
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                  placeholder="Adicione uma observação sobre sua reserva..."
+                  rows={3}
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsReservaDialogOpen(false);
+                    setSelectedProduto(null);
+                    setObservacao("");
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  disabled={reservarProduto.isPending}
+                  onClick={() => reservarProduto.mutate()}
+                >
+                  {reservarProduto.isPending ? "Reservando..." : "Confirmar Reserva"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                A clínica entrará em contato para finalizar a compra.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <RescheduleDialog
         open={isRescheduleOpen}
