@@ -22,9 +22,9 @@ const FormasPagamento = () => {
     queryKey: ["formas-pagamento"],
     queryFn: async () => {
       const { data } = await (supabase
-        .from("formas_pagamento")
+        .from("formas_pagamento" as any) as any)
         .select("*")
-        .order("ordem") as any);
+        .order("ordem");
       return data ?? [];
     },
   });
@@ -33,8 +33,8 @@ const FormasPagamento = () => {
     queryKey: ["config-pix"],
     queryFn: async () => {
       const { data } = await (supabase
-        .from("config_pix")
-        .select("*") as any);
+        .from("config_pix" as any) as any)
+        .select("*");
       return data ?? [];
     },
   });
@@ -45,14 +45,14 @@ const FormasPagamento = () => {
 
       if (editingId) {
         const { error } = await (supabase
-          .from("formas_pagamento")
+          .from("formas_pagamento" as any) as any)
           .update(form)
-          .eq("id", editingId) as any);
+          .eq("id", editingId);
         if (error) throw error;
       } else {
         const { error } = await (supabase
-          .from("formas_pagamento")
-          .insert([form]) as any);
+          .from("formas_pagamento" as any) as any)
+          .insert([form]);
         if (error) throw error;
       }
     },
@@ -75,19 +75,19 @@ const FormasPagamento = () => {
       }
 
       // Delete existing if updating
-      if (configPix.find(p => p.forma_pagamento_id === selectedFormaId)) {
+      if (configPix.find((p: any) => p.forma_pagamento_id === selectedFormaId)) {
         await (supabase
-          .from("config_pix")
+          .from("config_pix" as any) as any)
           .delete()
-          .eq("forma_pagamento_id", selectedFormaId) as any);
+          .eq("forma_pagamento_id", selectedFormaId);
       }
 
       const { error } = await (supabase
-        .from("config_pix")
+        .from("config_pix" as any) as any)
         .insert([{
           forma_pagamento_id: selectedFormaId,
           ...pixForm
-        }]) as any);
+        }]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -104,9 +104,9 @@ const FormasPagamento = () => {
   const deleteForma = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase
-        .from("formas_pagamento")
+        .from("formas_pagamento" as any) as any)
         .delete()
-        .eq("id", id) as any);
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

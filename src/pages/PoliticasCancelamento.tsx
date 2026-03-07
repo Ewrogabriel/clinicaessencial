@@ -25,10 +25,10 @@ const PoliticasCancelamento = () => {
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await (supabase
-        .from("politicas_cancelamento")
+        .from("politicas_cancelamento" as any) as any)
         .select("*")
         .eq("clinica_id", user.id)
-        .single() as any);
+        .single();
       
       if (error && error.code !== "PGRST116") throw error;
       return data;
@@ -53,9 +53,9 @@ const PoliticasCancelamento = () => {
       if (!user || !politica) throw new Error("Dados incompletos");
 
       const { error } = await (supabase
-        .from("politicas_cancelamento")
+        .from("politicas_cancelamento" as any) as any)
         .update(formData)
-        .eq("id", politica.id) as any);
+        .eq("id", politica.id);
       
       if (error) throw error;
     },
@@ -86,9 +86,9 @@ const PoliticasCancelamento = () => {
       if (!user || !politica) throw new Error("Dados incompletos");
       
       const { error } = await (supabase
-        .from("politicas_cancelamento")
+        .from("politicas_cancelamento" as any) as any)
         .update(defaults)
-        .eq("id", politica.id) as any);
+        .eq("id", politica.id);
       
       if (error) throw error;
       setFormData(defaults);
