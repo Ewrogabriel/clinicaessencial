@@ -321,10 +321,10 @@ const PacienteForm = () => {
           created_by: user.id,
           profissional_id: user.id,
           codigo_acesso: accessCode,
-        };
+        } as any;
 
         const { data, error } = await (supabase.from("pacientes") as any)
-          .insert(insertData)
+          .insert([insertData])
           .select("id")
           .single();
         

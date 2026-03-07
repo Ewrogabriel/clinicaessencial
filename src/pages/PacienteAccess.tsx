@@ -62,7 +62,6 @@ export default function PacienteAccess() {
       const { error: sessionError } = await (supabase.from("paciente_sessions") as any).insert({
         paciente_id: paciente.id,
         session_token: sessionToken,
-        remember_me: rememberMe,
         expires_at: expiresAt.toISOString(),
       });
 
