@@ -106,13 +106,13 @@ const Comissoes = () => {
         throw new Error("Preencha os campos obrigatórios");
       }
 
-      const { error } = await (supabase.from("regras_comissao").insert([{
+      const { error } = await (supabase.from("regras_comissao" as any) as any).insert([{
         tipo: selectedType,
         entidade_id: selectedEntity,
         percentual: ruleForm.percentual ? parseFloat(ruleForm.percentual) : null,
         valor_fixo: ruleForm.valorFixo ? parseFloat(ruleForm.valorFixo) : null,
         observacoes: ruleForm.observacoes || null
-      }]) as any);
+      }]);
 
       if (error) throw error;
     },

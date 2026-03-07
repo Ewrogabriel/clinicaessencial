@@ -312,7 +312,7 @@ const PatientDashboard = () => {
       
       // Create reservation
       const { data: reserva, error: reservaError } = await (supabase
-        .from("reservas_produtos")
+        .from("reservas_produtos" as any) as any)
         .insert([{
           paciente_id: patientId,
           produto_id: selectedProduto.id,
@@ -321,20 +321,20 @@ const PatientDashboard = () => {
           status: "pendente"
         }])
         .select()
-        .single() as any);
+        .single();
       
       if (reservaError) throw reservaError;
 
       // Create alert for admin
       const { error: avisoError } = await (supabase
-        .from("avisos")
+        .from("avisos" as any) as any)
         .insert([{
           tipo: "reserva_produto",
           titulo: `Nova reserva de ${selectedProduto.nome}`,
           mensagem: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}${observacao ? ` - Observação: ${observacao}` : ""}`,
           reserva_id: reserva?.id,
           lido: false
-        }]) as any);
+        }]);
       
       if (avisoError) console.error("Erro ao criar aviso:", avisoError);
       
