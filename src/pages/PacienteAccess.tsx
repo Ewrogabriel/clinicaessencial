@@ -24,31 +24,20 @@ export default function PacienteAccess() {
 
     setLoading(true);
     try {
-      // First check localStorage for the access code mapping
-      const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
-      console.log("[v0] Códigos no localStorage:", codes);
-      console.log("[v0] Código inserido:", codigoAcesso.trim().toUpperCase());
+      // Search database for patient with matching access code
+      const cleanCode = codigoAcesso.trim().toUpperCase();
+      console.log("[v0] Procurando código:", cleanCode);
+      
+      const { data: pacientes, error: searchError } = await (supabase.from("pacientes") as any)
+        .select("id")
+        .ilike("codigo_acesso", cleanCode);
+      
+      console.log("[v0] Resultado da busca:", { pacientes, searchError });
+      
       let pacienteId = null;
-      
-      // Find patient ID by matching the code
-      for (const [id, code] of Object.entries(codes)) {
-        console.log("[v0] Comparando:", code, "===", codigoAcesso.trim().toUpperCase());
-        if (code === codigoAcesso.trim().toUpperCase()) {
-          console.log("[v0] MATCH encontrado! ID:", id);
-          pacienteId = id;
-          break;
-        }
-      }
-      
-      // If not found in localStorage, try database (for older codes)
-      if (!pacienteId) {
-        const { data: pacientes } = await (supabase.from("pacientes") as any)
-          .select("id")
-          .or(`codigo_acesso.eq.${codigoAcesso.trim()},codigo_acesso.ilike.${codigoAcesso.trim()}`);
-        
-        if (pacientes && pacientes.length > 0) {
-          pacienteId = pacientes[0].id;
-        }
+      if (pacientes && pacientes.length > 0) {
+        pacienteId = pacientes[0].id;
+        console.log("[v0] Paciente encontrado:", pacienteId);
       }
       
       if (!pacienteId) {

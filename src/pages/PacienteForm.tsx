@@ -218,13 +218,20 @@ const PacienteForm = () => {
   const generateInviteLink = async () => {
     if (!id) return;
     
-    // First try to get from state or localStorage
+    // Get code from state or database
     let accessCode = codigoAcesso;
     
     if (!accessCode) {
-      // Try to get from localStorage
-      const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
-      accessCode = codes[id];
+      // Fetch from database if not in state
+      const { data } = await (supabase.from("pacientes") as any)
+        .select("codigo_acesso")
+        .eq("id", id)
+        .single();
+      
+      if (data?.codigo_acesso) {
+        accessCode = data.codigo_acesso;
+        setCodigoAcesso(data.codigo_acesso);
+      }
     }
     
     if (!accessCode) {
@@ -288,14 +295,30 @@ const PacienteForm = () => {
     if (isEditing) {
       ({ error } = await (supabase.from("pacientes") as any).update(payload).eq("id", id));
     } else {
+      // Generate a simple 8-character alphanumeric code for easy use BEFORE insert
+      const generateSimpleCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 8; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      };
+      
+      const accessCode = generateSimpleCode();
+      
       const insertData = {
         ...payload,
         created_by: user.id,
         profissional_id: user.id,
+        codigo_acesso: accessCode, // Store in database
       };
       const { data, error: insertError } = await (supabase.from("pacientes") as any).insert(insertData).select("id").single();
       error = insertError;
-      if (data) savedPatientId = data.id;
+      if (data) {
+        savedPatientId = data.id;
+        setCodigoAcesso(accessCode);
+      }
     }
 
     if (error) {
@@ -304,23 +327,6 @@ const PacienteForm = () => {
     } else {
       // Show success message
       if (!isEditing && savedPatientId) {
-        // Generate a simple 8-character alphanumeric code for easy use
-        const generateSimpleCode = () => {
-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-          let code = '';
-          for (let i = 0; i < 8; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          return code;
-        };
-        
-        const accessCode = generateSimpleCode();
-        setCodigoAcesso(accessCode);
-        
-        // Store the code in localStorage as a temporary mapping
-        const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
-        codes[savedPatientId] = accessCode;
-        localStorage.setItem('paciente_codes', JSON.stringify(codes));
         
         const accessLink = `${window.location.origin}/paciente-access`;
         const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
