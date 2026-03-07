@@ -43,11 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(profile);
 
     // Look up patient record linked to this user
-    const { data: paciente } = await (supabase
+    const { data: paciente } = await supabase
       .from("pacientes")
       .select("id")
       .eq("user_id", userId)
-      .maybeSingle() as any);
+      .maybeSingle();
     setPatientId(paciente?.id || null);
   };
 
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isGestor = roles.includes("gestor");
   const isPatient = roles.includes("paciente");
   const isProfissional = roles.includes("profissional");
-  const clinicId = (profile as any)?.clinic_id || null;
+  const clinicId = profile?.clinic_id || null;
 
   return (
     <AuthContext.Provider

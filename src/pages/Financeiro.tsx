@@ -59,7 +59,8 @@ const Financeiro = () => {
   const { data: pagamentos = [], isLoading } = useQuery({
     queryKey: ["pagamentos"],
     queryFn: async () => {
-      let query = (supabase.from("pagamentos") as any)
+      const query = supabase
+        .from("pagamentos")
         .select("*, pacientes(nome)");
 
       const { data, error } = await query.order("data_pagamento", { ascending: false });
@@ -71,7 +72,7 @@ const Financeiro = () => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-ativos"],
     queryFn: async () => {
-      const { data } = await (supabase.from("pacientes") as any).select("id, nome").eq("status", "ativo").order("nome");
+      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
       return data ?? [];
     },
   });
@@ -79,7 +80,7 @@ const Financeiro = () => {
   const { data: despesas = [] } = useQuery({
     queryKey: ["despesas"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("expenses") as any).select("*");
+      const { data, error } = await supabase.from("expenses").select("*");
       if (error) throw error;
       return data;
     },
@@ -89,7 +90,7 @@ const Financeiro = () => {
   const { data: comissoes = [] } = useQuery({
     queryKey: ["comissoes"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("commissions") as any)
+      const { data, error } = await supabase.from("commissions")
         .select("*");
       if (error) throw error;
       return data;
@@ -100,15 +101,15 @@ const Financeiro = () => {
   const createPagamento = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      const { error } = await (supabase.from("pagamentos") as any).insert({
+      const { error } = await supabase.from("pagamentos").insert({
         paciente_id: formData.paciente_id,
         profissional_id: user.id,
         plano_id: formData.plano_id || null,
         valor: parseFloat(formData.valor) || 0,
         data_pagamento: formData.data_pagamento,
         data_vencimento: formData.data_vencimento || null,
-        forma_pagamento: formData.forma_pagamento as any,
-        status: formData.status as any,
+        forma_pagamento: formData.forma_pagamento,
+        status: formData.status,
         descricao: formData.descricao || null,
         observacoes: formData.observacoes || null,
         created_by: user.id,
@@ -121,7 +122,7 @@ const Financeiro = () => {
       setFormData({ paciente_id: "", plano_id: "", valor: "", data_pagamento: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", forma_pagamento: "", status: "pendente", descricao: "", observacoes: "" });
       toast({ title: "Pagamento registrado!" });
     },
-    onError: (e: Error | any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const totalRecebido = (pagamentos || []).filter((p: any) => p.status === "pago").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
