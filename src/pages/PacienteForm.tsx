@@ -321,16 +321,14 @@ const PacienteForm = () => {
         setCodigoAcesso(accessCode);
         
         // Update with codigo_acesso after insertion
-        // Use a timeout to ensure the row is committed before updating
-        setTimeout(async () => {
-          const { error: updateError } = await (supabase.from("pacientes") as any)
-            .update({ codigo_acesso: accessCode })
-            .eq("id", data.id);
-          
-          if (updateError) {
-            console.warn("[v0] Failed to update codigo_acesso:", updateError);
-          }
-        }, 100);
+        const { error: updateError } = await (supabase.from("pacientes") as any)
+          .update({ codigo_acesso: accessCode })
+          .eq("id", data.id);
+        
+        if (updateError) {
+          console.warn("[v0] Failed to update codigo_acesso:", updateError);
+          error = updateError;
+        }
       }
     }
 
