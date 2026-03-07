@@ -32,12 +32,12 @@ const MeuPerfil = () => {
     enabled: !!patientId,
   });
 
-  const { data: pendingChanges = [] } = useQuery({
+  const { data: pendingChanges = [], refetch: refetchPending } = useQuery({
     queryKey: ["patient-pending-changes", patientId],
     queryFn: async () => {
       if (!patientId) return [];
-      const { data, error } = await (supabase
-        .from("solicitacoes_alteracao_dados" as any) as any)
+      const { data, error } = await supabase
+        .from("solicitacoes_alteracao_dados")
         .select("*")
         .eq("paciente_id", patientId)
         .eq("status", "pendente")
@@ -56,8 +56,8 @@ const MeuPerfil = () => {
       if (!patientId || !editData) throw new Error("Dados inválidos");
 
       // Create change request for admin approval
-      const { error } = await (supabase
-        .from("solicitacoes_alteracao_dados" as any) as any)
+      const { error } = await supabase
+        .from("solicitacoes_alteracao_dados")
         .insert([{
           paciente_id: patientId,
           dados_atuais: paciente,
@@ -73,6 +73,7 @@ const MeuPerfil = () => {
       setEditMode(false);
       setEditData(null);
       refetch();
+      refetchPending();
     },
     onError: (error: any) => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });

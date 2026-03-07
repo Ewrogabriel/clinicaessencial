@@ -1320,6 +1320,53 @@ export type Database = {
           },
         ]
       }
+      solicitacoes_alteracao_dados: {
+        Row: {
+          id: string
+          paciente_id: string
+          dados_atuais: Json
+          dados_novos: Json
+          status: string
+          motivo: string | null
+          aprovador_id: string | null
+          motivo_rejeicao: string | null
+          created_at: string
+          approved_at: string | null
+        }
+        Insert: {
+          id?: string
+          paciente_id: string
+          dados_atuais: Json
+          dados_novos: Json
+          status?: string
+          motivo?: string | null
+          aprovador_id?: string | null
+          motivo_rejeicao?: string | null
+          created_at?: string
+          approved_at?: string | null
+        }
+        Update: {
+          id?: string
+          paciente_id?: string
+          dados_atuais?: Json
+          dados_novos?: Json
+          status?: string
+          motivo?: string | null
+          aprovador_id?: string | null
+          motivo_rejeicao?: string | null
+          created_at?: string
+          approved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_alteracao_dados_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
