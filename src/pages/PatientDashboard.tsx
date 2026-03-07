@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Activity, AlertCircle, Phone, TrendingUp, Clock, PartyPopper, Building2, MessageCircle, QrCode } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, DollarSign, Activity, AlertCircle, TrendingUp, Clock, PartyPopper, Building2, MessageCircle, CalendarDays, History, CreditCard, ShoppingBag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,8 +13,10 @@ import { Progress } from "@/components/ui/progress";
 import { useClinicSettings } from "@/hooks/useClinicSettings";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { Lightbulb, CheckCircle2, XCircle, RefreshCw, MessageSquare, Hourglass } from "lucide-react";
+import { Lightbulb, RefreshCw } from "lucide-react";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
+import { LazySection } from "@/hooks/useLazySection";
+import { PatientSessionsSection, PatientHistorySection, PatientPaymentSection, PatientProductsSection } from "@/components/patient-dashboard";
 
 const PatientDashboard = () => {
   const { profile, patientId, loading } = useAuth();
@@ -21,9 +24,7 @@ const PatientDashboard = () => {
   const queryClient = useQueryClient();
   const [rescheduleData, setRescheduleData] = useState<any>(null);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [selectedProduto, setSelectedProduto] = useState<any>(null);
-  const [observacao, setObservacao] = useState("");
-  const [isReservaDialogOpen, setIsReservaDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("agenda");
 
   if (loading) {
     return (
@@ -306,52 +307,6 @@ const PatientDashboard = () => {
     },
   });
 
-  const reservarProduto = useMutation({
-    mutationFn: async () => {
-      if (!patientId || !selectedProduto) throw new Error("Dados inválidos");
-      
-      // Create reservation
-      const { data: reserva, error: reservaError } = await (supabase
-        .from("reservas_produtos" as any) as any)
-        .insert([{
-          paciente_id: patientId,
-          produto_id: selectedProduto.id,
-          quantidade: 1,
-          observacao: observacao || null,
-          status: "pendente"
-        }])
-        .select()
-        .single();
-      
-      if (reservaError) throw reservaError;
-
-      // Create alert for admin
-      const { error: avisoError } = await (supabase
-        .from("avisos" as any) as any)
-        .insert([{
-          tipo: "reserva_produto",
-          titulo: `Nova reserva de ${selectedProduto.nome}`,
-          mensagem: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}${observacao ? ` - Observação: ${observacao}` : ""}`,
-          reserva_id: reserva?.id,
-          lido: false
-        }]);
-      
-      if (avisoError) console.error("Erro ao criar aviso:", avisoError);
-      
-      return reserva;
-    },
-    onSuccess: () => {
-      toast({ title: "Reserva realizada!", description: "Você receberá um contato para finalizar a compra." });
-      setIsReservaDialogOpen(false);
-      setSelectedProduto(null);
-      setObservacao("");
-      queryClient.invalidateQueries({ queryKey: ["produtos-disponiveis"] });
-    },
-    onError: (error) => {
-      toast({ title: "Erro ao reservar", description: (error as any).message, variant: "destructive" });
-    }
-  });
-
   const hoje = new Date();
   const saudacao = hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
   const horaAtual = format(hoje, "HH:mm");
@@ -514,7 +469,7 @@ const PatientDashboard = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <PartyPopper className="h-5 w-5 text-primary" />
-              Feriados – Clínica Fechada
+              Feriados - Clínica Fechada
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -526,455 +481,127 @@ const PatientDashboard = () => {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">⚠️ Não haverá atendimentos nestas datas. Aulas não serão repostas.</p>
+            <p className="text-xs text-muted-foreground mt-3">Nao havera atendimentos nestas datas. Aulas nao serao repostas.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Next sessions & Notices */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Próximas Sessões</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {agenda.length === 0 ? (
-              <div className="py-6 text-center text-muted-foreground text-sm">
-                Nenhum agendamento futuro encontrado.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {agenda.map((item: any) => (
-                  <div key={item.id} className="flex flex-col p-4 rounded-xl border bg-card shadow-sm group transition-all hover:border-primary/50">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-bold text-base">
-                          {format(new Date(item.data_horario), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </p>
-                        <p className="text-sm text-primary font-medium flex items-center gap-2">
-                          <Clock className="h-3.5 w-3.5" />
-                          {format(new Date(item.data_horario), "HH:mm")}
-                        </p>
-                      </div>
-                      <Badge variant={item.status === 'confirmado' ? 'default' : 'secondary'} className="capitalize">
-                        {item.status}
-                      </Badge>
-                    </div>
+      {/* Tabs for Content Sections */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="agenda" className="gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden sm:inline">Agenda</span>
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="gap-2">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Historico</span>
+          </TabsTrigger>
+          <TabsTrigger value="pagamentos" className="gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span className="hidden sm:inline">Pagamentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="produtos" className="gap-2">
+            <ShoppingBag className="h-4 w-4" />
+            <span className="hidden sm:inline">Produtos</span>
+          </TabsTrigger>
+        </TabsList>
 
-                    <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 mb-4">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                        {item.profiles?.nome?.charAt(0)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate">{item.profiles?.nome}</p>
-                        <p className="text-[10px] text-muted-foreground truncate capitalize">{item.tipo_atendimento}</p>
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Falar com o profissional"
-                        onClick={() => openWhatsAppProfissional(item.profissional_telefone || "")}
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
+        <TabsContent value="agenda" className="mt-6">
+          <LazySection
+            fallback={<div className="flex items-center justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-primary" /></div>}
+          >
+            <PatientSessionsSection
+              agenda={agenda}
+              pastAgenda={pastAgenda}
+              solicitacoes={solicitacoes}
+              onConfirm={(id) => updateSessionStatus.mutate({ id, status: "confirmado" })}
+              onCancel={(id) => updateSessionStatus.mutate({ id, status: "cancelado" })}
+              onReschedule={(item) => {
+                setRescheduleData(item);
+                setIsRescheduleOpen(true);
+              }}
+              onWhatsApp={openWhatsAppProfissional}
+            />
+          </LazySection>
+        </TabsContent>
 
-                    <div className="flex gap-2">
-                      {item.status === "agendado" && (
-                        <Button
-                          size="sm"
-                          className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
-                          onClick={() => updateSessionStatus.mutate({ id: item.id, status: "confirmado" })}
-                        >
-                          <CheckCircle2 className="h-4 w-4" /> Confirmar
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        disabled={solicitacoes.some((s: any) => s.agendamento_id === item.id)}
-                        onClick={() => {
-                          setRescheduleData(item);
-                          setIsRescheduleOpen(true);
-                        }}
-                      >
-                        {solicitacoes.some((s: any) => s.agendamento_id === item.id) ? (
-                          <><Hourglass className="h-4 w-4" /> Pendente</>
-                        ) : (
-                          <><RefreshCw className="h-4 w-4" /> Reagendar</>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10 gap-2"
-                        onClick={() => updateSessionStatus.mutate({ id: item.id, status: "cancelado" })}
-                      >
-                        <XCircle className="h-4 w-4" /> Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <TabsContent value="historico" className="mt-6">
+          <LazySection
+            fallback={<div className="flex items-center justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-primary" /></div>}
+          >
+            <PatientHistorySection
+              pastAgenda={pastAgenda}
+              avisos={avisos}
+              frequencyStats={frequencyStats}
+            />
+          </LazySection>
+        </TabsContent>
 
-        {/* Cancelled appointments - option to reschedule */}
-        {pastAgenda.filter((item: any) => item.status === "cancelado").length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-destructive" />
-                Sessões Canceladas
-              </CardTitle>
-              <CardDescription>Você pode solicitar o reagendamento dessas sessões.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pastAgenda.filter((item: any) => item.status === "cancelado").slice(0, 5).map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {format(new Date(item.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.profiles?.nome} • {item.tipo_atendimento}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => {
-                        setRescheduleData(item);
-                        setIsRescheduleOpen(true);
-                      }}
-                    >
-                      <RefreshCw className="h-4 w-4" /> Reagendar
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <TabsContent value="pagamentos" className="mt-6">
+          <LazySection
+            fallback={<div className="flex items-center justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-primary" /></div>}
+          >
+            <PatientPaymentSection
+              pagamentosMensalidade={pagamentosMensalidade}
+              pagamentosSessoes={pagamentosSessoes}
+              formasPagamento={formasPagamento}
+              configPixMap={configPixMap}
+            />
+          </LazySection>
+        </TabsContent>
 
-        <div className="space-y-4">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg">Histórico de Sessões</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pastAgenda.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma sessão anterior encontrada.</p>
-              ) : (
-                <div className="space-y-3">
-                  {pastAgenda.map((item: any) => (
-                    <div key={item.id} className="flex flex-col p-3 rounded-lg border bg-background text-sm">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{format(new Date(item.data_horario), "dd/MM/yyyy")}</span>
-                        <Badge variant={
-                          item.status === 'realizado' ? 'default' :
-                            item.status === 'cancelado' || item.status === 'falta' ? 'destructive' : 'secondary'
-                        } className="text-[10px] scale-90 origin-right">
-                          {item.status}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-muted-foreground mt-1">
-                        {item.profiles?.nome} • {item.tipo_atendimento}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+        <TabsContent value="produtos" className="mt-6">
+          <LazySection
+            fallback={<div className="flex items-center justify-center py-12"><RefreshCw className="h-6 w-6 animate-spin text-primary" /></div>}
+          >
+            <PatientProductsSection
+              produtosDisponiveis={produtosDisponiveis}
+              patientId={patientId}
+              profileName={profile?.nome}
+            />
+          </LazySection>
+        </TabsContent>
+      </Tabs>
+
+      {/* Sobre a Clinica - Always visible */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Sobre a Clinica
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {clinicSettings ? (
+            <div className="flex items-start gap-4">
+              {clinicSettings.logo_url && (
+                <img src={clinicSettings.logo_url} alt="Logo" className="h-16 w-16 rounded-lg object-cover border shrink-0" />
               )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                Mural de Avisos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-3">
-              {avisos.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">Nenhum aviso no momento.</p>
-              ) : (
-                avisos.map((aviso: any) => (
-                  <div key={aviso.id} className="bg-background p-3 rounded-md border shadow-sm">
-                    <h4 className="font-semibold text-primary">{aviso.titulo}</h4>
-                    <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{aviso.mensagem}</p>
-                    <span className="text-[10px] text-muted-foreground mt-2 block">
-                      {format(new Date(aviso.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Frequency Stats Card */}
-        {frequencyStats && frequencyStats.total > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Estatísticas de Frequência
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold">{frequencyStats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total de sessões</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold text-primary">{frequencyStats.realizados}</p>
-                  <p className="text-xs text-muted-foreground">Realizadas</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold text-destructive">{frequencyStats.cancelados}</p>
-                  <p className="text-xs text-muted-foreground">Canceladas</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold text-destructive">{frequencyStats.faltas}</p>
-                  <p className="text-xs text-muted-foreground">Faltas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Sobre a Clínica
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {clinicSettings ? (
-              <div className="flex items-start gap-4">
-                {clinicSettings.logo_url && (
-                  <img src={clinicSettings.logo_url} alt="Logo" className="h-16 w-16 rounded-lg object-cover border shrink-0" />
+              <div className="space-y-1 text-sm">
+                <p className="font-semibold text-base">{clinicSettings.nome}</p>
+                {clinicSettings.cnpj && <p className="text-muted-foreground">CNPJ: {clinicSettings.cnpj}</p>}
+                {clinicSettings.endereco && (
+                  <p className="text-muted-foreground">
+                    {[clinicSettings.endereco, clinicSettings.numero ? `no ${clinicSettings.numero}` : "", clinicSettings.bairro, clinicSettings.cidade, clinicSettings.estado].filter(Boolean).join(", ")}
+                  </p>
                 )}
-                <div className="space-y-1 text-sm">
-                  <p className="font-semibold text-base">{clinicSettings.nome}</p>
-                  {clinicSettings.cnpj && <p className="text-muted-foreground">CNPJ: {clinicSettings.cnpj}</p>}
-                  {clinicSettings.endereco && (
-                    <p className="text-muted-foreground">
-                      {[clinicSettings.endereco, clinicSettings.numero ? `nº ${clinicSettings.numero}` : "", clinicSettings.bairro, clinicSettings.cidade, clinicSettings.estado].filter(Boolean).join(", ")}
-                    </p>
-                  )}
-                  {clinicSettings.telefone && <p className="text-muted-foreground">Tel: {clinicSettings.telefone}</p>}
-                  {clinicSettings.instagram && <p className="text-muted-foreground">Instagram: {clinicSettings.instagram}</p>}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground animate-pulse">Carregando informações da clínica...</p>
-            )}
-            <div className="flex gap-2 mt-4">
-              {clinicSettings?.whatsapp && (
-                <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
-                  <MessageCircle className="h-4 w-4" /> WhatsApp Clínica
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Formas de Pagamento - Mensalidade e Sessões Abertas */}
-      {(pagamentosMensalidade.length > 0 || pagamentosSessoes.length > 0) && formasPagamento.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-orange-600" />
-              Formas de Pagamento
-            </CardTitle>
-            <CardDescription>Escolha como deseja realizar o pagamento de sua mensalidade ou sessões abertas</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Mensalidades em Aberto */}
-            {pagamentosMensalidade.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Mensalidades em Aberto</h4>
-                  <Badge variant="destructive">{pagamentosMensalidade.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {pagamentosMensalidade.map((pag: any) => (
-                    <div key={pag.id} className="p-3 rounded-lg border bg-white flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{format(new Date(pag.mes_referencia), "MMMM 'de' yyyy", { locale: ptBR })}</p>
-                        <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
-                      </div>
-                      <Badge variant="outline" className="ml-2">Pendente</Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Sessões em Aberto */}
-            {pagamentosSessoes.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Sessões em Aberto</h4>
-                  <Badge variant="destructive">{pagamentosSessoes.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {pagamentosSessoes.slice(0, 3).map((pag: any) => (
-                    <div key={pag.id} className="p-3 rounded-lg border bg-white flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Sessão</p>
-                        <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
-                      </div>
-                      <Badge variant="outline" className="ml-2">Pendente</Badge>
-                    </div>
-                  ))}
-                  {pagamentosSessoes.length > 3 && (
-                    <p className="text-xs text-muted-foreground">+ {pagamentosSessoes.length - 3} sessões pendentes</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Formas de Pagamento Disponíveis */}
-            <div className="border-t pt-4 space-y-3">
-              <h4 className="font-semibold text-sm">Escolha uma forma de pagamento:</h4>
-              <div className="grid gap-3 md:grid-cols-2">
-                {formasPagamento.map((forma: any) => {
-                  const pixConfig = configPixMap[forma.id];
-                  return (
-                    <button
-                      key={forma.id}
-                      className="p-4 rounded-lg border border-orange-200 bg-white hover:bg-orange-50 hover:border-orange-400 transition-colors text-left"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-semibold text-sm">{forma.nome}</h5>
-                        {forma.tipo === "pix" && <QrCode className="h-4 w-4 text-orange-600" />}
-                      </div>
-                      {forma.descricao && <p className="text-xs text-muted-foreground mb-2">{forma.descricao}</p>}
-                      
-                      {/* PIX Details */}
-                      {forma.tipo === "pix" && pixConfig && (
-                        <div className="bg-blue-50 rounded p-2 text-xs space-y-1">
-                          <p className="text-blue-900"><strong>Chave PIX:</strong> {pixConfig.chave_pix}</p>
-                          <p className="text-blue-900"><strong>Beneficiário:</strong> {pixConfig.nome_beneficiario}</p>
-                        </div>
-                      )}
-                      
-                      <Button size="sm" className="w-full mt-3 bg-orange-600 hover:bg-orange-700">
-                        Pagar com {forma.nome}
-                      </Button>
-                    </button>
-                  );
-                })}
+                {clinicSettings.telefone && <p className="text-muted-foreground">Tel: {clinicSettings.telefone}</p>}
+                {clinicSettings.instagram && <p className="text-muted-foreground">Instagram: {clinicSettings.instagram}</p>}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Produtos Disponíveis */}
-      {produtosDisponiveis.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              Produtos em Estoque
-            </CardTitle>
-            <CardDescription>Confira nossos produtos disponíveis para compra ou reserva</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {produtosDisponiveis.map((produto: any) => (
-                <div key={produto.id} className="p-4 rounded-lg border border-blue-200 bg-white hover:border-blue-400 transition-colors">
-                  <div className="mb-3">
-                    <h4 className="font-semibold text-sm mb-1 line-clamp-2">{produto.nome}</h4>
-                    {produto.descricao && <p className="text-xs text-muted-foreground line-clamp-2">{produto.descricao}</p>}
-                  </div>
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <span className="text-lg font-bold text-blue-600">
-                      R$ {Number(produto.preco).toFixed(2)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {produto.estoque} em estoque
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      setSelectedProduto(produto);
-                      setIsReservaDialogOpen(true);
-                    }}
-                  >
-                    Reservar Agora
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reserva Produto Dialog */}
-      {isReservaDialogOpen && selectedProduto && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Reservar {selectedProduto.nome}</CardTitle>
-              <CardDescription>Preencha os dados para reservar este produto</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Preço</p>
-                <p className="text-2xl font-bold text-blue-600">R$ {Number(selectedProduto.preco).toFixed(2)}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Observação (opcional)</label>
-                <textarea
-                  className="w-full px-3 py-2 border rounded-md text-sm"
-                  placeholder="Adicione uma observação sobre sua reserva..."
-                  rows={3}
-                  value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsReservaDialogOpen(false);
-                    setSelectedProduto(null);
-                    setObservacao("");
-                  }}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={reservarProduto.isPending}
-                  onClick={() => reservarProduto.mutate()}
-                >
-                  {reservarProduto.isPending ? "Reservando..." : "Confirmar Reserva"}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                A clínica entrará em contato para finalizar a compra.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground animate-pulse">Carregando informacoes da clinica...</p>
+          )}
+          <div className="flex gap-2 mt-4">
+            {clinicSettings?.whatsapp && (
+              <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
+                <MessageCircle className="h-4 w-4" /> WhatsApp Clinica
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <RescheduleDialog
         open={isRescheduleOpen}
