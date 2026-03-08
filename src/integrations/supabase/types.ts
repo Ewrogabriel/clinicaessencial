@@ -1359,6 +1359,33 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          resource: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          resource: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          resource?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1429,7 +1456,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "profissional" | "gestor" | "paciente"
+      app_role: "admin" | "profissional" | "gestor" | "paciente" | "secretario"
       forma_pagamento:
         | "dinheiro"
         | "pix"
@@ -1580,7 +1607,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "profissional", "gestor", "paciente"],
+      app_role: ["admin", "profissional", "gestor", "paciente", "secretario"],
       forma_pagamento: [
         "dinheiro",
         "pix",
