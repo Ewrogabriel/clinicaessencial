@@ -83,6 +83,7 @@ const ACCESS_LABELS = { view: "Visualizar", edit: "Editar" };
 
 const Profissionais = () => {
   const { user, isAdmin, isGestor } = useAuth();
+  const { activeClinicId } = useClinic();
   const canManage = isAdmin || isGestor;
   const queryClient = useQueryClient();
 
