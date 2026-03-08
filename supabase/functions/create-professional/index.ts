@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -16,7 +16,7 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify the caller is an admin
+    // Verify the caller is an admin/gestor
     const authHeader = req.headers.get("Authorization")!;
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -28,7 +28,6 @@ serve(async (req) => {
       });
     }
 
-    // Check if caller is admin
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
@@ -43,7 +42,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { email, password, nome, telefone, especialidade, commission_rate, commission_fixed, cor_agenda, registro_profissional, tipo_contratacao, cnpj, cpf, rg, data_nascimento, estado_civil, endereco, numero, bairro, cidade, estado, cep } = body;
+    const { email, password, nome, telefone, especialidade, commission_rate, commission_fixed, cor_agenda, registro_profissional, tipo_contratacao, cnpj, cpf, rg, data_nascimento, estado_civil, endereco, numero, bairro, cidade, estado, cep, role, permissions } = body;
 
     if (!email || !password || !nome) {
       return new Response(JSON.stringify({ error: "Email, senha e nome são obrigatórios" }), {
@@ -51,7 +50,9 @@ serve(async (req) => {
       });
     }
 
-    // Create user with admin API (won't affect caller's session)
+    const targetRole = role || "profissional";
+
+    // Create user with admin API
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -67,7 +68,7 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // Update profile (created by trigger)
+    // Update profile
     await adminClient.from("profiles").update({
       nome,
       email,
@@ -91,11 +92,21 @@ serve(async (req) => {
       cep: cep || null,
     }).eq("user_id", newUserId);
 
-    // Set role as profissional
+    // Set role
     await adminClient.from("user_roles").insert({
       user_id: newUserId,
-      role: "profissional",
+      role: targetRole,
     });
+
+    // Set permissions if provided
+    if (permissions && Array.isArray(permissions) && permissions.length > 0) {
+      const permRows = permissions.map((resource: string) => ({
+        user_id: newUserId,
+        resource,
+        enabled: true,
+      }));
+      await adminClient.from("user_permissions").insert(permRows);
+    }
 
     return new Response(JSON.stringify({ success: true, user_id: newUserId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
