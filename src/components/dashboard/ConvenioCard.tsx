@@ -107,9 +107,22 @@ export function ConvenioCard() {
             </div>
           </div>
           {convenios.length > 1 && (
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              {convenios.length} parceiros disponíveis · Clique para ver detalhes
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-muted-foreground">
+                {convenios.length} parceiros disponíveis
+              </p>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs h-auto p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/convenios");
+                }}
+              >
+                Ver todos →
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
