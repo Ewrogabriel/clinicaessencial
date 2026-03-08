@@ -1,0 +1,364 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Pencil, Trash2, Globe, Instagram, Phone, Mail, MapPin, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ImageUpload } from "@/components/ui/image-upload";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
+
+interface Convenio {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  telefone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  site: string | null;
+  instagram: string | null;
+  endereco: string | null;
+  imagem_card_url: string | null;
+  imagem_descricao_url: string | null;
+  ativo: boolean;
+  created_at: string;
+}
+
+const initialForm = {
+  nome: "",
+  descricao: "",
+  telefone: "",
+  whatsapp: "",
+  email: "",
+  site: "",
+  instagram: "",
+  endereco: "",
+  imagem_card_url: "",
+  imagem_descricao_url: "",
+  ativo: true,
+};
+
+const Convenios = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(initialForm);
+
+  const { data: convenios = [], isLoading } = useQuery<Convenio[]>({
+    queryKey: ["convenios"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("convenios")
+        .select("*")
+        .order("nome");
+      if (error) throw error;
+      return (data || []) as Convenio[];
+    },
+  });
+
+  const uploadImage = async (file: File, path: string) => {
+    const ext = file.name.split(".").pop();
+    const filePath = `${path}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("convenios").upload(filePath, file);
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from("convenios").getPublicUrl(filePath);
+    return urlData.publicUrl;
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!form.nome.trim()) throw new Error("Nome é obrigatório");
+
+      const payload = {
+        nome: form.nome.trim(),
+        descricao: form.descricao || null,
+        telefone: form.telefone || null,
+        whatsapp: form.whatsapp || null,
+        email: form.email || null,
+        site: form.site || null,
+        instagram: form.instagram || null,
+        endereco: form.endereco || null,
+        imagem_card_url: form.imagem_card_url || null,
+        imagem_descricao_url: form.imagem_descricao_url || null,
+        ativo: form.ativo,
+      };
+
+      if (editId) {
+        const { error } = await supabase.from("convenios").update(payload).eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("convenios").insert({ ...payload, created_by: user!.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["convenios"] });
+      setFormOpen(false);
+      resetForm();
+      toast({ title: editId ? "Convênio atualizado!" : "Convênio cadastrado!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("convenios").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["convenios"] });
+      toast({ title: "Convênio removido" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const resetForm = () => {
+    setForm(initialForm);
+    setEditId(null);
+  };
+
+  const openEdit = (c: Convenio) => {
+    setEditId(c.id);
+    setForm({
+      nome: c.nome,
+      descricao: c.descricao || "",
+      telefone: c.telefone || "",
+      whatsapp: c.whatsapp || "",
+      email: c.email || "",
+      site: c.site || "",
+      instagram: c.instagram || "",
+      endereco: c.endereco || "",
+      imagem_card_url: c.imagem_card_url || "",
+      imagem_descricao_url: c.imagem_descricao_url || "",
+      ativo: c.ativo,
+    });
+    setFormOpen(true);
+  };
+
+  const handleCardImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadImage(file, "cards");
+      setForm((f) => ({ ...f, imagem_card_url: url }));
+      toast({ title: "Imagem do card enviada!" });
+    } catch {
+      toast({ title: "Erro ao enviar imagem", variant: "destructive" });
+    }
+  };
+
+  const handleDescImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadImage(file, "descricoes");
+      setForm((f) => ({ ...f, imagem_descricao_url: url }));
+      toast({ title: "Imagem de descrição enviada!" });
+    } catch {
+      toast({ title: "Erro ao enviar imagem", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Convênios & Parceiros</h1>
+          <p className="text-muted-foreground">Gerencie empresas parceiras e convênios</p>
+        </div>
+        <Button onClick={() => { resetForm(); setFormOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" /> Novo Convênio
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
+          ) : convenios.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground">
+              <Globe className="h-12 w-12 mb-4 opacity-40" />
+              <p className="text-lg font-medium">Nenhum convênio cadastrado</p>
+              <Button className="mt-4" onClick={() => { resetForm(); setFormOpen(true); }}>
+                <Plus className="h-4 w-4 mr-2" /> Cadastrar primeiro
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Imagem</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Contato</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {convenios.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      {c.imagem_card_url ? (
+                        <img src={c.imagem_card_url} alt={c.nome} className="h-10 w-10 rounded-md object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                          <Globe className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium">{c.nome}</p>
+                      {c.descricao && <p className="text-xs text-muted-foreground line-clamp-1">{c.descricao}</p>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {c.whatsapp && <Phone className="h-3 w-3" />}
+                        {c.email && <Mail className="h-3 w-3" />}
+                        {c.instagram && <Instagram className="h-3 w-3" />}
+                        {c.site && <Globe className="h-3 w-3" />}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={c.ativo ? "default" : "outline"}>
+                        {c.ativo ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(c)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remover convênio?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Essa ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteMutation.mutate(c.id)}>
+                                Remover
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Form Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editId ? "Editar Convênio" : "Novo Convênio"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} placeholder="Nome da empresa parceira" />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea value={form.descricao} onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))} placeholder="Descreva o convênio/parceria..." rows={3} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Telefone</Label>
+                <Input value={form.telefone} onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))} placeholder="(00) 0000-0000" />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input value={form.whatsapp} onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))} placeholder="5500000000000" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="contato@empresa.com" />
+              </div>
+              <div>
+                <Label>Site</Label>
+                <Input value={form.site} onChange={(e) => setForm((f) => ({ ...f, site: e.target.value }))} placeholder="https://www.empresa.com" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Instagram</Label>
+                <Input value={form.instagram} onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))} placeholder="@empresa" />
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input value={form.endereco} onChange={(e) => setForm((f) => ({ ...f, endereco: e.target.value }))} placeholder="Rua, número, cidade" />
+              </div>
+            </div>
+
+            {/* Image uploads */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Imagem do Card</Label>
+                {form.imagem_card_url && (
+                  <img src={form.imagem_card_url} alt="Card" className="h-24 w-full rounded-md object-cover" />
+                )}
+                <Input type="file" accept="image/*" onChange={handleCardImageUpload} />
+              </div>
+              <div className="space-y-2">
+                <Label>Imagem da Descrição</Label>
+                {form.imagem_descricao_url && (
+                  <img src={form.imagem_descricao_url} alt="Desc" className="h-24 w-full rounded-md object-cover" />
+                )}
+                <Input type="file" accept="image/*" onChange={handleDescImageUpload} />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={form.ativo} onCheckedChange={(v) => setForm((f) => ({ ...f, ativo: v }))} />
+              <Label>Ativo</Label>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setFormOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Convenios;
