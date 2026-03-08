@@ -415,7 +415,15 @@ const Financeiro = () => {
         </TabsContent>
 
         <TabsContent value="comissoes" className="space-y-4">
-          <CommissionExtract />
+          <Suspense fallback={<LazyLoadFallback />}>
+            <Comissoes />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="notas-fiscais" className="space-y-4">
+          <Suspense fallback={<LazyLoadFallback />}>
+            <NotasFiscais />
+          </Suspense>
         </TabsContent>
       </Tabs>
 
