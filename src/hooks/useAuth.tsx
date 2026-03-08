@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
-type AppRole = "admin" | "profissional" | "paciente" | "gestor" | "secretario";
+type AppRole = "admin" | "profissional" | "paciente" | "gestor" | "secretario" | "master";
 
 interface PermissionEntry {
   resource: string;
