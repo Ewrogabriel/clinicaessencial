@@ -287,14 +287,16 @@ const Contratos = () => {
                   <p>O contrato poderá ser rescindido por qualquer das partes.</p>
                   <h4 className="font-bold">CLÁUSULA 10ª – DO FORO</h4>
                   <p>Fica eleito o foro da comarca de Barbacena/MG.</p>
-                  {plano && (
+                  {(plano || matricula) && (
                     <div className="border-t pt-4 mt-6">
                       <h3 className="font-bold text-center">PLANO CONTRATADO</h3>
                       <div className="bg-primary/5 rounded-lg p-4 mt-2 space-y-1">
-                        <p><strong>Plano:</strong> {plano.nome}</p>
-                        <p><strong>Frequência:</strong> {plano.frequencia_semanal}x por semana</p>
-                        <p><strong>Modalidade:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>
+                        {matricula && <p><strong>Modalidade:</strong> {matricula.tipo_atendimento}</p>}
+                        {plano && <p><strong>Plano:</strong> {plano.nome}</p>}
+                        {plano && <p><strong>Frequência:</strong> {plano.frequencia_semanal}x por semana</p>}
+                        {plano && <p><strong>Tipo:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>}
                         <p><strong>Valor mensal:</strong> R$ {valorFinal.toFixed(2)}{desconto && desconto.percentual_desconto > 0 && <span className="text-green-600 ml-2">(desconto de {desconto.percentual_desconto}%)</span>}</p>
+                        {matricula && <p><strong>Início da matrícula:</strong> {format(new Date(matricula.data_inicio), "dd/MM/yyyy")}</p>}
                       </div>
                     </div>
                   )}
