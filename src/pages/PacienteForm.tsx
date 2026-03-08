@@ -371,7 +371,7 @@ const PacienteForm = () => {
 
       if (isEditing) {
         // Update existing patient
-        const { error } = await (supabase.from("pacientes") as any)
+        const { error } = await supabase.from("pacientes")
           .update(payload)
           .eq("id", id);
         
