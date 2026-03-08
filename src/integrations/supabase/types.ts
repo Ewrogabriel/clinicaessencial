@@ -306,6 +306,75 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_group_members: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          cross_booking_enabled: boolean | null
+          group_id: string
+          id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          cross_booking_enabled?: boolean | null
+          group_id: string
+          id?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          cross_booking_enabled?: boolean | null
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_group_members_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_groups: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          created_by: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clinic_pacientes: {
         Row: {
           clinic_id: string
@@ -398,6 +467,66 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: []
+      }
+      clinic_subscriptions: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          data_inicio: string
+          data_vencimento: string | null
+          id: string
+          observacoes: string | null
+          plan_id: string
+          responsavel_email: string | null
+          responsavel_nome: string | null
+          responsavel_telefone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          id?: string
+          observacoes?: string | null
+          plan_id: string
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          data_inicio?: string
+          data_vencimento?: string | null
+          id?: string
+          observacoes?: string | null
+          plan_id?: string
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_subscriptions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clinic_users: {
         Row: {
@@ -1916,6 +2045,54 @@ export type Database = {
           },
         ]
       }
+      platform_plans: {
+        Row: {
+          ativo: boolean | null
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          destaque: boolean | null
+          id: string
+          max_clinicas: number | null
+          max_pacientes: number | null
+          max_profissionais: number | null
+          nome: string
+          recursos_disponiveis: Json | null
+          updated_at: string
+          valor_mensal: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean | null
+          id?: string
+          max_clinicas?: number | null
+          max_pacientes?: number | null
+          max_profissionais?: number | null
+          nome: string
+          recursos_disponiveis?: Json | null
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Update: {
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean | null
+          id?: string
+          max_clinicas?: number | null
+          max_pacientes?: number | null
+          max_profissionais?: number | null
+          nome?: string
+          recursos_disponiveis?: Json | null
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       politicas_cancelamento: {
         Row: {
           aplica_cancelamento: boolean
@@ -2512,6 +2689,56 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          forma_pagamento: string | null
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          status: string
+          subscription_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          status?: string
+          subscription_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           access_level: string
@@ -2657,6 +2884,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_plan_limit: {
+        Args: { _clinic_id: string; _resource: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
