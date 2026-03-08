@@ -203,17 +203,37 @@ const Contratos = () => {
                     <SelectContent>{(planos as any[]).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome} – R$ {Number(p.valor).toFixed(2)}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                {selectedPaciente && (matriculas as any[]).length > 0 && (
+                  <div>
+                    <Label>Matrícula (opcional)</Label>
+                    <Select value={selectedMatricula} onValueChange={setSelectedMatricula}>
+                      <SelectTrigger><SelectValue placeholder="Vincular a matrícula" /></SelectTrigger>
+                      <SelectContent>
+                        {(matriculas as any[]).map((m: any) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.tipo_atendimento} – R$ {Number(m.valor_mensal).toFixed(2)} (início {format(new Date(m.data_inicio), "dd/MM/yyyy")})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {paciente && (
                   <div className="rounded-lg border p-3 space-y-1 text-sm bg-muted/30">
                     <p><strong>Nome:</strong> {paciente.nome}</p>
                     <p><strong>CPF:</strong> {paciente.cpf || "Não informado"}</p>
                     <p><strong>RG:</strong> {paciente.rg || "Não informado"}</p>
+                    {matricula && (
+                      <>
+                        <p className="pt-2 border-t mt-2"><strong>Matrícula:</strong> {matricula.tipo_atendimento} – R$ {Number(matricula.valor_mensal).toFixed(2)}/mês</p>
+                      </>
+                    )}
                     {plano && (
                       <>
-                        <p className="pt-2 border-t mt-2"><strong>Plano:</strong> {plano.nome}</p>
+                        <p className={matricula ? "" : "pt-2 border-t mt-2"}><strong>Plano:</strong> {plano.nome}</p>
                         <p><strong>Frequência:</strong> {plano.frequencia_semanal}x/semana</p>
                         <p><strong>Modalidade:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>
-                        <p><strong>Valor:</strong> R$ {Number(plano.valor).toFixed(2)}</p>
+                        <p><strong>Valor:</strong> R$ {Number(matricula?.valor_mensal || plano.valor).toFixed(2)}</p>
                         {desconto && desconto.percentual_desconto > 0 && (
                           <>
                             <p className="text-green-600 font-medium"><strong>Desconto:</strong> {desconto.percentual_desconto}% ({desconto.motivo || "—"})</p>
