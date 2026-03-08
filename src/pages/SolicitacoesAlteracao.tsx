@@ -1089,10 +1089,12 @@ const SolicitacoesAlteracao = () => {
                   rejeitarDadosMutation.mutate({ solicitacao: selected, motivo: motivoRejeicao });
                 } else if (selectedType === "reserva") {
                   rejeitarReservaMutation.mutate({ reserva: selected, motivo: motivoRejeicao });
+                } else if (selectedType === "agendamento") {
+                  rejeitarAgendamentoMutation.mutate({ agend: selected, motivo: motivoRejeicao });
                 } else {
                   rejeitarRemarcacaoMutation.mutate({ solicitacao: selected, motivo: motivoRejeicao });
                 }
-              }} disabled={rejeitarDadosMutation.isPending || rejeitarRemarcacaoMutation.isPending || rejeitarReservaMutation.isPending}>
+              }} disabled={rejeitarDadosMutation.isPending || rejeitarRemarcacaoMutation.isPending || rejeitarReservaMutation.isPending || rejeitarAgendamentoMutation.isPending}>
                 Confirmar Rejeição
               </Button>
             </DialogFooter>
