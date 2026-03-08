@@ -181,7 +181,7 @@ const PatientDashboard = () => {
     queryFn: async () => {
       if (!patientId) return [];
       const { data, error } = await (supabase.from("pagamentos_mensalidade" as any) as any)
-        .select("*").eq("paciente_id", patientId).eq("status", "aberto").order("mes_referencia", { ascending: true });
+        .select("*").eq("paciente_id", patientId).order("mes_referencia", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -193,7 +193,7 @@ const PatientDashboard = () => {
     queryFn: async () => {
       if (!patientId) return [];
       const { data, error } = await (supabase.from("pagamentos_sessoes" as any) as any)
-        .select("*").eq("paciente_id", patientId).eq("status", "aberto").order("created_at", { ascending: true });
+        .select("*").eq("paciente_id", patientId).order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
