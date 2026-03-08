@@ -458,6 +458,31 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* Monthly Chart */}
+      {monthlyChart.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Sessões por Mês (Últimos 6 meses)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={monthlyChart}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip />
+                <Bar dataKey="realizadas" name="Realizadas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="faltas" name="Faltas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="canceladas" name="Canceladas" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
