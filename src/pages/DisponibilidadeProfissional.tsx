@@ -74,6 +74,7 @@ interface AgendaExtra {
 
 const DisponibilidadeProfissional = () => {
   const { user, isAdmin, isGestor } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const canManage = isAdmin || isGestor;
   const [selectedProfissional, setSelectedProfissional] = useState<string>(user?.id || "");
