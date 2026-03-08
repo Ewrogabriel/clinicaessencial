@@ -19,12 +19,7 @@ import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users } 
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 
-const TIPOS_ATENDIMENTO = [
-  { value: "geral", label: "Geral (Todos)" },
-  { value: "fisioterapia", label: "Fisioterapia" },
-  { value: "pilates", label: "Pilates" },
-  { value: "rpg", label: "RPG" },
-];
+// Removed hardcoded TIPOS_ATENDIMENTO — now loaded from modalidades table
 
 const Comissoes = () => {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
