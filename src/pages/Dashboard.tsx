@@ -207,6 +207,20 @@ const Dashboard = () => {
   // Upcoming Birthdays
   const birthdays: any[] = []; // get_upcoming_birthdays RPC not yet created
 
+  // Pending plan sessions (pendente status)
+  const { data: pendingSessions = [] } = useQuery({
+    queryKey: ["dashboard-pending-sessions"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("agendamentos") as any)
+        .select("id, data_horario, status, tipo_atendimento, pacientes(nome), observacoes")
+        .eq("status", "pendente")
+        .order("data_horario", { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Today's Detailed Agenda
   const { data: todayAgenda = [] } = useQuery({
     queryKey: ["dashboard-today-agenda"],

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarPlus, Check, Clock } from "lucide-react";
+import { CalendarPlus, Check, Clock, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 
 interface PlanoSessoesDialogProps {
@@ -36,6 +37,7 @@ interface PlanoSessoesDialogProps {
 }
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pendente: { label: "Pendente", variant: "outline" },
   agendado: { label: "Agendado", variant: "outline" },
   confirmado: { label: "Confirmado", variant: "default" },
   realizado: { label: "Realizado", variant: "secondary" },
@@ -50,8 +52,8 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
 
   const [dataHorario, setDataHorario] = useState("");
   const [duracao, setDuracao] = useState("50");
+  const [activeTab, setActiveTab] = useState("todas");
 
-  // Fetch sessions linked to this plan via observacoes containing plano id
   const { data: sessoes = [], isLoading } = useQuery({
     queryKey: ["plano-sessoes", plano.id],
     queryFn: async () => {
@@ -67,8 +69,15 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
     },
   });
 
-  const sessoesAgendadas = sessoes.filter(s => ["agendado", "confirmado", "realizado"].includes(s.status));
-  const creditosDisponiveis = restante - sessoes.filter(s => ["agendado", "confirmado"].includes(s.status)).length;
+  const creditosDisponiveis = restante - sessoes.filter(s => ["agendado", "confirmado", "pendente"].includes(s.status)).length;
+
+  const filteredSessoes = sessoes.filter((s: any) => {
+    if (activeTab === "todas") return true;
+    if (activeTab === "pendentes") return ["pendente", "agendado", "confirmado"].includes(s.status);
+    if (activeTab === "realizadas") return s.status === "realizado";
+    if (activeTab === "canceladas") return s.status === "cancelado" || s.status === "falta";
+    return true;
+  });
 
   const agendarSessao = useMutation({
     mutationFn: async () => {
@@ -97,9 +106,15 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const countByStatus = {
+    pendentes: sessoes.filter(s => ["pendente", "agendado", "confirmado"].includes(s.status)).length,
+    realizadas: sessoes.filter(s => s.status === "realizado").length,
+    canceladas: sessoes.filter(s => s.status === "cancelado" || s.status === "falta").length,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarPlus className="h-5 w-5 text-primary" />
@@ -115,8 +130,8 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
           </div>
           <Progress value={pct} className="h-2" />
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>✅ Realizadas: {plano.sessoes_utilizadas}</span>
-            <span>📅 Agendadas: {sessoes.filter(s => ["agendado", "confirmado"].includes(s.status)).length}</span>
+            <span>✅ Realizadas: {countByStatus.realizadas}</span>
+            <span>📅 Agendadas: {countByStatus.pendentes}</span>
             <span className="font-medium text-primary">💳 Disponíveis: {Math.max(0, creditosDisponiveis)}</span>
           </div>
         </div>
@@ -162,38 +177,61 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
           </div>
         )}
 
-        {/* Sessions list */}
+        {/* Sessions list with tabs */}
         <div>
-          <h4 className="font-medium text-sm mb-2">Sessões agendadas ({sessoes.length})</h4>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          ) : sessoes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma sessão agendada ainda.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Duração</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessoes.map((s: any) => {
-                  const sb = statusBadge[s.status] || statusBadge.agendado;
-                  return (
-                    <TableRow key={s.id}>
-                      <TableCell className="text-sm">
-                        {format(new Date(s.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-sm">{s.duracao_minutos} min</TableCell>
-                      <TableCell><Badge variant={sb.variant}>{sb.label}</Badge></TableCell>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="todas">Todas ({sessoes.length})</TabsTrigger>
+              <TabsTrigger value="pendentes" className="text-xs">
+                Pendentes ({countByStatus.pendentes})
+              </TabsTrigger>
+              <TabsTrigger value="realizadas" className="text-xs">
+                Realizadas ({countByStatus.realizadas})
+              </TabsTrigger>
+              <TabsTrigger value="canceladas" className="text-xs">
+                Canc./Faltas ({countByStatus.canceladas})
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="mt-3">
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : filteredSessoes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma sessão {activeTab !== "todas" ? `com status "${activeTab}"` : "agendada ainda"}.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Duração</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSessoes.map((s: any, idx: number) => {
+                      const sb = statusBadge[s.status] || statusBadge.agendado;
+                      return (
+                        <TableRow key={s.id} className={
+                          s.status === "pendente" ? "bg-amber-50/50 dark:bg-amber-950/20" :
+                          s.status === "cancelado" || s.status === "falta" ? "bg-destructive/5" : ""
+                        }>
+                          <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
+                          <TableCell className="text-sm">
+                            {format(new Date(s.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell className="text-sm">{s.duracao_minutos} min</TableCell>
+                          <TableCell><Badge variant={sb.variant}>{sb.label}</Badge></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
