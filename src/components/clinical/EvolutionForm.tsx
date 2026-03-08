@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { FileText } from "lucide-react";
+import { SignaturePad } from "./SignaturePad";
 
 const EVOLUTION_TEMPLATES = [
   {
