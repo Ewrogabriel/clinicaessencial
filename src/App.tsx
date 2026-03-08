@@ -137,7 +137,6 @@ const App = () => (
               <Route path="/vagas" element={<Agenda />} />
               <Route path="/pre-cadastros" element={<PreCadastrosAdmin />} />
               <Route path="/notas-fiscais" element={<Financeiro />} />
-              <Route path="/comissoes" element={<Financeiro />} />
               <Route path="/gestao-clinicas" element={<GestaoClinicas />} />
               <Route path="/master" element={<MasterPanel />} />
               <Route path="/importacao" element={<ImportacaoMassa />} />
