@@ -16,7 +16,7 @@ import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, User } from "lucide-
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { maskCPF, maskPhone, maskCEP, maskRG } from "@/lib/masks";
+import { maskCPF, maskPhone, maskCEP, maskRG, isValidCPF, unmask } from "@/lib/masks";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
