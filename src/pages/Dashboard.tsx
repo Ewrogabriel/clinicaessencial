@@ -145,18 +145,22 @@ const Dashboard = () => {
 
   // Occupancy rate (this month)
   const { data: occupancyRate = 0 } = useQuery({
-    queryKey: ["dashboard-occupancy", inicioMes],
+    queryKey: ["dashboard-occupancy", inicioMes, activeClinicId],
     queryFn: async () => {
-      const { data: disp } = await (supabase.from("disponibilidade_profissional") as any)
+      let dispQ = (supabase.from("disponibilidade_profissional") as any)
         .select("hora_inicio, hora_fim, max_pacientes, dia_semana")
         .eq("ativo", true);
-      const { data: agendamentosMes } = await (supabase.from("agendamentos") as any)
+      if (activeClinicId) dispQ = dispQ.eq("clinic_id", activeClinicId);
+      const { data: disp } = await dispQ;
+
+      let agQ = (supabase.from("agendamentos") as any)
         .select("id")
         .gte("data_horario", `${inicioMes}T00:00:00`)
         .lte("data_horario", `${fimMes}T23:59:59`)
         .in("status", ["agendado", "confirmado", "realizado"]);
+      if (activeClinicId) agQ = agQ.eq("clinic_id", activeClinicId);
+      const { data: agendamentosMes } = await agQ;
 
-      // Estimate total slots per month (availability * ~4 weeks)
       const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
