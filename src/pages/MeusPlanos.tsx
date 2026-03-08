@@ -37,6 +37,19 @@ const MeusPlanos = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
+  const [selectedProfId, setSelectedProfId] = useState("");
+
+  // All professionals for selection
+  const { data: allProfissionais = [] } = useQuery({
+    queryKey: ["all-prof-for-scheduling"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
+      const ids = roles?.map(r => r.user_id) ?? [];
+      if (!ids.length) return [];
+      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
+      return data ?? [];
+    },
+  });
 
   // Planos de sessões
   const { data: planos = [] } = useQuery({
