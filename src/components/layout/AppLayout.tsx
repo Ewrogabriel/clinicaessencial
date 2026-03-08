@@ -3,6 +3,7 @@ import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -17,6 +18,7 @@ export function AppLayout() {
             <SidebarTrigger />
             {!isPatient && <GlobalSearch />}
             <div className="flex-1" />
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
           </header>

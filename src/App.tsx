@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ClinicProvider } from "@/hooks/useClinic";
+import { I18nProvider } from "@/hooks/useI18n";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
@@ -58,6 +59,7 @@ import SelecionarClinica from "./pages/SelecionarClinica";
 import MasterPanel from "./pages/MasterPanel";
 import ImportacaoMassa from "./pages/ImportacaoMassa";
 import MetasGamificacao from "./pages/MetasGamificacao";
+import Equipamentos from "./pages/Equipamentos";
 // Despesas is now a tab inside Financeiro
 
 const queryClient = new QueryClient();
@@ -74,6 +76,7 @@ const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <I18nProvider>
         <AuthProvider>
           <ClinicProvider>
           <Toaster />
@@ -138,12 +141,14 @@ const App = () => (
               <Route path="/master" element={<MasterPanel />} />
               <Route path="/importacao" element={<ImportacaoMassa />} />
               <Route path="/metas" element={<MetasGamificacao />} />
+              <Route path="/equipamentos" element={<Equipamentos />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
           </BrowserRouter>
           </ClinicProvider>
         </AuthProvider>
+        </I18nProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

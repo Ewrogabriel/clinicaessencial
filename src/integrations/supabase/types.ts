@@ -1073,6 +1073,86 @@ export type Database = {
           },
         ]
       }
+      equipamentos: {
+        Row: {
+          clinic_id: string | null
+          cor: string | null
+          created_at: string
+          created_by: string
+          data_aquisicao: string | null
+          data_proxima_revisao: string | null
+          data_ultima_revisao: string | null
+          descricao: string | null
+          e_consumo: boolean
+          estoque_atual: number | null
+          estoque_minimo: number | null
+          foto_url: string | null
+          id: string
+          marca: string | null
+          modelo: string | null
+          nome: string
+          observacoes_manutencao: string | null
+          quantidade: number
+          status: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          cor?: string | null
+          created_at?: string
+          created_by: string
+          data_aquisicao?: string | null
+          data_proxima_revisao?: string | null
+          data_ultima_revisao?: string | null
+          descricao?: string | null
+          e_consumo?: boolean
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          foto_url?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          nome: string
+          observacoes_manutencao?: string | null
+          quantidade?: number
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string | null
+          cor?: string | null
+          created_at?: string
+          created_by?: string
+          data_aquisicao?: string | null
+          data_proxima_revisao?: string | null
+          data_ultima_revisao?: string | null
+          descricao?: string | null
+          e_consumo?: boolean
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          foto_url?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          nome?: string
+          observacoes_manutencao?: string | null
+          quantidade?: number
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipamentos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluations: {
         Row: {
           antecedentes_pessoais: string | null

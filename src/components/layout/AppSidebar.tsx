@@ -3,7 +3,7 @@ import {
   LogOut, Activity, Layers, UserCog, Receipt, Brain, Send, Megaphone,
   Clock, FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   Cake, Lightbulb, FileCheck, Wallet, ListChecks, Handshake, CalendarCheck,
-  Building2, Crown, Upload, Trophy, Stethoscope,
+  Building2, Crown, Upload, Trophy, Stethoscope, Wrench,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -87,6 +87,7 @@ const menuComunicacao = [
 const menuConfig = [
   { title: "Modalidades", url: "/modalidades", icon: Layers },
   { title: "Produtos", url: "/produtos", icon: Tag },
+  { title: "Equipamentos", url: "/equipamentos", icon: Wrench },
   { title: "Parceiros", url: "/convenios", icon: Handshake },
   { title: "Contratos", url: "/contratos", icon: FileText },
   { title: "Automações", url: "/automacoes", icon: Send },
