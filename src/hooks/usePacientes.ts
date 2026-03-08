@@ -20,12 +20,12 @@ export function usePacientes(options: UsePacientesOptions = {}) {
     queryFn: async () => {
       // If we have an active clinic, fetch patients linked to it
       if (activeClinicId) {
-        const { data: clinicPacientes } = await (supabase
-          .from("clinic_pacientes") as any)
+        const { data: clinicPacientes } = await supabase
+          .from("clinic_pacientes")
           .select("paciente_id")
           .eq("clinic_id", activeClinicId);
 
-        const ids = clinicPacientes?.map((cp: any) => cp.paciente_id) ?? [];
+        const ids = clinicPacientes?.map((cp) => cp.paciente_id) ?? [];
         if (!ids.length) return [];
 
         let query = supabase
@@ -72,12 +72,12 @@ export function usePacientesBasic(options: UsePacientesOptions = {}) {
     queryKey: ["pacientes-basic", status, activeClinicId],
     queryFn: async () => {
       if (activeClinicId) {
-        const { data: clinicPacientes } = await (supabase
-          .from("clinic_pacientes") as any)
+        const { data: clinicPacientes } = await supabase
+          .from("clinic_pacientes")
           .select("paciente_id")
           .eq("clinic_id", activeClinicId);
 
-        const ids = clinicPacientes?.map((cp: any) => cp.paciente_id) ?? [];
+        const ids = clinicPacientes?.map((cp) => cp.paciente_id) ?? [];
         if (!ids.length) return [];
 
         let query = supabase

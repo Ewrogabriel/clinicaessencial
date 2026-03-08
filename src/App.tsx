@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,63 +10,68 @@ import { ClinicProvider } from "@/hooks/useClinic";
 import { I18nProvider } from "@/hooks/useI18n";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+
+// Eager-loaded (critical path)
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Pacientes from "./pages/Pacientes";
-import PacienteForm from "./pages/PacienteForm";
-import Agenda from "./pages/Agenda";
-import Matriculas from "./pages/Matriculas";
-import CheckInProfissional from "./pages/CheckInProfissional";
-import MeusPlanos from "./pages/MeusPlanos";
-import Produtos from "./pages/Produtos";
-import HistoricoSessoes from "./pages/HistoricoSessoes";
-import Aniversariantes from "./pages/Aniversariantes";
-import DicasDiarias from "./pages/DicasDiarias";
-import Financeiro from "./pages/Financeiro";
-import Relatorios from "./pages/Relatorios";
-import Modalidades from "./pages/Modalidades";
-import Profissionais from "./pages/Profissionais";
-import Prontuarios from "./pages/Prontuarios";
-import PacienteDetalhes from "./pages/PacienteDetalhes";
-import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import PatientDashboard from "./pages/PatientDashboard";
-import MinhaAgenda from "./pages/MinhaAgenda";
-import MeusPagamentos from "./pages/MeusPagamentos";
-import Automacoes from "./pages/Automacoes";
-import PatientOnboarding from "./pages/PatientOnboarding";
-import AvisosAdmin from "./pages/AvisosAdmin";
-import DisponibilidadeProfissional from "./pages/DisponibilidadeProfissional";
-import MeuPerfil from "./pages/MeuPerfil";
-import Contratos from "./pages/Contratos";
-import Comissoes from "./pages/Comissoes";
-import PerfilProfissional from "./pages/PerfilProfissional";
-import PerfilProfissionalPublico from "./pages/PerfilProfissionalPublico";
-import ClinicSettings from "./pages/ClinicSettings";
-import MensagensInternas from "./pages/MensagensInternas";
-import PacienteAccess from "./pages/PacienteAccess";
-import SolicitacoesAlteracao from "./pages/SolicitacoesAlteracao";
-import FormasPagamento from "./pages/FormasPagamento";
-import ProfessionalDashboard from "./pages/ProfessionalDashboard";
-import ListaEspera from "./pages/ListaEspera";
-import Convenios from "./pages/Convenios";
-import VacancyCalendar from "./pages/VacancyCalendar";
-import PreCadastro from "./pages/PreCadastro";
-import PreCadastrosAdmin from "./pages/PreCadastrosAdmin";
-import NotasFiscais from "./pages/NotasFiscais";
-import GestaoClinicas from "./pages/GestaoClinicas";
-import SelecionarClinica from "./pages/SelecionarClinica";
-import MasterPanel from "./pages/MasterPanel";
-import ImportacaoMassa from "./pages/ImportacaoMassa";
-import MetasGamificacao from "./pages/MetasGamificacao";
-import Equipamentos from "./pages/Equipamentos";
-// Despesas is now a tab inside Financeiro
+
+// Lazy-loaded pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Pacientes = lazy(() => import("./pages/Pacientes"));
+const PacienteForm = lazy(() => import("./pages/PacienteForm"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const Matriculas = lazy(() => import("./pages/Matriculas"));
+const CheckInProfissional = lazy(() => import("./pages/CheckInProfissional"));
+const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
+const Produtos = lazy(() => import("./pages/Produtos"));
+const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
+const Aniversariantes = lazy(() => import("./pages/Aniversariantes"));
+const DicasDiarias = lazy(() => import("./pages/DicasDiarias"));
+const Financeiro = lazy(() => import("./pages/Financeiro"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Modalidades = lazy(() => import("./pages/Modalidades"));
+const Profissionais = lazy(() => import("./pages/Profissionais"));
+const Prontuarios = lazy(() => import("./pages/Prontuarios"));
+const PacienteDetalhes = lazy(() => import("./pages/PacienteDetalhes"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
+const MinhaAgenda = lazy(() => import("./pages/MinhaAgenda"));
+const MeusPagamentos = lazy(() => import("./pages/MeusPagamentos"));
+const Automacoes = lazy(() => import("./pages/Automacoes"));
+const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
+const AvisosAdmin = lazy(() => import("./pages/AvisosAdmin"));
+const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
+const MeuPerfil = lazy(() => import("./pages/MeuPerfil"));
+const Contratos = lazy(() => import("./pages/Contratos"));
+const Comissoes = lazy(() => import("./pages/Comissoes"));
+const PerfilProfissional = lazy(() => import("./pages/PerfilProfissional"));
+const PerfilProfissionalPublico = lazy(() => import("./pages/PerfilProfissionalPublico"));
+const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
+const MensagensInternas = lazy(() => import("./pages/MensagensInternas"));
+const PacienteAccess = lazy(() => import("./pages/PacienteAccess"));
+const SolicitacoesAlteracao = lazy(() => import("./pages/SolicitacoesAlteracao"));
+const FormasPagamento = lazy(() => import("./pages/FormasPagamento"));
+const ProfessionalDashboard = lazy(() => import("./pages/ProfessionalDashboard"));
+const ListaEspera = lazy(() => import("./pages/ListaEspera"));
+const Convenios = lazy(() => import("./pages/Convenios"));
+const VacancyCalendar = lazy(() => import("./pages/VacancyCalendar"));
+const PreCadastro = lazy(() => import("./pages/PreCadastro"));
+const PreCadastrosAdmin = lazy(() => import("./pages/PreCadastrosAdmin"));
+const NotasFiscais = lazy(() => import("./pages/NotasFiscais"));
+const GestaoClinicas = lazy(() => import("./pages/GestaoClinicas"));
+const SelecionarClinica = lazy(() => import("./pages/SelecionarClinica"));
+const MasterPanel = lazy(() => import("./pages/MasterPanel"));
+const ImportacaoMassa = lazy(() => import("./pages/ImportacaoMassa"));
+const MetasGamificacao = lazy(() => import("./pages/MetasGamificacao"));
+const Equipamentos = lazy(() => import("./pages/Equipamentos"));
 
 const queryClient = new QueryClient();
 
 const DashboardToggle = () => {
-  const { isPatient, isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
+  const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
   if (isMaster && !isAdmin) return <MasterPanel />;
   if (isAdmin || isGestor || isSecretario) return <Dashboard />;
   if (isProfissional) return <ProfessionalDashboard />;
@@ -79,9 +85,11 @@ const App = () => (
         <I18nProvider>
         <AuthProvider>
           <ClinicProvider>
+          <ErrorBoundary>
           <Toaster />
           <Sonner />
           <BrowserRouter>
+          <Suspense fallback={<LazyLoadFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/paciente-access" element={<PacienteAccess />} />
@@ -124,7 +132,6 @@ const App = () => (
               <Route path="/avisos" element={<AvisosAdmin />} />
               <Route path="/disponibilidade" element={<Profissionais />} />
               <Route path="/contratos" element={<Contratos />} />
-              
               <Route path="/comissoes" element={<Comissoes />} />
               <Route path="/perfil-profissional" element={<PerfilProfissional />} />
               <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
@@ -145,7 +152,9 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </BrowserRouter>
+          </ErrorBoundary>
           </ClinicProvider>
         </AuthProvider>
         </I18nProvider>

@@ -28,12 +28,12 @@ export function useProfissionais(options: UseProfissionaisOptions = {}) {
 
       // Filter by clinic if active
       if (activeClinicId) {
-        const { data: clinicUsers } = await (supabase
-          .from("clinic_users") as any)
+        const { data: clinicUsers } = await supabase
+          .from("clinic_users")
           .select("user_id")
           .eq("clinic_id", activeClinicId);
 
-        const clinicUserIds = new Set(clinicUsers?.map((cu: any) => cu.user_id) ?? []);
+        const clinicUserIds = new Set(clinicUsers?.map((cu) => cu.user_id) ?? []);
         ids = ids.filter(id => clinicUserIds.has(id));
         if (!ids.length) return [];
       }
@@ -70,12 +70,12 @@ export function useProfissionaisBasic(options: UseProfissionaisOptions = {}) {
       if (!ids.length) return [];
 
       if (activeClinicId) {
-        const { data: clinicUsers } = await (supabase
-          .from("clinic_users") as any)
+        const { data: clinicUsers } = await supabase
+          .from("clinic_users")
           .select("user_id")
           .eq("clinic_id", activeClinicId);
 
-        const clinicUserIds = new Set(clinicUsers?.map((cu: any) => cu.user_id) ?? []);
+        const clinicUserIds = new Set(clinicUsers?.map((cu) => cu.user_id) ?? []);
         ids = ids.filter(id => clinicUserIds.has(id));
         if (!ids.length) return [];
       }
