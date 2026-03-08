@@ -135,13 +135,14 @@ const Matriculas = () => {
 
   // --------------- Queries ---------------
   const { data: matriculas = [], isLoading } = useQuery({
-    queryKey: ["matriculas", filterPaciente, filterStatus],
+    queryKey: ["matriculas", filterPaciente, filterStatus, activeClinicId],
     queryFn: async () => {
       let query = supabase
         .from("matriculas")
         .select("*, pacientes(nome)")
         .order("created_at", { ascending: false });
 
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
       if (filterStatus) query = query.eq("status", filterStatus);
 
       const { data, error } = await query;
