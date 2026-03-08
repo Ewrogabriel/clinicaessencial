@@ -639,7 +639,7 @@ const Dashboard = () => {
                           {item.status}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground truncate">
-                          Prof: {item.profiles?.nome || "Não definido"}
+                          Prof: {profissionais.find((p: any) => p.user_id === item.profissional_id)?.nome || "Não definido"}
                         </span>
                       </div>
                     </div>
