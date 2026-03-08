@@ -42,11 +42,11 @@ const PacienteDetalhes = () => {
     const { data: paciente, isLoading: loadingPaciente } = useQuery({
         queryKey: ["paciente", id],
         queryFn: async () => {
-            const { data, error } = await (supabase
+            const { data, error } = await supabase
                 .from("pacientes")
                 .select("*")
                 .eq("id", id)
-                .single() as any);
+                .single();
             if (error) throw error;
             return data;
         },
