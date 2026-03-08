@@ -102,9 +102,9 @@ const GestaoClinicas = () => {
   });
 
   const addUserMutation = useMutation({
-    mutationFn: async ({ clinicId, userId }: { clinicId: string; userId: string }) => {
+    mutationFn: async ({ clinicId, userId, role }: { clinicId: string; userId: string; role: string }) => {
       const { error } = await (supabase.from("clinic_users") as any)
-        .insert({ clinic_id: clinicId, user_id: userId, role: "member" });
+        .insert({ clinic_id: clinicId, user_id: userId, role });
       if (error) throw error;
     },
     onSuccess: () => {
