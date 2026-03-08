@@ -869,36 +869,7 @@ export function CommissionExtract() {
                 </div>
               </div>
 
-              {/* Auto-compensation */}
-              <div className="space-y-3 border rounded-lg p-3">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  Compensação (automática)
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Calculada automaticamente com base em alterações na agenda do mês anterior após o fechamento. Pode ser ajustada manualmente.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Valor (R$)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={compensacaoValor}
-                      onChange={(e) => setCompensacaoValor(e.target.value)}
-                      placeholder="Ex: 50.00 ou -30.00"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Motivo</Label>
-                    <Input
-                      value={compensacaoDesc}
-                      onChange={(e) => setCompensacaoDesc(e.target.value)}
-                      placeholder="Ex: Ajuste cancelamento"
-                    />
-                  </div>
-                </div>
-              </div>
+              {/* Compensação calculada automaticamente no extrato */}
 
               {/* Bonus */}
               <div className="space-y-3 border rounded-lg p-3 border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20">
