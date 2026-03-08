@@ -203,10 +203,12 @@ export default function Indicadores() {
   });
 
   const { data: frequencyRanking = [] } = useQuery({
-    queryKey: ["indicadores-frequency-ranking"],
+    queryKey: ["indicadores-frequency-ranking", activeClinicId],
     queryFn: async () => {
-      const { data: agendamentos } = await (supabase.from("agendamentos") as any)
+      let qFreq = (supabase.from("agendamentos") as any)
         .select("paciente_id, status, pacientes(nome)");
+      if (activeClinicId) qFreq = qFreq.eq("clinic_id", activeClinicId);
+      const { data: agendamentos } = await qFreq;
       if (!agendamentos) return [];
 
       const stats: Record<string, { nome: string; total: number; cancelados: number; realizados: number }> = {};

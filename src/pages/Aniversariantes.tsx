@@ -7,18 +7,32 @@ import { Cake, Mail, Send } from "lucide-react";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
+import { useClinic } from "@/hooks/useClinic";
 
 export default function Aniversariantes() {
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const { activeClinicId } = useClinic();
 
   const { data: aniversariantes = [] } = useQuery({
-    queryKey: ["aniversariantes"],
+    queryKey: ["aniversariantes", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let ids: string[] | null = null;
+      if (activeClinicId) {
+        const { data: cpData } = await (supabase.from("clinic_pacientes") as any)
+          .select("paciente_id")
+          .eq("clinic_id", activeClinicId);
+        ids = cpData?.map((cp: any) => cp.paciente_id) ?? [];
+        if (!ids.length) return [];
+      }
+
+      let query = supabase
         .from("pacientes")
         .select("id, nome, data_nascimento, email, telefone")
         .not("data_nascimento", "is", null)
         .order("data_nascimento");
+      
+      if (ids) query = query.in("id", ids);
+      const { data, error } = await query;
 
       if (error) throw error;
 

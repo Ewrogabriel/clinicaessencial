@@ -69,8 +69,22 @@ const Pacientes = () => {
   };
 
   const { data: pacientes = [], isLoading } = useQuery({
-    queryKey: ["pacientes"],
+    queryKey: ["pacientes", activeClinicId],
     queryFn: async () => {
+      if (activeClinicId) {
+        // Get patient IDs linked to this clinic
+        const { data: cpData } = await (supabase.from("clinic_pacientes") as any)
+          .select("paciente_id")
+          .eq("clinic_id", activeClinicId);
+        const ids = cpData?.map((cp: any) => cp.paciente_id) ?? [];
+        if (!ids.length) return [];
+        const { data, error } = await (supabase.from("pacientes") as any)
+          .select("*")
+          .in("id", ids)
+          .order("nome");
+        if (error) throw error;
+        return data as Paciente[];
+      }
       const { data, error } = await (supabase.from("pacientes") as any)
         .select("*")
         .order("nome");

@@ -127,15 +127,25 @@ const Profissionais = () => {
   const [loading, setLoading] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["staff-users"],
+    queryKey: ["staff-users", activeClinicId],
     queryFn: async () => {
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("user_id, role");
 
       const staffRoles = roleData?.filter(r => r.role !== "paciente") ?? [];
-      const userIds = [...new Set(staffRoles.map(r => r.user_id))];
+      let userIds = [...new Set(staffRoles.map(r => r.user_id))];
       if (userIds.length === 0) return [];
+
+      // Filter by active clinic
+      if (activeClinicId) {
+        const { data: clinicUsers } = await (supabase.from("clinic_users") as any)
+          .select("user_id")
+          .eq("clinic_id", activeClinicId);
+        const clinicUserIds = new Set(clinicUsers?.map((cu: any) => cu.user_id) ?? []);
+        userIds = userIds.filter(id => clinicUserIds.has(id));
+        if (userIds.length === 0) return [];
+      }
 
       const { data: profiles } = await supabase
         .from("profiles")
