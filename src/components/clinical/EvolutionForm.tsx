@@ -65,6 +65,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
                 profissional_id: user.id,
                 descricao,
                 conduta,
+                assinatura_url: assinaturaUrl || null,
                 data_evolucao: new Date().toISOString(),
             });
 
