@@ -24,12 +24,11 @@ const AvisosAdmin = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: avisos = [], isLoading } = useQuery({
-    queryKey: ["admin-avisos"],
+    queryKey: ["admin-avisos", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avisos")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("avisos").select("*");
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
