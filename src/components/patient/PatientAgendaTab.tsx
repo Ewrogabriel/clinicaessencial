@@ -51,7 +51,6 @@ export const PatientAgendaTab = ({
                     } className={`capitalize ${item.status === 'pendente' ? 'border-amber-500 text-amber-600' : ''}`}>
                       {item.status === 'pendente' ? '⏳ Pendente' : item.status}
                     </Badge>
-                    </Badge>
                   </div>
 
                   <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 mb-4">
