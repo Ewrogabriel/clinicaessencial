@@ -16,7 +16,6 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify the caller is an admin/gestor
     const authHeader = req.headers.get("Authorization")!;
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -52,7 +51,6 @@ serve(async (req) => {
 
     const targetRole = role || "profissional";
 
-    // Create user with admin API
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -68,10 +66,8 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // Update profile
     await adminClient.from("profiles").update({
-      nome,
-      email,
+      nome, email,
       telefone: telefone || null,
       especialidade: especialidade || null,
       commission_rate: commission_rate || 0,
@@ -79,30 +75,25 @@ serve(async (req) => {
       cor_agenda: cor_agenda || "#3b82f6",
       registro_profissional: registro_profissional || null,
       tipo_contratacao: tipo_contratacao || null,
-      cnpj: cnpj || null,
-      cpf: cpf || null,
-      rg: rg || null,
+      cnpj: cnpj || null, cpf: cpf || null, rg: rg || null,
       data_nascimento: data_nascimento || null,
       estado_civil: estado_civil || null,
-      endereco: endereco || null,
-      numero: numero || null,
-      bairro: bairro || null,
-      cidade: cidade || null,
-      estado: estado || null,
-      cep: cep || null,
+      endereco: endereco || null, numero: numero || null,
+      bairro: bairro || null, cidade: cidade || null,
+      estado: estado || null, cep: cep || null,
     }).eq("user_id", newUserId);
 
-    // Set role
     await adminClient.from("user_roles").insert({
       user_id: newUserId,
       role: targetRole,
     });
 
-    // Set permissions if provided
+    // permissions is now an array of { resource, access_level }
     if (permissions && Array.isArray(permissions) && permissions.length > 0) {
-      const permRows = permissions.map((resource: string) => ({
+      const permRows = permissions.map((p: any) => ({
         user_id: newUserId,
-        resource,
+        resource: typeof p === "string" ? p : p.resource,
+        access_level: typeof p === "string" ? "edit" : (p.access_level || "edit"),
         enabled: true,
       }));
       await adminClient.from("user_permissions").insert(permRows);

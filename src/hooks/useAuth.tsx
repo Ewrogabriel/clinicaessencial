@@ -6,12 +6,17 @@ import type { Tables } from "@/integrations/supabase/types";
 type Profile = Tables<"profiles">;
 type AppRole = "admin" | "profissional" | "paciente" | "gestor" | "secretario";
 
+interface PermissionEntry {
+  resource: string;
+  access_level: "view" | "edit";
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   roles: AppRole[];
-  permissions: string[];
+  permissions: PermissionEntry[];
   loading: boolean;
   isAdmin: boolean;
   isGestor: boolean;
@@ -21,6 +26,7 @@ interface AuthContextType {
   clinicId: string | null;
   patientId: string | null;
   hasPermission: (resource: string) => boolean;
+  canEdit: (resource: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -34,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
-  const [permissions, setPermissions] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<PermissionEntry[]>([]);
   const [patientId, setPatientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     setProfile(profile);
 
-    // Look up patient record linked to this user
     const { data: paciente } = await supabase
       .from("pacientes")
       .select("id")
@@ -66,10 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchPermissions = async (userId: string) => {
     const { data } = await supabase
       .from("user_permissions")
-      .select("resource")
+      .select("resource, access_level")
       .eq("user_id", userId)
       .eq("enabled", true);
-    setPermissions(data?.map((p) => (p as any).resource) ?? []);
+    setPermissions(
+      data?.map((p: any) => ({ resource: p.resource, access_level: p.access_level || "edit" })) ?? []
+    );
   };
 
   useEffect(() => {
@@ -151,7 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (resource: string) => {
     if (isAdmin) return true;
-    return permissions.includes(resource);
+    return permissions.some(p => p.resource === resource);
+  };
+
+  const canEdit = (resource: string) => {
+    if (isAdmin) return true;
+    const perm = permissions.find(p => p.resource === resource);
+    return perm?.access_level === "edit";
   };
 
   return (
@@ -160,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user, session, profile, roles, permissions, loading,
         isAdmin, isGestor, isPatient, isProfissional, isSecretario,
         clinicId, patientId,
-        hasPermission,
+        hasPermission, canEdit,
         signIn, signUp, resetPassword, signOut
       }}
     >
