@@ -128,7 +128,7 @@ const DisponibilidadeProfissional = () => {
   const { data: slots = [], refetch } = useQuery({
     queryKey: ["disponibilidade", profId],
     queryFn: async () => {
-      const { data } = await (supabase.from("disponibilidade_profissional") as any)
+      const { data } = await supabase.from("disponibilidade_profissional")
         .select("*").eq("profissional_id", profId).eq("ativo", true)
         .order("dia_semana").order("hora_inicio");
       return (data ?? []) as Slot[];
