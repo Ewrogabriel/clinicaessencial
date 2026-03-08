@@ -152,7 +152,6 @@ const App = () => (
               <Route path="/master" element={<MasterPanel />} />
               <Route path="/importacao" element={<ImportacaoMassa />} />
               <Route path="/metas" element={<MetasGamificacao />} />
-              <Route path="/equipamentos" element={<Equipamentos />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
