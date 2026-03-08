@@ -138,6 +138,12 @@ const PacienteForm = () => {
           setRespCidade(data.responsavel_cidade || "");
           setRespEstado(data.responsavel_estado || "");
           setCodigoAcesso(data.codigo_acesso || null);
+          setSolicitaNf(data.solicita_nf || false);
+          setNfRazaoSocial(data.nf_razao_social || "");
+          setNfCnpjCpf(data.nf_cnpj_cpf || "");
+          setNfEndereco(data.nf_endereco || "");
+          setNfInscricaoEstadual(data.nf_inscricao_estadual || "");
+          setNfEmail(data.nf_email || "");
           setLoadingData(false);
         });
     }
