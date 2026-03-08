@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, Calendar, ClipboardList, DollarSign, BarChart3,
   LogOut, Activity, Layers, UserCog, Receipt, Brain, Send, Megaphone,
   Clock, FileText, Tag, CreditCard, User, Calculator, MessageSquare,
-  Cake, Lightbulb, FileCheck, Wallet, ListChecks,
+  Cake, Lightbulb, FileCheck, Wallet, ListChecks, Handshake,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
