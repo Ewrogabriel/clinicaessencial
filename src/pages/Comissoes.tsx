@@ -41,6 +41,19 @@ const Comissoes = () => {
   });
 
   // Queries
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-comissoes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modalidades").select("*").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const tiposAtendimento = [
+    { value: "geral", label: "Geral (Todos)" },
+    ...modalidades.map((m: any) => ({ value: m.nome.toLowerCase(), label: m.nome })),
+  ];
+
   const { data: profissionais = [] } = useQuery({
     queryKey: ["prof-for-comissoes"],
     queryFn: async () => {
