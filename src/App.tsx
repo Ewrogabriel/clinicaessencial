@@ -59,6 +59,7 @@ import SelecionarClinica from "./pages/SelecionarClinica";
 import MasterPanel from "./pages/MasterPanel";
 import ImportacaoMassa from "./pages/ImportacaoMassa";
 import MetasGamificacao from "./pages/MetasGamificacao";
+import Equipamentos from "./pages/Equipamentos";
 // Despesas is now a tab inside Financeiro
 
 const queryClient = new QueryClient();
