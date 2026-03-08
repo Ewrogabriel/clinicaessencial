@@ -37,7 +37,7 @@ import DisponibilidadeProfissional from "./pages/DisponibilidadeProfissional";
 import MeuPerfil from "./pages/MeuPerfil";
 import Contratos from "./pages/Contratos";
 import PrecosPlanos from "./pages/PrecosPlanos";
-import Comissoes from "./pages/Comissoes";
+// Comissoes is now a tab inside Financeiro
 import PerfilProfissional from "./pages/PerfilProfissional";
 import PerfilProfissionalPublico from "./pages/PerfilProfissionalPublico";
 import ClinicSettings from "./pages/ClinicSettings";
@@ -45,7 +45,7 @@ import MensagensInternas from "./pages/MensagensInternas";
 import PacienteAccess from "./pages/PacienteAccess";
 import SolicitacoesAlteracao from "./pages/SolicitacoesAlteracao";
 import FormasPagamento from "./pages/FormasPagamento";
-import Despesas from "./pages/Despesas";
+// Despesas is now a tab inside Financeiro
 
 const queryClient = new QueryClient();
 
@@ -91,7 +91,6 @@ const App = () => (
               <Route path="/matriculas" element={<Matriculas />} />
               <Route path="/produtos" element={<Produtos />} />
               <Route path="/financeiro" element={<Financeiro />} />
-              <Route path="/despesas" element={<Despesas />} />
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/aniversariantes" element={<Aniversariantes />} />
               <Route path="/modalidades" element={<Modalidades />} />
@@ -102,7 +101,7 @@ const App = () => (
               <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
               <Route path="/contratos" element={<Contratos />} />
               <Route path="/precos-planos" element={<PrecosPlanos />} />
-              <Route path="/comissoes" element={<Comissoes />} />
+              <Route path="/comissoes" element={<Financeiro />} />
               <Route path="/perfil-profissional" element={<PerfilProfissional />} />
               <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
               <Route path="/clinica" element={<ClinicSettings />} />

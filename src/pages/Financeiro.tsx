@@ -24,6 +24,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
+import Despesas from "./Despesas";
+import Comissoes from "./Comissoes";
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pago: { label: "Pago", variant: "default" },
@@ -189,10 +191,11 @@ const Financeiro = () => {
       {/* Tabs */}
       <Tabs defaultValue="fluxo" className="space-y-4">
         {!isPatient && (
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[560px]">
             <TabsTrigger value="fluxo">Pagamentos</TabsTrigger>
-            <TabsTrigger value="dre">DRE Simples</TabsTrigger>
+            <TabsTrigger value="despesas">Despesas</TabsTrigger>
             <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+            <TabsTrigger value="dre">DRE Simples</TabsTrigger>
           </TabsList>
         )}
 
@@ -312,41 +315,12 @@ const Financeiro = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="despesas" className="space-y-4">
+          <Despesas />
+        </TabsContent>
+
         <TabsContent value="comissoes" className="space-y-4">
-          <Card>
-            <CardContent className="p-0">
-              {(comissoes || []).length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground">Nenhuma comissão gerada ainda.</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Profissional</TableHead>
-                      <TableHead>Paciente</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Valor Comissão</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(comissoes || []).map((c: any) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.profiles?.nome}</TableCell>
-                        <TableCell>{c.agendamentos?.pacientes?.nome || "—"}</TableCell>
-                        <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
-                        <TableCell>R$ {Number(c.valor).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant={c.status === "pago" ? "outline" : "secondary"}>
-                            {c.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <Comissoes />
         </TabsContent>
       </Tabs>
 

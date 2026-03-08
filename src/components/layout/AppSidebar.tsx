@@ -62,7 +62,6 @@ const menuGestao = [
   { title: "Profissionais", url: "/profissionais", icon: UserCog },
   { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Comissões", url: "/comissoes", icon: Calculator },
 ];
 
 const menuAnalises = [
