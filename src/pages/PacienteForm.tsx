@@ -781,6 +781,35 @@ const PacienteForm = () => {
           </CardContent>
         </Card>
 
+        {/* LGPD Consent */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <div>
+                  <CardTitle className="text-lg">Consentimento LGPD</CardTitle>
+                  <CardDescription>Lei Geral de Proteção de Dados Pessoais</CardDescription>
+                </div>
+              </div>
+              <Switch checked={lgpdConsentimento} onCheckedChange={setLgpdConsentimento} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Ao ativar, o paciente declara que autoriza a coleta, armazenamento e processamento
+              de seus dados pessoais e de saúde para fins de atendimento clínico, conforme a
+              Lei nº 13.709/2018 (LGPD). Os dados serão utilizados exclusivamente para
+              prontuário eletrônico, agendamentos e comunicação relacionada ao tratamento.
+            </p>
+            {lgpdConsentimento && (
+              <p className="text-xs text-green-600 mt-2 font-medium">
+                ✓ Consentimento registrado
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="flex gap-3 justify-end pb-12">
           <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
           <Button type="submit" disabled={loading || !nome.trim() || !telefone.trim()}>
