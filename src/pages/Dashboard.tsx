@@ -6,6 +6,7 @@ import {
   CalendarCheck, Clock, TrendingUp, Lightbulb, PartyPopper,
   CheckCircle2, XCircle, RefreshCw, MessageCircle
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -136,6 +137,38 @@ const Dashboard = () => {
       const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
+    },
+  });
+
+  // Monthly sessions chart data (last 6 months)
+  const { data: monthlyChart = [] } = useQuery({
+    queryKey: ["dashboard-monthly-chart"],
+    queryFn: async () => {
+      const months: { label: string; start: string; end: string }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        months.push({
+          label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+          start: d.toISOString().split("T")[0],
+          end: end.toISOString().split("T")[0],
+        });
+      }
+      const results = [];
+      for (const m of months) {
+        const { data } = await (supabase.from("agendamentos") as any)
+          .select("status")
+          .gte("data_horario", `${m.start}T00:00:00`)
+          .lte("data_horario", `${m.end}T23:59:59`);
+        const all = data || [];
+        results.push({
+          mes: m.label,
+          realizadas: all.filter((a: any) => a.status === "realizado").length,
+          faltas: all.filter((a: any) => a.status === "falta").length,
+          canceladas: all.filter((a: any) => a.status === "cancelado").length,
+        });
+      }
+      return results;
     },
   });
   // Ranking de frequência - pacientes que menos cancelam
@@ -424,6 +457,31 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* Monthly Chart */}
+      {monthlyChart.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Sessões por Mês (Últimos 6 meses)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={monthlyChart}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip />
+                <Bar dataKey="realizadas" name="Realizadas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="faltas" name="Faltas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="canceladas" name="Canceladas" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
