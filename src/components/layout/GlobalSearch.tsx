@@ -47,7 +47,7 @@ export function GlobalSearch() {
       const items: SearchResult[] = [];
 
       // Search patients (including legal guardian data)
-      const { data: pacientes } = await (supabase.from("pacientes") as any)
+      const { data: pacientes } = await supabase.from("pacientes")
         .select("id, nome, cpf, telefone, responsavel_nome, responsavel_cpf, responsavel_telefone")
         .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%,responsavel_nome.ilike.%${q}%,responsavel_cpf.ilike.%${q}%,responsavel_telefone.ilike.%${q}%`)
         .limit(5);
