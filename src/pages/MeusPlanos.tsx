@@ -39,14 +39,14 @@ const MeusPlanos = () => {
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
   const [selectedProfId, setSelectedProfId] = useState("");
 
-  // All professionals for selection
+  // All professionals for selection — query profiles directly (patients can read profiles)
   const { data: allProfissionais = [] } = useQuery({
     queryKey: ["all-prof-for-scheduling"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
-      const ids = roles?.map(r => r.user_id) ?? [];
-      if (!ids.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, nome")
+        .order("nome");
       return data ?? [];
     },
   });
