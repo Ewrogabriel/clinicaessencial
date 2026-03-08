@@ -285,7 +285,7 @@ const Dashboard = () => {
       yesterday.setDate(yesterday.getDate() - 1);
       const pastStart = startOfDay(yesterday).toISOString();
       const pastEnd = endOfDay(yesterday).toISOString();
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("*, pacientes(nome, telefone)")
         .gte("data_horario", pastStart)
         .lte("data_horario", pastEnd)
