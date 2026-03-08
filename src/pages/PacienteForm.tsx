@@ -104,11 +104,11 @@ const PacienteForm = () => {
   useEffect(() => {
     if (id) {
       setLoadingData(true);
-      (supabase.from("pacientes") as any)
+      supabase.from("pacientes")
         .select("*")
         .eq("id", id)
         .single()
-        .then(({ data, error }: any) => {
+        .then(({ data, error }) => {
           if (error || !data) {
             toast({ title: "Paciente não encontrado", variant: "destructive" });
             navigate("/pacientes");
