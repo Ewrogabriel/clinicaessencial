@@ -47,8 +47,9 @@ const AvisosAdmin = () => {
       titulo,
       mensagem,
       ativo: true,
-      created_by: user.id
-    });
+      created_by: user.id,
+      image_url: imageUrl || null,
+    } as any);
 
     if (error) {
        toast({ title: "Erro ao publicar aviso", description: error.message, variant: "destructive" });
