@@ -127,29 +127,33 @@ const RESOURCE_LABELS: Record<string, string> = {
 };
 
 /* ── Admin full menus ── */
-const menuPrincipal = [
+const menuAtendimento = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Agenda", url: "/agenda", icon: Calendar },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
+  { title: "Matrículas", url: "/matriculas", icon: Receipt },
 ];
 
-const menuServicos = [
-  { title: "Modalidades", url: "/modalidades", icon: Layers },
+const menuEquipe = [
   { title: "Profissionais", url: "/profissionais", icon: UserCog },
   { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
+  { title: "Comissões", url: "/comissoes", icon: Calculator },
 ];
 
 const menuFinanceiro = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Matrículas", url: "/matriculas", icon: Receipt },
-  { title: "Planos", url: "/planos", icon: ClipboardList },
-  { title: "Produtos", url: "/produtos", icon: Tag },
-  { title: "Comissões", url: "/comissoes", icon: Calculator },
-  { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
   { title: "Despesas", url: "/despesas", icon: Receipt },
-  { title: "Contratos", url: "/contratos", icon: FileText },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+];
+
+const menuCatalogo = [
+  { title: "Modalidades", url: "/modalidades", icon: Layers },
+  { title: "Planos", url: "/planos", icon: ClipboardList },
+  { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
+  { title: "Produtos", url: "/produtos", icon: Tag },
+  { title: "Contratos", url: "/contratos", icon: FileText },
+  { title: "Formas de Pagamento", url: "/formas-pagamento", icon: Wallet },
 ];
 
 const menuComunicacao = [
@@ -157,7 +161,9 @@ const menuComunicacao = [
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
   { title: "Aniversariantes", url: "/aniversariantes", icon: Cake },
   { title: "Solicitações", url: "/solicitacoes-alteracao", icon: FileCheck },
-  { title: "Formas de Pagamento", url: "/formas-pagamento", icon: Wallet },
+];
+
+const menuConfiguracao = [
   { title: "Dados da Clínica", url: "/clinica", icon: Activity },
 ];
 
@@ -269,10 +275,12 @@ export function AppSidebar() {
       <SidebarContent>
         {(isAdmin || isGestor) ? (
           <>
-            {renderGroup("Principal", menuPrincipal)}
-            {renderGroup("Serviços", menuServicos)}
-            {renderGroup("Financeiro & Gestão", menuFinanceiro)}
+            {renderGroup("Atendimento", menuAtendimento)}
+            {renderGroup("Equipe", menuEquipe)}
+            {renderGroup("Financeiro", menuFinanceiro)}
+            {renderGroup("Catálogo", menuCatalogo)}
             {renderGroup("Comunicação", menuComunicacao)}
+            {renderGroup("Configurações", menuConfiguracao)}
             {renderGroup("IA & Automação", menuIA)}
             {isProfissional && (
               renderGroup("Meu Perfil Profissional", [
