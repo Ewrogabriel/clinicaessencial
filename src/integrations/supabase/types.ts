@@ -242,6 +242,27 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_parceiros: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       clinic_settings: {
         Row: {
           bairro: string | null
@@ -381,6 +402,7 @@ export type Database = {
       convenios: {
         Row: {
           ativo: boolean
+          categoria: string | null
           created_at: string
           created_by: string
           descricao: string | null
@@ -398,6 +420,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          categoria?: string | null
           created_at?: string
           created_by: string
           descricao?: string | null
@@ -415,6 +438,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          categoria?: string | null
           created_at?: string
           created_by?: string
           descricao?: string | null
@@ -657,6 +681,8 @@ export type Database = {
       }
       fechamentos_comissao: {
         Row: {
+          bonus_descricao: string | null
+          bonus_valor: number
           compensacao_anterior: number
           created_at: string
           descricao_compensacao: string | null
@@ -672,6 +698,8 @@ export type Database = {
           valor_final: number
         }
         Insert: {
+          bonus_descricao?: string | null
+          bonus_valor?: number
           compensacao_anterior?: number
           created_at?: string
           descricao_compensacao?: string | null
@@ -687,6 +715,8 @@ export type Database = {
           valor_final?: number
         }
         Update: {
+          bonus_descricao?: string | null
+          bonus_valor?: number
           compensacao_anterior?: number
           created_at?: string
           descricao_compensacao?: string | null
