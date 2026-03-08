@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isGestor = roles.includes("gestor");
   const isPatient = roles.includes("paciente");
   const isProfissional = roles.includes("profissional");
-  const clinicId = profile?.clinic_id || null;
+  const clinicId = (profile as any)?.clinic_id || null;
 
   return (
     <AuthContext.Provider
