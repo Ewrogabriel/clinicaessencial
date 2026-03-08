@@ -148,9 +148,12 @@ const AvisosAdmin = () => {
                        {format(new Date(aviso.created_at), "dd/MM/yyyy HH:mm")}
                      </span>
                    </div>
-                   <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">
-                     {aviso.mensagem}
-                   </p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
+                      {aviso.mensagem}
+                    </p>
+                    {(aviso as any).image_url && (
+                      <img src={(aviso as any).image_url} alt={aviso.titulo} className="rounded-lg max-h-48 object-cover mb-3" />
+                    )}
                    <div className="flex items-center gap-2 justify-end">
                      <Button 
                        variant={aviso.ativo ? "outline" : "secondary"} 
