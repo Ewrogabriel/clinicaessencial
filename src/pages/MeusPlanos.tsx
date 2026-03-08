@@ -233,6 +233,7 @@ const MeusPlanos = () => {
 
   const openAgendar = (plano: any) => {
     setSelectedPlano(plano);
+    setSelectedProfId(plano.profissional_id);
     setSelectedDate(undefined);
     setSelectedTime("");
     setAvailabilityResult(null);
