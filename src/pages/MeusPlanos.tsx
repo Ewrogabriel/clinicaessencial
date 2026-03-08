@@ -156,29 +156,30 @@ const MeusPlanos = () => {
       const dataHorario = new Date(selectedDate);
       dataHorario.setHours(h, m, 0, 0);
 
-      // Create the appointment
-      const { error } = await supabase.from("agendamentos").insert({
+      // Create the appointment with "pendente" status
+      const { data: agendamento, error } = await supabase.from("agendamentos").insert({
         paciente_id: patientId,
         profissional_id: selectedPlano.profissional_id,
         data_horario: dataHorario.toISOString(),
         duracao_minutos: parseInt(duracao),
         tipo_atendimento: selectedPlano.tipo_atendimento,
         tipo_sessao: "individual",
-        status: "agendado",
+        status: "pendente" as any,
         observacoes: `plano:${selectedPlano.id}`,
         created_by: user!.id,
-      });
+      }).select("id").single();
       if (error) throw error;
 
-      // Notify admin
+      // Notify admin with agendamento_id in metadata
       const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (admins && admins.length > 0) {
         await supabase.from("notificacoes").insert(
           admins.map((a) => ({
             user_id: a.user_id,
             tipo: "agendamento_plano",
-            titulo: "Agendamento via plano",
+            titulo: "Solicitação de agendamento",
             resumo: `Paciente solicitou agendamento para ${format(dataHorario, "dd/MM HH:mm")}`,
+            metadata: { agendamento_id: agendamento.id, paciente_id: patientId },
             link: "/agenda",
           }))
         );
@@ -191,7 +192,7 @@ const MeusPlanos = () => {
       setSelectedDate(undefined);
       setSelectedTime("");
       setAvailabilityResult(null);
-      toast({ title: "Sessão agendada com sucesso!" });
+      toast({ title: "Solicitação enviada!", description: "Aguarde a aprovação do administrador." });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });

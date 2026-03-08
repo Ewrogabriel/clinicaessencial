@@ -45,8 +45,11 @@ export const PatientAgendaTab = ({
                         {format(new Date(item.data_horario), "HH:mm")}
                       </p>
                     </div>
-                    <Badge variant={item.status === 'confirmado' ? 'default' : 'secondary'} className="capitalize">
-                      {item.status}
+                    <Badge variant={
+                      item.status === 'confirmado' ? 'default' :
+                      item.status === 'pendente' ? 'outline' : 'secondary'
+                    } className={`capitalize ${item.status === 'pendente' ? 'border-amber-500 text-amber-600' : ''}`}>
+                      {item.status === 'pendente' ? '⏳ Pendente' : item.status}
                     </Badge>
                   </div>
 
@@ -66,27 +69,34 @@ export const PatientAgendaTab = ({
                     </Button>
                   </div>
 
-                  <div className="flex gap-2">
-                    {item.status === "agendado" && (
-                      <Button size="sm" className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
-                        onClick={() => updateSessionStatus.mutate({ id: item.id, status: "confirmado" })}>
-                        <CheckCircle2 className="h-4 w-4" /> Confirmar
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" className="flex-1 gap-2"
-                      disabled={solicitacoes.some((s: any) => s.agendamento_id === item.id)}
-                      onClick={() => onReschedule(item)}>
-                      {solicitacoes.some((s: any) => s.agendamento_id === item.id) ? (
-                        <><Hourglass className="h-4 w-4" /> Pendente</>
-                      ) : (
-                        <><RefreshCw className="h-4 w-4" /> {item.status === "cancelado" || item.status === "falta" ? "Remarcar" : "Reagendar"}</>
+                  {item.status === "pendente" ? (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                      <Hourglass className="h-4 w-4" />
+                      <span>Aguardando aprovação do administrador</span>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      {item.status === "agendado" && (
+                        <Button size="sm" className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                          onClick={() => updateSessionStatus.mutate({ id: item.id, status: "confirmado" })}>
+                          <CheckCircle2 className="h-4 w-4" /> Confirmar
+                        </Button>
                       )}
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 gap-2"
-                      onClick={() => updateSessionStatus.mutate({ id: item.id, status: "cancelado" })}>
-                      <XCircle className="h-4 w-4" /> Cancelar
-                    </Button>
-                  </div>
+                      <Button size="sm" variant="outline" className="flex-1 gap-2"
+                        disabled={solicitacoes.some((s: any) => s.agendamento_id === item.id)}
+                        onClick={() => onReschedule(item)}>
+                        {solicitacoes.some((s: any) => s.agendamento_id === item.id) ? (
+                          <><Hourglass className="h-4 w-4" /> Pendente</>
+                        ) : (
+                          <><RefreshCw className="h-4 w-4" /> {item.status === "cancelado" || item.status === "falta" ? "Remarcar" : "Reagendar"}</>
+                        )}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 gap-2"
+                        onClick={() => updateSessionStatus.mutate({ id: item.id, status: "cancelado" })}>
+                        <XCircle className="h-4 w-4" /> Cancelar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
