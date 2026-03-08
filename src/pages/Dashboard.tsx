@@ -375,38 +375,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Destaque: Dicas do Dia */}
-      {dailyTips.length > 0 && (
-        <div className={cn("grid gap-4", dailyTips.length > 1 ? "lg:grid-cols-2" : "grid-cols-1")}>
-          {dailyTips.map((tip: any) => (
-            <Card key={tip.id} className={cn(
-              "text-white border-none shadow-xl overflow-hidden relative group",
-              tip.target_role === 'paciente'
-                ? "bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700"
-                : "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700"
-            )}>
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                <Lightbulb className="h-32 w-32" />
-              </div>
-              <CardHeader className="pb-2 relative z-10">
-                <CardTitle className="text-lg flex items-center gap-2 font-medium text-white/90">
-                  <Lightbulb className={cn("h-5 w-5", tip.target_role === 'paciente' ? "text-yellow-200 fill-yellow-200" : "text-yellow-300 fill-yellow-300")} />
-                  {tip.target_role === 'paciente' ? "Dica para Pacientes" : "Dica de Produtividade"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 pb-8">
-                <h3 className="font-bold text-2xl mb-2 tracking-tight">{tip.titulo}</h3>
-                <p className="text-white/90 text-lg max-w-2xl leading-relaxed">"{tip.conteudo}"</p>
-                {dailyTips.length > 1 && (
-                  <Badge variant="outline" className="mt-4 border-white/30 text-white bg-white/10 capitalize">
-                    Público: {tip.target_role}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Dicas do Dia - AI powered */}
+      <DailyTipsCard tipo={tipRole} />
 
       {/* Birthdays - compact in the top row if present */}
       {birthdays.length > 0 && (
