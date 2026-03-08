@@ -216,7 +216,7 @@ const Comissoes = () => {
 
   // Commission calculation using rules
   const calcSummary = () => {
-    const summary: Record<string, { nome: string; userId: string; totalAtendimentos: number; totalValor: number; comissao: number; regras: any[] }> = {};
+    const summary: Record<string, { nome: string; userId: string; totalAtendimentos: number; realizados: number; totalValor: number; comissao: number; regras: any[] }> = {};
     profissionais.forEach((p: any) => {
       const profRegras = regrasComissao.filter((r: any) => r.profissional_id === p.user_id && r.ativo);
       const atendimentos = agendamentos.filter((a: any) => a.profissional_id === p.user_id);
