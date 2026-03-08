@@ -6,6 +6,25 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PROMPTS: Record<string, string> = {
+  paciente: `Você é um especialista em saúde, pilates e fisioterapia. Gere exatamente 3 dicas práticas e originais para pacientes de uma clínica de fisioterapia e pilates. 
+As dicas devem ser sobre: saúde, bem-estar, postura, exercícios em casa, alimentação pré/pós treino, hidratação, respiração, ou recuperação.
+Responda APENAS em JSON válido com este formato exato (sem markdown):
+[{"titulo":"...","conteudo":"...","categoria":"Saúde|Pilates|Bem-estar|Exercícios"}]`,
+  profissional: `Você é um consultor de gestão de clínicas de fisioterapia e pilates. Gere exatamente 3 dicas práticas e originais para profissionais da área (fisioterapeutas, instrutores de pilates).
+As dicas devem ser sobre: comunicação com pacientes, técnicas de ensino, postura profissional, fidelização, atualização profissional, ou liderança clínica.
+Responda APENAS em JSON válido com este formato exato (sem markdown):
+[{"titulo":"...","conteudo":"...","categoria":"Comportamento|Técnica|Profissionalismo|Gestão"}]`,
+  admin: `Você é um consultor de gestão de clínicas de fisioterapia e pilates. Gere exatamente 3 dicas práticas e originais para administradores e gestores de clínica.
+As dicas devem ser sobre: gestão financeira, indicadores de desempenho, retenção de pacientes, liderança de equipe, marketing clínico, ou otimização de processos.
+Responda APENAS em JSON válido com este formato exato (sem markdown):
+[{"titulo":"...","conteudo":"...","categoria":"Gestão|Técnica|Profissionalismo|Comportamento"}]`,
+  secretario: `Você é um consultor de gestão de clínicas de fisioterapia e pilates. Gere exatamente 3 dicas práticas e originais para secretários(as) e recepcionistas de clínica.
+As dicas devem ser sobre: atendimento ao paciente, organização de agenda, comunicação telefônica, acolhimento, gestão de documentos, ou resolução de conflitos.
+Responda APENAS em JSON válido com este formato exato (sem markdown):
+[{"titulo":"...","conteudo":"...","categoria":"Atendimento|Organização|Comportamento|Gestão"}]`,
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +54,7 @@ Deno.serve(async (req) => {
     }
 
     const { tipo } = await req.json();
-    const isPaciente = tipo === "paciente";
+    const validTipo = PROMPTS[tipo] ? tipo : "profissional";
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
@@ -50,17 +69,7 @@ Deno.serve(async (req) => {
       (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
     );
 
-    const systemPrompt = isPaciente
-      ? `Você é um especialista em saúde, pilates e fisioterapia. Gere exatamente 3 dicas práticas e originais para pacientes de uma clínica de fisioterapia e pilates. 
-As dicas devem ser sobre: saúde, bem-estar, postura, exercícios em casa, alimentação pré/pós treino, hidratação, respiração, ou recuperação.
-Use o número ${dayOfYear} como seed para variar as dicas a cada dia.
-Responda APENAS em JSON válido com este formato exato (sem markdown):
-[{"titulo":"...","conteudo":"...","categoria":"Saúde|Pilates|Bem-estar|Exercícios"}]`
-      : `Você é um consultor de gestão de clínicas de fisioterapia e pilates. Gere exatamente 3 dicas práticas e originais para profissionais da área.
-As dicas devem ser sobre: comunicação com pacientes, técnicas de ensino, postura profissional, gestão do tempo, fidelização, atualização profissional, ou liderança.
-Use o número ${dayOfYear} como seed para variar as dicas a cada dia.
-Responda APENAS em JSON válido com este formato exato (sem markdown):
-[{"titulo":"...","conteudo":"...","categoria":"Comportamento|Técnica|Profissionalismo|Gestão"}]`;
+    const systemPrompt = PROMPTS[validTipo] + `\nUse o número ${dayOfYear} como seed para variar as dicas a cada dia.`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -84,10 +93,8 @@ Responda APENAS em JSON válido com este formato exato (sem markdown):
 
     const result = await response.json();
     let content = result.choices?.[0]?.message?.content || "[]";
-    
-    // Clean markdown wrapping if present
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    
+
     let dicas;
     try {
       dicas = JSON.parse(content);

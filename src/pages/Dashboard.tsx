@@ -6,6 +6,7 @@ import {
   CalendarCheck, Clock, TrendingUp, Lightbulb, PartyPopper,
   CheckCircle2, XCircle, RefreshCw, MessageCircle
 } from "lucide-react";
+import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +41,7 @@ const tipoLabels: Record<string, string> = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { profile, isAdmin, isGestor, loading } = useAuth();
+  const { profile, isAdmin, isGestor, isProfissional, isSecretario, loading } = useAuth();
   const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -198,14 +199,8 @@ const Dashboard = () => {
     },
   });
 
-  // Daily tips for professionals - simulated based on day
-  const dicasProfissional = [
-    { id: 1, titulo: "Comunicação Efetiva com Pacientes", conteudo: "Sempre explique o motivo de cada exercício. Pacientes que entendem os benefícios têm maior adesão ao tratamento.", target_role: "profissional" },
-    { id: 2, titulo: "Limite de Uso de Celular", conteudo: "Durante as aulas, minimize o uso de celular. Sua atenção integral cria um ambiente mais profissional e seguro.", target_role: "profissional" },
-    { id: 3, titulo: "Postura Correta no Ensino", conteudo: "Demonstre os exercícios com postura perfeita. Você é um modelo para seus pacientes.", target_role: "profissional" },
-    { id: 4, titulo: "Feedback Positivo", conteudo: "Reconheça o progresso dos pacientes, mesmo pequeno. Feedback positivo aumenta a motivação.", target_role: "profissional" },
-  ];
-  const dailyTips = [dicasProfissional[new Date().getDate() % dicasProfissional.length]];
+  // Role-based tip type
+  const tipRole = isAdmin ? "admin" : isGestor ? "admin" : isSecretario ? "secretario" : "profissional";
 
   // Upcoming Birthdays
   const birthdays: any[] = []; // get_upcoming_birthdays RPC not yet created
@@ -380,38 +375,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Destaque: Dicas do Dia */}
-      {dailyTips.length > 0 && (
-        <div className={cn("grid gap-4", dailyTips.length > 1 ? "lg:grid-cols-2" : "grid-cols-1")}>
-          {dailyTips.map((tip: any) => (
-            <Card key={tip.id} className={cn(
-              "text-white border-none shadow-xl overflow-hidden relative group",
-              tip.target_role === 'paciente'
-                ? "bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700"
-                : "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700"
-            )}>
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                <Lightbulb className="h-32 w-32" />
-              </div>
-              <CardHeader className="pb-2 relative z-10">
-                <CardTitle className="text-lg flex items-center gap-2 font-medium text-white/90">
-                  <Lightbulb className={cn("h-5 w-5", tip.target_role === 'paciente' ? "text-yellow-200 fill-yellow-200" : "text-yellow-300 fill-yellow-300")} />
-                  {tip.target_role === 'paciente' ? "Dica para Pacientes" : "Dica de Produtividade"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 pb-8">
-                <h3 className="font-bold text-2xl mb-2 tracking-tight">{tip.titulo}</h3>
-                <p className="text-white/90 text-lg max-w-2xl leading-relaxed">"{tip.conteudo}"</p>
-                {dailyTips.length > 1 && (
-                  <Badge variant="outline" className="mt-4 border-white/30 text-white bg-white/10 capitalize">
-                    Público: {tip.target_role}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Dicas do Dia - AI powered */}
+      <DailyTipsCard tipo={tipRole} />
 
       {/* Birthdays - compact in the top row if present */}
       {birthdays.length > 0 && (

@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { useClinicSettings } from "@/hooks/useClinicSettings";
 import { toast } from "@/hooks/use-toast";
 import { Lightbulb, RefreshCw } from "lucide-react";
+import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { PatientAgendaTab } from "@/components/patient/PatientAgendaTab";
@@ -267,13 +268,7 @@ const PatientDashboard = () => {
   const planoVencimento = planoAtivo?.data_vencimento ? new Date(planoAtivo.data_vencimento) : null;
   const diasParaVencer = planoVencimento ? differenceInDays(planoVencimento, hoje) : null;
 
-  const dicasPaciente = [
-    { titulo: "Hidratação e Bem-estar", conteudo: "Beba pelo menos 2 litros de água por dia para melhorar a flexibilidade muscular." },
-    { titulo: "Respiração Correta", conteudo: "Inspire pelo nariz e expire pela boca durante os exercícios de pilates." },
-    { titulo: "Postura no Dia a Dia", conteudo: "Mantenha a coluna reta ao sentar para reduzir dores nas costas." },
-    { titulo: "Alimentação Pré-aula", conteudo: "Evite refeições pesadas 2 horas antes da aula." },
-  ];
-  const dailyTip = dicasPaciente[hoje.getDate() % dicasPaciente.length];
+  // Static tips removed - using AI-powered DailyTipsCard instead
 
   const openWhatsAppClinic = () => {
     const whatsapp = clinicSettings?.whatsapp?.replace(/\D/g, "") || "";
@@ -310,21 +305,8 @@ const PatientDashboard = () => {
         </Button>
       </div>
 
-      {/* Daily Tip */}
-      <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none shadow-lg overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Lightbulb className="h-24 w-24" />
-        </div>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2 text-primary-foreground">
-            <Lightbulb className="h-5 w-5" /> Dica do Dia
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <h3 className="font-bold text-xl mb-1">{dailyTip.titulo}</h3>
-          <p className="opacity-90 italic text-sm">"{dailyTip.conteudo}"</p>
-        </CardContent>
-      </Card>
+      {/* Dicas do Dia - AI powered */}
+      <DailyTipsCard tipo="paciente" />
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
