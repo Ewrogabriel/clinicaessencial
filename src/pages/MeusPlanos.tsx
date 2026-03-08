@@ -4,7 +4,7 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, CreditCard, FileText, CalendarPlus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getMonthlyAvailability, getAvailableSlots, checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
+import { getMonthlyAvailability, checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
