@@ -75,9 +75,8 @@ serve(async (req) => {
       newUserId = authData.user.id;
     }
 
-    const newUserId = authData.user.id;
-
-    await adminClient.from("profiles").update({
+    await adminClient.from("profiles").upsert({
+      user_id: newUserId,
       nome, email,
       telefone: telefone || null,
       especialidade: especialidade || null,
