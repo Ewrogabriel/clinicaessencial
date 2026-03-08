@@ -106,6 +106,7 @@ const menuPatient = [
   { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
   { title: "Meus Planos", url: "/meus-planos", icon: ClipboardList },
   { title: "Histórico", url: "/meu-historico", icon: ClipboardList },
+  { title: "Prontuário", url: "/prontuarios", icon: Stethoscope },
   { title: "Pagamentos", url: "/meus-pagamentos", icon: CreditCard },
   { title: "Parceiros", url: "/convenios", icon: Handshake },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
