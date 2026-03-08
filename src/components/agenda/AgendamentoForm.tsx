@@ -102,7 +102,7 @@ interface AgendamentoFormProps {
 }
 
 export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: AgendamentoFormProps) {
-  const { user, clinicId } = useAuth();
+  const { user } = useAuth();
   const { activeClinicId } = useClinic();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);

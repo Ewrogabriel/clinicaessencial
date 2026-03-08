@@ -104,7 +104,7 @@ const PatientDispatchRow = ({
 };
 
 const Automacoes = () => {
-  const { clinicId } = useAuth();
+  const _unused = useAuth(); // keep auth context
 
   const [searchPatient, setSearchPatient] = useState("");
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);

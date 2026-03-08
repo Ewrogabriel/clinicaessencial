@@ -16,7 +16,7 @@ import { ChurnPrediction } from "@/components/intelligence/ChurnPrediction";
 import { OccupancyReport } from "@/components/intelligence/OccupancyReport";
 
 const Inteligencia = () => {
-  const { clinicId } = useAuth();
+  const _unused = useAuth();
   const [aiInsights, setAiInsights] = useState<string | null>(null);
 
   const { data: insights, isLoading } = useQuery({

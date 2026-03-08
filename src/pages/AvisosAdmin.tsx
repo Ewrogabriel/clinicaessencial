@@ -12,9 +12,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { useClinic } from "@/hooks/useClinic";
 
 const AvisosAdmin = () => {
   const { user } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
@@ -22,12 +24,11 @@ const AvisosAdmin = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: avisos = [], isLoading } = useQuery({
-    queryKey: ["admin-avisos"],
+    queryKey: ["admin-avisos", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avisos")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("avisos").select("*");
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -49,6 +50,7 @@ const AvisosAdmin = () => {
       ativo: true,
       created_by: user.id,
       image_url: imageUrl || null,
+      clinic_id: activeClinicId,
     } as any);
 
     if (error) {

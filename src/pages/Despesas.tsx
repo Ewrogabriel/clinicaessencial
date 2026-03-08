@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Plus, Search, Trash2, Filter, Receipt, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,11 +31,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { useClinic } from "@/hooks/useClinic";
 
 const categorias = ["aluguel", "luz", "agua", "internet", "limpeza", "pessoal", "impostos", "insumos", "marketing", "outros"];
 
 const Despesas = () => {
-    const { clinicId } = useAuth();
+    const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
     const [busca, setBusca] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,12 +51,11 @@ const Despesas = () => {
     });
 
     const { data: despesas = [], isLoading } = useQuery({
-        queryKey: ["despesas"],
+        queryKey: ["despesas", activeClinicId],
         queryFn: async () => {
-            const { data, error } = await (supabase
-                .from("expenses")
-                .select("*")
-                .order("data_vencimento", { ascending: false }) as any);
+            let query = (supabase.from("expenses") as any).select("*");
+            if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+            const { data, error } = await query.order("data_vencimento", { ascending: false });
             if (error) throw error;
             return data;
         },
@@ -65,7 +64,7 @@ const Despesas = () => {
     const createMutation = useMutation({
         mutationFn: async () => {
             const { error } = await (supabase.from("expenses") as any).insert({
-                clinic_id: crypto.randomUUID(),
+                clinic_id: activeClinicId,
                 descricao: formData.descricao,
                 valor: parseFloat(formData.valor),
                 data_vencimento: formData.data_vencimento,

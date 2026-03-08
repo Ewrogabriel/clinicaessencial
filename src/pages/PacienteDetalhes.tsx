@@ -28,7 +28,7 @@ import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { clinicId } = useAuth();
+    const _auth = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("prontuario");
     const [evolutionOpen, setEvolutionOpen] = useState(false);

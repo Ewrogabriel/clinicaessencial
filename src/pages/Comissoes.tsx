@@ -19,12 +19,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users, ArrowLeft } from "lucide-react";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 import { toast } from "@/hooks/use-toast";
-
+import { useClinic } from "@/hooks/useClinic";
 
 // Removed hardcoded TIPOS_ATENDIMENTO — now loaded from modalidades table
 
 const Comissoes = () => {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
+  const { activeClinicId } = useClinic();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canManage = isAdmin || isGestor;

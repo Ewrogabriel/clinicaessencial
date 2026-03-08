@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -21,7 +22,8 @@ interface EvolutionFormProps {
 }
 
 export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormProps) => {
-    const { user, clinicId } = useAuth();
+    const { user } = useAuth();
+    const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
     const [descricao, setDescricao] = useState("");
     const [conduta, setConduta] = useState("");
@@ -31,7 +33,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
             if (!user) throw new Error("Usuário não autenticado");
 
             const { error } = await (supabase.from("evolutions") as any).insert({
-                clinic_id: user.id,
+                clinic_id: activeClinicId,
                 paciente_id: pacienteId,
                 profissional_id: user.id,
                 descricao,

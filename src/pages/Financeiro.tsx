@@ -26,6 +26,7 @@ import { toast } from "@/hooks/use-toast";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import Despesas from "./Despesas";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
+import { useClinic } from "@/hooks/useClinic";
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pago: { label: "Pago", variant: "default" },
@@ -43,7 +44,8 @@ const formaLabel: Record<string, string> = {
 };
 
 const Financeiro = () => {
-  const { user, isPatient, clinicId } = useAuth();
+  const { user, isPatient } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [filterMes, setFilterMes] = useState("");
@@ -77,12 +79,12 @@ const Financeiro = () => {
   }
 
   const { data: pagamentos = [], isLoading } = useQuery<PagamentoRow[]>({
-    queryKey: ["pagamentos"],
+    queryKey: ["pagamentos", activeClinicId],
     queryFn: async () => {
-      const query = supabase
+      let query = supabase
         .from("pagamentos")
         .select("*, pacientes(nome)");
-
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
       const { data, error } = await query.order("data_pagamento", { ascending: false });
       if (error) throw error;
       return data;
@@ -133,6 +135,7 @@ const Financeiro = () => {
         descricao: formData.descricao || null,
         observacoes: formData.observacoes || null,
         created_by: user.id,
+        clinic_id: activeClinicId,
       });
       if (error) throw error;
     },

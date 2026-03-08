@@ -14,9 +14,11 @@ import { FileText, CheckCircle2, Search, Eye, Upload, Download, Send, RefreshCw,
 import { toast } from "@/hooks/use-toast";
 import { format, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useClinic } from "@/hooks/useClinic";
 
 const NotasFiscais = () => {
   const { user } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [mesRef, setMesRef] = useState(format(new Date(), "yyyy-MM"));
@@ -38,12 +40,12 @@ const NotasFiscais = () => {
   });
 
   const { data: emissoes = [] } = useQuery({
-    queryKey: ["emissoes-nf", mesRef],
+    queryKey: ["emissoes-nf", mesRef, activeClinicId],
     queryFn: async () => {
       const mesDate = `${mesRef}-01`;
-      const { data, error } = await (supabase.from("emissoes_nf") as any)
-        .select("*")
-        .eq("mes_referencia", mesDate);
+      let query = (supabase.from("emissoes_nf") as any).select("*").eq("mes_referencia", mesDate);
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -23,7 +24,8 @@ interface EvaluationFormProps {
 }
 
 export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFormProps) => {
-    const { user, clinicId } = useAuth();
+    const { user } = useAuth();
+    const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
 
     const [formData, setFormData] = useState({
@@ -39,7 +41,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
             if (!user) throw new Error("Usuário não autenticado");
 
             const { error } = await (supabase.from("evaluations") as any).insert({
-                clinic_id: user.id,
+                clinic_id: activeClinicId,
                 paciente_id: pacienteId,
                 profissional_id: user.id,
                 ...formData,
