@@ -350,6 +350,8 @@ const PacienteForm = () => {
         nf_endereco: solicitaNf ? nfEndereco || null : null,
         nf_inscricao_estadual: solicitaNf ? nfInscricaoEstadual || null : null,
         nf_email: solicitaNf ? nfEmail || null : null,
+        lgpd_consentimento: lgpdConsentimento,
+        lgpd_consentimento_data: lgpdConsentimento ? new Date().toISOString() : null,
       };
 
       let savedPatientId = id;
