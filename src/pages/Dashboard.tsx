@@ -247,7 +247,7 @@ const Dashboard = () => {
   const { data: pendingSessions = [] } = useQuery({
     queryKey: ["dashboard-pending-sessions", activeClinicId],
     queryFn: async () => {
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("id, data_horario, status, tipo_atendimento, pacientes(nome), observacoes")
         .eq("status", "pendente")
         .order("data_horario", { ascending: true })
