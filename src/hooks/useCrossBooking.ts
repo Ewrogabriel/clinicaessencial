@@ -19,7 +19,7 @@ export function useCrossBookingClinics(clinicId: string | null) {
 
       if (!myGroups?.length) return [clinicId];
 
-      const groupIds = myGroups.map((g: any) => g.group_id);
+      const groupIds = myGroups.map((g) => g.group_id);
 
       // Find all clinics in those groups with cross booking enabled
       const { data: linkedMembers } = await (supabase.from("clinic_group_members") as any)
