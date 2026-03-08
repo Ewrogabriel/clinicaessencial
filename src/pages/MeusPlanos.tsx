@@ -285,7 +285,7 @@ const MeusPlanos = () => {
                 </div>
               </div>
               <Progress
-                value={(planoAtivo.sessoes_utilizadas / planoAtivo.total_sessoes) * 100}
+                value={((planoAtivo.sessoes_utilizadas + sessoesAtivas.length) / planoAtivo.total_sessoes) * 100}
                 className="h-3"
               />
               <div className="grid grid-cols-2 gap-4 pt-2 border-t">
