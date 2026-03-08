@@ -551,6 +551,7 @@ export type Database = {
           emitida_por: string | null
           id: string
           mes_referencia: string
+          nf_pdf_url: string | null
           observacoes: string | null
           paciente_id: string
           updated_at: string
@@ -563,6 +564,7 @@ export type Database = {
           emitida_por?: string | null
           id?: string
           mes_referencia: string
+          nf_pdf_url?: string | null
           observacoes?: string | null
           paciente_id: string
           updated_at?: string
@@ -575,6 +577,7 @@ export type Database = {
           emitida_por?: string | null
           id?: string
           mes_referencia?: string
+          nf_pdf_url?: string | null
           observacoes?: string | null
           paciente_id?: string
           updated_at?: string
