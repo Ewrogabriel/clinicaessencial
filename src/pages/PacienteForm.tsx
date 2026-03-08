@@ -121,6 +121,9 @@ const PacienteForm = () => {
           setEmail(data.email || "");
           setDataNascimento(data.data_nascimento || "");
           setFotoUrl(data.foto_url || "");
+          setSexo(data.sexo || "");
+          setIdentidadeGenero(data.identidade_genero || "");
+          setNomeSocial(data.nome_social || "");
           setCep(data.cep || "");
           setRua(data.rua || "");
           setNumero(data.numero || "");
