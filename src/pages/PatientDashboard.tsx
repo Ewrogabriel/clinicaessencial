@@ -496,6 +496,9 @@ const PatientDashboard = () => {
         </Card>
       )}
 
+      {/* NPS Survey */}
+      {patientId && <NpsSurvey pacienteId={patientId} />}
+
       {/* Dicas do Dia */}
       <DailyTipsCard tipo="paciente" />
 

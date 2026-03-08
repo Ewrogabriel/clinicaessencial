@@ -167,7 +167,9 @@ const Financeiro = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
-        {!isPatient && (
+        <div className="flex gap-2">
+          {!isPatient && <FinanceExportButton pagamentos={pagamentos} />}
+          {!isPatient && (
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
             <DialogTrigger asChild>
               <Button>
