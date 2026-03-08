@@ -25,6 +25,11 @@ import { maskPhone, maskCPF, maskRG, maskCEP } from "@/lib/masks";
 import { ALL_RESOURCES, DEFAULT_PERMISSIONS } from "@/lib/resources";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 
+interface PermissionEntry {
+  resource: string;
+  access_level: "view" | "edit";
+}
+
 interface UserRecord {
   id: string;
   user_id: string;
@@ -49,7 +54,7 @@ interface UserRecord {
   cidade?: string | null;
   estado?: string | null;
   cep?: string | null;
-  permissions: string[];
+  permissions: PermissionEntry[];
 }
 
 const ROLE_LABELS: Record<string, string> = {
