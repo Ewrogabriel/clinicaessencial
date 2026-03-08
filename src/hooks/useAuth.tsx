@@ -18,6 +18,7 @@ interface AuthContextType {
   roles: AppRole[];
   permissions: PermissionEntry[];
   loading: boolean;
+  isMaster: boolean;
   isAdmin: boolean;
   isGestor: boolean;
   isPatient: boolean;
