@@ -363,6 +363,7 @@ const Matriculas = () => {
           status: "pendente",
           descricao: `Matrícula Mensal - ${formData.tipo_atendimento}`,
           created_by: user.id,
+          clinic_id: activeClinicId,
         });
       }
 
