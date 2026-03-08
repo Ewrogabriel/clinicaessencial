@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ChevronLeft, ChevronRight, FileDown, Filter } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, FileDown, Filter, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ type ViewMode = "diario" | "semanal" | "mensal";
 
 const Agenda = () => {
   const { user, isPatient, isAdmin, isGestor, clinicId } = useAuth();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
@@ -215,6 +217,10 @@ const Agenda = () => {
             <Button variant="outline" onClick={handleExportPDF}>
               <FileDown className="h-4 w-4 mr-2" />
               Exportar PDF
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/matriculas")}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Nova Matrícula
             </Button>
             <Button onClick={handleNewAgendamento}>
               <Plus className="h-4 w-4 mr-2" />
