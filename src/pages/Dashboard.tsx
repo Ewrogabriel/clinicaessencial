@@ -41,14 +41,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { profile, isAdmin, isGestor, loading } = useAuth();
   const queryClient = useQueryClient();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -57,6 +49,14 @@ const Dashboard = () => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes"],
