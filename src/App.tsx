@@ -44,6 +44,8 @@ import MensagensInternas from "./pages/MensagensInternas";
 import PacienteAccess from "./pages/PacienteAccess";
 import SolicitacoesAlteracao from "./pages/SolicitacoesAlteracao";
 import FormasPagamento from "./pages/FormasPagamento";
+import ProfessionalDashboard from "./pages/ProfessionalDashboard";
+import ListaEspera from "./pages/ListaEspera";
 // Despesas is now a tab inside Financeiro
 
 const queryClient = new QueryClient();
