@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, format, startOfDay, endOfDay, getDay } from "date-fns";
+import { addDays, format, getDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export interface SuggestedSlot {
   date: Date;
