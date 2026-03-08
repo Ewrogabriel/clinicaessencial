@@ -426,8 +426,16 @@ const Profissionais = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Gestão de Equipe</h1>
-        <p className="text-muted-foreground">Cadastre e configure acessos de profissionais, secretários e gestores</p>
+        <p className="text-muted-foreground">Cadastre, configure acessos e disponibilidade dos profissionais</p>
       </div>
+
+      <Tabs defaultValue="equipe" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsTrigger value="equipe">Equipe</TabsTrigger>
+          <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="equipe" className="space-y-4">
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
