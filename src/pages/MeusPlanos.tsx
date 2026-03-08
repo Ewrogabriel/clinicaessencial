@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Clock, AlertCircle, CheckCircle2, CreditCard, FileText, CalendarPlus } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, CreditCard, FileText, CalendarPlus, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getMonthlyAvailability, getAvailableSlots, checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -21,7 +24,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 
 const MeusPlanos = () => {
@@ -29,8 +31,13 @@ const MeusPlanos = () => {
   const queryClient = useQueryClient();
   const [agendarOpen, setAgendarOpen] = useState(false);
   const [selectedPlano, setSelectedPlano] = useState<any>(null);
-  const [dataHorario, setDataHorario] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState("");
   const [duracao, setDuracao] = useState("50");
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
 
   // Planos de sessões
   const { data: planos = [] } = useQuery({
@@ -78,21 +85,6 @@ const MeusPlanos = () => {
     enabled: matriculas.length > 0,
   });
 
-  // Disponibilidade do profissional for scheduling
-  const { data: disponibilidade = [] } = useQuery({
-    queryKey: ["disp-prof-agendar", selectedPlano?.profissional_id],
-    queryFn: async () => {
-      if (!selectedPlano?.profissional_id) return [];
-      const { data } = await supabase
-        .from("disponibilidade_profissional")
-        .select("*")
-        .eq("profissional_id", selectedPlano.profissional_id)
-        .eq("ativo", true)
-        .order("dia_semana");
-      return data || [];
-    },
-    enabled: !!selectedPlano?.profissional_id,
-  });
 
   // Sessions for selected plan
   const { data: sessoesPlan = [] } = useQuery({
@@ -110,19 +102,70 @@ const MeusPlanos = () => {
     enabled: !!selectedPlano?.id && !!patientId,
   });
 
+  // Fetch monthly availability when professional changes or month changes
+  useEffect(() => {
+    if (!selectedPlano?.profissional_id) {
+      setMonthlyAvail({});
+      return;
+    }
+    const fetchMonthly = async () => {
+      const result = await getMonthlyAvailability(
+        selectedPlano.profissional_id,
+        currentMonth.getFullYear(),
+        currentMonth.getMonth()
+      );
+      setMonthlyAvail(result);
+    };
+    fetchMonthly();
+  }, [selectedPlano?.profissional_id, currentMonth]);
+
+  // Fetch available slots when date is selected
+  useEffect(() => {
+    if (!selectedPlano?.profissional_id || !selectedDate) {
+      setAvailableSlots([]);
+      setSelectedTime("");
+      return;
+    }
+    const fetchSlots = async () => {
+      const slots = await getAvailableSlots(selectedPlano.profissional_id, selectedDate);
+      setAvailableSlots(slots);
+    };
+    fetchSlots();
+  }, [selectedPlano?.profissional_id, selectedDate]);
+
+  // Check availability when time is selected
+  useEffect(() => {
+    if (!selectedPlano?.profissional_id || !selectedDate || !selectedTime) {
+      setAvailabilityResult(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const [h, m] = selectedTime.split(":").map(Number);
+      const dt = new Date(selectedDate);
+      dt.setHours(h, m, 0, 0);
+      const result = await checkAvailability(selectedPlano.profissional_id, dt);
+      setAvailabilityResult(result);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [selectedPlano?.profissional_id, selectedDate, selectedTime]);
+
   const solicitarAgendamento = useMutation({
     mutationFn: async () => {
-      if (!dataHorario || !selectedPlano || !patientId) throw new Error("Dados incompletos");
+      if (!selectedDate || !selectedTime || !selectedPlano || !patientId) throw new Error("Dados incompletos");
       
       const sessoesAgendadas = sessoesPlan.filter((s: any) => ["agendado", "confirmado"].includes(s.status)).length;
       const restante = selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas;
       if (sessoesAgendadas >= restante) throw new Error("Sem créditos disponíveis");
 
+      const [h, m] = selectedTime.split(":").map(Number);
+      const dataHorario = new Date(selectedDate);
+      dataHorario.setHours(h, m, 0, 0);
+
       // Create the appointment
       const { error } = await supabase.from("agendamentos").insert({
         paciente_id: patientId,
         profissional_id: selectedPlano.profissional_id,
-        data_horario: new Date(dataHorario).toISOString(),
+        data_horario: dataHorario.toISOString(),
         duracao_minutos: parseInt(duracao),
         tipo_atendimento: selectedPlano.tipo_atendimento,
         tipo_sessao: "individual",
@@ -140,7 +183,7 @@ const MeusPlanos = () => {
             user_id: a.user_id,
             tipo: "agendamento_plano",
             titulo: "Agendamento via plano",
-            resumo: `Paciente solicitou agendamento para ${format(new Date(dataHorario), "dd/MM HH:mm")}`,
+            resumo: `Paciente solicitou agendamento para ${format(dataHorario, "dd/MM HH:mm")}`,
             link: "/agenda",
           }))
         );
@@ -150,7 +193,9 @@ const MeusPlanos = () => {
       queryClient.invalidateQueries({ queryKey: ["sessoes-plano-paciente"] });
       queryClient.invalidateQueries({ queryKey: ["meus-planos"] });
       setAgendarOpen(false);
-      setDataHorario("");
+      setSelectedDate(undefined);
+      setSelectedTime("");
+      setAvailabilityResult(null);
       toast({ title: "Sessão agendada com sucesso!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -159,7 +204,7 @@ const MeusPlanos = () => {
   const planoAtivo = planos.find((p: any) => p.status === "ativo");
   const matriculaAtiva = matriculas.find((m: any) => m.status === "ativa");
 
-  const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
 
   const statusPlano: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     ativo: { label: "Ativo", variant: "default" },
@@ -177,7 +222,9 @@ const MeusPlanos = () => {
 
   const openAgendar = (plano: any) => {
     setSelectedPlano(plano);
-    setDataHorario("");
+    setSelectedDate(undefined);
+    setSelectedTime("");
+    setAvailabilityResult(null);
     setAgendarOpen(true);
   };
 
@@ -419,7 +466,7 @@ const MeusPlanos = () => {
 
       {/* Agendar Dialog */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarPlus className="h-5 w-5 text-primary" />
@@ -434,27 +481,95 @@ const MeusPlanos = () => {
                 <p><strong>Créditos restantes:</strong> {selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas}</p>
               </div>
 
-              {disponibilidade.length > 0 && (
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Horários disponíveis do profissional:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {disponibilidade.map((d: any) => (
-                      <Badge key={d.id} variant="outline" className="text-xs">
-                        {diasSemana[d.dia_semana]} {d.hora_inicio}–{d.hora_fim}
-                      </Badge>
-                    ))}
-                  </div>
+              {/* Calendar with availability */}
+              <div>
+                <Label className="mb-2 block">Selecione a data</Label>
+                <Calendar
+                  mode="single"
+                  locale={ptBR}
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  onMonthChange={setCurrentMonth}
+                  disabled={(date) =>
+                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                  }
+                  className={cn("rounded-md border shadow-sm pointer-events-auto")}
+                  components={{
+                    DayContent: ({ date: dayDate }) => {
+                      const vacancies = monthlyAvail[dayDate.getDate()];
+                      const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
+                      const isCurrentMonth = dayDate.getMonth() === currentMonth.getMonth();
+
+                      return (
+                        <div className="relative w-full h-full flex flex-col items-center justify-center">
+                          <span>{dayDate.getDate()}</span>
+                          {isCurrentMonth && !isPast && selectedPlano?.profissional_id && (
+                            <span className={cn(
+                              "text-[9px] mt-0.5 px-1 rounded-full",
+                              vacancies > 0
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold"
+                                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                            )}>
+                              {vacancies ?? 0}v
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Time slots for selected date */}
+              {selectedDate && (
+                <div>
+                  <Label className="mb-2 block">Horários disponíveis em {format(selectedDate, "dd/MM/yyyy")}</Label>
+                  {availableSlots.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {availableSlots.map((s: any) => {
+                        const timeLabel = s.slot.hora_inicio.slice(0, 5);
+                        const isFull = s.available <= 0;
+                        const isSelected = selectedTime === timeLabel;
+                        return (
+                          <Button
+                            key={s.slot.id}
+                            type="button"
+                            size="sm"
+                            variant={isSelected ? "default" : "outline"}
+                            disabled={isFull}
+                            onClick={() => setSelectedTime(timeLabel)}
+                            className={cn(
+                              "text-xs",
+                              isFull && "opacity-50 line-through"
+                            )}
+                          >
+                            <Clock className="h-3 w-3 mr-1" />
+                            {timeLabel}
+                            <span className="ml-1 text-[10px]">({s.available}v)</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div>
-                <Label>Data e horário</Label>
-                <Input
-                  type="datetime-local"
-                  value={dataHorario}
-                  onChange={(e) => setDataHorario(e.target.value)}
-                />
-              </div>
+              {/* Availability check result */}
+              {availabilityResult && (
+                <Alert variant={availabilityResult.isOverCapacity ? "destructive" : "default"}>
+                  <div className="flex items-center gap-2">
+                    {availabilityResult.isOverCapacity ? (
+                      <AlertTriangle className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    )}
+                    <AlertDescription>{availabilityResult.message}</AlertDescription>
+                  </div>
+                </Alert>
+              )}
+
               <div>
                 <Label>Duração</Label>
                 <Select value={duracao} onValueChange={setDuracao}>
@@ -473,7 +588,7 @@ const MeusPlanos = () => {
                 <Button
                   className="flex-1"
                   onClick={() => solicitarAgendamento.mutate()}
-                  disabled={!dataHorario || solicitarAgendamento.isPending}
+                  disabled={!selectedDate || !selectedTime || solicitarAgendamento.isPending}
                 >
                   {solicitarAgendamento.isPending ? "Agendando..." : "Confirmar"}
                 </Button>
