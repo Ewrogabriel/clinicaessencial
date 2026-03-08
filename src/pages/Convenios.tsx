@@ -180,8 +180,8 @@ const Convenios = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Convênios & Parceiros</h1>
-          <p className="text-muted-foreground">Gerencie empresas parceiras e convênios</p>
+          <h1 className="text-2xl font-bold tracking-tight">Parceiros</h1>
+          <p className="text-muted-foreground">Gerencie empresas parceiras</p>
         </div>
         <Button onClick={() => { resetForm(); setFormOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Novo Convênio
