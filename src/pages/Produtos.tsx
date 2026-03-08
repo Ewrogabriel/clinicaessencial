@@ -69,7 +69,7 @@ const Produtos = () => {
   const { data: entradas = [] } = useQuery({
     queryKey: ["entradas-estoque"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("entradas_estoque") as any)
+      const { data, error } = await supabase.from("entradas_estoque")
         .select("*, produtos(nome)")
         .order("data_entrada", { ascending: false })
         .limit(50);
