@@ -65,6 +65,28 @@ const Contratos = () => {
     enabled: canManage,
   });
 
+  const { data: matriculas = [] } = useQuery({
+    queryKey: ["matriculas-contrato", selectedPaciente],
+    queryFn: async () => {
+      if (!selectedPaciente) return [];
+      const { data } = await supabase.from("matriculas")
+        .select("id, tipo_atendimento, valor_mensal, data_inicio, status")
+        .eq("paciente_id", selectedPaciente)
+        .eq("status", "ativa")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!selectedPaciente,
+  });
+
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-contrato"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
   const { data: desconto } = useQuery({
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
