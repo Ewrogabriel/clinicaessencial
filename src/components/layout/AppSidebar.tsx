@@ -167,6 +167,8 @@ export function AppSidebar() {
         )}
       </div>
 
+      <ClinicSwitcher collapsed={collapsed} />
+
       <SidebarContent>
         {(isAdmin || isGestor) ? (
           <>
