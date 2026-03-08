@@ -538,7 +538,12 @@ const Comissoes = () => {
                     {summary.map((s) => (
                       <TableRow key={s.userId}>
                         <TableCell className="font-medium">{s.nome}</TableCell>
-                        <TableCell className="text-center">{s.totalAtendimentos}</TableCell>
+                        <TableCell className="text-center">
+                          {s.totalAtendimentos}
+                          {s.realizados < s.totalAtendimentos && (
+                            <span className="text-xs text-muted-foreground ml-1">({s.realizados} realizados)</span>
+                          )}
+                        </TableCell>
                         <TableCell>R$ {s.totalValor.toFixed(2)}</TableCell>
                         <TableCell className="font-bold text-primary">R$ {s.comissao.toFixed(2)}</TableCell>
                         <TableCell>
