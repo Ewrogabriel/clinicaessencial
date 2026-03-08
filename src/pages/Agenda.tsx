@@ -32,6 +32,7 @@ const Agenda = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAg, setDetailAg] = useState<Agendamento | null>(null);
   const [filterProfId, setFilterProfId] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const isStaff = isAdmin || isGestor;
 
