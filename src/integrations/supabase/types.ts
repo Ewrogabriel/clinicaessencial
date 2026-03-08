@@ -1071,6 +1071,7 @@ export type Database = {
       }
       evolutions: {
         Row: {
+          assinatura_url: string | null
           clinic_id: string
           conduta: string | null
           created_at: string
@@ -1082,6 +1083,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_url?: string | null
           clinic_id: string
           conduta?: string | null
           created_at?: string
@@ -1093,6 +1095,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_url?: string | null
           clinic_id?: string
           conduta?: string | null
           created_at?: string
