@@ -21,7 +21,8 @@ interface EvolutionFormProps {
 }
 
 export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormProps) => {
-    const { user, clinicId } = useAuth();
+    const { user } = useAuth();
+    const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
     const [descricao, setDescricao] = useState("");
     const [conduta, setConduta] = useState("");
