@@ -111,7 +111,7 @@ const Dashboard = () => {
   const { data: alertCount = 0 } = useQuery({
     queryKey: ["dashboard-alerts", activeClinicId],
     queryFn: async () => {
-      let q = (supabase.from("pagamentos") as any)
+      let q = supabase.from("pagamentos")
         .select("id", { count: "exact", head: true })
         .eq("status", "pendente")
         .lte("data_vencimento", new Date().toISOString().split("T")[0]);
@@ -121,13 +121,12 @@ const Dashboard = () => {
     },
   });
 
-  // Today's agenda stats
   const { data: todayStats } = useQuery({
     queryKey: ["dashboard-today-stats", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("id, status")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd);
@@ -136,9 +135,9 @@ const Dashboard = () => {
       const all = data || [];
       return {
         total: all.length,
-        realizados: all.filter((a: any) => a.status === "realizado").length,
-        confirmados: all.filter((a: any) => a.status === "confirmado" || a.status === "agendado").length,
-        faltas: all.filter((a: any) => a.status === "falta").length,
+        realizados: all.filter((a) => a.status === "realizado").length,
+        confirmados: all.filter((a) => a.status === "confirmado" || a.status === "agendado").length,
+        faltas: all.filter((a) => a.status === "falta").length,
       };
     },
   });
