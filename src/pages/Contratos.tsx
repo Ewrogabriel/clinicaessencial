@@ -23,6 +23,7 @@ const Contratos = () => {
   const canManage = isAdmin || isGestor;
   const [selectedPaciente, setSelectedPaciente] = useState("");
   const [selectedPlano, setSelectedPlano] = useState("");
+  const [selectedMatricula, setSelectedMatricula] = useState("");
   const [selectedProfissional, setSelectedProfissional] = useState("");
 
   const clinicNome = clinicSettings?.nome || "Essencial Fisio Pilates";
@@ -64,6 +65,28 @@ const Contratos = () => {
     enabled: canManage,
   });
 
+  const { data: matriculas = [] } = useQuery({
+    queryKey: ["matriculas-contrato", selectedPaciente],
+    queryFn: async () => {
+      if (!selectedPaciente) return [];
+      const { data } = await supabase.from("matriculas")
+        .select("id, tipo_atendimento, valor_mensal, data_inicio, status")
+        .eq("paciente_id", selectedPaciente)
+        .eq("status", "ativa")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!selectedPaciente,
+  });
+
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-contrato"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
   const { data: desconto } = useQuery({
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
@@ -79,6 +102,7 @@ const Contratos = () => {
   const paciente = (pacientes as any[]).find((p: any) => p.id === selectedPaciente);
   const plano = (planos as any[]).find((p: any) => p.id === selectedPlano);
   const profissional = (profissionais as any[]).find((p: any) => p.id === selectedProfissional);
+  const matricula = (matriculas as any[]).find((m: any) => m.id === selectedMatricula);
 
   const getContractData = () => ({
     pacienteNome: paciente?.nome || "",
@@ -87,12 +111,12 @@ const Contratos = () => {
     planoNome: plano?.nome || "A definir",
     planoFrequencia: plano?.frequencia_semanal || 1,
     planoModalidade: plano?.modalidade || "grupo",
-    planoValor: plano?.valor || 0,
+    planoValor: matricula?.valor_mensal || plano?.valor || 0,
     desconto: desconto?.percentual_desconto || 0,
     dataContrato: format(new Date(), "dd/MM/yyyy"),
   });
 
-  const valorFinal = plano ? plano.valor * (1 - (desconto?.percentual_desconto || 0) / 100) : 0;
+  const valorFinal = (matricula?.valor_mensal || (plano ? plano.valor : 0)) * (1 - (desconto?.percentual_desconto || 0) / 100);
 
   const handleDownload = async () => {
     if (!paciente) { toast({ title: "Selecione um paciente", variant: "destructive" }); return; }
@@ -179,17 +203,37 @@ const Contratos = () => {
                     <SelectContent>{(planos as any[]).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome} – R$ {Number(p.valor).toFixed(2)}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                {selectedPaciente && (matriculas as any[]).length > 0 && (
+                  <div>
+                    <Label>Matrícula (opcional)</Label>
+                    <Select value={selectedMatricula} onValueChange={setSelectedMatricula}>
+                      <SelectTrigger><SelectValue placeholder="Vincular a matrícula" /></SelectTrigger>
+                      <SelectContent>
+                        {(matriculas as any[]).map((m: any) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.tipo_atendimento} – R$ {Number(m.valor_mensal).toFixed(2)} (início {format(new Date(m.data_inicio), "dd/MM/yyyy")})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {paciente && (
                   <div className="rounded-lg border p-3 space-y-1 text-sm bg-muted/30">
                     <p><strong>Nome:</strong> {paciente.nome}</p>
                     <p><strong>CPF:</strong> {paciente.cpf || "Não informado"}</p>
                     <p><strong>RG:</strong> {paciente.rg || "Não informado"}</p>
+                    {matricula && (
+                      <>
+                        <p className="pt-2 border-t mt-2"><strong>Matrícula:</strong> {matricula.tipo_atendimento} – R$ {Number(matricula.valor_mensal).toFixed(2)}/mês</p>
+                      </>
+                    )}
                     {plano && (
                       <>
-                        <p className="pt-2 border-t mt-2"><strong>Plano:</strong> {plano.nome}</p>
+                        <p className={matricula ? "" : "pt-2 border-t mt-2"}><strong>Plano:</strong> {plano.nome}</p>
                         <p><strong>Frequência:</strong> {plano.frequencia_semanal}x/semana</p>
                         <p><strong>Modalidade:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>
-                        <p><strong>Valor:</strong> R$ {Number(plano.valor).toFixed(2)}</p>
+                        <p><strong>Valor:</strong> R$ {Number(matricula?.valor_mensal || plano.valor).toFixed(2)}</p>
                         {desconto && desconto.percentual_desconto > 0 && (
                           <>
                             <p className="text-green-600 font-medium"><strong>Desconto:</strong> {desconto.percentual_desconto}% ({desconto.motivo || "—"})</p>
@@ -213,13 +257,13 @@ const Contratos = () => {
                 <div className="prose prose-sm max-w-none text-foreground space-y-4 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
                   <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                   {clinicCNPJ && <p className="text-center text-xs text-muted-foreground">CNPJ: {clinicCNPJ}</p>}
-                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PILATES</h3>
+                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS{matricula ? ` DE ${matricula.tipo_atendimento.toUpperCase()}` : plano ? ` DE ${(plano.modalidade || "PILATES").toUpperCase()}` : " DE PILATES"}</h3>
                   <p>Pelo presente instrumento particular, de um lado:</p>
                   <p><strong>CONTRATADA:</strong> {clinicNome}, pessoa jurídica de direito privado{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}{clinicTelefone ? `, telefone/WhatsApp ${clinicTelefone}` : ""}{clinicInstagram ? `, Instagram ${clinicInstagram}` : ""}.</p>
                   <p>E, de outro lado:</p>
                   <p><strong>CONTRATANTE:</strong> <span className="bg-primary/10 px-1 rounded font-semibold">{paciente?.nome || "___________________________"}</span>, CPF nº <span className="bg-primary/10 px-1 rounded">{paciente?.cpf || "_______________"}</span>, RG nº <span className="bg-primary/10 px-1 rounded">{paciente?.rg || "_______________"}</span>.</p>
                   <h4 className="font-bold mt-4">CLÁUSULA 1ª – DO OBJETO</h4>
-                  <p>Prestação de serviços de Pilates, conforme plano contratado, com dias e horários previamente agendados.</p>
+                  <p>Prestação de serviços de {matricula?.tipo_atendimento || plano?.modalidade || "Pilates"}, conforme plano contratado, com dias e horários previamente agendados.</p>
                   <h4 className="font-bold">CLÁUSULA 2ª – DA NATUREZA DO SERVIÇO</h4>
                   <p>O CONTRATANTE declara estar ciente de que o Pilates é um serviço mensal, não sendo contratado por aula, por dia ou por comparecimento.</p>
                   <p><em>Parágrafo único: Faltas não geram desconto ou devolução de valores.</em></p>
@@ -243,14 +287,16 @@ const Contratos = () => {
                   <p>O contrato poderá ser rescindido por qualquer das partes.</p>
                   <h4 className="font-bold">CLÁUSULA 10ª – DO FORO</h4>
                   <p>Fica eleito o foro da comarca de Barbacena/MG.</p>
-                  {plano && (
+                  {(plano || matricula) && (
                     <div className="border-t pt-4 mt-6">
                       <h3 className="font-bold text-center">PLANO CONTRATADO</h3>
                       <div className="bg-primary/5 rounded-lg p-4 mt-2 space-y-1">
-                        <p><strong>Plano:</strong> {plano.nome}</p>
-                        <p><strong>Frequência:</strong> {plano.frequencia_semanal}x por semana</p>
-                        <p><strong>Modalidade:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>
+                        {matricula && <p><strong>Modalidade:</strong> {matricula.tipo_atendimento}</p>}
+                        {plano && <p><strong>Plano:</strong> {plano.nome}</p>}
+                        {plano && <p><strong>Frequência:</strong> {plano.frequencia_semanal}x por semana</p>}
+                        {plano && <p><strong>Tipo:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>}
                         <p><strong>Valor mensal:</strong> R$ {valorFinal.toFixed(2)}{desconto && desconto.percentual_desconto > 0 && <span className="text-green-600 ml-2">(desconto de {desconto.percentual_desconto}%)</span>}</p>
+                        {matricula && <p><strong>Início da matrícula:</strong> {format(new Date(matricula.data_inicio), "dd/MM/yyyy")}</p>}
                       </div>
                     </div>
                   )}

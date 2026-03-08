@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RescheduleDialog } from "./RescheduleDialog";
+import { MatriculaPayments } from "@/components/matriculas/MatriculaPayments";
 
 type Session = {
     id: string;
@@ -54,6 +55,7 @@ type Props = {
     enrollment: {
         id: string;
         valor_mensal: number;
+        paciente_id: string;
         pacientes?: { nome: string };
     };
 };
@@ -228,8 +230,9 @@ export function EnrollmentDetails({ enrollment }: Props) {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-3 w-full">
+                <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="sessions">Sessões</TabsTrigger>
+                    <TabsTrigger value="payments">Pagamentos</TabsTrigger>
                     <TabsTrigger value="credits">Reposições</TabsTrigger>
                     <TabsTrigger value="commissions">Comissões</TabsTrigger>
                 </TabsList>
@@ -297,6 +300,15 @@ export function EnrollmentDetails({ enrollment }: Props) {
                             </Table>
                         </div>
                     )}
+                </TabsContent>
+
+                {/* PAYMENTS TAB */}
+                <TabsContent value="payments" className="mt-3">
+                    <MatriculaPayments
+                        matriculaId={enrollment.id}
+                        pacienteId={enrollment.paciente_id}
+                        valorMensal={enrollment.valor_mensal}
+                    />
                 </TabsContent>
 
                 {/* CREDITS TAB */}

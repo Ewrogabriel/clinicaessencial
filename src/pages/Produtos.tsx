@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -227,8 +228,8 @@ const Produtos = () => {
               </div>
             </div>
             <div>
-              <Label>URL da Imagem</Label>
-              <Input value={formData.foto_url} onChange={(e) => setFormData({ ...formData, foto_url: e.target.value })} placeholder="https://..." />
+              <Label>Foto do Produto</Label>
+              <ImageUpload value={formData.foto_url} onChange={(url) => setFormData({ ...formData, foto_url: url })} folder="produtos" />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
