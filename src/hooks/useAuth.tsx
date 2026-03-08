@@ -146,14 +146,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isGestor = roles.includes("gestor");
   const isPatient = roles.includes("paciente");
   const isProfissional = roles.includes("profissional");
+  const isSecretario = roles.includes("secretario");
   const clinicId = (profile as any)?.clinic_id || null;
+
+  const hasPermission = (resource: string) => {
+    if (isAdmin) return true;
+    return permissions.includes(resource);
+  };
 
   return (
     <AuthContext.Provider
       value={{
-        user, session, profile, roles, loading,
-        isAdmin, isGestor, isPatient, isProfissional,
+        user, session, profile, roles, permissions, loading,
+        isAdmin, isGestor, isPatient, isProfissional, isSecretario,
         clinicId, patientId,
+        hasPermission,
         signIn, signUp, resetPassword, signOut
       }}
     >
