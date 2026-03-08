@@ -174,7 +174,7 @@ const MeusPlanos = () => {
       // Create the appointment with "pendente" status
       const { data: agendamento, error } = await supabase.from("agendamentos").insert({
         paciente_id: patientId,
-        profissional_id: selectedPlano.profissional_id,
+        profissional_id: activeProfId || selectedPlano.profissional_id,
         data_horario: dataHorario.toISOString(),
         duracao_minutos: parseInt(duracao),
         tipo_atendimento: selectedPlano.tipo_atendimento,
