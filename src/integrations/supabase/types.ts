@@ -757,6 +757,60 @@ export type Database = {
           },
         ]
       }
+      contratos_digitais: {
+        Row: {
+          assinado_em: string | null
+          assinatura_url: string | null
+          clinic_id: string | null
+          conteudo: string
+          created_at: string
+          created_by: string
+          id: string
+          paciente_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinatura_url?: string | null
+          clinic_id?: string | null
+          conteudo: string
+          created_at?: string
+          created_by: string
+          id?: string
+          paciente_id: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          assinado_em?: string | null
+          assinatura_url?: string | null
+          clinic_id?: string | null
+          conteudo?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          paciente_id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_digitais_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_digitais_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       convenios: {
         Row: {
           ativo: boolean
