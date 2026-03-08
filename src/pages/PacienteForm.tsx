@@ -20,6 +20,7 @@ import { maskCPF, maskPhone, maskCEP, maskRG, isValidCPF, unmask } from "@/lib/m
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import defaultAvatarImg from "@/assets/default-avatar.png";
 
 const PacienteForm = () => {
   const navigate = useNavigate();
