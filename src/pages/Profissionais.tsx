@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Pencil, Plus, Shield, UserCheck, Search, Settings2, KeyRound } from "lucide-react";
+import { Pencil, Plus, Shield, UserCheck, Search, KeyRound, Eye, PenLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -76,6 +76,8 @@ const ROLE_COLORS: Record<string, string> = {
   paciente: "outline",
 };
 
+const ACCESS_LABELS = { view: "Visualizar", edit: "Editar" };
+
 const Profissionais = () => {
   const { user, isAdmin, isGestor } = useAuth();
   const canManage = isAdmin || isGestor;
@@ -120,7 +122,6 @@ const Profissionais = () => {
   const [cep, setCep] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch all staff users (non-patients)
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["staff-users"],
     queryFn: async () => {
@@ -138,7 +139,6 @@ const Profissionais = () => {
         .in("user_id", userIds)
         .order("nome");
 
-      // Fetch permissions for all users
       const { data: permsData } = await supabase
         .from("user_permissions")
         .select("*")
@@ -150,7 +150,10 @@ const Profissionais = () => {
         role: staffRoles.find(r => r.user_id === p.user_id)?.role || "profissional",
         permissions: (permsData ?? [])
           .filter((perm: any) => perm.user_id === p.user_id)
-          .map((perm: any) => perm.resource),
+          .map((perm: any) => ({
+            resource: perm.resource,
+            access_level: perm.access_level || "edit",
+          })),
       })) as UserRecord[];
     },
   });
@@ -168,7 +171,7 @@ const Profissionais = () => {
     setNome(""); setEmail(""); setTelefone("");
     setCreateEmail(""); setCreatePassword(""); setCreatePasswordConfirm("");
     setSelectedRole("profissional");
-    setSelectedPermissions(DEFAULT_PERMISSIONS.profissional || []);
+    setSelectedPermissions(toPermEntries(DEFAULT_PERMISSIONS.profissional || []));
     setEspecialidade(null); setCommissionRate("0"); setCommissionFixed("0");
     setCorAgenda("#3b82f6"); setRegistroProfissional("");
     setTipoContratacao(null); setCnpj(""); setCpf(""); setRg("");
@@ -179,7 +182,7 @@ const Profissionais = () => {
   const openCreate = () => {
     resetForm();
     setIsCreating(true);
-    setSelectedPermissions(DEFAULT_PERMISSIONS.profissional || []);
+    setSelectedPermissions(toPermEntries(DEFAULT_PERMISSIONS.profissional || []));
     setDialogOpen(true);
   };
 
@@ -205,17 +208,42 @@ const Profissionais = () => {
   const openPermissions = (u: UserRecord) => {
     setPermUserId(u.user_id);
     setPermUserName(u.nome);
-    setPermChecked(u.permissions);
+    setPermChecked([...u.permissions]);
     setPermDialogOpen(true);
   };
 
   const handleRoleChange = (role: string) => {
     setSelectedRole(role);
     if (role === "admin") {
-      setSelectedPermissions(ALL_RESOURCES.map(r => r.key));
+      setSelectedPermissions(toPermEntries(ALL_RESOURCES.map(r => r.key)));
     } else {
-      setSelectedPermissions(DEFAULT_PERMISSIONS[role] || []);
+      setSelectedPermissions(toPermEntries(DEFAULT_PERMISSIONS[role] || []));
     }
+  };
+
+  // Permission helpers for PermissionEntry[]
+  const findPerm = (list: PermissionEntry[], key: string) => list.find(p => p.resource === key);
+  const hasPerm = (list: PermissionEntry[], key: string) => !!findPerm(list, key);
+  const getAccessLevel = (list: PermissionEntry[], key: string) => findPerm(list, key)?.access_level || "edit";
+
+  const togglePermEntry = (
+    setter: React.Dispatch<React.SetStateAction<PermissionEntry[]>>,
+    key: string
+  ) => {
+    setter(prev => {
+      if (hasPerm(prev, key)) {
+        return prev.filter(p => p.resource !== key);
+      }
+      return [...prev, { resource: key, access_level: "edit" as const }];
+    });
+  };
+
+  const setPermAccessLevel = (
+    setter: React.Dispatch<React.SetStateAction<PermissionEntry[]>>,
+    key: string,
+    level: "view" | "edit"
+  ) => {
+    setter(prev => prev.map(p => p.resource === key ? { ...p, access_level: level } : p));
   };
 
   const handleCreate = async () => {
@@ -253,7 +281,6 @@ const Profissionais = () => {
       });
 
       if (fnError) {
-        // Try to extract the actual error message from the response context
         const errorMsg = result?.error || fnError.message || "Erro ao criar usuário";
         throw new Error(errorMsg);
       }
@@ -293,7 +320,6 @@ const Profissionais = () => {
         .eq("id", editingId);
       if (error) throw error;
 
-      // Update role if changed
       if (selectedRole !== editedUser.role) {
         await supabase.from("user_roles").delete().eq("user_id", editedUser.user_id);
         await supabase.from("user_roles").insert({ user_id: editedUser.user_id, role: selectedRole as any });
@@ -313,12 +339,12 @@ const Profissionais = () => {
     if (!permUserId) return;
     setLoading(true);
     try {
-      // Delete all existing then insert new
       await supabase.from("user_permissions").delete().eq("user_id", permUserId);
       if (permChecked.length > 0) {
-        const rows = permChecked.map(resource => ({
+        const rows = permChecked.map(p => ({
           user_id: permUserId,
-          resource,
+          resource: p.resource,
+          access_level: p.access_level,
           enabled: true,
         }));
         const { error } = await supabase.from("user_permissions").insert(rows as any);
@@ -334,14 +360,6 @@ const Profissionais = () => {
     }
   };
 
-  const togglePermission = (key: string) => {
-    setPermChecked(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
-
-  const toggleCreatePermission = (key: string) => {
-    setSelectedPermissions(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
-
   const fetchAddressFor = async (cepCode: string) => {
     const cleanCep = cepCode.replace(/\D/g, "");
     if (cleanCep.length !== 8) return;
@@ -352,6 +370,55 @@ const Profissionais = () => {
       setEndereco(data.logradouro || ""); setBairro(data.bairro || "");
       setCidade(data.localidade || ""); setEstado(data.uf || "");
     } catch {}
+  };
+
+  // Render permission row with view/edit toggle
+  const renderPermissionRow = (
+    r: { key: string; label: string; description: string },
+    list: PermissionEntry[],
+    setter: React.Dispatch<React.SetStateAction<PermissionEntry[]>>,
+    disabled = false
+  ) => {
+    const enabled = disabled || hasPerm(list, r.key);
+    const level = getAccessLevel(list, r.key);
+
+    return (
+      <div key={r.key} className="flex items-center justify-between p-2.5 rounded-md hover:bg-muted/50 border-b last:border-b-0">
+        <div className="flex items-start gap-2 flex-1">
+          <Checkbox
+            checked={enabled}
+            disabled={disabled}
+            onCheckedChange={() => togglePermEntry(setter, r.key)}
+          />
+          <div>
+            <div className="text-sm font-medium">{r.label}</div>
+            <div className="text-xs text-muted-foreground">{r.description}</div>
+          </div>
+        </div>
+        {enabled && !disabled && (
+          <div className="flex items-center gap-1 ml-2">
+            <Button
+              type="button"
+              variant={level === "view" ? "default" : "outline"}
+              size="sm"
+              className="h-7 px-2 text-xs gap-1"
+              onClick={() => setPermAccessLevel(setter, r.key, "view")}
+            >
+              <Eye className="h-3 w-3" /> Visualizar
+            </Button>
+            <Button
+              type="button"
+              variant={level === "edit" ? "default" : "outline"}
+              size="sm"
+              className="h-7 px-2 text-xs gap-1"
+              onClick={() => setPermAccessLevel(setter, r.key, "edit")}
+            >
+              <PenLine className="h-3 w-3" /> Editar
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -429,9 +496,16 @@ const Profissionais = () => {
                       {u.role === "admin" ? (
                         <span className="text-xs text-muted-foreground">Acesso total</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {u.permissions.length > 0 ? `${u.permissions.length} recursos` : "Nenhum configurado"}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {u.permissions.length > 0 ? (
+                            <span className="text-xs text-muted-foreground">
+                              {u.permissions.length} recursos
+                              {" "}({u.permissions.filter(p => p.access_level === "edit").length} editar, {u.permissions.filter(p => p.access_level === "view").length} visualizar)
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Nenhum configurado</span>
+                          )}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
@@ -463,7 +537,7 @@ const Profissionais = () => {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[650px] max-h-[90vh]">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{isCreating ? "Novo Membro" : "Editar Membro"}</DialogTitle>
             <DialogDescription>
@@ -618,22 +692,12 @@ const Profissionais = () => {
                     <p className="text-xs text-muted-foreground mb-4">
                       {selectedRole === "admin"
                         ? "Administradores têm acesso total a todos os recursos."
-                        : "Selecione quais recursos este membro poderá acessar."}
+                        : "Selecione quais recursos e o nível de acesso (visualizar ou editar)."}
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {ALL_RESOURCES.map(r => (
-                        <label key={r.key} className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer">
-                          <Checkbox
-                            checked={selectedRole === "admin" || selectedPermissions.includes(r.key)}
-                            disabled={selectedRole === "admin"}
-                            onCheckedChange={() => toggleCreatePermission(r.key)}
-                          />
-                          <div>
-                            <div className="text-sm font-medium">{r.label}</div>
-                            <div className="text-xs text-muted-foreground">{r.description}</div>
-                          </div>
-                        </label>
-                      ))}
+                    <div className="space-y-0.5">
+                      {ALL_RESOURCES.map(r =>
+                        renderPermissionRow(r, selectedPermissions, setSelectedPermissions, selectedRole === "admin")
+                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -675,31 +739,27 @@ const Profissionais = () => {
 
       {/* Permissions Dialog */}
       <Dialog open={permDialogOpen} onOpenChange={setPermDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="h-5 w-5" /> Permissões — {permUserName}
             </DialogTitle>
-            <DialogDescription>Configure quais recursos este membro pode acessar</DialogDescription>
+            <DialogDescription>Configure quais recursos e o nível de acesso (visualizar ou editar)</DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[55vh] pr-2">
-            <div className="grid grid-cols-1 gap-1">
-              {ALL_RESOURCES.map(r => (
-                <label key={r.key} className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer">
-                  <Checkbox
-                    checked={permChecked.includes(r.key)}
-                    onCheckedChange={() => togglePermission(r.key)}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">{r.label}</div>
-                    <div className="text-xs text-muted-foreground">{r.description}</div>
-                  </div>
-                </label>
-              ))}
+            <div className="space-y-0.5">
+              {ALL_RESOURCES.map(r => renderPermissionRow(r, permChecked, setPermChecked))}
             </div>
           </ScrollArea>
           <div className="flex justify-between pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setPermChecked(ALL_RESOURCES.map(r => r.key))}>Marcar todos</Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setPermChecked(toPermEntries(ALL_RESOURCES.map(r => r.key)))}>
+                Marcar todos (editar)
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setPermChecked(toPermEntries(ALL_RESOURCES.map(r => r.key), "view"))}>
+                Marcar todos (visualizar)
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setPermDialogOpen(false)}>Cancelar</Button>
               <Button onClick={handleSavePermissions} disabled={loading}>
