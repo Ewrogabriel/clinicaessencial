@@ -310,9 +310,9 @@ const Dashboard = () => {
       if (userIds.length === 0) return [];
 
       if (activeClinicId) {
-        const { data: cu } = await (supabase.from("clinic_users") as any)
+        const { data: cu } = await supabase.from("clinic_users")
           .select("user_id").eq("clinic_id", activeClinicId);
-        const clinicUserIds = new Set((cu || []).map((c: any) => c.user_id));
+        const clinicUserIds = new Set((cu || []).map((c) => c.user_id));
         userIds = userIds.filter(id => clinicUserIds.has(id));
         if (!userIds.length) return [];
       }
