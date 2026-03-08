@@ -255,6 +255,7 @@ const DisponibilidadeProfissional = () => {
       hora_inicio: bloqueioDiaInteiro ? null : bloqueioHoraInicio,
       hora_fim: bloqueioDiaInteiro ? null : bloqueioHoraFim,
       motivo: bloqueioMotivo || null,
+      clinic_id: activeClinicId,
     });
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     // Broadcast block notification to all users

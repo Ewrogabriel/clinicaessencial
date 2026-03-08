@@ -100,9 +100,11 @@ const Financeiro = () => {
   });
 
   const { data: despesasForDre = [] } = useQuery({
-    queryKey: ["despesas-dre"],
+    queryKey: ["despesas-dre", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("expenses").select("valor, status");
+      let q = supabase.from("expenses").select("valor, status");
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
@@ -110,9 +112,11 @@ const Financeiro = () => {
   });
 
   const { data: comissoesForDre = [] } = useQuery({
-    queryKey: ["comissoes-dre"],
+    queryKey: ["comissoes-dre", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("commissions").select("valor");
+      let q = supabase.from("commissions").select("valor");
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
