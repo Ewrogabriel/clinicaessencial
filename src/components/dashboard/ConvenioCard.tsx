@@ -28,6 +28,7 @@ export function ConvenioCard() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const navigate = useNavigate();
+  const { clinicSettings } = useClinicSettings();
 
   const { data: convenios = [] } = useQuery<Convenio[]>({
     queryKey: ["convenios-ativos"],
