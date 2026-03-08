@@ -43,7 +43,7 @@ const Produtos = () => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-select"],
     queryFn: async () => {
-      const { data } = await (supabase.from("pacientes") as any).select("id, nome").eq("status", "ativo").order("nome");
+      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
       return data || [];
     },
   });
