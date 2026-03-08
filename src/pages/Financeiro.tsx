@@ -43,7 +43,8 @@ const formaLabel: Record<string, string> = {
 };
 
 const Financeiro = () => {
-  const { user, isPatient, clinicId } = useAuth();
+  const { user, isPatient } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [filterMes, setFilterMes] = useState("");
