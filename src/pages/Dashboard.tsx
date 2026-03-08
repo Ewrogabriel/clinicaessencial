@@ -182,7 +182,7 @@ const Dashboard = () => {
       }
       const results = [];
       for (const m of months) {
-        let q = (supabase.from("agendamentos") as any)
+        let q = supabase.from("agendamentos")
           .select("status")
           .gte("data_horario", `${m.start}T00:00:00`)
           .lte("data_horario", `${m.end}T23:59:59`);
@@ -191,9 +191,9 @@ const Dashboard = () => {
         const all = data || [];
         results.push({
           mes: m.label,
-          realizadas: all.filter((a: any) => a.status === "realizado").length,
-          faltas: all.filter((a: any) => a.status === "falta").length,
-          canceladas: all.filter((a: any) => a.status === "cancelado").length,
+          realizadas: all.filter((a) => a.status === "realizado").length,
+          faltas: all.filter((a) => a.status === "falta").length,
+          canceladas: all.filter((a) => a.status === "cancelado").length,
         });
       }
       return results;
