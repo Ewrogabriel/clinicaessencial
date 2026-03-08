@@ -53,6 +53,7 @@ const RESOURCE_LABELS: Record<string, string> = {
 const menuAtendimento = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Agenda", url: "/agenda", icon: Calendar },
+  { title: "Vagas", url: "/vagas", icon: CalendarCheck },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
   { title: "Matrículas", url: "/matriculas", icon: Receipt },

@@ -116,6 +116,7 @@ const App = () => (
               <Route path="/formas-pagamento" element={<ClinicSettings />} />
               <Route path="/lista-espera" element={<ListaEspera />} />
               <Route path="/convenios" element={<Convenios />} />
+              <Route path="/vagas" element={<VacancyCalendar />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
