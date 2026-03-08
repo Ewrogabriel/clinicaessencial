@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useClinicSettings } from "@/hooks/useClinicSettings";
 import { Globe, MessageCircle, ChevronRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,7 @@ export function ConvenioCard() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const navigate = useNavigate();
+  const { data: clinicSettings } = useClinicSettings();
 
   const { data: convenios = [] } = useQuery<Convenio[]>({
     queryKey: ["convenios-ativos"],
@@ -53,8 +55,9 @@ export function ConvenioCard() {
   const convenio = convenios[currentIndex];
   if (!convenio) return null;
 
+  const clinicName = clinicSettings?.nome || "nossa clínica";
   const whatsappMessage = encodeURIComponent(
-    `Olá! 😊 Vim através da parceria com a clínica e gostaria de saber mais sobre os serviços oferecidos. Poderia me ajudar?`
+    `Olá! 😊 Sou cliente da *${clinicName}* e vim através da parceria. Gostaria de saber mais sobre os serviços oferecidos. Poderia me ajudar?`
   );
   const whatsappUrl = convenio.whatsapp
     ? `https://wa.me/${convenio.whatsapp.replace(/\D/g, "")}?text=${whatsappMessage}`
