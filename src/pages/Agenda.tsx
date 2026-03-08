@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ChevronLeft, ChevronRight, FileDown, Filter } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Plus, ChevronLeft, ChevronRight, FileDown, Filter, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
