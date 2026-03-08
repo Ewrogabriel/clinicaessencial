@@ -143,6 +143,39 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          acao: string
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          registro_id: string
+          tabela: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          registro_id: string
+          tabela: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          registro_id?: string
+          tabela?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       avisos: {
         Row: {
           ativo: boolean
