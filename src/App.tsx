@@ -32,6 +32,7 @@ const Aniversariantes = lazy(() => import("./pages/Aniversariantes"));
 const DicasDiarias = lazy(() => import("./pages/DicasDiarias"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Inventario = lazy(() => import("./pages/Inventario"));
 const Modalidades = lazy(() => import("./pages/Modalidades"));
 const Profissionais = lazy(() => import("./pages/Profissionais"));
 const Prontuarios = lazy(() => import("./pages/Prontuarios"));
