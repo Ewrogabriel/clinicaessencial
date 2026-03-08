@@ -82,6 +82,9 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pre-cadastro" element={<PreCadastro />} />
             <Route path="/" element={<Index />} />
+            <Route path="/selecionar-clinica" element={
+              <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
+            } />
             <Route
               element={
                 <ProtectedRoute>
