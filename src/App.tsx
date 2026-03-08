@@ -132,6 +132,7 @@ const App = () => (
               <Route path="/pre-cadastros" element={<PreCadastrosAdmin />} />
               <Route path="/notas-fiscais" element={<NotasFiscais />} />
               <Route path="/gestao-clinicas" element={<GestaoClinicas />} />
+              <Route path="/master" element={<MasterPanel />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
