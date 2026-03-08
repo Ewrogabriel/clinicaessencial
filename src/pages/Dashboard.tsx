@@ -287,6 +287,7 @@ const Dashboard = () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-today-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-past-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-today-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] });
       toast({ title: "Status atualizado!" });
     },
   });
