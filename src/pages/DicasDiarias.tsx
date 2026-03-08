@@ -1,110 +1,76 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Lightbulb, Heart, Brain, Zap } from "lucide-react";
+import { Lightbulb, Heart, Brain, Zap, RefreshCw, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
-const dicasSimuladas = {
-  pacientes: [
-    {
-      id: 1,
-      titulo: "Hidratação e Bem-estar",
-      conteudo: "Beba pelo menos 2 litros de água por dia. A hidratação adequada melhora a flexibilidade muscular e previne cãibras durante os exercícios de pilates.",
-      categoria: "Saúde",
-      icon: Heart,
-    },
-    {
-      id: 2,
-      titulo: "Respiração Correta em Pilates",
-      conteudo: "Inspire pelo nariz e expire pela boca. A respiração coordenada durante os movimentos ativa o transverso do abdômen, potencializando os resultados.",
-      categoria: "Pilates",
-      icon: Brain,
-    },
-    {
-      id: 3,
-      titulo: "Postura no Dia a Dia",
-      conteudo: "Mantenha a coluna reta ao sentar. Uma boa postura reduz dores nas costas e melhora a qualidade de vida. Lembre-se: o pilates melhora sua postura, mas a prática contínua é essencial.",
-      categoria: "Bem-estar",
-      icon: Zap,
-    },
-    {
-      id: 4,
-      titulo: "Alimentação Pré-aula",
-      conteudo: "Evite refeições pesadas 2 horas antes da aula. Uma pequena banana ou barra de cereal é ideal para fornecer energia sem desconforto.",
-      categoria: "Saúde",
-      icon: Heart,
-    },
-  ],
-  profissionais: [
-    {
-      id: 1,
-      titulo: "Comunicação Efetiva com Pacientes",
-      conteudo: "Sempre explique o motivo de cada exercício. Pacientes que entendem os benefícios têm maior adesão ao tratamento e melhores resultados.",
-      categoria: "Comportamento",
-      icon: Brain,
-    },
-    {
-      id: 2,
-      titulo: "Limite de Uso de Celular",
-      conteudo: "Durante as aulas, minimize o uso de celular. Sua atenção integral aos pacientes cria um ambiente mais profissional e seguro.",
-      categoria: "Profissionalismo",
-      icon: Zap,
-    },
-    {
-      id: 3,
-      titulo: "Postura Correta no Ensino",
-      conteudo: "Demonstre os exercícios com postura perfeita. Você é um modelo para seus pacientes - sua técnica impecável inspira e evita lesões.",
-      categoria: "Técnica",
-      icon: Lightbulb,
-    },
-    {
-      id: 4,
-      titulo: "Feedback Positivo",
-      conteudo: "Reconheça o progresso dos pacientes, mesmo pequeno. Feedback positivo aumenta a motivação e cria um vínculo terapêutico mais forte.",
-      categoria: "Comportamento",
-      icon: Heart,
-    },
-  ],
+const ICON_MAP: Record<string, any> = {
+  "Saúde": Heart,
+  "Pilates": Brain,
+  "Bem-estar": Zap,
+  "Exercícios": Zap,
+  "Comportamento": Brain,
+  "Técnica": Lightbulb,
+  "Profissionalismo": Sparkles,
+  "Gestão": Lightbulb,
+};
+
+const COLOR_MAP: Record<string, string> = {
+  "Saúde": "text-rose-600 bg-rose-50",
+  "Pilates": "text-indigo-600 bg-indigo-50",
+  "Bem-estar": "text-emerald-600 bg-emerald-50",
+  "Exercícios": "text-amber-600 bg-amber-50",
+  "Comportamento": "text-blue-600 bg-blue-50",
+  "Técnica": "text-violet-600 bg-violet-50",
+  "Profissionalismo": "text-teal-600 bg-teal-50",
+  "Gestão": "text-orange-600 bg-orange-50",
 };
 
 export default function DicasDiarias() {
-  const { isPatient, isProfissional } = useAuth();
+  const { isPatient } = useAuth();
+  const [retryCount, setRetryCount] = useState(0);
 
-  const { data: dicas = [] } = useQuery({
-    queryKey: ["dicas-diarias", isPatient ? "paciente" : "profissional"],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["dicas-diarias", isPatient ? "paciente" : "profissional", retryCount],
     queryFn: async () => {
-      // Simular alternância de dicas por dia
-      const dia = new Date().getDate();
-      const tipoDica = isPatient ? dicasSimuladas.pacientes : dicasSimuladas.profissionais;
-      return [tipoDica[dia % tipoDica.length]];
+      const { data, error } = await supabase.functions.invoke("generate-daily-tips", {
+        body: { tipo: isPatient ? "paciente" : "profissional" },
+      });
+      if (error) throw error;
+      return data as { dicas: { titulo: string; conteudo: string; categoria: string }[]; date: string };
     },
+    staleTime: 1000 * 60 * 60, // cache 1h
+    retry: 1,
   });
 
-  const todasAsDicas = isPatient ? dicasSimuladas.pacientes : dicasSimuladas.profissionais;
-  const categorias = [...new Set(todasAsDicas.map((d) => d.categoria))];
+  const dicas = data?.dicas || [];
 
-  const renderDica = (dica: any) => {
-    const Icon = dica.icon;
+  const renderDica = (dica: { titulo: string; conteudo: string; categoria: string }, index: number) => {
+    const Icon = ICON_MAP[dica.categoria] || Lightbulb;
+    const colorClass = COLOR_MAP[dica.categoria] || "text-primary bg-primary/10";
+
     return (
-      <Card key={dica.id} className="hover:shadow-md transition-shadow">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3 flex-1">
-              <Icon className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
-              <div>
-                <CardTitle className="text-lg">{dica.titulo}</CardTitle>
-                <Badge variant="outline" className="mt-2">
-                  {dica.categoria}
-                </Badge>
-              </div>
+      <Card key={index} className="hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "hsl(var(--primary))" }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-lg shrink-0 ${colorClass}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-lg">{dica.titulo}</CardTitle>
+              <Badge variant="outline" className="mt-2 text-xs">
+                {dica.categoria}
+              </Badge>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-700 leading-relaxed">{dica.conteudo}</p>
+          <p className="text-muted-foreground leading-relaxed">{dica.conteudo}</p>
         </CardContent>
       </Card>
     );
@@ -112,58 +78,74 @@ export default function DicasDiarias() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Lightbulb className="w-8 h-8 text-yellow-500" />
-          Dicas Diárias
-        </h1>
-        <p className="text-gray-600">
-          Conselhos diários para melhorar seu {isPatient ? "desempenho e bem-estar" : "desempenho profissional"}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans] flex items-center gap-2">
+            <Lightbulb className="w-7 h-7 text-amber-500" />
+            Dicas Diárias
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Dicas personalizadas por IA para {isPatient ? "seu bem-estar" : "sua prática profissional"}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => { setRetryCount(c => c + 1); refetch(); }}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Novas Dicas
+        </Button>
       </div>
 
-      {/* Dica do Dia */}
-      {dicas.length > 0 && (
-        <Card className="border-2 border-yellow-300 bg-yellow-50">
-          <CardHeader>
-            <CardTitle className="text-lg text-yellow-900">Dica do Dia</CardTitle>
-            <CardDescription className="text-yellow-800">
-              {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>{renderDica(dicas[0])}</CardContent>
+      {/* Date Banner */}
+      <Card className="border-2 border-amber-200 bg-amber-50/50">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-600" />
+            <CardTitle className="text-base text-amber-900">Dicas de Hoje</CardTitle>
+          </div>
+          <CardDescription className="text-amber-700">
+            {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Gerando dicas com IA...</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {isError && !isLoading && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="pt-6 text-center">
+            <p className="text-destructive mb-3">Não foi possível gerar as dicas. Tente novamente.</p>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+            </Button>
+          </CardContent>
         </Card>
       )}
 
-      {/* Todas as Dicas por Categoria */}
-      <Tabs defaultValue={categorias[0]} className="w-full">
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${categorias.length}, 1fr)` }}>
-          {categorias.map((cat) => (
-            <TabsTrigger key={cat} value={cat}>
-              {cat}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Tips */}
+      {!isLoading && dicas.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+          {dicas.map((dica, i) => renderDica(dica, i))}
+        </div>
+      )}
 
-        {categorias.map((categoria) => (
-          <TabsContent key={categoria} value={categoria} className="space-y-4">
-            {todasAsDicas
-              .filter((d) => d.categoria === categoria)
-              .map(renderDica)}
-          </TabsContent>
-        ))}
-      </Tabs>
-
-      {/* Informação sobre Atualização */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900">Como Funcionam as Dicas</CardTitle>
-        </CardHeader>
-        <CardContent className="text-blue-800 space-y-2">
-          <p>• As dicas são atualizadas diariamente com base em inteligência artificial</p>
-          <p>• Cada dica é personalizada para seu tipo de acesso (paciente ou profissional)</p>
-          <p>• As dicas cobrem saúde, bem-estar, pilates, comportamento profissional e técnica</p>
-          <p>• Você pode explorar todas as dicas por categoria usando as abas acima</p>
+      {/* Info */}
+      <Card className="bg-muted/30 border-muted">
+        <CardContent className="pt-6 text-sm text-muted-foreground space-y-1">
+          <p>• As dicas são geradas por inteligência artificial e personalizadas para seu perfil</p>
+          <p>• Clique em "Novas Dicas" para gerar orientações diferentes</p>
+          <p>• As dicas não substituem orientação profissional individualizada</p>
         </CardContent>
       </Card>
     </div>

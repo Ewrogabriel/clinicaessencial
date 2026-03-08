@@ -1,0 +1,110 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { tipo } = await req.json();
+    const isPaciente = tipo === "paciente";
+
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "API key not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const dayOfYear = Math.floor(
+      (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+    );
+
+    const systemPrompt = isPaciente
+      ? `Você é um especialista em saúde, pilates e fisioterapia. Gere exatamente 3 dicas práticas e originais para pacientes de uma clínica de fisioterapia e pilates. 
+As dicas devem ser sobre: saúde, bem-estar, postura, exercícios em casa, alimentação pré/pós treino, hidratação, respiração, ou recuperação.
+Use o número ${dayOfYear} como seed para variar as dicas a cada dia.
+Responda APENAS em JSON válido com este formato exato (sem markdown):
+[{"titulo":"...","conteudo":"...","categoria":"Saúde|Pilates|Bem-estar|Exercícios"}]`
+      : `Você é um consultor de gestão de clínicas de fisioterapia e pilates. Gere exatamente 3 dicas práticas e originais para profissionais da área.
+As dicas devem ser sobre: comunicação com pacientes, técnicas de ensino, postura profissional, gestão do tempo, fidelização, atualização profissional, ou liderança.
+Use o número ${dayOfYear} como seed para variar as dicas a cada dia.
+Responda APENAS em JSON válido com este formato exato (sem markdown):
+[{"titulo":"...","conteudo":"...","categoria":"Comportamento|Técnica|Profissionalismo|Gestão"}]`;
+
+    const response = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Gere 3 dicas para ${today}. Responda somente o JSON.` },
+          ],
+          temperature: 0.8,
+          max_tokens: 1000,
+        }),
+      }
+    );
+
+    const result = await response.json();
+    let content = result.choices?.[0]?.message?.content || "[]";
+    
+    // Clean markdown wrapping if present
+    content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    
+    let dicas;
+    try {
+      dicas = JSON.parse(content);
+    } catch {
+      dicas = [];
+    }
+
+    return new Response(JSON.stringify({ dicas, date: today }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: (error as Error).message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
