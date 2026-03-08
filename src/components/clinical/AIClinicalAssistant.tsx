@@ -57,7 +57,7 @@ export function AIClinicalAssistant({ pacienteId, modalidade }: AIClinicalAssist
   const { data: evaluation } = useQuery({
     queryKey: ["avaliacao-ai", pacienteId],
     queryFn: async () => {
-      const { data } = await (supabase.from("evaluations") as any)
+      const { data } = await supabase.from("evaluations")
         .select("queixa_principal, historico_doenca, antecedentes_pessoais, objetivos_tratamento, conduta_inicial")
         .eq("paciente_id", pacienteId)
         .order("data_avaliacao", { ascending: false })
