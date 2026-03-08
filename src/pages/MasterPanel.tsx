@@ -389,6 +389,7 @@ function PaymentsTab() {
         <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Registrar Pagamento</Button>
       </div>
 
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
