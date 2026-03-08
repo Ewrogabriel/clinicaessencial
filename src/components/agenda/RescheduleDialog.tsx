@@ -66,9 +66,19 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       setSelectedProfId(agendamento.profissional_id || "");
       setMotivo("");
       setAvailabilityResult(null);
+      setSuggestedSlots([]);
       fetchProfissionais();
     }
   }, [open, agendamento]);
+
+  // Load suggestions when professional changes
+  useEffect(() => {
+    if (!selectedProfId || !open) return;
+    setLoadingSuggestions(true);
+    suggestAvailableSlots(selectedProfId, 14, agendamento?.duracao_minutos || 50)
+      .then(setSuggestedSlots)
+      .finally(() => setLoadingSuggestions(false));
+  }, [selectedProfId, open]);
 
   const fetchProfissionais = async () => {
     // First get professional user_ids from user_roles
