@@ -153,12 +153,12 @@ const PacienteForm = () => {
       };
       const path = `pacientes/${id || generateUUID()}/foto.${ext}`;
     const { error } = await supabase.storage
-      .from("patient-documents")
+      .from("clinic-uploads")
       .upload(path, file, { upsert: true });
     if (error) {
       toast({ title: "Erro ao enviar foto", description: error.message, variant: "destructive" });
     } else {
-      const { data: urlData } = supabase.storage.from("patient-documents").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("clinic-uploads").getPublicUrl(path);
       setFotoUrl(urlData.publicUrl);
       toast({ title: "Foto enviada! 📸" });
     }

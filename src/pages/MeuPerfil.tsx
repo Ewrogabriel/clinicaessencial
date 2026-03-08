@@ -88,11 +88,11 @@ const MeuPerfil = () => {
     try {
       const ext = file.name.split(".").pop();
       const path = `pacientes/${patientId}/foto.${ext}`;
-      const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: true });
+      const { error: upErr } = await supabase.storage.from("clinic-uploads").upload(path, file, { upsert: true });
       
       if (upErr) throw upErr;
 
-      const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("clinic-uploads").getPublicUrl(path);
       const foto_url = urlData.publicUrl;
 
       // Update directly in database
