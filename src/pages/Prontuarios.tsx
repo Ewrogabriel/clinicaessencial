@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 
 const Prontuarios = () => {
     const navigate = useNavigate();
-    const { clinicId } = useAuth();
     const [busca, setBusca] = useState("");
 
     const { data: pacientes = [], isLoading } = useQuery({
