@@ -59,7 +59,6 @@ export function ConvenioCard() {
   const whatsappMessage = encodeURIComponent(
     `Olá! 😊 Sou cliente da *${clinicName}* e vim através da parceria. Gostaria de saber mais sobre os serviços oferecidos. Poderia me ajudar?`
   );
-  );
   const whatsappUrl = convenio.whatsapp
     ? `https://wa.me/${convenio.whatsapp.replace(/\D/g, "")}?text=${whatsappMessage}`
     : null;
