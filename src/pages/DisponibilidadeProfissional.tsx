@@ -241,6 +241,7 @@ const DisponibilidadeProfissional = () => {
     if (fromSlots.length === 0) { toast({ title: "Nenhum horário para copiar", variant: "destructive" }); return; }
     const records = fromSlots.map(s => ({
       profissional_id: profId, dia_semana: toDay, hora_inicio: s.hora_inicio, hora_fim: s.hora_fim, max_pacientes: s.max_pacientes,
+      clinic_id: activeClinicId,
     }));
     const { error } = await (supabase.from("disponibilidade_profissional") as any).insert(records);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
