@@ -543,6 +543,91 @@ export type Database = {
         }
         Relationships: []
       }
+      emissoes_nf: {
+        Row: {
+          created_at: string
+          emitida: boolean | null
+          emitida_em: string | null
+          emitida_por: string | null
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          paciente_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          emitida?: boolean | null
+          emitida_em?: string | null
+          emitida_por?: string | null
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          paciente_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          emitida?: boolean | null
+          emitida_em?: string | null
+          emitida_por?: string | null
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          paciente_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emissoes_nf_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entradas_estoque: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_entrada: string
+          id: string
+          observacoes: string | null
+          produto_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_entrada?: string
+          id?: string
+          observacoes?: string | null
+          produto_id: string
+          quantidade?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_entrada?: string
+          id?: string
+          observacoes?: string | null
+          produto_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluations: {
         Row: {
           antecedentes_pessoais: string | null
@@ -1078,6 +1163,11 @@ export type Database = {
           estado: string | null
           foto_url: string | null
           id: string
+          nf_cnpj_cpf: string | null
+          nf_email: string | null
+          nf_endereco: string | null
+          nf_inscricao_estadual: string | null
+          nf_razao_social: string | null
           nome: string
           numero: string | null
           observacoes: string | null
@@ -1098,6 +1188,7 @@ export type Database = {
           responsavel_telefone: string | null
           rg: string | null
           rua: string | null
+          solicita_nf: boolean | null
           status: Database["public"]["Enums"]["status_paciente"]
           telefone: string
           tem_responsavel_legal: boolean | null
@@ -1120,6 +1211,11 @@ export type Database = {
           estado?: string | null
           foto_url?: string | null
           id?: string
+          nf_cnpj_cpf?: string | null
+          nf_email?: string | null
+          nf_endereco?: string | null
+          nf_inscricao_estadual?: string | null
+          nf_razao_social?: string | null
           nome: string
           numero?: string | null
           observacoes?: string | null
@@ -1140,6 +1236,7 @@ export type Database = {
           responsavel_telefone?: string | null
           rg?: string | null
           rua?: string | null
+          solicita_nf?: boolean | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone: string
           tem_responsavel_legal?: boolean | null
@@ -1162,6 +1259,11 @@ export type Database = {
           estado?: string | null
           foto_url?: string | null
           id?: string
+          nf_cnpj_cpf?: string | null
+          nf_email?: string | null
+          nf_endereco?: string | null
+          nf_inscricao_estadual?: string | null
+          nf_razao_social?: string | null
           nome?: string
           numero?: string | null
           observacoes?: string | null
@@ -1182,6 +1284,7 @@ export type Database = {
           responsavel_telefone?: string | null
           rg?: string | null
           rua?: string | null
+          solicita_nf?: boolean | null
           status?: Database["public"]["Enums"]["status_paciente"]
           telefone?: string
           tem_responsavel_legal?: boolean | null
@@ -1529,6 +1632,93 @@ export type Database = {
           prazo_aviso_horas?: number
           prazo_reagendamento_dias?: number
           prazo_remarcacao_dias?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pre_cadastros: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          estado: string | null
+          id: string
+          nome: string
+          numero: string | null
+          observacoes: string | null
+          responsavel_cpf: string | null
+          responsavel_email: string | null
+          responsavel_nome: string | null
+          responsavel_parentesco: string | null
+          responsavel_telefone: string | null
+          revisado_por: string | null
+          rg: string | null
+          rua: string | null
+          status: string
+          telefone: string
+          tem_responsavel_legal: boolean | null
+          tipo_atendimento: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          numero?: string | null
+          observacoes?: string | null
+          responsavel_cpf?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_parentesco?: string | null
+          responsavel_telefone?: string | null
+          revisado_por?: string | null
+          rg?: string | null
+          rua?: string | null
+          status?: string
+          telefone: string
+          tem_responsavel_legal?: boolean | null
+          tipo_atendimento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          numero?: string | null
+          observacoes?: string | null
+          responsavel_cpf?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_parentesco?: string | null
+          responsavel_telefone?: string | null
+          revisado_por?: string | null
+          rg?: string | null
+          rua?: string | null
+          status?: string
+          telefone?: string
+          tem_responsavel_legal?: boolean | null
+          tipo_atendimento?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2038,6 +2228,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vendas_produtos: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_venda: string
+          id: string
+          observacoes: string | null
+          paciente_id: string | null
+          produto_id: string
+          quantidade: number
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_venda?: string
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          produto_id: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_venda?: string
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          produto_id?: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_produtos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       weekly_schedules: {
         Row: {

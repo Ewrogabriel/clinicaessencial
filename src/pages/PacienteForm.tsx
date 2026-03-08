@@ -52,6 +52,14 @@ const PacienteForm = () => {
   const [status, setStatus] = useState<"ativo" | "inativo">("ativo");
   const [observacoes, setObservacoes] = useState("");
 
+  // Nota Fiscal
+  const [solicitaNf, setSolicitaNf] = useState(false);
+  const [nfRazaoSocial, setNfRazaoSocial] = useState("");
+  const [nfCnpjCpf, setNfCnpjCpf] = useState("");
+  const [nfEndereco, setNfEndereco] = useState("");
+  const [nfInscricaoEstadual, setNfInscricaoEstadual] = useState("");
+  const [nfEmail, setNfEmail] = useState("");
+
   // Legal guardian
   const [temResponsavel, setTemResponsavel] = useState(false);
   const [respNome, setRespNome] = useState("");
@@ -130,6 +138,12 @@ const PacienteForm = () => {
           setRespCidade(data.responsavel_cidade || "");
           setRespEstado(data.responsavel_estado || "");
           setCodigoAcesso(data.codigo_acesso || null);
+          setSolicitaNf(data.solicita_nf || false);
+          setNfRazaoSocial(data.nf_razao_social || "");
+          setNfCnpjCpf(data.nf_cnpj_cpf || "");
+          setNfEndereco(data.nf_endereco || "");
+          setNfInscricaoEstadual(data.nf_inscricao_estadual || "");
+          setNfEmail(data.nf_email || "");
           setLoadingData(false);
         });
     }
@@ -326,6 +340,12 @@ const PacienteForm = () => {
         responsavel_bairro: temResponsavel ? respBairro || null : null,
         responsavel_cidade: temResponsavel ? respCidade || null : null,
         responsavel_estado: temResponsavel ? respEstado || null : null,
+        solicita_nf: solicitaNf,
+        nf_razao_social: solicitaNf ? nfRazaoSocial || null : null,
+        nf_cnpj_cpf: solicitaNf ? nfCnpjCpf || null : null,
+        nf_endereco: solicitaNf ? nfEndereco || null : null,
+        nf_inscricao_estadual: solicitaNf ? nfInscricaoEstadual || null : null,
+        nf_email: solicitaNf ? nfEmail || null : null,
       };
 
       let savedPatientId = id;
@@ -669,6 +689,43 @@ const PacienteForm = () => {
               <Input id="estado" placeholder="SP" value={estado} onChange={(e) => setEstado(e.target.value)} maxLength={2} />
             </div>
           </CardContent>
+        </Card>
+
+        {/* Nota Fiscal */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Nota Fiscal</CardTitle>
+                <CardDescription>Dados para emissão de nota fiscal quando solicitada pelo paciente</CardDescription>
+              </div>
+              <Switch checked={solicitaNf} onCheckedChange={setSolicitaNf} />
+            </div>
+          </CardHeader>
+          {solicitaNf && (
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2 space-y-2">
+                <Label>Razão Social / Nome</Label>
+                <Input value={nfRazaoSocial} onChange={(e) => setNfRazaoSocial(e.target.value)} placeholder="Nome ou Razão Social para NF" />
+              </div>
+              <div className="space-y-2">
+                <Label>CPF/CNPJ para NF</Label>
+                <Input value={nfCnpjCpf} onChange={(e) => setNfCnpjCpf(e.target.value)} placeholder="CPF ou CNPJ" />
+              </div>
+              <div className="space-y-2">
+                <Label>Inscrição Estadual</Label>
+                <Input value={nfInscricaoEstadual} onChange={(e) => setNfInscricaoEstadual(e.target.value)} placeholder="Inscrição estadual (se houver)" />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label>Endereço para NF</Label>
+                <Input value={nfEndereco} onChange={(e) => setNfEndereco(e.target.value)} placeholder="Endereço completo para a nota fiscal" />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail para envio da NF</Label>
+                <Input type="email" value={nfEmail} onChange={(e) => setNfEmail(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Clinical */}

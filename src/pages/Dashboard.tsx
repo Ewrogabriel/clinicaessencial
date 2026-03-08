@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users, Activity, AlertTriangle, ArrowRight, Trophy,
   CalendarCheck, Clock, TrendingUp, Lightbulb, PartyPopper,
-  CheckCircle2, XCircle, RefreshCw, MessageCircle
+  CheckCircle2, XCircle, RefreshCw, MessageCircle, UserPlus
 } from "lucide-react";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
@@ -383,8 +383,21 @@ const Dashboard = () => {
           <Button
             size="sm"
             variant="outline"
+            className="gap-2"
+            onClick={() => {
+              const link = `${window.location.origin}/pre-cadastro`;
+              const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
+              const encoded = encodeURIComponent(msg);
+              window.open(`https://wa.me/?text=${encoded}`, "_blank");
+            }}
+          >
+            <UserPlus className="h-4 w-4" /> Enviar Pré-Cadastro
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
-            onClick={() => window.open(`https://wa.me/5581900000000`, "_blank")} // Placeholder CLINIC number
+            onClick={() => window.open(`https://wa.me/5581900000000`, "_blank")}
           >
             <MessageCircle className="h-4 w-4" /> Falar com a Clínica
           </Button>
