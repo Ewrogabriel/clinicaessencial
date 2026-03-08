@@ -81,30 +81,28 @@ export function DailyTipsCard({ tipo }: DailyTipsCardProps) {
       )}
 
       {!isLoading && dicas.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-3">
-          {dicas.map((dica, i) => {
-            const Icon = ICON_MAP[dica.categoria] || Lightbulb;
-            const colorClass = COLOR_MAP[dica.categoria] || "text-primary bg-primary/10";
-            return (
-              <Card key={i} className="hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: "hsl(var(--primary))" }}>
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <div className="flex items-start gap-2">
-                    <div className={`p-1.5 rounded-md shrink-0 ${colorClass}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-sm leading-tight">{dica.titulo}</CardTitle>
-                      <Badge variant="outline" className="mt-1 text-[10px]">{dica.categoria}</Badge>
-                    </div>
+        <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--primary))" }}>
+          <CardContent className="p-4 space-y-4">
+            {dicas.map((dica, i) => {
+              const Icon = ICON_MAP[dica.categoria] || Lightbulb;
+              const colorClass = COLOR_MAP[dica.categoria] || "text-primary bg-primary/10";
+              return (
+                <div key={i} className={`flex items-start gap-3 ${i < dicas.length - 1 ? "pb-4 border-b border-border" : ""}`}>
+                  <div className={`p-1.5 rounded-md shrink-0 mt-0.5 ${colorClass}`}>
+                    <Icon className="w-4 h-4" />
                   </div>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 pt-0">
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">{dica.conteudo}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold leading-tight">{dica.titulo}</span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">{dica.categoria}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{dica.conteudo}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       )}
 
       {!isLoading && dicas.length === 0 && (
