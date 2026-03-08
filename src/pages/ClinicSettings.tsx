@@ -3,12 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database } from "lucide-react";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useClinicSettings, useUpdateClinicSettings } from "@/hooks/useClinicSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import FormasPagamento from "./FormasPagamento";
 import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
@@ -108,12 +110,15 @@ const ClinicSettings = () => {
       </div>
 
       <Tabs defaultValue="dados" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
           <TabsTrigger value="dados" className="gap-2">
             <Settings2 className="h-4 w-4" /> Dados
           </TabsTrigger>
           <TabsTrigger value="pagamento" className="gap-2">
             <CreditCard className="h-4 w-4" /> Pagamento
+          </TabsTrigger>
+          <TabsTrigger value="nfe" className="gap-2">
+            <FileText className="h-4 w-4" /> Nota Fiscal
           </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <Shield className="h-4 w-4" /> Logs
@@ -184,6 +189,10 @@ const ClinicSettings = () => {
           <FormasPagamento />
         </TabsContent>
 
+        <TabsContent value="nfe">
+          <NfeConfigTab />
+        </TabsContent>
+
         <TabsContent value="logs">
           <AuditLogViewer />
         </TabsContent>
@@ -192,6 +201,121 @@ const ClinicSettings = () => {
           <BackupExport />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+};
+
+/** NFe Configuration Sub-Tab */
+const NfeConfigTab = () => {
+  const queryClient = useQueryClient();
+  const [nfeForm, setNfeForm] = useState({
+    ambiente: "homologacao",
+    prestador_cnpj: "",
+    prestador_inscricao_municipal: "",
+    prestador_codigo_municipio: "",
+    servico_codigo_tributacao: "",
+    servico_cnae: "",
+    servico_item_lista: "",
+    servico_discriminacao_padrao: "Serviços de Fisioterapia e Pilates",
+    aliquota_iss: "5",
+  });
+
+  const { data: nfeConfig, isLoading } = useQuery({
+    queryKey: ["config-nfe-settings"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("config_nfe") as any).select("*").limit(1).single();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (nfeConfig) {
+      setNfeForm({
+        ambiente: nfeConfig.ambiente || "homologacao",
+        prestador_cnpj: nfeConfig.prestador_cnpj || "",
+        prestador_inscricao_municipal: nfeConfig.prestador_inscricao_municipal || "",
+        prestador_codigo_municipio: nfeConfig.prestador_codigo_municipio || "",
+        servico_codigo_tributacao: nfeConfig.servico_codigo_tributacao || "",
+        servico_cnae: nfeConfig.servico_cnae || "",
+        servico_item_lista: nfeConfig.servico_item_lista || "",
+        servico_discriminacao_padrao: nfeConfig.servico_discriminacao_padrao || "Serviços de Fisioterapia e Pilates",
+        aliquota_iss: String(nfeConfig.aliquota_iss ?? "5"),
+      });
+    }
+  }, [nfeConfig]);
+
+  const saveNfe = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        ...nfeForm,
+        aliquota_iss: parseFloat(nfeForm.aliquota_iss) || 5,
+      };
+      if (nfeConfig?.id) {
+        const { error } = await (supabase.from("config_nfe") as any).update(payload).eq("id", nfeConfig.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("config_nfe") as any).insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["config-nfe-settings"] });
+      toast({ title: "Configuração de NF-e salva!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const setNfe = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setNfeForm((f) => ({ ...f, [field]: e.target.value }));
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" /> Dados do Prestador (Focus NFe)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Ambiente</Label>
+            <Select value={nfeForm.ambiente} onValueChange={(v) => setNfeForm((f) => ({ ...f, ambiente: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="homologacao">Homologação (Testes)</SelectItem>
+                <SelectItem value="producao">Produção</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>CNPJ do Prestador</Label><Input value={nfeForm.prestador_cnpj} onChange={setNfe("prestador_cnpj")} placeholder="00.000.000/0000-00" /></div>
+          <div><Label>Inscrição Municipal</Label><Input value={nfeForm.prestador_inscricao_municipal} onChange={setNfe("prestador_inscricao_municipal")} /></div>
+          <div><Label>Código do Município (IBGE)</Label><Input value={nfeForm.prestador_codigo_municipio} onChange={setNfe("prestador_codigo_municipio")} placeholder="Ex: 3550308" /></div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Dados do Serviço</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>Código de Tributação Municipal</Label><Input value={nfeForm.servico_codigo_tributacao} onChange={setNfe("servico_codigo_tributacao")} /></div>
+          <div><Label>CNAE</Label><Input value={nfeForm.servico_cnae} onChange={setNfe("servico_cnae")} placeholder="Ex: 8650002" /></div>
+          <div><Label>Item da Lista de Serviço</Label><Input value={nfeForm.servico_item_lista} onChange={setNfe("servico_item_lista")} placeholder="Ex: 04.01" /></div>
+          <div><Label>Discriminação Padrão</Label><Input value={nfeForm.servico_discriminacao_padrao} onChange={setNfe("servico_discriminacao_padrao")} /></div>
+          <div><Label>Alíquota ISS (%)</Label><Input type="number" step="0.01" value={nfeForm.aliquota_iss} onChange={setNfe("aliquota_iss")} /></div>
+        </CardContent>
+      </Card>
+
+      <div className="md:col-span-2">
+        <Button onClick={() => saveNfe.mutate()} disabled={saveNfe.isPending} className="gap-2">
+          <Save className="h-4 w-4" /> Salvar Configuração NF-e
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          💡 Após salvar, adicione seu token da Focus NFe nos segredos do projeto para ativar a emissão automática.
+        </p>
+      </div>
     </div>
   );
 };

@@ -361,6 +361,51 @@ export type Database = {
           },
         ]
       }
+      config_nfe: {
+        Row: {
+          aliquota_iss: number | null
+          ambiente: string
+          created_at: string | null
+          id: string
+          prestador_cnpj: string | null
+          prestador_codigo_municipio: string | null
+          prestador_inscricao_municipal: string | null
+          servico_cnae: string | null
+          servico_codigo_tributacao: string | null
+          servico_discriminacao_padrao: string | null
+          servico_item_lista: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aliquota_iss?: number | null
+          ambiente?: string
+          created_at?: string | null
+          id?: string
+          prestador_cnpj?: string | null
+          prestador_codigo_municipio?: string | null
+          prestador_inscricao_municipal?: string | null
+          servico_cnae?: string | null
+          servico_codigo_tributacao?: string | null
+          servico_discriminacao_padrao?: string | null
+          servico_item_lista?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aliquota_iss?: number | null
+          ambiente?: string
+          created_at?: string | null
+          id?: string
+          prestador_cnpj?: string | null
+          prestador_codigo_municipio?: string | null
+          prestador_inscricao_municipal?: string | null
+          servico_cnae?: string | null
+          servico_codigo_tributacao?: string | null
+          servico_discriminacao_padrao?: string | null
+          servico_item_lista?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       config_pix: {
         Row: {
           chave_pix: string
@@ -549,6 +594,9 @@ export type Database = {
           emitida: boolean | null
           emitida_em: string | null
           emitida_por: string | null
+          focus_nfe_erro: string | null
+          focus_nfe_ref: string | null
+          focus_nfe_status: string | null
           id: string
           mes_referencia: string
           nf_pdf_url: string | null
@@ -562,6 +610,9 @@ export type Database = {
           emitida?: boolean | null
           emitida_em?: string | null
           emitida_por?: string | null
+          focus_nfe_erro?: string | null
+          focus_nfe_ref?: string | null
+          focus_nfe_status?: string | null
           id?: string
           mes_referencia: string
           nf_pdf_url?: string | null
@@ -575,6 +626,9 @@ export type Database = {
           emitida?: boolean | null
           emitida_em?: string | null
           emitida_por?: string | null
+          focus_nfe_erro?: string | null
+          focus_nfe_ref?: string | null
+          focus_nfe_status?: string | null
           id?: string
           mes_referencia?: string
           nf_pdf_url?: string | null

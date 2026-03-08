@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, CheckCircle2, Search, Eye, Upload, Download } from "lucide-react";
+import { FileText, CheckCircle2, Search, Eye, Upload, Download, Send, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,6 +23,7 @@ const NotasFiscais = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [emitting, setEmitting] = useState<string | null>(null);
 
   const { data: pacientesNF = [], isLoading } = useQuery({
     queryKey: ["pacientes-nf"],
@@ -74,6 +75,14 @@ const NotasFiscais = () => {
     },
   });
 
+  const { data: nfeConfig } = useQuery({
+    queryKey: ["config-nfe"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("config_nfe") as any).select("*").limit(1).single();
+      return data;
+    },
+  });
+
   const confirmarEmissao = useMutation({
     mutationFn: async (pacienteId: string) => {
       const mesDate = `${mesRef}-01`;
@@ -94,12 +103,54 @@ const NotasFiscais = () => {
     },
   });
 
+  const handleEmitNfe = async (pacienteId: string, emissaoId: string) => {
+    setEmitting(pacienteId);
+    try {
+      const { data, error } = await supabase.functions.invoke("emit-nfe", {
+        body: {
+          emissao_id: emissaoId,
+          paciente_id: pacienteId,
+          mes_referencia: `${mesRef}-01`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
+      toast({
+        title: "NFS-e enviada para emissão!",
+        description: `Status: ${data.status}. O PDF ficará disponível em instantes.`,
+      });
+    } catch (e: any) {
+      toast({
+        title: "Erro ao emitir NFS-e",
+        description: e.message || "Verifique a configuração do Focus NFe",
+        variant: "destructive",
+      });
+    } finally {
+      setEmitting(null);
+    }
+  };
+
+  const handleCheckStatus = async (emissaoId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-nfe-status", {
+        body: { emissao_id: emissaoId },
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
+      toast({ title: `Status: ${data?.status || "verificado"}` });
+    } catch (e: any) {
+      toast({ title: "Erro ao verificar status", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleUploadPdf = async (pacienteId: string, file: File) => {
     setUploading(pacienteId);
     try {
       const mesDate = `${mesRef}-01`;
       const filePath = `notas-fiscais/${pacienteId}/${mesRef}/${file.name}`;
-
       const { error: uploadError } = await supabase.storage
         .from("clinic-uploads")
         .upload(filePath, file, { upsert: true });
@@ -109,7 +160,6 @@ const NotasFiscais = () => {
         .from("clinic-uploads")
         .getPublicUrl(filePath);
 
-      // Upsert emissao with PDF URL
       const valor = (pagamentos as any)[pacienteId] || 0;
       const { error } = await (supabase.from("emissoes_nf") as any).upsert({
         paciente_id: pacienteId,
@@ -142,6 +192,8 @@ const NotasFiscais = () => {
     return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy", { locale: ptBR }) };
   });
 
+  const focusNfeConfigured = !!nfeConfig?.prestador_cnpj;
+
   return (
     <div className="space-y-6">
       <div>
@@ -150,6 +202,18 @@ const NotasFiscais = () => {
         </h1>
         <p className="text-muted-foreground">Controle de emissão de NF para pacientes que solicitam</p>
       </div>
+
+      {!focusNfeConfigured && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-800">Focus NFe não configurado</p>
+              <p className="text-amber-700">Configure os dados do prestador em <strong>Ajustes → Nota Fiscal</strong> para emitir NFS-e automaticamente.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 max-w-sm">
@@ -191,6 +255,7 @@ const NotasFiscais = () => {
                 filtered.map((p: any) => {
                   const emissao = emissaoMap.get(p.id) as any;
                   const valor = (pagamentos as any)[p.id] || 0;
+                  const focusStatus = emissao?.focus_nfe_status;
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.nome}</TableCell>
@@ -198,11 +263,23 @@ const NotasFiscais = () => {
                       <TableCell className="text-muted-foreground">{p.nf_cnpj_cpf || p.cpf || "—"}</TableCell>
                       <TableCell className="font-medium">R$ {valor.toFixed(2)}</TableCell>
                       <TableCell>
-                        {emissao?.emitida ? (
-                          <Badge className="bg-emerald-100 text-emerald-700">Emitida</Badge>
-                        ) : (
-                          <Badge variant="secondary">Pendente</Badge>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {emissao?.emitida ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 w-fit">Emitida</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="w-fit">Pendente</Badge>
+                          )}
+                          {focusStatus && (
+                            <Badge variant="outline" className="text-xs w-fit">
+                              Focus: {focusStatus}
+                            </Badge>
+                          )}
+                          {emissao?.focus_nfe_erro && (
+                            <span className="text-xs text-destructive truncate max-w-[150px]" title={emissao.focus_nfe_erro}>
+                              ⚠ Erro
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {emissao?.nf_pdf_url ? (
@@ -218,21 +295,55 @@ const NotasFiscais = () => {
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           <Button size="sm" variant="outline" onClick={() => { setSelected(p); setDetailOpen(true); }}>
-                            <Eye className="h-3 w-3 mr-1" /> Dados NF
+                            <Eye className="h-3 w-3 mr-1" /> Dados
                           </Button>
-                          {!emissao?.emitida && (
+
+                          {/* Emit via Focus NFe */}
+                          {focusNfeConfigured && !focusStatus && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-primary"
+                              disabled={emitting === p.id || valor === 0}
+                              onClick={async () => {
+                                // Ensure emissao record exists
+                                let eId = emissao?.id;
+                                if (!eId) {
+                                  const mesDate = `${mesRef}-01`;
+                                  const { data: newE } = await (supabase.from("emissoes_nf") as any).upsert({
+                                    paciente_id: p.id,
+                                    mes_referencia: mesDate,
+                                    valor,
+                                  }, { onConflict: "paciente_id,mes_referencia" }).select().single();
+                                  eId = newE?.id;
+                                  if (!eId) { toast({ title: "Erro ao criar registro", variant: "destructive" }); return; }
+                                }
+                                handleEmitNfe(p.id, eId);
+                              }}
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              {emitting === p.id ? "Emitindo..." : "Emitir NFS-e"}
+                            </Button>
+                          )}
+
+                          {/* Check status */}
+                          {focusStatus && focusStatus !== "autorizado" && emissao?.id && (
+                            <Button size="sm" variant="outline" onClick={() => handleCheckStatus(emissao.id)}>
+                              <RefreshCw className="h-3 w-3 mr-1" /> Status
+                            </Button>
+                          )}
+
+                          {/* Manual confirm */}
+                          {!emissao?.emitida && !focusNfeConfigured && (
                             <Button size="sm" variant="outline" className="text-emerald-600" onClick={() => confirmarEmissao.mutate(p.id)} disabled={confirmarEmissao.isPending}>
                               <CheckCircle2 className="h-3 w-3 mr-1" /> Confirmar
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="relative"
-                            disabled={uploading === p.id}
-                          >
+
+                          {/* Upload PDF */}
+                          <Button size="sm" variant="outline" className="relative" disabled={uploading === p.id}>
                             <Upload className="h-3 w-3 mr-1" />
-                            {uploading === p.id ? "Enviando..." : "Anexar PDF"}
+                            {uploading === p.id ? "Enviando..." : "PDF"}
                             <input
                               type="file"
                               accept=".pdf"
