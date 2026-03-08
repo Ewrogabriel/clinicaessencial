@@ -157,7 +157,7 @@ const MeusPlanos = () => {
       setAvailabilityResult(result);
     }, 200);
     return () => clearTimeout(timer);
-  }, [selectedPlano?.profissional_id, selectedDate, selectedTime]);
+  }, [activeProfId, selectedDate, selectedTime]);
 
   const solicitarAgendamento = useMutation({
     mutationFn: async () => {
