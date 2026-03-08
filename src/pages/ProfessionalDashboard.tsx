@@ -21,63 +21,59 @@ const ProfessionalDashboard = () => {
   const mesInicio = format(startOfMonth(hoje), "yyyy-MM-dd");
   const mesFim = format(endOfMonth(hoje), "yyyy-MM-dd");
 
-  // Active patients count (patients with active enrollments for this professional)
   const { data: activePatients = 0 } = useQuery({
     queryKey: ["prof-kpi-patients", userId],
     queryFn: async () => {
-      const { count } = await (supabase.from("matriculas") as any)
+      const { count } = await supabase.from("matriculas")
         .select("paciente_id", { count: "exact", head: true })
-        .eq("profissional_id", userId)
+        .eq("profissional_id", userId!)
         .eq("status", "ativa");
       return count ?? 0;
     },
     enabled: !!userId,
   });
 
-  // This month sessions
   const { data: monthSessions } = useQuery({
     queryKey: ["prof-kpi-sessions", userId, mesInicio],
     queryFn: async () => {
-      const { data } = await (supabase.from("agendamentos") as any)
+      const { data } = await supabase.from("agendamentos")
         .select("id, status")
-        .eq("profissional_id", userId)
+        .eq("profissional_id", userId!)
         .gte("data_horario", `${mesInicio}T00:00:00`)
         .lte("data_horario", `${mesFim}T23:59:59`);
       const all = data || [];
       return {
         total: all.length,
-        realizadas: all.filter((a: any) => a.status === "realizado").length,
-        faltas: all.filter((a: any) => a.status === "falta").length,
-        canceladas: all.filter((a: any) => a.status === "cancelado").length,
-        agendadas: all.filter((a: any) => a.status === "agendado" || a.status === "confirmado").length,
+        realizadas: all.filter((a) => a.status === "realizado").length,
+        faltas: all.filter((a) => a.status === "falta").length,
+        canceladas: all.filter((a) => a.status === "cancelado").length,
+        agendadas: all.filter((a) => a.status === "agendado" || a.status === "confirmado").length,
       };
     },
     enabled: !!userId,
   });
 
-  // Revenue (commissions)
   const { data: revenue = 0 } = useQuery({
     queryKey: ["prof-kpi-revenue", userId, mesInicio],
     queryFn: async () => {
-      const { data } = await (supabase.from("commissions") as any)
+      const { data } = await supabase.from("commissions")
         .select("valor")
-        .eq("professional_id", userId)
+        .eq("professional_id", userId!)
         .gte("created_at", `${mesInicio}T00:00:00`)
         .lte("created_at", `${mesFim}T23:59:59`);
-      return (data || []).reduce((sum: number, c: any) => sum + Number(c.valor), 0);
+      return (data || []).reduce((sum, c) => sum + Number(c.valor), 0);
     },
     enabled: !!userId,
   });
 
-  // Today's agenda
   const { data: todayAgenda = [] } = useQuery({
     queryKey: ["prof-today-agenda", userId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      const { data } = await (supabase.from("agendamentos") as any)
+      const { data } = await supabase.from("agendamentos")
         .select("*, pacientes(nome)")
-        .eq("profissional_id", userId)
+        .eq("profissional_id", userId!)
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd)
         .order("data_horario", { ascending: true });
@@ -86,7 +82,6 @@ const ProfessionalDashboard = () => {
     enabled: !!userId,
   });
 
-  // Monthly chart (last 6 months)
   const { data: monthlyChart = [] } = useQuery({
     queryKey: ["prof-monthly-chart", userId],
     queryFn: async () => {
@@ -96,17 +91,17 @@ const ProfessionalDashboard = () => {
         const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         const start = format(d, "yyyy-MM-dd");
         const endStr = format(end, "yyyy-MM-dd");
-        const { data } = await (supabase.from("agendamentos") as any)
+        const { data } = await supabase.from("agendamentos")
           .select("status")
-          .eq("profissional_id", userId)
+          .eq("profissional_id", userId!)
           .gte("data_horario", `${start}T00:00:00`)
           .lte("data_horario", `${endStr}T23:59:59`);
         const all = data || [];
         results.push({
           mes: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
-          realizadas: all.filter((a: any) => a.status === "realizado").length,
-          faltas: all.filter((a: any) => a.status === "falta").length,
-          canceladas: all.filter((a: any) => a.status === "cancelado").length,
+          realizadas: all.filter((a) => a.status === "realizado").length,
+          faltas: all.filter((a) => a.status === "falta").length,
+          canceladas: all.filter((a) => a.status === "cancelado").length,
         });
       }
       return results;
@@ -128,32 +123,10 @@ const ProfessionalDashboard = () => {
   const saudacao = hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
 
   const kpis = [
-    {
-      title: "Pacientes Ativos",
-      value: String(activePatients),
-      icon: Users,
-      color: "text-emerald-600 bg-emerald-50",
-    },
-    {
-      title: "Sessões do Mês",
-      value: String(monthSessions?.total || 0),
-      icon: CalendarCheck,
-      description: `${monthSessions?.realizadas || 0} realizadas`,
-      color: "text-blue-600 bg-blue-50",
-    },
-    {
-      title: "Comissão do Mês",
-      value: `R$ ${revenue.toFixed(2)}`,
-      icon: DollarSign,
-      color: "text-violet-600 bg-violet-50",
-    },
-    {
-      title: "Taxa de Faltas",
-      value: `${faltaRate}%`,
-      icon: faltaRate > 15 ? AlertTriangle : CheckCircle2,
-      description: `${monthSessions?.faltas || 0} faltas`,
-      color: faltaRate > 15 ? "text-red-600 bg-red-50" : "text-emerald-600 bg-emerald-50",
-    },
+    { title: "Pacientes Ativos", value: String(activePatients), icon: Users, color: "text-emerald-600 bg-emerald-50" },
+    { title: "Sessões do Mês", value: String(monthSessions?.total || 0), icon: CalendarCheck, description: `${monthSessions?.realizadas || 0} realizadas`, color: "text-blue-600 bg-blue-50" },
+    { title: "Comissão do Mês", value: `R$ ${revenue.toFixed(2)}`, icon: DollarSign, color: "text-violet-600 bg-violet-50" },
+    { title: "Taxa de Faltas", value: `${faltaRate}%`, icon: faltaRate > 15 ? AlertTriangle : CheckCircle2, description: `${monthSessions?.faltas || 0} faltas`, color: faltaRate > 15 ? "text-red-600 bg-red-50" : "text-emerald-600 bg-emerald-50" },
   ];
 
   const statusColors: Record<string, string> = {
@@ -175,25 +148,18 @@ const ProfessionalDashboard = () => {
         </p>
       </div>
       <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2"
-          onClick={() => {
-            const link = `${window.location.origin}/pre-cadastro`;
-            const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-          }}
-        >
+        <Button size="sm" variant="outline" className="gap-2" onClick={() => {
+          const link = `${window.location.origin}/pre-cadastro`;
+          const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
+          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+        }}>
           <UserPlus className="h-4 w-4" /> Enviar Pré-Cadastro
         </Button>
       </div>
 
       <DailyTipsCard tipo="profissional" />
-
       <ConvenioCard />
 
-      {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
           <Card key={kpi.title} className="hover:shadow-md transition-shadow">
@@ -211,11 +177,9 @@ const ProfessionalDashboard = () => {
         ))}
       </div>
 
-      {/* All Requests Card */}
       <RequestsCard />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Monthly Chart */}
         {monthlyChart.length > 0 && (
           <Card>
             <CardHeader>
@@ -240,7 +204,6 @@ const ProfessionalDashboard = () => {
           </Card>
         )}
 
-        {/* Status Pie */}
         {statusPie.length > 0 && (
           <Card>
             <CardHeader>
@@ -262,7 +225,6 @@ const ProfessionalDashboard = () => {
         )}
       </div>
 
-      {/* Today's Agenda */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -275,10 +237,10 @@ const ProfessionalDashboard = () => {
             <p className="text-muted-foreground text-sm py-4 text-center">Nenhuma sessão agendada para hoje.</p>
           ) : (
             <div className="divide-y">
-              {todayAgenda.map((ag: any) => (
+              {todayAgenda.map((ag) => (
                 <div key={ag.id} className="flex items-center justify-between py-3">
                   <div>
-                    <p className="font-medium text-sm">{ag.pacientes?.nome || "Paciente"}</p>
+                    <p className="font-medium text-sm">{(ag as Record<string, unknown>).pacientes ? ((ag as Record<string, unknown>).pacientes as Record<string, string>)?.nome : "Paciente"}</p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(ag.data_horario), "HH:mm")} • {ag.tipo_atendimento} • {ag.duracao_minutos}min
                     </p>

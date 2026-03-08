@@ -8,26 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -40,7 +27,6 @@ const Despesas = () => {
     const queryClient = useQueryClient();
     const [busca, setBusca] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         descricao: "",
@@ -53,7 +39,7 @@ const Despesas = () => {
     const { data: despesas = [], isLoading } = useQuery({
         queryKey: ["despesas", activeClinicId],
         queryFn: async () => {
-            let query = (supabase.from("expenses") as any).select("*");
+            let query = supabase.from("expenses").select("*");
             if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
             const { data, error } = await query.order("data_vencimento", { ascending: false });
             if (error) throw error;
@@ -63,8 +49,8 @@ const Despesas = () => {
 
     const createMutation = useMutation({
         mutationFn: async () => {
-            const { error } = await (supabase.from("expenses") as any).insert({
-                clinic_id: activeClinicId,
+            const { error } = await supabase.from("expenses").insert({
+                clinic_id: activeClinicId || "",
                 descricao: formData.descricao,
                 valor: parseFloat(formData.valor),
                 data_vencimento: formData.data_vencimento,
@@ -78,22 +64,16 @@ const Despesas = () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
             toast({ title: "Despesa registrada!" });
             setDialogOpen(false);
-            setFormData({
-                descricao: "",
-                valor: "",
-                data_vencimento: format(new Date(), "yyyy-MM-dd"),
-                categoria: "outros",
-                status: "pendente",
-            });
+            setFormData({ descricao: "", valor: "", data_vencimento: format(new Date(), "yyyy-MM-dd"), categoria: "outros", status: "pendente" });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await (supabase.from("expenses") as any).delete().eq("id", id);
+            const { error } = await supabase.from("expenses").delete().eq("id", id);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -103,13 +83,10 @@ const Despesas = () => {
     });
 
     const toggleStatusMutation = useMutation({
-        mutationFn: async (despesa: any) => {
+        mutationFn: async (despesa: { id: string; status: string }) => {
             const newStatus = despesa.status === "pendente" ? "pago" : "pendente";
-            const { error } = await (supabase.from("expenses") as any)
-                .update({
-                    status: newStatus,
-                    data_pagamento: newStatus === "pago" ? new Date().toISOString() : null
-                })
+            const { error } = await supabase.from("expenses")
+                .update({ status: newStatus, data_pagamento: newStatus === "pago" ? new Date().toISOString() : null })
                 .eq("id", despesa.id);
             if (error) throw error;
         },
@@ -119,7 +96,7 @@ const Despesas = () => {
         },
     });
 
-    const filtrados = (despesas || []).filter((d: any) =>
+    const filtrados = (despesas || []).filter((d) =>
         d.descricao?.toLowerCase().includes(busca.toLowerCase())
     );
 
@@ -140,19 +117,14 @@ const Despesas = () => {
                     <div className="flex items-center gap-3">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar despesa..."
-                                value={busca}
-                                onChange={(e) => setBusca(e.target.value)}
-                                className="pl-9"
-                            />
+                            <Input placeholder="Buscar despesa..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-9" />
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     {isLoading ? (
                         <div className="p-8 text-center animate-pulse text-muted-foreground">Carregando...</div>
-                    ) : (filtrados || []).length === 0 ? (
+                    ) : filtrados.length === 0 ? (
                         <div className="p-12 text-center text-muted-foreground">
                             <Receipt className="h-12 w-12 mx-auto mb-4 opacity-20" />
                             <p>Nenhuma despesa encontrada.</p>
@@ -170,7 +142,7 @@ const Despesas = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filtrados.map((d: any) => (
+                                {filtrados.map((d) => (
                                     <TableRow key={d.id}>
                                         <TableCell className="font-medium">{d.descricao}</TableCell>
                                         <TableCell className="capitalize">
@@ -179,19 +151,14 @@ const Despesas = () => {
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-3 w-3 opacity-50" />
-                                                {new Date(d.data_vencimento).toLocaleDateString()}
+                                                {d.data_vencimento ? new Date(d.data_vencimento).toLocaleDateString() : "—"}
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-semibold">
                                             R$ {Number(d.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                         </TableCell>
                                         <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="p-0 h-auto hover:bg-transparent"
-                                                onClick={() => toggleStatusMutation.mutate(d)}
-                                            >
+                                            <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent" onClick={() => toggleStatusMutation.mutate(d)}>
                                                 <Badge variant={d.status === "pago" ? "default" : "destructive"}>
                                                     {d.status === "pago" ? "Pago" : "Pendente"}
                                                 </Badge>
@@ -218,39 +185,22 @@ const Despesas = () => {
                     <div className="space-y-4 py-2">
                         <div className="space-y-2">
                             <Label>Descrição *</Label>
-                            <Input
-                                value={formData.descricao}
-                                onChange={(e) => setFormData(p => ({ ...p, descricao: e.target.value }))}
-                                placeholder="Ex: Aluguel, Luz, Papelaria..."
-                            />
+                            <Input value={formData.descricao} onChange={(e) => setFormData(p => ({ ...p, descricao: e.target.value }))} placeholder="Ex: Aluguel, Luz, Papelaria..." />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Valor (R$) *</Label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.valor}
-                                    onChange={(e) => setFormData(p => ({ ...p, valor: e.target.value }))}
-                                    placeholder="0,00"
-                                />
+                                <Input type="number" step="0.01" value={formData.valor} onChange={(e) => setFormData(p => ({ ...p, valor: e.target.value }))} placeholder="0,00" />
                             </div>
                             <div className="space-y-2">
                                 <Label>Vencimento *</Label>
-                                <Input
-                                    type="date"
-                                    value={formData.data_vencimento}
-                                    onChange={(e) => setFormData(p => ({ ...p, data_vencimento: e.target.value }))}
-                                />
+                                <Input type="date" value={formData.data_vencimento} onChange={(e) => setFormData(p => ({ ...p, data_vencimento: e.target.value }))} />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Categoria</Label>
-                                <Select
-                                    value={formData.categoria}
-                                    onValueChange={(v) => setFormData(p => ({ ...p, categoria: v }))}
-                                >
+                                <Select value={formData.categoria} onValueChange={(v) => setFormData(p => ({ ...p, categoria: v }))}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         {categorias.map(c => (
@@ -261,10 +211,7 @@ const Despesas = () => {
                             </div>
                             <div className="space-y-2">
                                 <Label>Status</Label>
-                                <Select
-                                    value={formData.status}
-                                    onValueChange={(v: any) => setFormData(p => ({ ...p, status: v }))}
-                                >
+                                <Select value={formData.status} onValueChange={(v: "pendente" | "pago") => setFormData(p => ({ ...p, status: v }))}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="pendente">Pendente</SelectItem>

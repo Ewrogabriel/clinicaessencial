@@ -51,6 +51,7 @@ const Dashboard = () => {
   const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -65,16 +66,16 @@ const Dashboard = () => {
     queryKey: ["pacientes", activeClinicId],
     queryFn: async () => {
       if (activeClinicId) {
-        const { data: cp } = await (supabase.from("clinic_pacientes") as any)
+        const { data: cp } = await supabase.from("clinic_pacientes")
           .select("paciente_id").eq("clinic_id", activeClinicId);
-        const ids = (cp || []).map((c: any) => c.paciente_id);
+        const ids = (cp || []).map((c) => c.paciente_id);
         if (!ids.length) return [];
-        const { data, error } = await (supabase.from("pacientes") as any)
+        const { data, error } = await supabase.from("pacientes")
           .select("*").in("id", ids).order("created_at", { ascending: false });
         if (error) throw error;
         return data;
       }
-      const { data, error } = await (supabase.from("pacientes") as any)
+      const { data, error } = await supabase.from("pacientes")
         .select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -88,9 +89,9 @@ const Dashboard = () => {
   const { data: financeData } = useQuery({
     queryKey: ["dashboard-finance", inicioMes, activeClinicId],
     queryFn: async () => {
-      let pQ = (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
-      let dQ = (supabase.from("expenses") as any).select("valor, status");
-      let cQ = (supabase.from("commissions") as any).select("valor");
+      let pQ = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
+      let dQ = supabase.from("expenses").select("valor, status");
+      let cQ = supabase.from("commissions").select("valor");
       if (activeClinicId) {
         pQ = pQ.eq("clinic_id", activeClinicId);
         dQ = dQ.eq("clinic_id", activeClinicId);
@@ -100,9 +101,9 @@ const Dashboard = () => {
       const { data: despesas } = await dQ;
       const { data: comissoes } = await cQ;
 
-      const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
-      const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc: number, d: any) => acc + Number(d.valor), 0) || 0;
-      const repasses = (comissoes || [])?.reduce((acc: number, c: any) => acc + Number(c.valor), 0) || 0;
+      const receita = (pagamentos || []).filter((p) => p.status === 'pago').reduce((acc, p) => acc + Number(p.valor), 0);
+      const custos = (despesas || []).filter((d) => d.status === 'pago').reduce((acc, d) => acc + Number(d.valor), 0);
+      const repasses = (comissoes || []).reduce((acc, c) => acc + Number(c.valor), 0);
 
       return { receita, custos, repasses, lucro: receita - custos - repasses };
     },
@@ -111,7 +112,7 @@ const Dashboard = () => {
   const { data: alertCount = 0 } = useQuery({
     queryKey: ["dashboard-alerts", activeClinicId],
     queryFn: async () => {
-      let q = (supabase.from("pagamentos") as any)
+      let q = supabase.from("pagamentos")
         .select("id", { count: "exact", head: true })
         .eq("status", "pendente")
         .lte("data_vencimento", new Date().toISOString().split("T")[0]);
@@ -121,13 +122,12 @@ const Dashboard = () => {
     },
   });
 
-  // Today's agenda stats
   const { data: todayStats } = useQuery({
     queryKey: ["dashboard-today-stats", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("id, status")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd);
@@ -136,9 +136,9 @@ const Dashboard = () => {
       const all = data || [];
       return {
         total: all.length,
-        realizados: all.filter((a: any) => a.status === "realizado").length,
-        confirmados: all.filter((a: any) => a.status === "confirmado" || a.status === "agendado").length,
-        faltas: all.filter((a: any) => a.status === "falta").length,
+        realizados: all.filter((a) => a.status === "realizado").length,
+        confirmados: all.filter((a) => a.status === "confirmado" || a.status === "agendado").length,
+        faltas: all.filter((a) => a.status === "falta").length,
       };
     },
   });
@@ -147,13 +147,13 @@ const Dashboard = () => {
   const { data: occupancyRate = 0 } = useQuery({
     queryKey: ["dashboard-occupancy", inicioMes, activeClinicId],
     queryFn: async () => {
-      let dispQ = (supabase.from("disponibilidade_profissional") as any)
+      let dispQ = supabase.from("disponibilidade_profissional")
         .select("hora_inicio, hora_fim, max_pacientes, dia_semana")
         .eq("ativo", true);
       if (activeClinicId) dispQ = dispQ.eq("clinic_id", activeClinicId);
       const { data: disp } = await dispQ;
 
-      let agQ = (supabase.from("agendamentos") as any)
+      let agQ = supabase.from("agendamentos")
         .select("id")
         .gte("data_horario", `${inicioMes}T00:00:00`)
         .lte("data_horario", `${fimMes}T23:59:59`)
@@ -161,7 +161,7 @@ const Dashboard = () => {
       if (activeClinicId) agQ = agQ.eq("clinic_id", activeClinicId);
       const { data: agendamentosMes } = await agQ;
 
-      const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
+      const totalSlots = (disp || []).reduce((sum, d) => sum + (d.max_pacientes || 1), 0) * 4;
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
     },
@@ -183,7 +183,7 @@ const Dashboard = () => {
       }
       const results = [];
       for (const m of months) {
-        let q = (supabase.from("agendamentos") as any)
+        let q = supabase.from("agendamentos")
           .select("status")
           .gte("data_horario", `${m.start}T00:00:00`)
           .lte("data_horario", `${m.end}T23:59:59`);
@@ -192,9 +192,9 @@ const Dashboard = () => {
         const all = data || [];
         results.push({
           mes: m.label,
-          realizadas: all.filter((a: any) => a.status === "realizado").length,
-          faltas: all.filter((a: any) => a.status === "falta").length,
-          canceladas: all.filter((a: any) => a.status === "cancelado").length,
+          realizadas: all.filter((a) => a.status === "realizado").length,
+          faltas: all.filter((a) => a.status === "falta").length,
+          canceladas: all.filter((a) => a.status === "cancelado").length,
         });
       }
       return results;
@@ -204,17 +204,19 @@ const Dashboard = () => {
   const { data: frequencyRanking = [] } = useQuery({
     queryKey: ["dashboard-frequency-ranking", activeClinicId],
     queryFn: async () => {
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("paciente_id, status, pacientes(nome)");
       if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
       const { data: agendamentos } = await q;
       if (!agendamentos) return [];
 
       const stats: Record<string, { nome: string; total: number; cancelados: number; realizados: number; checkins: number }> = {};
-      agendamentos.forEach((ag: any) => {
+      agendamentos.forEach((ag) => {
         const pid = ag.paciente_id;
         if (!stats[pid]) {
-          stats[pid] = { nome: ag.pacientes?.nome || "?", total: 0, cancelados: 0, realizados: 0, checkins: 0 };
+          const pacNome = ag.pacientes && typeof ag.pacientes === 'object' && 'nome' in ag.pacientes
+            ? (ag.pacientes as { nome: string }).nome : "?";
+          stats[pid] = { nome: pacNome, total: 0, cancelados: 0, realizados: 0, checkins: 0 };
         }
         stats[pid].total++;
         if (ag.status === "cancelado" || ag.status === "falta") stats[pid].cancelados++;
@@ -245,7 +247,7 @@ const Dashboard = () => {
   const { data: pendingSessions = [] } = useQuery({
     queryKey: ["dashboard-pending-sessions", activeClinicId],
     queryFn: async () => {
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("id, data_horario, status, tipo_atendimento, pacientes(nome), observacoes")
         .eq("status", "pendente")
         .order("data_horario", { ascending: true })
@@ -263,7 +265,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("*, pacientes(nome, telefone)")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd)
@@ -283,7 +285,7 @@ const Dashboard = () => {
       yesterday.setDate(yesterday.getDate() - 1);
       const pastStart = startOfDay(yesterday).toISOString();
       const pastEnd = endOfDay(yesterday).toISOString();
-      let q = (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("*, pacientes(nome, telefone)")
         .gte("data_horario", pastStart)
         .lte("data_horario", pastEnd)
@@ -308,9 +310,9 @@ const Dashboard = () => {
       if (userIds.length === 0) return [];
 
       if (activeClinicId) {
-        const { data: cu } = await (supabase.from("clinic_users") as any)
+        const { data: cu } = await supabase.from("clinic_users")
           .select("user_id").eq("clinic_id", activeClinicId);
-        const clinicUserIds = new Set((cu || []).map((c: any) => c.user_id));
+        const clinicUserIds = new Set((cu || []).map((c) => c.user_id));
         userIds = userIds.filter(id => clinicUserIds.has(id));
         if (!userIds.length) return [];
       }
@@ -328,7 +330,7 @@ const Dashboard = () => {
   // Quick Action Mutations
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ status }).eq("id", id);
+      const { error } = await supabase.from("agendamentos").update({ status: status as "agendado" | "confirmado" | "realizado" | "cancelado" | "falta" | "pendente" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -342,7 +344,7 @@ const Dashboard = () => {
 
   const updateProfessional = useMutation({
     mutationFn: async ({ id, profissional_id }: { id: string; profissional_id: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ profissional_id }).eq("id", id);
+      const { error } = await supabase.from("agendamentos").update({ profissional_id }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
