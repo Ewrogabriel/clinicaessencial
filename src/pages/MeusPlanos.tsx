@@ -204,7 +204,7 @@ const MeusPlanos = () => {
   const planoAtivo = planos.find((p: any) => p.status === "ativo");
   const matriculaAtiva = matriculas.find((m: any) => m.status === "ativa");
 
-  const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
 
   const statusPlano: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     ativo: { label: "Ativo", variant: "default" },
