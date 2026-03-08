@@ -180,6 +180,7 @@ const Financeiro = () => {
             {/* DialogContent is rendered below */}
           </Dialog>
         )}
+        </div>
       </div>
 
       {/* KPI */}
