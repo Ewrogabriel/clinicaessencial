@@ -93,14 +93,16 @@ export default function Indicadores() {
 
   // Taxa de Ocupação Real
   const { data: ocupacao = { agendados: 0, capacidade: 0 } } = useQuery({
-    queryKey: ["taxa-ocupacao"],
+    queryKey: ["taxa-ocupacao", activeClinicId],
     queryFn: async () => {
-      const { data: agendamentos } = await supabase
+      let q = supabase
         .from("agendamentos")
         .select("id")
         .gte("data_horario", startOfMonth(agora).toISOString())
         .lte("data_horario", endOfMonth(agora).toISOString())
         .in("status", ["agendado", "confirmado"]);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data: agendamentos } = await q;
 
       // Estimar capacidade baseado em 5 horários por dia x 20 dias úteis
       const capacidade = 100;
