@@ -51,22 +51,32 @@ serve(async (req) => {
 
     const targetRole = role || "profissional";
 
-    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { nome },
-    });
+    // Check if user already exists
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
-    if (authError) {
-      return new Response(JSON.stringify({ error: authError.message }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let newUserId: string;
+
+    if (existingUser) {
+      newUserId = existingUser.id;
+    } else {
+      const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { nome },
       });
+
+      if (authError) {
+        return new Response(JSON.stringify({ error: authError.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      newUserId = authData.user.id;
     }
 
-    const newUserId = authData.user.id;
-
-    await adminClient.from("profiles").update({
+    await adminClient.from("profiles").upsert({
+      user_id: newUserId,
       nome, email,
       telefone: telefone || null,
       especialidade: especialidade || null,
@@ -81,12 +91,12 @@ serve(async (req) => {
       endereco: endereco || null, numero: numero || null,
       bairro: bairro || null, cidade: cidade || null,
       estado: estado || null, cep: cep || null,
-    }).eq("user_id", newUserId);
+    }, { onConflict: "user_id" });
 
-    await adminClient.from("user_roles").insert({
+    await adminClient.from("user_roles").upsert({
       user_id: newUserId,
       role: targetRole,
-    });
+    }, { onConflict: "user_id,role" });
 
     // permissions is now an array of { resource, access_level }
     if (permissions && Array.isArray(permissions) && permissions.length > 0) {
