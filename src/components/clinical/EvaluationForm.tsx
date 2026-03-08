@@ -23,7 +23,8 @@ interface EvaluationFormProps {
 }
 
 export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFormProps) => {
-    const { user, clinicId } = useAuth();
+    const { user } = useAuth();
+    const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
 
     const [formData, setFormData] = useState({
