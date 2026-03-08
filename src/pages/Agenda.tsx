@@ -15,13 +15,14 @@ import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDi
 import { DailyView, WeeklyView, MonthlyView, type Agendamento } from "@/components/agenda/AgendaViews";
 import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
 import { toast } from "@/hooks/use-toast";
+import { usePersistedFilter } from "@/hooks/usePersistedFilter";
 
 type ViewMode = "diario" | "semanal" | "mensal";
 
 const Agenda = () => {
   const { user, isPatient, isAdmin, isGestor, clinicId } = useAuth();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<ViewMode>("semanal");
+  const [viewMode, setViewMode] = usePersistedFilter<ViewMode>("agenda-view", "semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [pacientesMap, setPacientesMap] = useState<Record<string, string>>({});
@@ -31,8 +32,8 @@ const Agenda = () => {
   const [rescheduleAg, setRescheduleAg] = useState<Agendamento | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAg, setDetailAg] = useState<Agendamento | null>(null);
-  const [filterProfId, setFilterProfId] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterProfId, setFilterProfId] = usePersistedFilter("agenda-prof", "all");
+  const [filterStatus, setFilterStatus] = usePersistedFilter("agenda-status", "all");
 
   const isStaff = isAdmin || isGestor;
 
