@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +17,7 @@ type Session = {
     id: string;
     data_horario: string;
     profissional_id: string;
+    paciente_id?: string;
     profiles?: { nome: string };
     enrollment_id?: string;
     valor_sessao?: number;
@@ -84,51 +85,46 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props
             if (!user) throw new Error("Não autenticado");
             const newDatetime = `${newDate}T${newTime}:00-03:00`;
 
-            // 1. Marcar sessão original como reagendada
-            const { error: updateErr } = await (supabase as any)
+            // Get paciente_id from original session
+            const { data: origSession } = await supabase
                 .from("agendamentos")
-                .update({ status: "reagendado" })
-                .eq("id", session.id);
-            if (updateErr) throw updateErr;
-
-            // 2. Criar nova sessão vinculada à mesma matrícula
-            const { data: newSession, error: insertErr } = await (supabase as any)
-                .from("agendamentos")
-                .insert({
-                    paciente_id: session.profissional_id, // will be overwritten below
-                    profissional_id: newProfessional,
-                    data_horario: newDatetime,
-                    duracao_minutos: 60,
-                    tipo_atendimento: "pilates",
-                    tipo_sessao: "individual",
-                    status: "agendado",
-                    recorrente: true,
-                    enrollment_id: enrollmentId,
-                    rescheduled_from_id: session.id,
-                    valor_sessao: session.valor_sessao ?? 0,
-                    created_by: user.id,
-                })
-                .select("*, paciente_id")
-                .single();
-
-            // Fix: get paciente from original session
-            const { data: origSession } = await (supabase as any)
-                .from("agendamentos")
-                .select("paciente_id")
+                .select("paciente_id, duracao_minutos, tipo_atendimento, tipo_sessao")
                 .eq("id", session.id)
                 .single();
 
-            if (origSession) {
-                await (supabase as any)
-                    .from("agendamentos")
-                    .update({ paciente_id: origSession.paciente_id })
-                    .eq("id", newSession.id);
-            }
+            if (!origSession) throw new Error("Sessão original não encontrada");
 
-            if (insertErr) throw insertErr;
+            // 1. Mark original session as rescheduled
+            const { error: updateErr } = await supabase
+                .from("agendamentos")
+                .update({ status: "reagendado" })
+                .eq("id", session.id);
+            if (updateErr) throw new Error(updateErr.message);
 
-            // 3. Usar crédito se selecionado
-            if (selectedCreditId) {
+            // 2. Create new session linked to same enrollment
+            const { data: newSession, error: insertErr } = await supabase
+                .from("agendamentos")
+                .insert({
+                    paciente_id: origSession.paciente_id,
+                    profissional_id: newProfessional,
+                    data_horario: newDatetime,
+                    duracao_minutos: origSession.duracao_minutos || 60,
+                    tipo_atendimento: origSession.tipo_atendimento || "pilates",
+                    tipo_sessao: origSession.tipo_sessao || "individual",
+                    status: "agendado",
+                    recorrente: true,
+                    enrollment_id: enrollmentId,
+                    valor_sessao: session.valor_sessao ?? 0,
+                    created_by: user.id,
+                    observacoes: `Reagendado da sessão de ${format(new Date(session.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}`,
+                })
+                .select()
+                .single();
+
+            if (insertErr) throw new Error(insertErr.message);
+
+            // 3. Use credit if selected
+            if (selectedCreditId && newSession) {
                 await (supabase as any)
                     .from("reschedule_credits")
                     .update({ status: "used", used_for_session_id: newSession.id })
@@ -142,8 +138,8 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props
             toast({ title: "✅ Sessão reagendada com sucesso!" });
             onClose();
         },
-        onError: (err) => {
-            toast({ title: "Erro ao reagendar", description: String(err), variant: "destructive" });
+        onError: (err: any) => {
+            toast({ title: "Erro ao reagendar", description: err?.message || "Erro desconhecido", variant: "destructive" });
         },
     });
 
@@ -157,6 +153,9 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props
                         <CalendarClock className="h-4 w-4" />
                         Reagendar Sessão
                     </DialogTitle>
+                    <DialogDescription>
+                        Escolha a nova data, horário e profissional para esta sessão.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
