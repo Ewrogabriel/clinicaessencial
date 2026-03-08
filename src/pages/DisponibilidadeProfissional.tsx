@@ -139,7 +139,7 @@ const DisponibilidadeProfissional = () => {
   const { data: bloqueios = [], refetch: refetchBloqueios } = useQuery({
     queryKey: ["bloqueios", profId],
     queryFn: async () => {
-      const { data } = await (supabase.from("bloqueios_profissional") as any)
+      const { data } = await supabase.from("bloqueios_profissional")
         .select("*").eq("profissional_id", profId)
         .gte("data", new Date().toISOString().split("T")[0])
         .order("data");

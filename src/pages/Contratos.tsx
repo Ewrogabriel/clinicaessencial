@@ -91,8 +91,8 @@ const Contratos = () => {
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
       if (!selectedPaciente) return null;
-      const query = supabase.from("descontos_pacientes").select("percentual_desconto, motivo").eq("paciente_id", selectedPaciente).eq("ativo", true) as any;
-      if (selectedPlano) query.eq("preco_plano_id", selectedPlano);
+      let query = supabase.from("descontos_pacientes").select("percentual_desconto, motivo").eq("paciente_id", selectedPaciente).eq("ativo", true);
+      if (selectedPlano) query = query.eq("preco_plano_id", selectedPlano);
       const { data } = await query.maybeSingle();
       return data;
     },
