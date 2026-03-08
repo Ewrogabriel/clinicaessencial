@@ -35,7 +35,7 @@ export function ChurnPrediction() {
 
       if (!pacientes?.length) return [];
 
-      const pacienteIds = pacientes.map((p: any) => p.id);
+      const pacienteIds = pacientes.map((p) => p.id);
 
       // Fetch recent appointments
       const { data: agendamentos } = await (supabase.from("agendamentos") as any)
