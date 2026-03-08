@@ -1276,6 +1276,45 @@ export type Database = {
         }
         Relationships: []
       }
+      regras_comissao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string
+          id: string
+          observacoes: string | null
+          percentual: number | null
+          profissional_id: string
+          tipo_atendimento: string
+          updated_at: string
+          valor_fixo: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by: string
+          id?: string
+          observacoes?: string | null
+          percentual?: number | null
+          profissional_id: string
+          tipo_atendimento?: string
+          updated_at?: string
+          valor_fixo?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string
+          id?: string
+          observacoes?: string | null
+          percentual?: number | null
+          profissional_id?: string
+          tipo_atendimento?: string
+          updated_at?: string
+          valor_fixo?: number | null
+        }
+        Relationships: []
+      }
       solicitacoes_remarcacao: {
         Row: {
           agendamento_id: string
