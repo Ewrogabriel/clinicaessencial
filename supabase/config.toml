@@ -1,1 +1,7 @@
 project_id = "pzfrcknnqjkqhmupprsi"
+
+[functions.emit-nfe]
+verify_jwt = false
+
+[functions.check-nfe-status]
+verify_jwt = false
