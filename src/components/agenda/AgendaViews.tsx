@@ -42,6 +42,7 @@ interface ViewProps {
   onReschedule?: (ag: Agendamento) => void;
   onAppointmentClick?: (ag: Agendamento) => void;
   profColors?: Record<string, string>;
+  onDrop?: (agId: string, newDate: Date) => void;
 }
 
 const statusColors: Record<string, string> = {
