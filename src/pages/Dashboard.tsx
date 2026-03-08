@@ -330,7 +330,7 @@ const Dashboard = () => {
   // Quick Action Mutations
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ status }).eq("id", id);
+      const { error } = await supabase.from("agendamentos").update({ status: status as "agendado" | "confirmado" | "realizado" | "cancelado" | "falta" | "pendente" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
