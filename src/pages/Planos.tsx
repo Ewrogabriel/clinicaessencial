@@ -108,6 +108,7 @@ const Planos = () => {
     },
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const createPlano = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
