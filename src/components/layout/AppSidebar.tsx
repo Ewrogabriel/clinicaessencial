@@ -79,7 +79,7 @@ const menuComunicacao = [
 const menuConfig = [
   { title: "Modalidades", url: "/modalidades", icon: Layers },
   { title: "Produtos", url: "/produtos", icon: Tag },
-  { title: "Convênios", url: "/convenios", icon: Handshake },
+  { title: "Parceiros", url: "/convenios", icon: Handshake },
   { title: "Contratos", url: "/contratos", icon: FileText },
   { title: "Automações", url: "/automacoes", icon: Send },
   { title: "Clínica & Pagamento", url: "/clinica", icon: Activity },
