@@ -122,6 +122,7 @@ export function CommissionExtract() {
           nome: p.nome,
           userId: p.user_id,
           totalAtendimentos: atendimentos.length,
+          realizados: atendimentos.filter((a: any) => a.status === "realizado").length,
           totalValor,
           comissao: comissaoTotal,
           regras: profRegras,
