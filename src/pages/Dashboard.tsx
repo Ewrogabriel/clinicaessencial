@@ -113,14 +113,16 @@ const Dashboard = () => {
 
   // Today's agenda stats
   const { data: todayStats } = useQuery({
-    queryKey: ["dashboard-today-stats"],
+    queryKey: ["dashboard-today-stats", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      const { data } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("id, status")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       const all = data || [];
       return {
         total: all.length,
