@@ -304,6 +304,44 @@ export type Database = {
           },
         ]
       }
+      config_pix: {
+        Row: {
+          chave_pix: string
+          created_at: string | null
+          forma_pagamento_id: string
+          id: string
+          nome_beneficiario: string
+          tipo_chave: string
+          updated_at: string | null
+        }
+        Insert: {
+          chave_pix: string
+          created_at?: string | null
+          forma_pagamento_id: string
+          id?: string
+          nome_beneficiario: string
+          tipo_chave: string
+          updated_at?: string | null
+        }
+        Update: {
+          chave_pix?: string
+          created_at?: string | null
+          forma_pagamento_id?: string
+          id?: string
+          nome_beneficiario?: string
+          tipo_chave?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_pix_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       descontos_pacientes: {
         Row: {
           ativo: boolean
@@ -548,6 +586,39 @@ export type Database = {
           data?: string
           descricao?: string
           id?: string
+        }
+        Relationships: []
+      }
+      formas_pagamento: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          tipo?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -952,6 +1023,117 @@ export type Database = {
             columns: ["plano_id"]
             isOneToOne: false
             referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos_mensalidade: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string | null
+          forma_pagamento_id: string | null
+          id: string
+          matricula_id: string | null
+          mes_referencia: string
+          observacoes: string | null
+          paciente_id: string
+          status: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          matricula_id?: string | null
+          mes_referencia: string
+          observacoes?: string | null
+          paciente_id: string
+          status?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          matricula_id?: string | null
+          mes_referencia?: string
+          observacoes?: string | null
+          paciente_id?: string
+          status?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_mensalidade_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_mensalidade_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos_sessoes: {
+        Row: {
+          agendamento_id: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          forma_pagamento_id: string | null
+          id: string
+          observacoes: string | null
+          paciente_id: string
+          status: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          agendamento_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          observacoes?: string | null
+          paciente_id: string
+          status?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          agendamento_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          observacoes?: string | null
+          paciente_id?: string
+          status?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_sessoes_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_sessoes_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
             referencedColumns: ["id"]
           },
         ]
