@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, CheckCircle2, Search, Eye } from "lucide-react";
+import { FileText, CheckCircle2, Search, Eye, Upload, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const NotasFiscais = () => {
@@ -22,8 +22,8 @@ const NotasFiscais = () => {
   const [mesRef, setMesRef] = useState(format(new Date(), "yyyy-MM"));
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
-  // Patients that request NF
   const { data: pacientesNF = [], isLoading } = useQuery({
     queryKey: ["pacientes-nf"],
     queryFn: async () => {
@@ -36,7 +36,6 @@ const NotasFiscais = () => {
     },
   });
 
-  // Emissions for selected month
   const { data: emissoes = [] } = useQuery({
     queryKey: ["emissoes-nf", mesRef],
     queryFn: async () => {
@@ -49,7 +48,6 @@ const NotasFiscais = () => {
     },
   });
 
-  // Payments for month (to calculate values)
   const { data: pagamentos = [] } = useQuery({
     queryKey: ["pagamentos-nf", mesRef],
     queryFn: async () => {
@@ -60,8 +58,7 @@ const NotasFiscais = () => {
         .eq("status", "pago")
         .gte("data_pagamento", start)
         .lte("data_pagamento", end);
-      
-      // Also get mensalidade payments
+
       const { data: mensalidades } = await (supabase.from("pagamentos_mensalidade") as any)
         .select("paciente_id, valor, status")
         .eq("status", "pago")
@@ -97,13 +94,49 @@ const NotasFiscais = () => {
     },
   });
 
+  const handleUploadPdf = async (pacienteId: string, file: File) => {
+    setUploading(pacienteId);
+    try {
+      const mesDate = `${mesRef}-01`;
+      const filePath = `notas-fiscais/${pacienteId}/${mesRef}/${file.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("clinic-uploads")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("clinic-uploads")
+        .getPublicUrl(filePath);
+
+      // Upsert emissao with PDF URL
+      const valor = (pagamentos as any)[pacienteId] || 0;
+      const { error } = await (supabase.from("emissoes_nf") as any).upsert({
+        paciente_id: pacienteId,
+        mes_referencia: mesDate,
+        valor,
+        nf_pdf_url: urlData.publicUrl,
+        emitida: true,
+        emitida_por: user?.id,
+        emitida_em: new Date().toISOString(),
+      }, { onConflict: "paciente_id,mes_referencia" });
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
+      toast({ title: "PDF da NF enviado com sucesso!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar PDF", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(null);
+    }
+  };
+
   const emissaoMap = new Map(emissoes.map((e: any) => [e.paciente_id, e]));
 
   const filtered = pacientesNF.filter((p: any) =>
     p.nome?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Generate month options (last 12 months)
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const d = subMonths(new Date(), i);
     return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy", { locale: ptBR }) };
@@ -145,14 +178,15 @@ const NotasFiscais = () => {
                 <TableHead>CPF/CNPJ</TableHead>
                 <TableHead>Valor ({format(new Date(`${mesRef}-01`), "MMM/yy", { locale: ptBR })})</TableHead>
                 <TableHead>Status NF</TableHead>
+                <TableHead>PDF</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">Carregando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum paciente solicita nota fiscal</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum paciente solicita nota fiscal</TableCell></TableRow>
               ) : (
                 filtered.map((p: any) => {
                   const emissao = emissaoMap.get(p.id) as any;
@@ -171,7 +205,18 @@ const NotasFiscais = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        {emissao?.nf_pdf_url ? (
+                          <a href={emissao.nf_pdf_url} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="outline" className="h-8 text-primary">
+                              <Download className="h-3 w-3 mr-1" /> Ver PDF
+                            </Button>
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
                           <Button size="sm" variant="outline" onClick={() => { setSelected(p); setDetailOpen(true); }}>
                             <Eye className="h-3 w-3 mr-1" /> Dados NF
                           </Button>
@@ -180,6 +225,25 @@ const NotasFiscais = () => {
                               <CheckCircle2 className="h-3 w-3 mr-1" /> Confirmar
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="relative"
+                            disabled={uploading === p.id}
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            {uploading === p.id ? "Enviando..." : "Anexar PDF"}
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUploadPdf(p.id, file);
+                                e.target.value = "";
+                              }}
+                            />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

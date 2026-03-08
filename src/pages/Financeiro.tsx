@@ -46,6 +46,8 @@ const Financeiro = () => {
   const { user, isPatient, clinicId } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
+  const [filterMes, setFilterMes] = useState("");
+  const [filterForma, setFilterForma] = useState("all");
   const [formData, setFormData] = useState({
     paciente_id: "",
     plano_id: "",
