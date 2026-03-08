@@ -211,6 +211,25 @@ const PacienteDetalhes = () => {
                     </Card>
 
                     <PatientAttachments pacienteId={id!} />
+
+                    {/* AI Clinical Assistant */}
+                    <AIClinicalAssistant pacienteId={id!} />
+
+                    {/* Digital Contract */}
+                    <Card>
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <FileCheck className="h-5 w-5 text-primary" />
+                                <div>
+                                    <p className="font-medium text-sm">Contrato Digital</p>
+                                    <p className="text-xs text-muted-foreground">Gere e assine contratos digitalmente</p>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => setContractOpen(true)}>
+                                Gerar Contrato
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="evolucoes" className="space-y-4">
