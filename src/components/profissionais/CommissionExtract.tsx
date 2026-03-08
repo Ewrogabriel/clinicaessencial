@@ -308,7 +308,7 @@ export function CommissionExtract() {
         <CardContent className="p-0">
           {summary.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              Nenhum atendimento realizado neste mês com os filtros selecionados.
+              Nenhuma sessão ou consulta agendada neste mês com os filtros selecionados.
             </div>
           ) : (
             <>
