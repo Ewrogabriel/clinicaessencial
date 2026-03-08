@@ -276,7 +276,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
                         {/* Digital Signature */}
                         <SignaturePad onSave={setAssinaturaUrl} />
                         {assinaturaUrl && (
-                            <p className="text-xs text-green-600 font-medium">✓ Assinatura capturada</p>
+                            <p className="text-xs text-primary font-medium">✓ Assinatura capturada</p>
                         )}
                     </div>
                     <DialogFooter>
