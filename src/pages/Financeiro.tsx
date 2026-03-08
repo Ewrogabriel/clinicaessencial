@@ -347,7 +347,8 @@ const Financeiro = () => {
                     ))}
                   </TableBody>
                 </Table>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
