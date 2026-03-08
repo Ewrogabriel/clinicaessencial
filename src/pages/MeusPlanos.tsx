@@ -121,14 +121,16 @@ const MeusPlanos = () => {
   });
 
   // Fetch monthly availability when professional/time changes or month changes
+  const activeProfId = selectedProfId || selectedPlano?.profissional_id;
+
   useEffect(() => {
-    if (!selectedPlano?.profissional_id) {
+    if (!activeProfId) {
       setMonthlyAvail({});
       return;
     }
     const fetchMonthly = async () => {
       const result = await getMonthlyAvailability(
-        selectedPlano.profissional_id,
+        activeProfId,
         currentMonth.getFullYear(),
         currentMonth.getMonth(),
         selectedTime || undefined
@@ -136,7 +138,7 @@ const MeusPlanos = () => {
       setMonthlyAvail(result);
     };
     fetchMonthly();
-  }, [selectedPlano?.profissional_id, currentMonth, selectedTime]);
+  }, [activeProfId, currentMonth, selectedTime]);
 
   // Check availability when date and time are selected
 
