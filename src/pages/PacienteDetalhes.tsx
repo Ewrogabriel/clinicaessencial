@@ -72,11 +72,11 @@ const PacienteDetalhes = () => {
     const { data: evolucoes = [], isLoading: loadingEvolucoes } = useQuery({
         queryKey: ["evolucoes", id],
         queryFn: async () => {
-            const { data, error } = await (supabase
+            const { data, error } = await supabase
                 .from("evolutions")
                 .select("*")
                 .eq("paciente_id", id)
-                .order("data_evolucao", { ascending: false }) as any);
+                .order("data_evolucao", { ascending: false });
             if (error) throw error;
             
             // Fetch profissional names
