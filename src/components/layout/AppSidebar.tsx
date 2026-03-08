@@ -49,7 +49,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   precos_planos: "Preços & Descontos", produtos: "Produtos",
 };
 
-/* ── Simplified Admin/Gestor menus (5 groups) ── */
+/* ── Simplified Admin/Gestor menus (6 groups) ── */
 const menuAtendimento = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Agenda", url: "/agenda", icon: Calendar },
@@ -58,28 +58,28 @@ const menuAtendimento = [
   { title: "Matrículas", url: "/matriculas", icon: Receipt },
 ];
 
-const menuEquipe = [
+const menuEquipeFinanceiro = [
   { title: "Equipe", url: "/profissionais", icon: UserCog },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Solicitações", url: "/solicitacoes-alteracao", icon: FileCheck },
 ];
 
-const menuAnalises = [
+const menuInteligencia = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-  { title: "Dicas Diárias", url: "/dicas-diarias", icon: Lightbulb },
-  { title: "Automações", url: "/automacoes", icon: Send },
 ];
 
 const menuComunicacao = [
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
   { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
   { title: "Aniversariantes", url: "/aniversariantes", icon: Cake },
-  { title: "Solicitações", url: "/solicitacoes-alteracao", icon: FileCheck },
+  { title: "Dicas Diárias", url: "/dicas-diarias", icon: Lightbulb },
 ];
 
 const menuConfig = [
   { title: "Modalidades", url: "/modalidades", icon: Layers },
   { title: "Produtos", url: "/produtos", icon: Tag },
   { title: "Contratos", url: "/contratos", icon: FileText },
+  { title: "Automações", url: "/automacoes", icon: Send },
   { title: "Clínica & Pagamento", url: "/clinica", icon: Activity },
 ];
 
