@@ -31,11 +31,11 @@ const RESOURCE_ROUTES: Record<string, string> = {
 
 const RESOURCE_ICONS: Record<string, any> = {
   agenda: Calendar, pacientes: Users, prontuarios: ClipboardList,
-  modalidades: Layers, profissionais: UserCog, disponibilidade: Clock,
+  modalidades: Layers, profissionais: UserCog, disponibilidade: Calendar,
   financeiro: DollarSign, matriculas: Receipt, comissoes: Calculator,
   contratos: FileText, relatorios: BarChart3, avisos: Megaphone,
-  mensagens: MessageSquare, aniversariantes: Cake, clinica: Activity,
-  dicas_diarias: Lightbulb, automacoes: Send, check_in: Users,
+  mensagens: MessageSquare, aniversariantes: Users, clinica: Activity,
+  dicas_diarias: Activity, automacoes: Send, check_in: Users,
   precos_planos: Tag, produtos: Tag,
 };
 
