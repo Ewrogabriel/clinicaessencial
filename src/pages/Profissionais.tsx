@@ -97,7 +97,7 @@ const Profissionais = () => {
   const [createPassword, setCreatePassword] = useState("");
   const [createPasswordConfirm, setCreatePasswordConfirm] = useState("");
   const [selectedRole, setSelectedRole] = useState("profissional");
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<PermissionEntry[]>([]);
   const [especialidade, setEspecialidade] = useState<string | null>(null);
   const [commissionRate, setCommissionRate] = useState("0");
   const [commissionFixed, setCommissionFixed] = useState("0");
