@@ -151,10 +151,10 @@ const Profissionais = () => {
         ...p,
         role: staffRoles.find(r => r.user_id === p.user_id)?.role || "profissional",
         permissions: (permsData ?? [])
-          .filter((perm: any) => perm.user_id === p.user_id)
-          .map((perm: any) => ({
+          .filter((perm) => perm.user_id === p.user_id)
+          .map((perm) => ({
             resource: perm.resource,
-            access_level: perm.access_level || "edit",
+            access_level: (perm.access_level || "edit") as "view" | "edit",
           })),
       })) as UserRecord[];
     },
