@@ -349,6 +349,7 @@ export function MonthlyView({
   onReschedule,
   onAppointmentClick,
   profColors = {},
+  onDrop,
 }: ViewProps) {
   const monthDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
