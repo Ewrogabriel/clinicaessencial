@@ -502,67 +502,7 @@ const Comissoes = () => {
 
         {/* ===== TAB: Cálculo ===== */}
         <TabsContent value="calculo" className="space-y-4 mt-4">
-          <div className="flex gap-3 items-center">
-            <Label className="text-sm whitespace-nowrap">Mês de referência:</Label>
-            <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} className="w-auto" />
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Resumo — {format(new Date(`${mesRef}-01`), "MMMM yyyy", { locale: ptBR })}
-              </CardTitle>
-              <CardDescription>
-                Comissões calculadas com base nas regras configuradas. Profissionais sem regra usam taxa do perfil.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {summary.length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground">
-                  Nenhum atendimento realizado neste mês.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Profissional</TableHead>
-                      <TableHead className="text-center">Atendimentos</TableHead>
-                      <TableHead>Valor Total</TableHead>
-                      <TableHead>Comissão</TableHead>
-                      <TableHead>Fonte</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {summary.map((s) => (
-                      <TableRow key={s.userId}>
-                        <TableCell className="font-medium">{s.nome}</TableCell>
-                        <TableCell className="text-center">
-                          {s.totalAtendimentos}
-                          {s.realizados < s.totalAtendimentos && (
-                            <span className="text-xs text-muted-foreground ml-1">({s.realizados} realizados)</span>
-                          )}
-                        </TableCell>
-                        <TableCell>R$ {s.totalValor.toFixed(2)}</TableCell>
-                        <TableCell className="font-bold text-primary">R$ {s.comissao.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant={s.regras.length > 0 ? "default" : "secondary"}>
-                            {s.regras.length > 0 ? "Regra" : "Perfil"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => generateCommissionReceipt(s)} className="gap-1">
-                            <Download className="h-3.5 w-3.5" /> Recibo
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <CommissionExtract />
         </TabsContent>
       </Tabs>
 
