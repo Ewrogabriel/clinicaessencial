@@ -14,9 +14,10 @@ interface UseModalidadesOptions {
  */
 export function useModalidades(options: UseModalidadesOptions = {}) {
   const { ativo, enabled = true } = options;
+  const { activeClinicId } = useClinic();
 
   return useQuery({
-    queryKey: ["modalidades", ativo],
+    queryKey: ["modalidades", ativo, activeClinicId],
     queryFn: async () => {
       let query = supabase
         .from("modalidades")
@@ -25,6 +26,10 @@ export function useModalidades(options: UseModalidadesOptions = {}) {
 
       if (ativo !== undefined) {
         query = query.eq("ativo", ativo);
+      }
+
+      if (activeClinicId) {
+        query = query.eq("clinic_id", activeClinicId);
       }
 
       const { data, error } = await query;
