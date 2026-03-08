@@ -1315,6 +1315,53 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitacoes_alteracao_dados: {
+        Row: {
+          approved_at: string | null
+          aprovador_id: string | null
+          created_at: string
+          dados_atuais: Json
+          dados_novos: Json
+          id: string
+          motivo: string | null
+          motivo_rejeicao: string | null
+          paciente_id: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          aprovador_id?: string | null
+          created_at?: string
+          dados_atuais?: Json
+          dados_novos?: Json
+          id?: string
+          motivo?: string | null
+          motivo_rejeicao?: string | null
+          paciente_id: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          aprovador_id?: string | null
+          created_at?: string
+          dados_atuais?: Json
+          dados_novos?: Json
+          id?: string
+          motivo?: string | null
+          motivo_rejeicao?: string | null
+          paciente_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_alteracao_dados_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solicitacoes_remarcacao: {
         Row: {
           agendamento_id: string
