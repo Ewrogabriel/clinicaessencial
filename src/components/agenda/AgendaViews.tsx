@@ -262,6 +262,7 @@ export function WeeklyView({
   onReschedule,
   onAppointmentClick,
   profColors = {},
+  onDrop,
 }: ViewProps) {
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
