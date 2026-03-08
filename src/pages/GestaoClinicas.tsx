@@ -47,6 +47,7 @@ const GestaoClinicas = () => {
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
   const [form, setForm] = useState<ClinicaForm>(emptyForm);
   const [addUserId, setAddUserId] = useState("");
+  const [addUserRole, setAddUserRole] = useState("member");
 
   const { data: clinicas = [], isLoading } = useQuery({
     queryKey: ["gestao-clinicas"],
@@ -102,9 +103,9 @@ const GestaoClinicas = () => {
   });
 
   const addUserMutation = useMutation({
-    mutationFn: async ({ clinicId, userId }: { clinicId: string; userId: string }) => {
+    mutationFn: async ({ clinicId, userId, role }: { clinicId: string; userId: string; role: string }) => {
       const { error } = await (supabase.from("clinic_users") as any)
-        .insert({ clinic_id: clinicId, user_id: userId, role: "member" });
+        .insert({ clinic_id: clinicId, user_id: userId, role });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -297,7 +298,7 @@ const GestaoClinicas = () => {
             <div className="flex gap-2">
               <Select value={addUserId} onValueChange={setAddUserId}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Selecionar profissional..." />
+                  <SelectValue placeholder="Selecionar usuário..." />
                 </SelectTrigger>
                 <SelectContent>
                   {availableProfiles.map((p: any) => (
@@ -307,10 +308,22 @@ const GestaoClinicas = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={addUserRole} onValueChange={setAddUserRole}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Papel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
+                  <SelectItem value="profissional">Profissional</SelectItem>
+                  <SelectItem value="secretario">Secretário</SelectItem>
+                  <SelectItem value="member">Membro</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
                 disabled={!addUserId || !selectedClinicId || addUserMutation.isPending}
-                onClick={() => addUserMutation.mutate({ clinicId: selectedClinicId!, userId: addUserId })}
+                onClick={() => addUserMutation.mutate({ clinicId: selectedClinicId!, userId: addUserId, role: addUserRole })}
               >
                 <Plus className="h-4 w-4" />
               </Button>

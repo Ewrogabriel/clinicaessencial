@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { FileText, Download, Send, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import { useClinicSettings } from "@/hooks/useClinicSettings";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
+  const { activeClinicId } = useClinic();
   const { data: clinicSettings } = useClinicSettings();
   const canManage = isAdmin || isGestor;
   const [selectedPaciente, setSelectedPaciente] = useState("");
@@ -33,10 +35,19 @@ const Contratos = () => {
   const clinicInstagram = clinicSettings?.instagram || "";
 
   const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes-contrato"],
+    queryKey: ["pacientes-contrato", activeClinicId],
     queryFn: async () => {
       if (isPatient && patientId) {
         const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("id", patientId);
+        return data ?? [];
+      }
+      if (activeClinicId) {
+        const { data: cp } = await supabase.from("clinic_pacientes")
+          .select("paciente_id").eq("clinic_id", activeClinicId);
+        const ids = (cp || []).map(c => c.paciente_id);
+        if (!ids.length) return [];
+        const { data } = await supabase.from("pacientes")
+          .select("id, nome, cpf, rg, telefone, email").in("id", ids).eq("status", "ativo").order("nome");
         return data ?? [];
       }
       const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("status", "ativo").order("nome");

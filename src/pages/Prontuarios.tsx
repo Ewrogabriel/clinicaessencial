@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Stethoscope, User, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,16 +19,27 @@ import { Badge } from "@/components/ui/badge";
 
 const Prontuarios = () => {
     const navigate = useNavigate();
+    const { activeClinicId } = useClinic();
     const [busca, setBusca] = useState("");
 
     const { data: pacientes = [], isLoading } = useQuery({
-        queryKey: ["prontuarios-list"],
+        queryKey: ["prontuarios-list", activeClinicId],
         queryFn: async () => {
-            const { data, error } = await (supabase
+            if (activeClinicId) {
+                const { data: cp } = await supabase.from("clinic_pacientes")
+                    .select("paciente_id").eq("clinic_id", activeClinicId);
+                const ids = (cp || []).map(c => c.paciente_id);
+                if (!ids.length) return [];
+                const { data, error } = await supabase.from("pacientes")
+                    .select("id, nome, tipo_atendimento, status")
+                    .in("id", ids).order("nome");
+                if (error) throw error;
+                return data;
+            }
+            const { data, error } = await supabase
                 .from("pacientes")
                 .select("id, nome, tipo_atendimento, status")
-                .order("nome") as any);
-
+                .order("nome");
             if (error) throw error;
             return data;
         },

@@ -4,6 +4,7 @@ import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart3, Users, DollarSign, Calendar, FileDown, FileSpreadsheet, TrendingDown, UserX, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClinic } from "@/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,39 +25,55 @@ import { toast } from "@/hooks/use-toast";
 const COLORS = ["hsl(168, 65%, 38%)", "hsl(199, 89%, 48%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(142, 71%, 45%)", "hsl(280, 60%, 55%)"];
 
 const Relatorios = () => {
+  const { activeClinicId } = useClinic();
   const [mesInicio, setMesInicio] = useState(format(subMonths(new Date(), 5), "yyyy-MM"));
   const [mesFim, setMesFim] = useState(format(new Date(), "yyyy-MM"));
   const [filterProfId, setFilterProfId] = useState("all");
 
   // Fetch data
   const { data: agendamentos = [] } = useQuery({
-    queryKey: ["rel-agendamentos", mesInicio, mesFim],
+    queryKey: ["rel-agendamentos", mesInicio, mesFim, activeClinicId],
     queryFn: async () => {
-      const { data } = await (supabase.from("agendamentos") as any)
-        .select("id, data_horario, tipo_atendimento, tipo_sessao, status, profissional_id, paciente_id, valor_sessao, pacientes(nome, telefone), profiles:profissional_id(nome)")
+      let q = supabase.from("agendamentos")
+        .select("id, data_horario, tipo_atendimento, tipo_sessao, status, profissional_id, paciente_id, valor_sessao, pacientes(nome, telefone)")
         .gte("data_horario", `${mesInicio}-01T00:00:00`)
         .lte("data_horario", `${mesFim}-31T23:59:59`)
         .order("data_horario", { ascending: true });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: pagamentos = [] } = useQuery({
-    queryKey: ["rel-pagamentos", mesInicio, mesFim],
+    queryKey: ["rel-pagamentos", mesInicio, mesFim, activeClinicId],
     queryFn: async () => {
-      const { data } = await (supabase.from("pagamentos") as any)
-        .select("id, valor, data_pagamento, status, forma_pagamento, paciente_id, profissional_id, data_vencimento, pacientes(nome), profiles:profissional_id(nome)")
+      let q = supabase.from("pagamentos")
+        .select("id, valor, data_pagamento, status, forma_pagamento, paciente_id, profissional_id, data_vencimento, pacientes(nome)")
         .gte("data_pagamento", `${mesInicio}-01`)
         .lte("data_pagamento", `${mesFim}-31`)
         .order("data_pagamento", { ascending: true });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: pacientes = [] } = useQuery({
-    queryKey: ["rel-pacientes"],
+    queryKey: ["rel-pacientes", activeClinicId],
     queryFn: async () => {
-      const { data } = await (supabase.from("pacientes") as any).select("id, nome, telefone, status, tipo_atendimento, profissional_id, created_at").order("nome");
+      if (activeClinicId) {
+        const { data: cp } = await supabase.from("clinic_pacientes")
+          .select("paciente_id").eq("clinic_id", activeClinicId);
+        const ids = (cp || []).map(c => c.paciente_id);
+        if (!ids.length) return [];
+        const { data } = await supabase.from("pacientes")
+          .select("id, nome, telefone, status, tipo_atendimento, profissional_id, created_at")
+          .in("id", ids).order("nome");
+        return data ?? [];
+      }
+      const { data } = await supabase.from("pacientes")
+        .select("id, nome, telefone, status, tipo_atendimento, profissional_id, created_at").order("nome");
       return data ?? [];
     },
   });
