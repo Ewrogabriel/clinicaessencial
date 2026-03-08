@@ -146,7 +146,7 @@ const Planos = () => {
       setFormData({ paciente_id: "", tipo_atendimento: "", total_sessoes: 10, valor: "", data_inicio: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", observacoes: "" });
       toast({ title: "Plano criado com sucesso!" });
     },
-    onError: (e: Error | any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const confirmPayment = useMutation({
