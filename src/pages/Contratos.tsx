@@ -23,6 +23,7 @@ const Contratos = () => {
   const canManage = isAdmin || isGestor;
   const [selectedPaciente, setSelectedPaciente] = useState("");
   const [selectedPlano, setSelectedPlano] = useState("");
+  const [selectedMatricula, setSelectedMatricula] = useState("");
   const [selectedProfissional, setSelectedProfissional] = useState("");
 
   const clinicNome = clinicSettings?.nome || "Essencial Fisio Pilates";
