@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock, Pencil, CalendarPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
+import { PlanoSessoesDialog } from "@/components/planos/PlanoSessoesDialog";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   ativo: { label: "Ativo", variant: "default" },
@@ -30,39 +32,31 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   finalizado: { label: "Finalizado", variant: "secondary" },
 };
 
+interface PlanoRow {
+  id: string;
+  paciente_id: string;
+  profissional_id: string;
+  tipo_atendimento: string;
+  total_sessoes: number;
+  sessoes_utilizadas: number;
+  valor: number;
+  status: string;
+  data_inicio: string;
+  data_vencimento: string | null;
+  observacoes: string | null;
+  created_at: string;
+  pacientes: { nome: string } | null;
+  profiles: { nome: string } | null;
+}
+
 const Planos = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    paciente_id: "",
-    tipo_atendimento: "",
-    total_sessoes: 10,
-    valor: "",
-    data_inicio: format(new Date(), "yyyy-MM-dd"),
-    data_vencimento: "",
-    observacoes: "",
-  });
-
+  const [editPlano, setEditPlano] = useState<PlanoRow | null>(null);
+  const [sessoesPlano, setSessoesPlano] = useState<PlanoRow | null>(null);
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("ativo");
-
-  interface PlanoRow {
-    id: string;
-    paciente_id: string;
-    profissional_id: string;
-    tipo_atendimento: string;
-    total_sessoes: number;
-    sessoes_utilizadas: number;
-    valor: number;
-    status: string;
-    data_inicio: string;
-    data_vencimento: string | null;
-    observacoes: string | null;
-    created_at: string;
-    pacientes: { nome: string } | null;
-    profiles: { nome: string } | null;
-  }
 
   const { data: planos = [], isLoading } = useQuery<PlanoRow[]>({
     queryKey: ["planos", filterPaciente, filterStatus],
@@ -109,47 +103,6 @@ const Planos = () => {
     },
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const createPlano = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Não autenticado");
-      const { data: plano, error: planoError } = await supabase.from("planos").insert({
-        paciente_id: formData.paciente_id,
-        profissional_id: user.id,
-        tipo_atendimento: formData.tipo_atendimento,
-        total_sessoes: formData.total_sessoes,
-        valor: parseFloat(formData.valor) || 0,
-        data_inicio: formData.data_inicio,
-        data_vencimento: formData.data_vencimento || null,
-        observacoes: formData.observacoes || null,
-        created_by: user.id,
-      }).select().single();
-
-      if (planoError) throw planoError;
-
-      // Auto-create pending payment
-      const { error: pgtoError } = await supabase.from("pagamentos").insert({
-        paciente_id: formData.paciente_id,
-        profissional_id: user.id,
-        plano_id: plano.id,
-        valor: parseFloat(formData.valor) || 0,
-        data_vencimento: formData.data_vencimento || null,
-        status: "pendente",
-        descricao: `Plano ${formData.tipo_atendimento} - ${formData.total_sessoes} sessões`,
-        created_by: user.id,
-      });
-
-      if (pgtoError) throw pgtoError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["planos"] });
-      setFormOpen(false);
-      setFormData({ paciente_id: "", tipo_atendimento: "", total_sessoes: 10, valor: "", data_inicio: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", observacoes: "" });
-      toast({ title: "Plano criado com sucesso!" });
-    },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
-  });
-
   const confirmPayment = useMutation({
     mutationFn: async (planoId: string) => {
       const { error } = await supabase
@@ -185,7 +138,7 @@ const Planos = () => {
           <h1 className="text-2xl font-bold tracking-tight">Planos de Sessões</h1>
           <p className="text-muted-foreground">Controle de pacotes e saldo de sessões</p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
+        <Button onClick={() => { setEditPlano(null); setFormOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Novo Plano
         </Button>
       </div>
@@ -261,7 +214,7 @@ const Planos = () => {
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Package className="h-12 w-12 mb-4 opacity-40" />
               <p className="text-lg font-medium">Nenhum plano cadastrado</p>
-              <Button className="mt-4" onClick={() => setFormOpen(true)}>
+              <Button className="mt-4" onClick={() => { setEditPlano(null); setFormOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" /> Criar primeiro plano
               </Button>
             </div>
@@ -301,15 +254,37 @@ const Planos = () => {
                       </TableCell>
                       <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8"
-                          onClick={() => confirmPayment.mutate(plano.id)}
-                          disabled={confirmPayment.isPending}
-                        >
-                          Confirmar Pagamento
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            title="Editar plano"
+                            onClick={() => { setEditPlano(plano); setFormOpen(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          {plano.status === "ativo" && restante > 0 && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              title="Agendar sessões"
+                              onClick={() => setSessoesPlano(plano)}
+                            >
+                              <CalendarPlus className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            onClick={() => confirmPayment.mutate(plano.id)}
+                            disabled={confirmPayment.isPending}
+                          >
+                            Confirmar Pgto
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -320,77 +295,25 @@ const Planos = () => {
         </CardContent>
       </Card>
 
-      {/* Form Dialog */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Novo Plano de Sessões</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Paciente</Label>
-              <Select value={formData.paciente_id} onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {pacientes.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Modalidade</Label>
-                <Select value={formData.tipo_atendimento} onValueChange={(v) => setFormData(p => ({ ...p, tipo_atendimento: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {modalidades.map((mod) => (
-                      <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Qtd. Sessões</Label>
-                <Select value={String(formData.total_sessoes)} onValueChange={(v) => setFormData(p => ({ ...p, total_sessoes: Number(v) }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5 sessões</SelectItem>
-                    <SelectItem value="10">10 sessões</SelectItem>
-                    <SelectItem value="15">15 sessões</SelectItem>
-                    <SelectItem value="20">20 sessões</SelectItem>
-                    <SelectItem value="30">30 sessões</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Valor (R$)</Label>
-                <Input type="number" step="0.01" placeholder="0,00" value={formData.valor} onChange={(e) => setFormData(p => ({ ...p, valor: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Data Início</Label>
-                <Input type="date" value={formData.data_inicio} onChange={(e) => setFormData(p => ({ ...p, data_inicio: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <Label>Data de Vencimento (opcional)</Label>
-              <Input type="date" value={formData.data_vencimento} onChange={(e) => setFormData(p => ({ ...p, data_vencimento: e.target.value }))} />
-            </div>
-            <div>
-              <Label>Observações</Label>
-              <Textarea placeholder="Observações sobre o plano..." value={formData.observacoes} onChange={(e) => setFormData(p => ({ ...p, observacoes: e.target.value }))} />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-              <Button onClick={() => createPlano.mutate()} disabled={!formData.paciente_id || createPlano.isPending}>
-                {createPlano.isPending ? "Salvando..." : "Criar Plano"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Form Dialog (create/edit) */}
+      <PlanoFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editPlano={editPlano}
+        pacientes={pacientes}
+        modalidades={modalidades}
+        userId={user?.id || ""}
+      />
+
+      {/* Sessoes Dialog */}
+      {sessoesPlano && (
+        <PlanoSessoesDialog
+          open={!!sessoesPlano}
+          onOpenChange={(open) => { if (!open) setSessoesPlano(null); }}
+          plano={sessoesPlano}
+          userId={user?.id || ""}
+        />
+      )}
     </div>
   );
 };
