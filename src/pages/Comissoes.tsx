@@ -19,12 +19,7 @@ import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users } 
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 
-const TIPOS_ATENDIMENTO = [
-  { value: "geral", label: "Geral (Todos)" },
-  { value: "fisioterapia", label: "Fisioterapia" },
-  { value: "pilates", label: "Pilates" },
-  { value: "rpg", label: "RPG" },
-];
+// Removed hardcoded TIPOS_ATENDIMENTO — now loaded from modalidades table
 
 const Comissoes = () => {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
@@ -46,6 +41,19 @@ const Comissoes = () => {
   });
 
   // Queries
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-comissoes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modalidades").select("*").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const tiposAtendimento = [
+    { value: "geral", label: "Geral (Todos)" },
+    ...modalidades.map((m: any) => ({ value: m.nome.toLowerCase(), label: m.nome })),
+  ];
+
   const { data: profissionais = [] } = useQuery({
     queryKey: ["prof-for-comissoes"],
     queryFn: async () => {
@@ -190,7 +198,7 @@ const Comissoes = () => {
   };
 
   const getProfName = (id: string) => profissionais.find((p: any) => p.user_id === id)?.nome || "—";
-  const getTipoLabel = (v: string) => TIPOS_ATENDIMENTO.find(t => t.value === v)?.label || v;
+  const getTipoLabel = (v: string) => tiposAtendimento.find(t => t.value === v)?.label || v;
 
   const filteredRegras = filterProf === "todos"
     ? regrasComissao
@@ -557,7 +565,7 @@ const Comissoes = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIPOS_ATENDIMENTO.map(t => (
+                  {tiposAtendimento.map(t => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
