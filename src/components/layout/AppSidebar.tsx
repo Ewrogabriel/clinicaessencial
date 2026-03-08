@@ -275,10 +275,12 @@ export function AppSidebar() {
       <SidebarContent>
         {(isAdmin || isGestor) ? (
           <>
-            {renderGroup("Principal", menuPrincipal)}
-            {renderGroup("Serviços", menuServicos)}
-            {renderGroup("Financeiro & Gestão", menuFinanceiro)}
+            {renderGroup("Atendimento", menuAtendimento)}
+            {renderGroup("Equipe", menuEquipe)}
+            {renderGroup("Financeiro", menuFinanceiro)}
+            {renderGroup("Catálogo", menuCatalogo)}
             {renderGroup("Comunicação", menuComunicacao)}
+            {renderGroup("Configurações", menuConfiguracao)}
             {renderGroup("IA & Automação", menuIA)}
             {isProfissional && (
               renderGroup("Meu Perfil Profissional", [
