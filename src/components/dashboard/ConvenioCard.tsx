@@ -106,24 +106,22 @@ export function ConvenioCard() {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
           </div>
-          {convenios.length > 1 && (
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-muted-foreground">
-                {convenios.length} parceiros disponíveis
-              </p>
-              <Button
-                variant="link"
-                size="sm"
-                className="text-xs h-auto p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate("/convenios");
-                }}
-              >
-                Ver todos →
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-muted-foreground">
+              {convenios.length} parceiro{convenios.length !== 1 ? "s" : ""} disponíve{convenios.length !== 1 ? "is" : "l"}
+            </p>
+            <Button
+              variant="link"
+              size="sm"
+              className="text-xs h-auto p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/convenios");
+              }}
+            >
+              Ver todos →
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

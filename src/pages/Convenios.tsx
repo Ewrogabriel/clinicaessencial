@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Globe, Instagram, Phone, Mail, MapPin, Eye, EyeOff, Tag, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Globe, Instagram, Phone, Mail, MapPin, Eye, EyeOff, Tag, X, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const initialForm = {
 
 const Convenios = () => {
   const { user, isAdmin, isPatient } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -229,9 +231,14 @@ const Convenios = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Parceiros</h1>
-          <p className="text-muted-foreground">Gerencie empresas parceiras</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Parceiros</h1>
+            <p className="text-muted-foreground">Gerencie empresas parceiras</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {!isPatient && (

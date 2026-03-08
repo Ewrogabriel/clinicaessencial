@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users } from "lucide-react";
+import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users, ArrowLeft } from "lucide-react";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 import { toast } from "@/hooks/use-toast";
 
@@ -24,6 +25,7 @@ import { toast } from "@/hooks/use-toast";
 
 const Comissoes = () => {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canManage = isAdmin || isGestor;
 
@@ -185,7 +187,12 @@ const Comissoes = () => {
   if (isProfissional && !canManage) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Minhas Comissões</h1>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Minhas Comissões</h1>
+        </div>
 
         {minhasRegras.length > 0 && (
           <Card>
@@ -219,9 +226,14 @@ const Comissoes = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Comissões</h1>
-          <p className="text-muted-foreground">Configure regras e calcule comissões por profissional</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Comissões</h1>
+            <p className="text-muted-foreground">Configure regras e calcule comissões por profissional</p>
+          </div>
         </div>
       </div>
 
