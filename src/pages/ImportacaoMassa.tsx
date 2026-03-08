@@ -104,11 +104,11 @@ const ImportacaoMassa = () => {
 
           // Link to clinic
           if (activeClinicId) {
-            const { data: inserted } = await (supabase.from("pacientes") as any)
+            const { data: inserted } = await supabase.from("pacientes")
               .select("id").eq("nome", String(row.nome).trim()).eq("telefone", String(row.telefone).trim())
               .order("created_at", { ascending: false }).limit(1).single();
             if (inserted) {
-              await (supabase.from("clinic_pacientes") as any).insert({
+              await supabase.from("clinic_pacientes").insert({
                 clinic_id: activeClinicId,
                 paciente_id: inserted.id,
               });
