@@ -38,6 +38,7 @@ export function CommissionExtract() {
   const [mesRef, setMesRef] = useState(format(new Date(), "yyyy-MM"));
   const [filterProf, setFilterProf] = useState("todos");
   const [filterModalidade, setFilterModalidade] = useState("todos");
+  const [expandedProf, setExpandedProf] = useState<string | null>(null);
   const [closingProf, setClosingProf] = useState<ProfSummary | null>(null);
   const [closingNotes, setClosingNotes] = useState("");
   const [compensacaoValor, setCompensacaoValor] = useState("");
