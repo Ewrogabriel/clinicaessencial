@@ -28,7 +28,7 @@ const SolicitacoesAlteracao = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState<"dados" | "reagendar" | "remarcar" | "reserva">("dados");
+  const [selectedType, setSelectedType] = useState<"dados" | "reagendar" | "remarcar" | "reserva" | "agendamento">("dados");
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
 
   // ── Solicitações de Alteração de Dados ──
