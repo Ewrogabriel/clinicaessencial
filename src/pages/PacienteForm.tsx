@@ -24,6 +24,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 const PacienteForm = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { activeClinicId } = useClinic();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
