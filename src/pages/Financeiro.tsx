@@ -58,7 +58,23 @@ const Financeiro = () => {
     observacoes: "",
   });
 
-  const { data: pagamentos = [], isLoading } = useQuery({
+  interface PagamentoRow {
+    id: string;
+    valor: number;
+    data_pagamento: string;
+    data_vencimento: string | null;
+    status: string;
+    forma_pagamento: string | null;
+    descricao: string | null;
+    observacoes: string | null;
+    created_at: string;
+    paciente_id: string;
+    profissional_id: string;
+    plano_id: string | null;
+    pacientes: { nome: string } | null;
+  }
+
+  const { data: pagamentos = [], isLoading } = useQuery<PagamentoRow[]>({
     queryKey: ["pagamentos"],
     queryFn: async () => {
       const query = supabase
