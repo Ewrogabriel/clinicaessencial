@@ -153,15 +153,16 @@ export default function Indicadores() {
 
   // Consultas Realizadas
   const { data: consultasRealizadas = 0 } = useQuery({
-    queryKey: ["consultas-realizadas"],
+    queryKey: ["consultas-realizadas", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("agendamentos")
         .select("id")
         .in("status", ["confirmado", "realizado"])
         .gte("data_horario", startOfMonth(agora).toISOString())
         .lte("data_horario", endOfMonth(agora).toISOString());
-
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data || []).length;
     },
