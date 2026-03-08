@@ -1,44 +1,79 @@
+# Plano de Melhorias - Essencial FisioPilates
 
+## Estado Atual
+- Build funcional com Vite + React 18 + TypeScript + Supabase
+- RLS implementado em todas as tabelas
+- Sistema de notificações, recibos PDF, mensagens internas já funcionando
+- Tabelas recém-criadas: `formas_pagamento`, `config_pix`, `pagamentos_mensalidade`, `pagamentos_sessoes`, `solicitacoes_alteracao_dados`
 
-# Plan: Fix Build Errors and Verify Feature Status
+---
 
-## Summary of Issues Found
+## Fase 1 - Correções e Estabilidade (Prioridade Alta)
 
-There are **7 build errors** to fix, stemming from missing database tables, incorrect enum values, and type mismatches.
+### 1.1 Corrigir warning do Dashboard
+- [ ] `Dashboard.tsx` tem hooks condicionais (useState/useEffect após return condicional) — corrigir ordem dos hooks
+- [ ] Resolver warning de ref em componente funcional (Dialog)
 
-## Fixes Required
+### 1.2 Painel de Aprovação Admin
+- [ ] Criar página para admin visualizar solicitações de alteração de dados dos pacientes
+- [ ] Botões de aprovar/rejeitar com motivo
+- [ ] Ao aprovar, aplicar alterações na tabela `pacientes` automaticamente
+- [ ] Adicionar rota e link no sidebar
 
-### 1. Database Migration: Create `produtos` table and add `suspenso` to `status_plano` enum
-- The `produtos` table doesn't exist yet but `Produtos.tsx` references it
-- The `status_plano` enum lacks `suspenso` — needed by Matriculas
-- Add FK from `planos.profissional_id` to `profiles` (via `auth.users`) so the join `profiles(nome)` works in MeusPlanos and Planos pages
+### 1.3 Página de Formas de Pagamento
+- [ ] Verificar se `FormasPagamento.tsx` está conectado às novas tabelas do banco
+- [ ] CRUD de formas de pagamento para admin
+- [ ] Configuração de chave PIX
 
-### 2. Fix `CheckInProfissional.tsx` (line 47)
-- Change `"faltou"` to `"falta"` to match the `status_agendamento` enum
+---
 
-### 3. Fix `Indicadores.tsx` — references non-existent `matriculas` table
-- Replace all `supabase.from("matriculas")` calls with `supabase.from("planos")` since matriculas are stored in the `planos` table
-- Cast queries with `as any` where needed to resolve deep type instantiation errors
+## Fase 2 - UX e Performance (Prioridade Média)
 
-### 4. Fix `Matriculas.tsx`
-- Line 65: Cast `filterStatus` properly for the enum type
-- Line 130: Change `forma_pagamento: "pendente"` to `null` (it's not a valid enum value)
-- Line 173: `"suspenso"` will work after the enum migration
+### 2.1 Lazy Loading no PatientDashboard
+- [ ] PatientDashboard.tsx tem 989 linhas — refatorar em componentes menores
+- [ ] Implementar tabs (Agenda | Pagamentos | Produtos) em vez de tudo junto
+- [ ] Carregar dados sob demanda por tab ativa
 
-### 5. Fix `MeusPlanos.tsx` (line 85) and `Planos.tsx` (line 58)
-- The join `profiles(nome)` fails because there's no FK from `planos.profissional_id` to `profiles`
-- After adding the FK via migration, this will resolve
-- As a fallback, use manual profile lookup (same pattern used elsewhere)
+### 2.2 KPIs do Dashboard Profissional
+- [ ] Cards: total pacientes ativos, sessões do mês, faturamento, taxa de falta
+- [ ] Gráfico de sessões realizadas vs agendadas (recharts já instalado)
+- [ ] Filtro por período (semana/mês/trimestre)
 
-### 6. Fix `Produtos.tsx` — will work after `produtos` table is created
+### 2.3 Relatórios de Comissão Detalhados
+- [ ] Breakdown por modalidade e profissional
+- [ ] Histórico de 12 meses com gráfico
+- [ ] Exportação PDF/Excel (jspdf e xlsx já instalados)
 
-### 7. Fix `ai-insights/index.ts` (line 90)
-- Cast `error` as `Error`: `(error as Error).message`
+---
 
-## Feature Status Review
+## Fase 3 - Funcionalidades Novas (Prioridade Baixa)
 
-Most features from the original list have already been implemented. The remaining build errors are blocking deployment. Once fixed, the key pending items are:
-- CEP auto-fill (partially done)
-- File upload fixes (bucket exists but UI may have issues)
-- Some UI polish items
+### 3.1 Notificações Multi-canal
+- [ ] Push notifications do navegador (Service Worker)
+- [ ] Lembretes automáticos 24h antes da sessão (edge function com cron)
 
+### 3.2 Chat Paciente-Profissional
+- [ ] Estender `mensagens_internas` para suportar pacientes
+- [ ] Realtime com Supabase channels
+
+### 3.3 Integração de Pagamento
+- [ ] Stripe para checkout online (Lovable tem integração nativa)
+- [ ] Webhook para atualizar status automaticamente
+
+---
+
+## Arquivos Grandes que Precisam de Refatoração
+
+| Arquivo | Linhas | Ação |
+|---------|--------|------|
+| `PatientDashboard.tsx` | 989 | Quebrar em componentes por seção |
+| `Dashboard.tsx` | 747 | Extrair cards e queries em hooks |
+| `PaymentForm.tsx` | 229 | Já no limite, monitorar |
+
+---
+
+## Notas Técnicas
+- Next.js **não é possível** (Lovable usa Vite)
+- App mobile nativa **não é possível** (apenas PWA via React)
+- RLS já está implementado em todas as tabelas
+- `react-hook-form` + `zod` já são usados para validação
