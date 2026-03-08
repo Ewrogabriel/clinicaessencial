@@ -311,7 +311,7 @@ const Matriculas = () => {
             toInsert.push({
               paciente_id: formData.paciente_id,
               profissional_id: s.professional_id,
-              data_horario: `${dt}T${s.time}:00-03:00`,
+              data_horario: `${dt}T${s.time}:00${getLocalTZOffset(dt, s.time)}`,
               duracao_minutos: s.session_duration,
               tipo_atendimento: formData.tipo_atendimento,
               status: "agendado",
