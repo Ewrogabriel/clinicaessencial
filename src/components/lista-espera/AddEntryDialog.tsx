@@ -83,6 +83,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
         hora_preferida_inicio: form.hora_preferida_inicio || null,
         hora_preferida_fim: form.hora_preferida_fim || null,
         observacoes: form.observacoes || null,
+        clinic_id: activeClinicId,
       });
       if (error) throw error;
     },
