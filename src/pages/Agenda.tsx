@@ -20,6 +20,7 @@ type ViewMode = "diario" | "semanal" | "mensal";
 
 const Agenda = () => {
   const { user, isPatient, isAdmin, isGestor, clinicId } = useAuth();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
