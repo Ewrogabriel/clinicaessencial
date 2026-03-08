@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -16,6 +17,7 @@ export function AppLayout() {
             <SidebarTrigger />
             {!isPatient && <GlobalSearch />}
             <div className="flex-1" />
+            <ThemeToggle />
             <NotificationBell />
           </header>
           <main className="flex-1 p-4 lg:p-6 overflow-auto">
