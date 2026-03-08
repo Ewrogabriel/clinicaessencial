@@ -55,6 +55,7 @@ import PreCadastrosAdmin from "./pages/PreCadastrosAdmin";
 import NotasFiscais from "./pages/NotasFiscais";
 import GestaoClinicas from "./pages/GestaoClinicas";
 import SelecionarClinica from "./pages/SelecionarClinica";
+import MasterPanel from "./pages/MasterPanel";
 // Despesas is now a tab inside Financeiro
 
 const queryClient = new QueryClient();
