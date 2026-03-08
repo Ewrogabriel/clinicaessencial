@@ -178,6 +178,7 @@ export function AppSidebar() {
       <ClinicSwitcher collapsed={collapsed} />
 
       <SidebarContent>
+        {isMaster && renderGroup("Master", menuMaster)}
         {(isAdmin || isGestor) ? (
           <>
             {renderGroup("Atendimento", menuAtendimento)}
@@ -196,9 +197,9 @@ export function AppSidebar() {
               { title: "Meu Perfil", url: "/perfil-profissional", icon: User },
             ])}
           </>
-        ) : (
+        ) : isPatient ? (
           renderGroup("Meu Portal", menuPatient)
-        )}
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter>

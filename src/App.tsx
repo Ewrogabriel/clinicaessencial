@@ -61,7 +61,8 @@ import MasterPanel from "./pages/MasterPanel";
 const queryClient = new QueryClient();
 
 const DashboardToggle = () => {
-  const { isPatient, isAdmin, isGestor, isProfissional, isSecretario } = useAuth();
+  const { isPatient, isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
+  if (isMaster && !isAdmin) return <MasterPanel />;
   if (isAdmin || isGestor || isSecretario) return <Dashboard />;
   if (isProfissional) return <ProfessionalDashboard />;
   return <PatientDashboard />;
