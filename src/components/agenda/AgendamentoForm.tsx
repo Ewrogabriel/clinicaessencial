@@ -326,6 +326,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           dias_semana: values.dias_semana,
           frequencia_semanal: values.frequencia_semanal,
           valor_mensal: values.valor_mensal || null,
+          clinic_id: activeClinicId,
         }));
 
         const { error } = await (supabase.from("agendamentos") as any).insert(records);
