@@ -250,7 +250,7 @@ const PacienteForm = () => {
     
     if (!accessCode) {
       // Fetch from database if not in state
-      const { data } = await (supabase.from("pacientes") as any)
+      const { data } = await supabase.from("pacientes")
         .select("codigo_acesso")
         .eq("id", id)
         .single();
