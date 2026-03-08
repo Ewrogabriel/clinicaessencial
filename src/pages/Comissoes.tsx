@@ -237,15 +237,15 @@ const Comissoes = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="regras" className="w-full">
+      <Tabs defaultValue="calculo" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="calculo" className="gap-2">
+            <Calculator className="h-4 w-4" />
+            Extrato & Cálculo
+          </TabsTrigger>
           <TabsTrigger value="regras" className="gap-2">
             <Settings2 className="h-4 w-4" />
             Regras de Comissão
-          </TabsTrigger>
-          <TabsTrigger value="calculo" className="gap-2">
-            <Calculator className="h-4 w-4" />
-            Cálculo Mensal
           </TabsTrigger>
         </TabsList>
 
