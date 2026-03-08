@@ -61,26 +61,29 @@ export function ConvenioCard() {
         className="cursor-pointer hover:shadow-md transition-shadow border-primary/20 overflow-hidden"
         onClick={() => setDetailOpen(true)}
       >
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 p-3">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-bold flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            Parceiros
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/40">
             {convenio.imagem_card_url ? (
               <img
                 src={convenio.imagem_card_url}
                 alt={convenio.nome}
-                className="h-12 w-12 rounded-lg object-cover shrink-0"
+                className="h-16 w-16 rounded-lg object-cover shrink-0"
               />
             ) : (
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Globe className="h-6 w-6 text-primary" />
+              <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Globe className="h-8 w-8 text-primary" />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">Parceiro</span>
-              </div>
-              <p className="font-semibold text-sm truncate">{convenio.nome}</p>
+              <p className="font-semibold text-base truncate">{convenio.nome}</p>
               {convenio.descricao && (
-                <p className="text-xs text-muted-foreground line-clamp-1">{convenio.descricao}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{convenio.descricao}</p>
               )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -88,19 +91,24 @@ export function ConvenioCard() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
+                  className="h-9 w-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(whatsappUrl, "_blank");
                   }}
                   title="Enviar WhatsApp"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <MessageCircle className="h-5 w-5" />
                 </Button>
               )}
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
           </div>
+          {convenios.length > 1 && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              {convenios.length} parceiros disponíveis · Clique para ver detalhes
+            </p>
+          )}
         </CardContent>
       </Card>
 
