@@ -79,7 +79,7 @@ export const PatientAgendaTab = ({
                       {solicitacoes.some((s: any) => s.agendamento_id === item.id) ? (
                         <><Hourglass className="h-4 w-4" /> Pendente</>
                       ) : (
-                        <><RefreshCw className="h-4 w-4" /> Reagendar</>
+                        <><RefreshCw className="h-4 w-4" /> {item.status === "cancelado" || item.status === "falta" ? "Remarcar" : "Reagendar"}</>
                       )}
                     </Button>
                     <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 gap-2"
