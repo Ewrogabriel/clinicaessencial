@@ -146,13 +146,13 @@ const Dashboard = () => {
   const { data: occupancyRate = 0 } = useQuery({
     queryKey: ["dashboard-occupancy", inicioMes, activeClinicId],
     queryFn: async () => {
-      let dispQ = (supabase.from("disponibilidade_profissional") as any)
+      let dispQ = supabase.from("disponibilidade_profissional")
         .select("hora_inicio, hora_fim, max_pacientes, dia_semana")
         .eq("ativo", true);
       if (activeClinicId) dispQ = dispQ.eq("clinic_id", activeClinicId);
       const { data: disp } = await dispQ;
 
-      let agQ = (supabase.from("agendamentos") as any)
+      let agQ = supabase.from("agendamentos")
         .select("id")
         .gte("data_horario", `${inicioMes}T00:00:00`)
         .lte("data_horario", `${fimMes}T23:59:59`)
@@ -160,7 +160,7 @@ const Dashboard = () => {
       if (activeClinicId) agQ = agQ.eq("clinic_id", activeClinicId);
       const { data: agendamentosMes } = await agQ;
 
-      const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
+      const totalSlots = (disp || []).reduce((sum, d) => sum + (d.max_pacientes || 1), 0) * 4;
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
     },
