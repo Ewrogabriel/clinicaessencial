@@ -101,9 +101,9 @@ const Contratos = () => {
     toast({ title: "Contrato gerado com sucesso!" });
   };
 
-  const handleWhatsAppSend = () => {
+  const handleWhatsAppSend = async () => {
     if (!paciente?.telefone) { toast({ title: "Paciente sem telefone cadastrado", variant: "destructive" }); return; }
-    handleDownload();
+    await handleDownload();
     const phone = paciente.telefone.replace(/\D/g, "");
     const fullPhone = phone.startsWith("55") ? phone : `55${phone}`;
     const msg = encodeURIComponent(`Olá ${paciente.nome}! Segue seu contrato da Essencial Fisio Pilates. Por favor, confira e assine. Qualquer dúvida estamos à disposição! 😊`);
