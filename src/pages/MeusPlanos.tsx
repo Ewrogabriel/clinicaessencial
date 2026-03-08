@@ -42,14 +42,26 @@ const MeusPlanos = () => {
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
   const [selectedProfId, setSelectedProfId] = useState("");
 
-  // All professionals for selection — query profiles directly (patients can read profiles)
+  const { data: crossClinicIds = [] } = useCrossBookingClinics(activeClinicId);
+
+  // All professionals for selection — includes cross-booking clinics
   const { data: allProfissionais = [] } = useQuery({
-    queryKey: ["all-prof-for-scheduling"],
+    queryKey: ["all-prof-for-scheduling", crossClinicIds],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, nome")
-        .order("nome");
+      if (crossClinicIds.length > 0) {
+        // Get professionals from all linked clinics
+        const { data: clinicUsers } = await (supabase.from("clinic_users") as any)
+          .select("user_id")
+          .in("clinic_id", crossClinicIds);
+        const userIds = clinicUsers?.map((cu: any) => cu.user_id) ?? [];
+        if (!userIds.length) {
+          const { data } = await supabase.from("profiles").select("user_id, nome").order("nome");
+          return data ?? [];
+        }
+        const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", userIds).order("nome");
+        return data ?? [];
+      }
+      const { data } = await supabase.from("profiles").select("user_id, nome").order("nome");
       return data ?? [];
     },
   });
