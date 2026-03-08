@@ -216,6 +216,8 @@ const Dashboard = () => {
           const pacNome = ag.pacientes && typeof ag.pacientes === 'object' && 'nome' in ag.pacientes
             ? (ag.pacientes as { nome: string }).nome : "?";
           stats[pid] = { nome: pacNome, total: 0, cancelados: 0, realizados: 0, checkins: 0 };
+        }
+        stats[pid].total++;
         if (ag.status === "cancelado" || ag.status === "falta") stats[pid].cancelados++;
         if (ag.status === "realizado") stats[pid].realizados++;
       });
