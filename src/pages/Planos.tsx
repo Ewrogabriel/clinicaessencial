@@ -47,7 +47,24 @@ const Planos = () => {
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("ativo");
 
-  const { data: planos = [], isLoading } = useQuery({
+  interface PlanoRow {
+    id: string;
+    paciente_id: string;
+    profissional_id: string;
+    tipo_atendimento: string;
+    total_sessoes: number;
+    sessoes_utilizadas: number;
+    valor: number;
+    status: string;
+    data_inicio: string;
+    data_vencimento: string | null;
+    observacoes: string | null;
+    created_at: string;
+    pacientes: { nome: string } | null;
+    profiles: { nome: string } | null;
+  }
+
+  const { data: planos = [], isLoading } = useQuery<PlanoRow[]>({
     queryKey: ["planos", filterPaciente, filterStatus],
     queryFn: async () => {
       let query = supabase
@@ -55,7 +72,7 @@ const Planos = () => {
         .select("*, pacientes(nome), profiles(nome)");
       
       if (filterStatus) {
-        query = query.eq("status", filterStatus as any);
+        query = query.eq("status", filterStatus);
       }
       if (filterPaciente) {
         query = query.ilike("pacientes.nome", `%${filterPaciente}%`);
@@ -63,7 +80,7 @@ const Planos = () => {
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data || []) as PlanoRow[];
     },
   });
 
