@@ -229,6 +229,12 @@ Receita mensal: ${historicalRevenue.map(h => `${h.name}: R$ ${h.valor.toFixed(2)
         </Card>
       </div>
 
+      {/* Churn Prediction - Detailed */}
+      <ChurnPrediction />
+
+      {/* Occupancy Report */}
+      <OccupancyReport />
+
       {/* Produtividade por Profissional */}
       <Card>
         <CardHeader><CardTitle className="text-lg">Produtividade por Profissional</CardTitle></CardHeader>
