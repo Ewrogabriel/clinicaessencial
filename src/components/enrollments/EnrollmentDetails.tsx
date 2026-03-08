@@ -230,8 +230,9 @@ export function EnrollmentDetails({ enrollment }: Props) {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-3 w-full">
+                <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="sessions">Sessões</TabsTrigger>
+                    <TabsTrigger value="payments">Pagamentos</TabsTrigger>
                     <TabsTrigger value="credits">Reposições</TabsTrigger>
                     <TabsTrigger value="commissions">Comissões</TabsTrigger>
                 </TabsList>
