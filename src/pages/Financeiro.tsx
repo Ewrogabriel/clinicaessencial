@@ -230,6 +230,10 @@ const Financeiro = () => {
           </TabsList>
         )}
 
+        <TabsContent value="dashboard">
+          <FinanceDashboard />
+        </TabsContent>
+
         <TabsContent value="fluxo" className="space-y-4">
           {/* Filters */}
           {!isPatient && (
