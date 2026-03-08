@@ -344,7 +344,7 @@ const Planos = () => {
                 <Select value={formData.tipo_atendimento} onValueChange={(v) => setFormData(p => ({ ...p, tipo_atendimento: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {(modalidades as any[]).map((mod) => (
+                    {modalidades.map((mod) => (
                       <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
                     ))}
                   </SelectContent>
