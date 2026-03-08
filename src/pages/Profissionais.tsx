@@ -248,6 +248,27 @@ const Profissionais = () => {
     setter(prev => prev.map(p => p.resource === key ? { ...p, access_level: level } : p));
   };
 
+  const validateCpf = async (currentUserId?: string): Promise<boolean> => {
+    const rawCpf = unmask(cpf);
+    if (rawCpf.length > 0) {
+      if (!isValidCPF(rawCpf)) {
+        toast({ title: "CPF inválido", description: "O CPF informado não é válido. Verifique os dígitos.", variant: "destructive" });
+        return false;
+      }
+      // Check duplicate in profiles
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .eq("cpf", cpf);
+      const duplicates = (existing ?? []).filter(p => !currentUserId || p.id !== currentUserId);
+      if (duplicates.length > 0) {
+        toast({ title: "CPF já cadastrado", description: `Este CPF já pertence a: ${duplicates[0].nome}`, variant: "destructive" });
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleCreate = async () => {
     if (!nome.trim() || !createEmail.trim() || !createPassword.trim()) {
       toast({ title: "Erro", description: "Preencha todos os campos obrigatórios", variant: "destructive" });
@@ -257,6 +278,7 @@ const Profissionais = () => {
       toast({ title: "Erro", description: "As senhas não coincidem", variant: "destructive" });
       return;
     }
+    if (!(await validateCpf())) return;
     setLoading(true);
     try {
       const { data: result, error: fnError } = await supabase.functions.invoke("create-professional", {
