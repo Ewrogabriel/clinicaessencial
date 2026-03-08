@@ -212,6 +212,19 @@ const PatientDashboard = () => {
     enabled: activeTab === "financeiro",
   });
 
+  // Matrícula payments for patient
+  const { data: matriculaPayments = [] } = useQuery({
+    queryKey: ["matricula-payments-patient", patientId],
+    queryFn: async () => {
+      if (!patientId) return [];
+      const { data, error } = await (supabase.from("pagamentos_mensalidade" as any) as any)
+        .select("*").eq("paciente_id", patientId).order("mes_referencia", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!patientId && activeTab === "financeiro",
+  });
+
   const { data: pastAgenda = [] } = useQuery({
     queryKey: ["patient-agenda-past", patientId],
     queryFn: async () => {
