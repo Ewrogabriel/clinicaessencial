@@ -92,6 +92,12 @@ const menuConfig = [
   { title: "Unidades", url: "/gestao-clinicas", icon: Building2 },
 ];
 
+/* ── Master menu ── */
+const menuMaster = [
+  { title: "Painel Master", url: "/master", icon: Crown },
+  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
+];
+
 /* ── Patient menu ── */
 const menuPatient = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
