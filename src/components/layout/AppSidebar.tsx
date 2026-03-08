@@ -94,6 +94,7 @@ const menuPatient = [
   { title: "Meus Planos", url: "/meus-planos", icon: ClipboardList },
   { title: "Histórico", url: "/meu-historico", icon: ClipboardList },
   { title: "Pagamentos", url: "/meus-pagamentos", icon: CreditCard },
+  { title: "Parceiros", url: "/convenios", icon: Handshake },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
   { title: "Meu Contrato", url: "/contratos", icon: FileText },
   { title: "Meu Perfil", url: "/meu-perfil", icon: Users },
