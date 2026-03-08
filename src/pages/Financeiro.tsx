@@ -128,8 +128,8 @@ const Financeiro = () => {
 
   const totalRecebido = (pagamentos || []).filter((p: any) => p.status === "pago").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
   const totalPendente = (pagamentos || []).filter((p: any) => p.status === "pendente").reduce((sum: number, p: any) => sum + Number(p.valor), 0);
-  const totalDespesas = ((despesas as any[]) || []).filter((d) => d.status === "pago").reduce((sum: number, d) => sum + Number(d.valor), 0);
-  const totalComissoes = ((comissoes as any[]) || []).reduce((sum: number, c) => sum + Number(c.valor), 0);
+  const totalDespesas = ((despesasForDre as any[]) || []).filter((d) => d.status === "pago").reduce((sum: number, d) => sum + Number(d.valor), 0);
+  const totalComissoes = ((comissoesForDre as any[]) || []).reduce((sum: number, c) => sum + Number(c.valor), 0);
   
   const countPagos = (pagamentos || []).filter((p: any) => p.status === 'pago').length;
   const countPendentes = (pagamentos || []).filter((p: any) => p.status === 'pendente').length;
