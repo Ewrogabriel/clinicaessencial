@@ -261,7 +261,7 @@ const PatientDashboard = () => {
           titulo: "Nova reserva de produto",
           resumo: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}`,
           conteudo: `Reserva de ${selectedProduto.nome} - R$ ${Number(selectedProduto.preco).toFixed(2)}${observacao ? ` | Obs: ${observacao}` : ""}`,
-          link: "/produtos",
+          link: "/solicitacoes-alteracao",
         }));
         await supabase.from("notificacoes").insert(notifications);
       }

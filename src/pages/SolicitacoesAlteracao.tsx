@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -28,14 +28,14 @@ const SolicitacoesAlteracao = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState<"dados" | "reagendar" | "remarcar">("dados");
+  const [selectedType, setSelectedType] = useState<"dados" | "reagendar" | "remarcar" | "reserva">("dados");
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
 
   // ── Solicitações de Alteração de Dados ──
   const { data: solicitacoesDados = [], isLoading: loadingDados } = useQuery({
     queryKey: ["solicitacoes-alteracao"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("solicitacoes_alteracao_dados") as any)
+      const { data, error } = await supabase.from("solicitacoes_alteracao_dados")
         .select("*").order("created_at", { ascending: false });
       if (error) throw error;
       const pacienteIds = [...new Set((data || []).map((s: any) => s.paciente_id))] as string[];
@@ -58,20 +58,17 @@ const SolicitacoesAlteracao = () => {
       if (error) throw error;
       if (!data || data.length === 0) return [];
 
-      // Fetch patient names
       const pacienteIds = [...new Set(data.map((s: any) => s.paciente_id))] as string[];
       const { data: pacientes } = await supabase.from("pacientes").select("id, nome").in("id", pacienteIds);
       const pacMap: Record<string, string> = {};
       (pacientes || []).forEach((p: any) => { pacMap[p.id] = p.nome; });
 
-      // Fetch agendamento details to determine type (reagendar vs remarcar)
       const agendIds = [...new Set(data.map((s: any) => s.agendamento_id))] as string[];
-      const { data: agendamentos } = await (supabase.from("agendamentos") as any)
+      const { data: agendamentos } = await supabase.from("agendamentos")
         .select("id, status, data_horario, tipo_atendimento, profissional_id").in("id", agendIds);
       const agendMap: Record<string, any> = {};
       (agendamentos || []).forEach((a: any) => { agendMap[a.id] = a; });
 
-      // Fetch professional names
       const profIds = [...new Set((agendamentos || []).map((a: any) => a.profissional_id))] as string[];
       let profMap: Record<string, string> = {};
       if (profIds.length > 0) {
@@ -93,13 +90,43 @@ const SolicitacoesAlteracao = () => {
     },
   });
 
+  // ── Reservas de Produtos ──
+  const { data: reservas = [], isLoading: loadingReservas } = useQuery({
+    queryKey: ["reservas-produtos-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("reservas_produtos")
+        .select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
+
+      const pacienteIds = [...new Set(data.map((r: any) => r.paciente_id))] as string[];
+      const produtoIds = [...new Set(data.map((r: any) => r.produto_id))] as string[];
+
+      const { data: pacientes } = await supabase.from("pacientes").select("id, nome, user_id").in("id", pacienteIds);
+      const pacMap: Record<string, any> = {};
+      (pacientes || []).forEach((p: any) => { pacMap[p.id] = p; });
+
+      const { data: produtos } = await supabase.from("produtos").select("id, nome, preco").in("id", produtoIds);
+      const prodMap: Record<string, any> = {};
+      (produtos || []).forEach((p: any) => { prodMap[p.id] = p; });
+
+      return data.map((r: any) => ({
+        ...r,
+        paciente_nome: pacMap[r.paciente_id]?.nome || "—",
+        paciente_user_id: pacMap[r.paciente_id]?.user_id || null,
+        produto_nome: prodMap[r.produto_id]?.nome || "—",
+        produto_preco: prodMap[r.produto_id]?.preco || 0,
+      }));
+    },
+  });
+
   // ── Mutations ──
   const aprovarDadosMutation = useMutation({
     mutationFn: async (solicitacao: any) => {
       const dadosNovos = solicitacao.dados_novos || {};
       const { error: updateError } = await supabase.from("pacientes").update(dadosNovos).eq("id", solicitacao.paciente_id);
       if (updateError) throw updateError;
-      const { error } = await (supabase.from("solicitacoes_alteracao_dados") as any)
+      const { error } = await supabase.from("solicitacoes_alteracao_dados")
         .update({ status: "aprovado", aprovador_id: user?.id, approved_at: new Date().toISOString() })
         .eq("id", solicitacao.id);
       if (error) throw error;
@@ -114,7 +141,7 @@ const SolicitacoesAlteracao = () => {
 
   const rejeitarDadosMutation = useMutation({
     mutationFn: async ({ solicitacao, motivo }: { solicitacao: any; motivo: string }) => {
-      const { error } = await (supabase.from("solicitacoes_alteracao_dados") as any)
+      const { error } = await supabase.from("solicitacoes_alteracao_dados")
         .update({ status: "rejeitado", aprovador_id: user?.id, motivo_rejeicao: motivo, approved_at: new Date().toISOString() })
         .eq("id", solicitacao.id);
       if (error) throw error;
@@ -129,8 +156,7 @@ const SolicitacoesAlteracao = () => {
 
   const aprovarRemarcacaoMutation = useMutation({
     mutationFn: async (solicitacao: any) => {
-      // Update agendamento with new date and set status to agendado
-      const { error: agendError } = await (supabase.from("agendamentos") as any)
+      const { error: agendError } = await supabase.from("agendamentos")
         .update({ data_horario: solicitacao.nova_data_horario, status: "agendado" })
         .eq("id", solicitacao.agendamento_id);
       if (agendError) throw agendError;
@@ -140,14 +166,13 @@ const SolicitacoesAlteracao = () => {
         .eq("id", solicitacao.id);
       if (error) throw error;
 
-      // Notify patient via notificacoes
       const tipoLabel = solicitacao.tipo_solicitacao === "remarcar" ? "Remarcação" : "Reagendamento";
-      await (supabase.from("notificacoes").insert({
+      await supabase.from("notificacoes").insert({
         user_id: solicitacao.paciente_id,
         tipo: "solicitacao_aprovada",
         titulo: `${tipoLabel} aprovado`,
         resumo: `Sua sessão foi ${solicitacao.tipo_solicitacao === "remarcar" ? "remarcada" : "reagendada"} para ${format(new Date(solicitacao.nova_data_horario), "dd/MM 'às' HH:mm")}`,
-      }) as any);
+      });
     },
     onSuccess: () => {
       toast({ title: "Solicitação aprovada!", description: "A sessão foi atualizada." });
@@ -165,16 +190,79 @@ const SolicitacoesAlteracao = () => {
       if (error) throw error;
 
       const tipoLabel = solicitacao.tipo_solicitacao === "remarcar" ? "Remarcação" : "Reagendamento";
-      await (supabase.from("notificacoes").insert({
+      await supabase.from("notificacoes").insert({
         user_id: solicitacao.paciente_id,
         tipo: "solicitacao_rejeitada",
         titulo: `${tipoLabel} recusado`,
         resumo: motivo || `Sua solicitação de ${tipoLabel.toLowerCase()} foi recusada.`,
-      }) as any);
+      });
     },
     onSuccess: () => {
       toast({ title: "Solicitação rejeitada." });
       queryClient.invalidateQueries({ queryKey: ["solicitacoes-remarcacao-admin"] });
+      setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
+    },
+    onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
+  });
+
+  // ── Reserva Mutations ──
+  const aprovarReservaMutation = useMutation({
+    mutationFn: async (reserva: any) => {
+      const { error } = await supabase.from("reservas_produtos")
+        .update({ status: "aprovada" })
+        .eq("id", reserva.id);
+      if (error) throw error;
+
+      // Decrement stock
+      const { data: produto } = await supabase.from("produtos")
+        .select("estoque").eq("id", reserva.produto_id).single();
+      if (produto && produto.estoque > 0) {
+        await supabase.from("produtos")
+          .update({ estoque: produto.estoque - reserva.quantidade })
+          .eq("id", reserva.produto_id);
+      }
+
+      // Notify patient
+      if (reserva.paciente_user_id) {
+        await supabase.from("notificacoes").insert({
+          user_id: reserva.paciente_user_id,
+          tipo: "reserva_aprovada",
+          titulo: "Reserva aprovada! ✅",
+          resumo: `Sua reserva de ${reserva.produto_nome} foi aprovada.`,
+          conteudo: `Produto: ${reserva.produto_nome} - R$ ${Number(reserva.produto_preco).toFixed(2)}`,
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Reserva aprovada!", description: "O estoque foi atualizado e o paciente notificado." });
+      queryClient.invalidateQueries({ queryKey: ["reservas-produtos-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      setDetailOpen(false);
+    },
+    onError: (err: any) => toast({ title: "Erro ao aprovar", description: err.message, variant: "destructive" }),
+  });
+
+  const rejeitarReservaMutation = useMutation({
+    mutationFn: async ({ reserva, motivo }: { reserva: any; motivo: string }) => {
+      const { error } = await supabase.from("reservas_produtos")
+        .update({ status: "rejeitada", observacao: motivo ? `[REJEITADO] ${motivo}` : reserva.observacao })
+        .eq("id", reserva.id);
+      if (error) throw error;
+
+      // Notify patient
+      if (reserva.paciente_user_id) {
+        await supabase.from("notificacoes").insert({
+          user_id: reserva.paciente_user_id,
+          tipo: "reserva_rejeitada",
+          titulo: "Reserva recusada",
+          resumo: motivo || `Sua reserva de ${reserva.produto_nome} foi recusada.`,
+          conteudo: `Produto: ${reserva.produto_nome}${motivo ? ` | Motivo: ${motivo}` : ""}`,
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Reserva rejeitada." });
+      queryClient.invalidateQueries({ queryKey: ["reservas-produtos-admin"] });
       setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
     },
     onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
@@ -185,7 +273,9 @@ const SolicitacoesAlteracao = () => {
     const map: Record<string, { label: string; variant: "default" | "destructive" | "outline" | "secondary" }> = {
       pendente: { label: "Pendente", variant: "secondary" },
       aprovado: { label: "Aprovado", variant: "default" },
+      aprovada: { label: "Aprovada", variant: "default" },
       rejeitado: { label: "Rejeitado", variant: "destructive" },
+      rejeitada: { label: "Rejeitada", variant: "destructive" },
     };
     const s = map[status] || { label: status, variant: "outline" as const };
     return <Badge variant={s.variant}>{s.label}</Badge>;
@@ -193,6 +283,7 @@ const SolicitacoesAlteracao = () => {
 
   const tipoBadge = (tipo: string) => {
     if (tipo === "remarcar") return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Remarcar</Badge>;
+    if (tipo === "reserva") return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Reserva</Badge>;
     return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Reagendar</Badge>;
   };
 
@@ -214,9 +305,11 @@ const SolicitacoesAlteracao = () => {
   const remarcacoes = solicitacoesRemarcacao.filter((s: any) => s.tipo_solicitacao === "remarcar");
   const pendentesReagendar = reagendamentos.filter((s: any) => s.status === "pendente");
   const pendentesRemarcar = remarcacoes.filter((s: any) => s.status === "pendente");
-  const totalPendentes = pendentesDados.length + pendentesReagendar.length + pendentesRemarcar.length;
+  const pendentesReservas = reservas.filter((r: any) => r.status === "pendente");
+  const historicoReservas = reservas.filter((r: any) => r.status !== "pendente");
+  const totalPendentes = pendentesDados.length + pendentesReagendar.length + pendentesRemarcar.length + pendentesReservas.length;
 
-  const isLoading = loadingDados || loadingRemarc;
+  const isLoading = loadingDados || loadingRemarc || loadingReservas;
 
   // ── Render Remarcação/Reagendamento table ──
   const renderRemarcTable = (items: any[], tipo: "reagendar" | "remarcar") => {
@@ -324,7 +417,7 @@ const SolicitacoesAlteracao = () => {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Solicitações</h1>
         <p className="text-muted-foreground">
-          Gerencie solicitações de alteração de dados, reagendamentos e remarcações.
+          Gerencie solicitações de alteração de dados, reagendamentos, remarcações e reservas.
           {totalPendentes > 0 && (
             <Badge variant="destructive" className="ml-2">{totalPendentes} pendente(s)</Badge>
           )}
@@ -332,18 +425,21 @@ const SolicitacoesAlteracao = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="todas" className="gap-1">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="todas" className="gap-1 text-xs">
             Todas {totalPendentes > 0 && <Badge variant="secondary" className="ml-1 scale-75">{totalPendentes}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="dados" className="gap-1">
+          <TabsTrigger value="dados" className="gap-1 text-xs">
             <FileEdit className="h-3.5 w-3.5" /> Dados {pendentesDados.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesDados.length}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="reagendar" className="gap-1">
+          <TabsTrigger value="reagendar" className="gap-1 text-xs">
             <CalendarClock className="h-3.5 w-3.5" /> Reagendar {pendentesReagendar.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesReagendar.length}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="remarcar" className="gap-1">
+          <TabsTrigger value="remarcar" className="gap-1 text-xs">
             <CalendarPlus className="h-3.5 w-3.5" /> Remarcar {pendentesRemarcar.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesRemarcar.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="reservas" className="gap-1 text-xs">
+            <ShoppingBag className="h-3.5 w-3.5" /> Reservas {pendentesReservas.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesReservas.length}</Badge>}
           </TabsTrigger>
         </TabsList>
 
@@ -354,78 +450,98 @@ const SolicitacoesAlteracao = () => {
           ) : totalPendentes === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Nenhuma solicitação pendente.</div>
           ) : (
-            <>
-              {/* All pending items in one combined table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <RefreshCw className="h-5 w-5" /> Todas Pendentes ({totalPendentes})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Paciente</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Detalhes</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendentesDados.map((s: any) => {
-                        const changes = getChangedFields(s.dados_atuais, s.dados_novos);
-                        return (
-                          <TableRow key={`dados-${s.id}`}>
-                            <TableCell><Badge variant="outline">Dados</Badge></TableCell>
-                            <TableCell className="font-medium">{s.paciente_nome}</TableCell>
-                            <TableCell>{format(new Date(s.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
-                            <TableCell><Badge variant="outline">{changes.length} campo(s)</Badge></TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex gap-2 justify-end">
-                                <Button size="sm" variant="outline" onClick={() => { setSelected(s); setSelectedType("dados"); setDetailOpen(true); }}>
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" onClick={() => aprovarDadosMutation.mutate(s)} disabled={aprovarDadosMutation.isPending}>
-                                  <CheckCircle2 className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="destructive" onClick={() => { setSelected(s); setSelectedType("dados"); setRejectOpen(true); }}>
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                      {[...pendentesReagendar, ...pendentesRemarcar].map((s: any) => (
-                        <TableRow key={`remarc-${s.id}`}>
-                          <TableCell>{tipoBadge(s.tipo_solicitacao)}</TableCell>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" /> Todas Pendentes ({totalPendentes})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Detalhes</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendentesDados.map((s: any) => {
+                      const changes = getChangedFields(s.dados_atuais, s.dados_novos);
+                      return (
+                        <TableRow key={`dados-${s.id}`}>
+                          <TableCell><Badge variant="outline">Dados</Badge></TableCell>
                           <TableCell className="font-medium">{s.paciente_nome}</TableCell>
                           <TableCell>{format(new Date(s.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
-                          <TableCell className="text-sm">
-                            Nova data: {format(new Date(s.nova_data_horario), "dd/MM HH:mm")}
-                          </TableCell>
+                          <TableCell><Badge variant="outline">{changes.length} campo(s)</Badge></TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
-                              <Button size="sm" variant="outline" onClick={() => { setSelected(s); setSelectedType(s.tipo_solicitacao); setDetailOpen(true); }}>
+                              <Button size="sm" variant="outline" onClick={() => { setSelected(s); setSelectedType("dados"); setDetailOpen(true); }}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" onClick={() => aprovarRemarcacaoMutation.mutate(s)} disabled={aprovarRemarcacaoMutation.isPending}>
+                              <Button size="sm" onClick={() => aprovarDadosMutation.mutate(s)} disabled={aprovarDadosMutation.isPending}>
                                 <CheckCircle2 className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" variant="destructive" onClick={() => { setSelected(s); setSelectedType(s.tipo_solicitacao); setRejectOpen(true); }}>
+                              <Button size="sm" variant="destructive" onClick={() => { setSelected(s); setSelectedType("dados"); setRejectOpen(true); }}>
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </>
+                      );
+                    })}
+                    {[...pendentesReagendar, ...pendentesRemarcar].map((s: any) => (
+                      <TableRow key={`remarc-${s.id}`}>
+                        <TableCell>{tipoBadge(s.tipo_solicitacao)}</TableCell>
+                        <TableCell className="font-medium">{s.paciente_nome}</TableCell>
+                        <TableCell>{format(new Date(s.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-sm">
+                          Nova data: {format(new Date(s.nova_data_horario), "dd/MM HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" variant="outline" onClick={() => { setSelected(s); setSelectedType(s.tipo_solicitacao); setDetailOpen(true); }}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" onClick={() => aprovarRemarcacaoMutation.mutate(s)} disabled={aprovarRemarcacaoMutation.isPending}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setSelected(s); setSelectedType(s.tipo_solicitacao); setRejectOpen(true); }}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {pendentesReservas.map((r: any) => (
+                      <TableRow key={`reserva-${r.id}`}>
+                        <TableCell>{tipoBadge("reserva")}</TableCell>
+                        <TableCell className="font-medium">{r.paciente_nome}</TableCell>
+                        <TableCell>{format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-sm">
+                          {r.produto_nome} — R$ {Number(r.produto_preco).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" variant="outline" onClick={() => { setSelected(r); setSelectedType("reserva"); setDetailOpen(true); }}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" onClick={() => aprovarReservaMutation.mutate(r)} disabled={aprovarReservaMutation.isPending}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setSelected(r); setSelectedType("reserva"); setRejectOpen(true); }}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -528,6 +644,94 @@ const SolicitacoesAlteracao = () => {
         <TabsContent value="remarcar" className="mt-4">
           {renderRemarcTable(remarcacoes, "remarcar")}
         </TabsContent>
+
+        {/* Tab Reservas */}
+        <TabsContent value="reservas" className="mt-4 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" /> Pendentes ({pendentesReservas.length})
+              </CardTitle>
+              <CardDescription>Reservas de produtos aguardando aprovação</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loadingReservas ? (
+                <div className="p-8 text-center text-muted-foreground">Carregando...</div>
+              ) : pendentesReservas.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">Nenhuma reserva pendente.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Qtd</TableHead>
+                      <TableHead>Observação</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendentesReservas.map((r: any) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.paciente_nome}</TableCell>
+                        <TableCell>{r.produto_nome}</TableCell>
+                        <TableCell>R$ {Number(r.produto_preco).toFixed(2)}</TableCell>
+                        <TableCell>{r.quantidade}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{r.observacao || "—"}</TableCell>
+                        <TableCell>{format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" variant="outline" onClick={() => { setSelected(r); setSelectedType("reserva"); setDetailOpen(true); }}>
+                              <Eye className="h-4 w-4 mr-1" /> Ver
+                            </Button>
+                            <Button size="sm" onClick={() => aprovarReservaMutation.mutate(r)} disabled={aprovarReservaMutation.isPending}>
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setSelected(r); setSelectedType("reserva"); setRejectOpen(true); }}>
+                              <XCircle className="h-4 w-4 mr-1" /> Rejeitar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {historicoReservas.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-lg">Histórico de Reservas</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historicoReservas.map((r: any) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.paciente_nome}</TableCell>
+                        <TableCell>{r.produto_nome}</TableCell>
+                        <TableCell>R$ {Number(r.produto_preco).toFixed(2)}</TableCell>
+                        <TableCell>{statusBadge(r.status)}</TableCell>
+                        <TableCell>{format(new Date(r.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Detail Dialog */}
@@ -536,7 +740,9 @@ const SolicitacoesAlteracao = () => {
           <DialogHeader>
             <DialogTitle>
               {selectedType === "dados" ? "Detalhes da Alteração de Dados" :
-               selectedType === "reagendar" ? "Detalhes do Reagendamento" : "Detalhes da Remarcação"}
+               selectedType === "reagendar" ? "Detalhes do Reagendamento" :
+               selectedType === "remarcar" ? "Detalhes da Remarcação" :
+               "Detalhes da Reserva"}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -568,6 +774,35 @@ const SolicitacoesAlteracao = () => {
                       </div>
                     ))}
                   </div>
+                </>
+              ) : selectedType === "reserva" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Produto</Label>
+                      <p className="text-sm font-medium">{selected.produto_nome}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Valor</Label>
+                      <p className="text-sm font-semibold text-primary">R$ {Number(selected.produto_preco).toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Quantidade</Label>
+                      <p className="text-sm">{selected.quantidade}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Data da Reserva</Label>
+                      <p className="text-sm">{format(new Date(selected.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                    </div>
+                  </div>
+                  {selected.observacao && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Observação do Paciente</Label>
+                      <p className="text-sm">{selected.observacao}</p>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -611,17 +846,20 @@ const SolicitacoesAlteracao = () => {
                   </Button>
                   <Button onClick={() => {
                     if (selectedType === "dados") aprovarDadosMutation.mutate(selected);
+                    else if (selectedType === "reserva") aprovarReservaMutation.mutate(selected);
                     else aprovarRemarcacaoMutation.mutate(selected);
-                  }} disabled={aprovarDadosMutation.isPending || aprovarRemarcacaoMutation.isPending}>
+                  }} disabled={aprovarDadosMutation.isPending || aprovarRemarcacaoMutation.isPending || aprovarReservaMutation.isPending}>
                     <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
                   </Button>
                 </DialogFooter>
               )}
 
-              {selected.motivo_rejeicao && (
+              {(selected.motivo_rejeicao || (selectedType === "reserva" && selected.status === "rejeitada" && selected.observacao?.startsWith("[REJEITADO]"))) && (
                 <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                   <Label className="text-xs text-destructive">Motivo da rejeição</Label>
-                  <p className="text-sm">{selected.motivo_rejeicao}</p>
+                  <p className="text-sm">
+                    {selected.motivo_rejeicao || selected.observacao?.replace("[REJEITADO] ", "")}
+                  </p>
                 </div>
               )}
             </div>
@@ -633,7 +871,7 @@ const SolicitacoesAlteracao = () => {
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rejeitar Solicitação</DialogTitle>
+            <DialogTitle>Rejeitar {selectedType === "reserva" ? "Reserva" : "Solicitação"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -647,10 +885,12 @@ const SolicitacoesAlteracao = () => {
                 if (!selected) return;
                 if (selectedType === "dados") {
                   rejeitarDadosMutation.mutate({ solicitacao: selected, motivo: motivoRejeicao });
+                } else if (selectedType === "reserva") {
+                  rejeitarReservaMutation.mutate({ reserva: selected, motivo: motivoRejeicao });
                 } else {
                   rejeitarRemarcacaoMutation.mutate({ solicitacao: selected, motivo: motivoRejeicao });
                 }
-              }} disabled={rejeitarDadosMutation.isPending || rejeitarRemarcacaoMutation.isPending}>
+              }} disabled={rejeitarDadosMutation.isPending || rejeitarRemarcacaoMutation.isPending || rejeitarReservaMutation.isPending}>
                 Confirmar Rejeição
               </Button>
             </DialogFooter>
