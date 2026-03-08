@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -46,6 +47,7 @@ const tipoLabels: Record<string, string> = {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile, isAdmin, isGestor, isProfissional, isSecretario, loading } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -74,11 +76,19 @@ const Dashboard = () => {
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
 
   const { data: financeData } = useQuery({
-    queryKey: ["dashboard-finance", inicioMes],
+    queryKey: ["dashboard-finance", inicioMes, activeClinicId],
     queryFn: async () => {
-      const { data: pagamentos } = await (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
-      const { data: despesas } = await (supabase.from("expenses") as any).select("valor, status");
-      const { data: comissoes } = await (supabase.from("commissions") as any).select("valor");
+      let pQ = (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
+      let dQ = (supabase.from("expenses") as any).select("valor, status");
+      let cQ = (supabase.from("commissions") as any).select("valor");
+      if (activeClinicId) {
+        pQ = pQ.eq("clinic_id", activeClinicId);
+        dQ = dQ.eq("clinic_id", activeClinicId);
+        cQ = cQ.eq("clinic_id", activeClinicId);
+      }
+      const { data: pagamentos } = await pQ;
+      const { data: despesas } = await dQ;
+      const { data: comissoes } = await cQ;
 
       const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
       const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc: number, d: any) => acc + Number(d.valor), 0) || 0;
@@ -89,26 +99,30 @@ const Dashboard = () => {
   });
 
   const { data: alertCount = 0 } = useQuery({
-    queryKey: ["dashboard-alerts"],
+    queryKey: ["dashboard-alerts", activeClinicId],
     queryFn: async () => {
-      const { count } = await (supabase.from("pagamentos") as any)
+      let q = (supabase.from("pagamentos") as any)
         .select("id", { count: "exact", head: true })
         .eq("status", "pendente")
         .lte("data_vencimento", new Date().toISOString().split("T")[0]);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { count } = await q;
       return count ?? 0;
     },
   });
 
   // Today's agenda stats
   const { data: todayStats } = useQuery({
-    queryKey: ["dashboard-today-stats"],
+    queryKey: ["dashboard-today-stats", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      const { data } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("id, status")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       const all = data || [];
       return {
         total: all.length,
@@ -211,13 +225,15 @@ const Dashboard = () => {
 
   // Pending plan sessions (pendente status)
   const { data: pendingSessions = [] } = useQuery({
-    queryKey: ["dashboard-pending-sessions"],
+    queryKey: ["dashboard-pending-sessions", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("id, data_horario, status, tipo_atendimento, pacientes(nome), observacoes")
         .eq("status", "pendente")
         .order("data_horario", { ascending: true })
         .limit(10);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -225,15 +241,17 @@ const Dashboard = () => {
 
   // Today's Detailed Agenda
   const { data: todayAgenda = [] } = useQuery({
-    queryKey: ["dashboard-today-agenda"],
+    queryKey: ["dashboard-today-agenda", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      const { data, error } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("*, pacientes(nome, telefone)")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd)
         .order("data_horario", { ascending: true });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -241,17 +259,19 @@ const Dashboard = () => {
 
   // Past Sessions (Yesterday)
   const { data: pastAgenda = [] } = useQuery({
-    queryKey: ["dashboard-past-agenda"],
+    queryKey: ["dashboard-past-agenda", activeClinicId],
     queryFn: async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const pastStart = startOfDay(yesterday).toISOString();
       const pastEnd = endOfDay(yesterday).toISOString();
-      const { data, error } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("*, pacientes(nome, telefone)")
         .gte("data_horario", pastStart)
         .lte("data_horario", pastEnd)
         .order("data_horario", { ascending: false });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
