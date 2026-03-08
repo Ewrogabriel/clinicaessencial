@@ -241,7 +241,7 @@ const Dashboard = () => {
       const pastStart = startOfDay(yesterday).toISOString();
       const pastEnd = endOfDay(yesterday).toISOString();
       const { data, error } = await (supabase.from("agendamentos") as any)
-        .select("*, pacientes(nome, telefone), profiles(nome, telefone)")
+        .select("*, pacientes(nome, telefone)")
         .gte("data_horario", pastStart)
         .lte("data_horario", pastEnd)
         .order("data_horario", { ascending: false });
