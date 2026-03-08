@@ -52,12 +52,11 @@ const Despesas = () => {
     });
 
     const { data: despesas = [], isLoading } = useQuery({
-        queryKey: ["despesas"],
+        queryKey: ["despesas", activeClinicId],
         queryFn: async () => {
-            const { data, error } = await (supabase
-                .from("expenses")
-                .select("*")
-                .order("data_vencimento", { ascending: false }) as any);
+            let query = (supabase.from("expenses") as any).select("*");
+            if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+            const { data, error } = await query.order("data_vencimento", { ascending: false });
             if (error) throw error;
             return data;
         },
