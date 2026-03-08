@@ -82,7 +82,7 @@ export function CommissionExtract() {
 
   // Calculate summary
   const calcSummary = () => {
-    const summary: Record<string, { nome: string; userId: string; totalAtendimentos: number; totalValor: number; comissao: number; regras: any[]; modalidades: Record<string, number> }> = {};
+    const summary: Record<string, { nome: string; userId: string; totalAtendimentos: number; realizados: number; totalValor: number; comissao: number; regras: any[]; modalidades: Record<string, number> }> = {};
     
     const profsToCalc = filterProf === "todos" ? profissionais : profissionais.filter((p: any) => p.user_id === filterProf);
     
