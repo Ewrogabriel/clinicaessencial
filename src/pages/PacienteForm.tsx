@@ -18,11 +18,13 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, maskRG, isValidCPF, unmask } from "@/lib/masks";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const PacienteForm = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { activeClinicId } = useClinic();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -400,6 +402,14 @@ const PacienteForm = () => {
           ),
           duration: 10000,
         });
+
+        // Link patient to active clinic
+        if (activeClinicId && savedPatientId) {
+          await (supabase.from("clinic_pacientes") as any).insert({
+            clinic_id: activeClinicId,
+            paciente_id: savedPatientId,
+          });
+        }
       }
 
       // Try to create patient account if CPF exists

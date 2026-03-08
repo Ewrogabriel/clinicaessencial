@@ -62,11 +62,20 @@ const Dashboard = () => {
   // Loading check moved after all hooks (below)
 
   const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes"],
+    queryKey: ["pacientes", activeClinicId],
     queryFn: async () => {
+      if (activeClinicId) {
+        const { data: cp } = await (supabase.from("clinic_pacientes") as any)
+          .select("paciente_id").eq("clinic_id", activeClinicId);
+        const ids = (cp || []).map((c: any) => c.paciente_id);
+        if (!ids.length) return [];
+        const { data, error } = await (supabase.from("pacientes") as any)
+          .select("*").in("id", ids).order("created_at", { ascending: false });
+        if (error) throw error;
+        return data;
+      }
       const { data, error } = await (supabase.from("pacientes") as any)
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -136,18 +145,22 @@ const Dashboard = () => {
 
   // Occupancy rate (this month)
   const { data: occupancyRate = 0 } = useQuery({
-    queryKey: ["dashboard-occupancy", inicioMes],
+    queryKey: ["dashboard-occupancy", inicioMes, activeClinicId],
     queryFn: async () => {
-      const { data: disp } = await (supabase.from("disponibilidade_profissional") as any)
+      let dispQ = (supabase.from("disponibilidade_profissional") as any)
         .select("hora_inicio, hora_fim, max_pacientes, dia_semana")
         .eq("ativo", true);
-      const { data: agendamentosMes } = await (supabase.from("agendamentos") as any)
+      if (activeClinicId) dispQ = dispQ.eq("clinic_id", activeClinicId);
+      const { data: disp } = await dispQ;
+
+      let agQ = (supabase.from("agendamentos") as any)
         .select("id")
         .gte("data_horario", `${inicioMes}T00:00:00`)
         .lte("data_horario", `${fimMes}T23:59:59`)
         .in("status", ["agendado", "confirmado", "realizado"]);
+      if (activeClinicId) agQ = agQ.eq("clinic_id", activeClinicId);
+      const { data: agendamentosMes } = await agQ;
 
-      // Estimate total slots per month (availability * ~4 weeks)
       const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
@@ -156,7 +169,7 @@ const Dashboard = () => {
 
   // Monthly sessions chart data (last 6 months)
   const { data: monthlyChart = [] } = useQuery({
-    queryKey: ["dashboard-monthly-chart"],
+    queryKey: ["dashboard-monthly-chart", activeClinicId],
     queryFn: async () => {
       const months: { label: string; start: string; end: string }[] = [];
       for (let i = 5; i >= 0; i--) {
@@ -170,10 +183,12 @@ const Dashboard = () => {
       }
       const results = [];
       for (const m of months) {
-        const { data } = await (supabase.from("agendamentos") as any)
+        let q = (supabase.from("agendamentos") as any)
           .select("status")
           .gte("data_horario", `${m.start}T00:00:00`)
           .lte("data_horario", `${m.end}T23:59:59`);
+        if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+        const { data } = await q;
         const all = data || [];
         results.push({
           mes: m.label,
@@ -187,10 +202,12 @@ const Dashboard = () => {
   });
   // Ranking de frequência - pacientes que menos cancelam
   const { data: frequencyRanking = [] } = useQuery({
-    queryKey: ["dashboard-frequency-ranking"],
+    queryKey: ["dashboard-frequency-ranking", activeClinicId],
     queryFn: async () => {
-      const { data: agendamentos } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("paciente_id, status, pacientes(nome)");
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data: agendamentos } = await q;
       if (!agendamentos) return [];
 
       const stats: Record<string, { nome: string; total: number; cancelados: number; realizados: number; checkins: number }> = {};
@@ -280,15 +297,23 @@ const Dashboard = () => {
 
   // Professionals for the re-assignment dialog
   const { data: profissionais = [] } = useQuery({
-    queryKey: ["profissionais-dashboard"],
+    queryKey: ["profissionais-dashboard", activeClinicId],
     queryFn: async () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
         .in("role", ["profissional", "admin", "gestor"]);
 
-      const userIds = roles?.map(r => r.user_id) || [];
+      let userIds = roles?.map(r => r.user_id) || [];
       if (userIds.length === 0) return [];
+
+      if (activeClinicId) {
+        const { data: cu } = await (supabase.from("clinic_users") as any)
+          .select("user_id").eq("clinic_id", activeClinicId);
+        const clinicUserIds = new Set((cu || []).map((c: any) => c.user_id));
+        userIds = userIds.filter(id => clinicUserIds.has(id));
+        if (!userIds.length) return [];
+      }
 
       const { data, error } = await supabase
         .from("profiles")
