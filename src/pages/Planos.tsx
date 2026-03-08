@@ -280,7 +280,7 @@ const Planos = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(planos as any[]).map((plano) => {
+                {planos.map((plano) => {
                   const pct = plano.total_sessoes > 0 ? (plano.sessoes_utilizadas / plano.total_sessoes) * 100 : 0;
                   const restante = plano.total_sessoes - plano.sessoes_utilizadas;
                   const st = statusConfig[plano.status] || statusConfig.ativo;
