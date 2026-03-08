@@ -51,13 +51,7 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Loading check moved after all hooks (below)
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes"],
