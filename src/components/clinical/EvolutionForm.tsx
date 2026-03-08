@@ -69,7 +69,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
     const { data: prevEvolutions = [] } = useQuery({
         queryKey: ["evolucoes-prev", pacienteId],
         queryFn: async () => {
-            const { data } = await (supabase.from("evolutions") as any)
+            const { data } = await supabase.from("evolutions")
                 .select("descricao, conduta, data_evolucao")
                 .eq("paciente_id", pacienteId)
                 .order("data_evolucao", { ascending: false })
