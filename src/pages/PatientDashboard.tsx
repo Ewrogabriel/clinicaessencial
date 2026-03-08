@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { useClinicSettings } from "@/hooks/useClinicSettings";
 import { toast } from "@/hooks/use-toast";
 import { Lightbulb, RefreshCw } from "lucide-react";
+import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { PatientAgendaTab } from "@/components/patient/PatientAgendaTab";
