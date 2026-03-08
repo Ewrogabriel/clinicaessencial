@@ -79,7 +79,7 @@ export default function Equipamentos() {
       data_aquisicao: form.data_aquisicao || null,
       data_ultima_revisao: form.data_ultima_revisao || null,
       data_proxima_revisao: form.data_proxima_revisao || null,
-      clinic_id: activeClinic || null,
+      clinic_id: activeClinicId || null,
       created_by: user?.id,
     };
 

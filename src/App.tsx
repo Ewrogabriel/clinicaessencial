@@ -148,6 +148,7 @@ const App = () => (
           </BrowserRouter>
           </ClinicProvider>
         </AuthProvider>
+        </I18nProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
