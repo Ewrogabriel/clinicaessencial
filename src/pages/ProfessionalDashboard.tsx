@@ -193,6 +193,9 @@ const ProfessionalDashboard = () => {
         ))}
       </div>
 
+      {/* All Requests Card */}
+      <RequestsCard />
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Monthly Chart */}
         {monthlyChart.length > 0 && (
