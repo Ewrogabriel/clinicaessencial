@@ -91,6 +91,91 @@ const Comissoes = () => {
     enabled: isProfissional,
   });
 
+  // Mutations
+  const saveRule = useMutation({
+    mutationFn: async () => {
+      if (!user || !ruleForm.profissional_id) throw new Error("Selecione um profissional");
+      if (!ruleForm.percentual && !ruleForm.valor_fixo) throw new Error("Informe percentual ou valor fixo");
+
+      const payload = {
+        profissional_id: ruleForm.profissional_id,
+        tipo_atendimento: ruleForm.tipo_atendimento,
+        percentual: ruleForm.percentual ? parseFloat(ruleForm.percentual) : 0,
+        valor_fixo: ruleForm.valor_fixo ? parseFloat(ruleForm.valor_fixo) : 0,
+        observacoes: ruleForm.observacoes || null,
+        ativo: ruleForm.ativo,
+      };
+
+      if (editingRule) {
+        const { error } = await (supabase.from("regras_comissao" as any) as any)
+          .update(payload)
+          .eq("id", editingRule.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("regras_comissao" as any) as any)
+          .insert({ ...payload, created_by: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: editingRule ? "Regra atualizada!" : "Regra criada com sucesso!" });
+      closeRuleDialog();
+      queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const deleteRule = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("regras_comissao" as any) as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Regra removida!" });
+      queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
+    },
+  });
+
+  // Helpers
+  const closeRuleDialog = () => {
+    setRuleDialogOpen(false);
+    setEditingRule(null);
+    setRuleForm({ profissional_id: "", tipo_atendimento: "geral", percentual: "", valor_fixo: "", observacoes: "", ativo: true });
+  };
+
+  const openEditRule = (regra: any) => {
+    setEditingRule(regra);
+    setRuleForm({
+      profissional_id: regra.profissional_id,
+      tipo_atendimento: regra.tipo_atendimento || "geral",
+      percentual: regra.percentual ? String(regra.percentual) : "",
+      valor_fixo: regra.valor_fixo ? String(regra.valor_fixo) : "",
+      observacoes: regra.observacoes || "",
+      ativo: regra.ativo,
+    });
+    setRuleDialogOpen(true);
+  };
+
+  const openCreateRule = (profId?: string) => {
+    setEditingRule(null);
+    setRuleForm({
+      profissional_id: profId || "",
+      tipo_atendimento: "geral",
+      percentual: "",
+      valor_fixo: "",
+      observacoes: "",
+      ativo: true,
+    });
+    setRuleDialogOpen(true);
+  };
+
+  const getProfName = (id: string) => profissionais.find((p: any) => p.user_id === id)?.nome || "—";
+  const getTipoLabel = (v: string) => tiposAtendimento.find(t => t.value === v)?.label || v;
+
+  const filteredRegras = filterProf === "todos"
+    ? regrasComissao
+    : regrasComissao.filter((r: any) => r.profissional_id === filterProf);
+
   // Professional-only view
   if (isProfissional && !canManage) {
     return (
@@ -120,32 +205,7 @@ const Comissoes = () => {
           </Card>
         )}
 
-        <Card>
-          <CardContent className="p-0">
-            {minhasComissoes.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">Nenhuma comissão registrada.</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {minhasComissoes.map((c: any) => (
-                    <TableRow key={c.id}>
-                      <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>R$ {Number(c.valor).toFixed(2)}</TableCell>
-                      <TableCell><Badge variant={c.status === "pago" ? "default" : "secondary"}>{c.status}</Badge></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <CommissionExtract />
       </div>
     );
   }
