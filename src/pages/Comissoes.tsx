@@ -16,8 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users } from "lucide-react";
+import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 import { toast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
+
 
 // Removed hardcoded TIPOS_ATENDIMENTO — now loaded from modalidades table
 
@@ -66,22 +67,6 @@ const Comissoes = () => {
     enabled: canManage,
   });
 
-  const { data: agendamentos = [] } = useQuery({
-    queryKey: ["agendamentos-comissoes", mesRef],
-    queryFn: async () => {
-      const startDate = `${mesRef}-01T00:00:00`;
-      const endMonth = new Date(parseInt(mesRef.split("-")[0]), parseInt(mesRef.split("-")[1]), 0);
-      const endDate = `${mesRef}-${endMonth.getDate()}T23:59:59`;
-      const { data } = await (supabase.from("agendamentos") as any)
-        .select("*, pacientes(nome)")
-        .in("status", ["agendado", "confirmado", "pendente", "realizado"])
-        .gte("data_horario", startDate)
-        .lte("data_horario", endDate);
-      return data ?? [];
-    },
-    enabled: canManage,
-  });
-
   const { data: regrasComissao = [] } = useQuery({
     queryKey: ["regras-comissao"],
     queryFn: async () => {
@@ -91,29 +76,6 @@ const Comissoes = () => {
       return data ?? [];
     },
     enabled: canManage,
-  });
-
-  // Planos data for commission calculation (plan value / total sessions)
-  const { data: planosData = [] } = useQuery({
-    queryKey: ["planos-comissoes", mesRef],
-    queryFn: async () => {
-      const { data } = await (supabase.from("planos") as any).select("id, valor, total_sessoes");
-      return data ?? [];
-    },
-    enabled: canManage,
-  });
-
-  const { data: minhasComissoes = [] } = useQuery({
-    queryKey: ["my-commissions", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data } = await (supabase.from("commissions") as any)
-        .select("*")
-        .eq("professional_id", user.id)
-        .order("created_at", { ascending: false });
-      return data ?? [];
-    },
-    enabled: isProfissional,
   });
 
   const { data: minhasRegras = [] } = useQuery({
@@ -214,94 +176,6 @@ const Comissoes = () => {
     ? regrasComissao
     : regrasComissao.filter((r: any) => r.profissional_id === filterProf);
 
-  // Commission calculation using rules
-  const calcSummary = () => {
-    const summary: Record<string, { nome: string; userId: string; totalAtendimentos: number; realizados: number; totalValor: number; comissao: number; regras: any[] }> = {};
-    profissionais.forEach((p: any) => {
-      const profRegras = regrasComissao.filter((r: any) => r.profissional_id === p.user_id && r.ativo);
-      const atendimentos = agendamentos.filter((a: any) => a.profissional_id === p.user_id);
-
-      let comissaoTotal = 0;
-      let totalValor = 0;
-
-      for (const a of atendimentos) {
-        // For plan sessions, calculate average value (plan value / total sessions)
-        let valorSessao = Number(a.valor_sessao || 0);
-        if (valorSessao === 0 && a.observacoes && typeof a.observacoes === "string" && a.observacoes.startsWith("plano:")) {
-          const planoId = a.observacoes.replace("plano:", "").trim();
-          // Look up plan to get average value — we fetch planos in a separate query
-          const plano = (planosData || []).find((pl: any) => pl.id === planoId);
-          if (plano && plano.total_sessoes > 0) {
-            valorSessao = Number(plano.valor) / plano.total_sessoes;
-          }
-        }
-        totalValor += valorSessao;
-
-        if (profRegras.length > 0) {
-          const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
-            || profRegras.find((r: any) => r.tipo_atendimento === "geral");
-          if (tipoRegra) {
-            const pct = Number(tipoRegra.percentual || 0);
-            const fix = Number(tipoRegra.valor_fixo || 0);
-            comissaoTotal += (valorSessao * pct / 100) + fix;
-          }
-        }
-      }
-
-      if (profRegras.length === 0) {
-        // Fallback to profile rates
-        const rate = Number(p.commission_rate || 0);
-        const fixed = Number(p.commission_fixed || 0);
-        comissaoTotal = (totalValor * rate / 100) + (fixed * atendimentos.length);
-      }
-
-      summary[p.user_id] = {
-        nome: p.nome,
-        userId: p.user_id,
-        totalAtendimentos: atendimentos.length,
-        realizados: atendimentos.filter((a: any) => a.status === "realizado").length,
-        totalValor,
-        comissao: comissaoTotal,
-        regras: profRegras,
-      };
-    });
-    return Object.values(summary).filter(s => s.totalAtendimentos > 0);
-  };
-
-  const summary = calcSummary();
-
-  const generateCommissionReceipt = (prof: typeof summary[0]) => {
-    const doc = new jsPDF();
-    const mesLabel = format(new Date(`${mesRef}-01`), "MMMM 'de' yyyy", { locale: ptBR });
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("RECIBO DE COMISSÃO", 105, 25, { align: "center" });
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Essencial Fisio Pilates", 105, 35, { align: "center" });
-    doc.setDrawColor(200);
-    doc.line(20, 43, 190, 43);
-    let y = 53;
-    doc.setFontSize(11);
-    doc.text(`Profissional: ${prof.nome}`, 20, y); y += 8;
-    doc.text(`Referência: ${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}`, 20, y); y += 8;
-    doc.text(`Total de Atendimentos: ${prof.totalAtendimentos}`, 20, y); y += 8;
-    doc.text(`Valor Total Atendimentos: R$ ${prof.totalValor.toFixed(2)}`, 20, y); y += 8;
-    doc.line(20, y, 190, y); y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(`COMISSÃO: R$ ${prof.comissao.toFixed(2)}`, 20, y); y += 15;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Emissão: ${format(new Date(), "dd/MM/yyyy")}`, 20, y); y += 20;
-    doc.line(20, y, 90, y);
-    doc.text("Profissional", 55, y + 6, { align: "center" });
-    doc.line(110, y, 190, y);
-    doc.text("Clínica", 150, y + 6, { align: "center" });
-    doc.save(`Comissao_${prof.nome.replace(/\s+/g, "_")}_${mesRef}.pdf`);
-    toast({ title: "Recibo gerado!" });
-  };
-
   // Professional-only view
   if (isProfissional && !canManage) {
     return (
@@ -331,32 +205,7 @@ const Comissoes = () => {
           </Card>
         )}
 
-        <Card>
-          <CardContent className="p-0">
-            {minhasComissoes.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">Nenhuma comissão registrada.</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {minhasComissoes.map((c: any) => (
-                    <TableRow key={c.id}>
-                      <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>R$ {Number(c.valor).toFixed(2)}</TableCell>
-                      <TableCell><Badge variant={c.status === "pago" ? "default" : "secondary"}>{c.status}</Badge></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <CommissionExtract />
       </div>
     );
   }
@@ -502,67 +351,7 @@ const Comissoes = () => {
 
         {/* ===== TAB: Cálculo ===== */}
         <TabsContent value="calculo" className="space-y-4 mt-4">
-          <div className="flex gap-3 items-center">
-            <Label className="text-sm whitespace-nowrap">Mês de referência:</Label>
-            <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} className="w-auto" />
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Resumo — {format(new Date(`${mesRef}-01`), "MMMM yyyy", { locale: ptBR })}
-              </CardTitle>
-              <CardDescription>
-                Comissões calculadas com base nas regras configuradas. Profissionais sem regra usam taxa do perfil.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {summary.length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground">
-                  Nenhum atendimento realizado neste mês.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Profissional</TableHead>
-                      <TableHead className="text-center">Atendimentos</TableHead>
-                      <TableHead>Valor Total</TableHead>
-                      <TableHead>Comissão</TableHead>
-                      <TableHead>Fonte</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {summary.map((s) => (
-                      <TableRow key={s.userId}>
-                        <TableCell className="font-medium">{s.nome}</TableCell>
-                        <TableCell className="text-center">
-                          {s.totalAtendimentos}
-                          {s.realizados < s.totalAtendimentos && (
-                            <span className="text-xs text-muted-foreground ml-1">({s.realizados} realizados)</span>
-                          )}
-                        </TableCell>
-                        <TableCell>R$ {s.totalValor.toFixed(2)}</TableCell>
-                        <TableCell className="font-bold text-primary">R$ {s.comissao.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant={s.regras.length > 0 ? "default" : "secondary"}>
-                            {s.regras.length > 0 ? "Regra" : "Perfil"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => generateCommissionReceipt(s)} className="gap-1">
-                            <Download className="h-3.5 w-3.5" /> Recibo
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <CommissionExtract />
         </TabsContent>
       </Tabs>
 

@@ -655,6 +655,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fechamentos_comissao: {
+        Row: {
+          compensacao_anterior: number
+          created_at: string
+          descricao_compensacao: string | null
+          fechado_por: string
+          id: string
+          mes_referencia: string
+          profissional_id: string
+          status: string
+          total_atendimentos: number
+          total_comissao: number
+          total_valor: number
+          updated_at: string
+          valor_final: number
+        }
+        Insert: {
+          compensacao_anterior?: number
+          created_at?: string
+          descricao_compensacao?: string | null
+          fechado_por: string
+          id?: string
+          mes_referencia: string
+          profissional_id: string
+          status?: string
+          total_atendimentos?: number
+          total_comissao?: number
+          total_valor?: number
+          updated_at?: string
+          valor_final?: number
+        }
+        Update: {
+          compensacao_anterior?: number
+          created_at?: string
+          descricao_compensacao?: string | null
+          fechado_por?: string
+          id?: string
+          mes_referencia?: string
+          profissional_id?: string
+          status?: string
+          total_atendimentos?: number
+          total_comissao?: number
+          total_valor?: number
+          updated_at?: string
+          valor_final?: number
+        }
+        Relationships: []
+      }
       feriados: {
         Row: {
           created_at: string
