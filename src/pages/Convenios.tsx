@@ -280,7 +280,7 @@ const Convenios = () => {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editId ? "Editar Convênio" : "Novo Convênio"}</DialogTitle>
+            <DialogTitle>{editId ? "Editar Parceiro" : "Novo Parceiro"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
