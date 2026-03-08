@@ -49,6 +49,8 @@ import ClinicSettings from "./pages/ClinicSettings";
 import MensagensInternas from "./pages/MensagensInternas";
 import PacienteAccess from "./pages/PacienteAccess";
 import DashboardPaciente from "./pages/DashboardPaciente";
+import SolicitacoesAlteracao from "./pages/SolicitacoesAlteracao";
+import FormasPagamento from "./pages/FormasPagamento";
 
 const queryClient = new QueryClient();
 
