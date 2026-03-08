@@ -6,6 +6,7 @@ import {
   CalendarCheck, Clock, TrendingUp, Lightbulb, PartyPopper,
   CheckCircle2, XCircle, RefreshCw, MessageCircle
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
