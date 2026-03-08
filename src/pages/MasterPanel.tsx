@@ -417,6 +417,7 @@ function PaymentsTab() {
           )}
         </TableBody>
       </Table>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
