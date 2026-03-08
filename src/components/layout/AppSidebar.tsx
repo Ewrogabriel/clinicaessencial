@@ -1,9 +1,9 @@
 import {
   LayoutDashboard, Users, Calendar, ClipboardList, DollarSign, BarChart3,
-  LogOut, Activity, Layers, UserCog, Receipt, Brain, Send, Megaphone,
-  Clock, FileText, Tag, CreditCard, User, Calculator, MessageSquare,
-  Cake, Lightbulb, FileCheck, Wallet, ListChecks, Handshake, CalendarCheck,
-  Building2, Crown, Upload, Trophy, Stethoscope, Wrench,
+  LogOut, Activity, Layers, UserCog, Receipt, Send, Megaphone,
+  FileText, Tag, CreditCard, User, Calculator, MessageSquare,
+  FileCheck, Handshake,
+  Building2, Crown, Upload, Trophy, Stethoscope,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -31,11 +31,11 @@ const RESOURCE_ROUTES: Record<string, string> = {
 
 const RESOURCE_ICONS: Record<string, any> = {
   agenda: Calendar, pacientes: Users, prontuarios: ClipboardList,
-  modalidades: Layers, profissionais: UserCog, disponibilidade: Clock,
+  modalidades: Layers, profissionais: UserCog, disponibilidade: Calendar,
   financeiro: DollarSign, matriculas: Receipt, comissoes: Calculator,
   contratos: FileText, relatorios: BarChart3, avisos: Megaphone,
-  mensagens: MessageSquare, aniversariantes: Cake, clinica: Activity,
-  dicas_diarias: Lightbulb, automacoes: Send, check_in: Users,
+  mensagens: MessageSquare, aniversariantes: Users, clinica: Activity,
+  dicas_diarias: Activity, automacoes: Send, check_in: Users,
   precos_planos: Tag, produtos: Tag,
 };
 
@@ -55,18 +55,14 @@ const RESOURCE_LABELS: Record<string, string> = {
 const menuAtendimento = [
   { title: "Início", url: "/dashboard", icon: LayoutDashboard },
   { title: "Agenda", url: "/agenda", icon: Calendar },
-  { title: "Vagas", url: "/vagas", icon: CalendarCheck },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
   { title: "Matrículas", url: "/matriculas", icon: Receipt },
-  { title: "Lista de Espera", url: "/lista-espera", icon: ListChecks },
 ];
 
 const menuEquipeFinanceiro = [
   { title: "Equipe", url: "/profissionais", icon: UserCog },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Comissões", url: "/comissoes", icon: Calculator },
-  { title: "Notas Fiscais", url: "/notas-fiscais", icon: FileText },
   { title: "Solicitações", url: "/solicitacoes-alteracao", icon: FileCheck },
   { title: "Pré-Cadastros", url: "/pre-cadastros", icon: UserCog },
 ];
@@ -80,14 +76,11 @@ const menuInteligencia = [
 const menuComunicacao = [
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
   { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
-  { title: "Aniversariantes", url: "/aniversariantes", icon: Cake },
-  { title: "Dicas Diárias", url: "/dicas-diarias", icon: Lightbulb },
 ];
 
 const menuConfig = [
   { title: "Modalidades", url: "/modalidades", icon: Layers },
-  { title: "Produtos", url: "/produtos", icon: Tag },
-  { title: "Equipamentos", url: "/equipamentos", icon: Wrench },
+  { title: "Inventário", url: "/inventario", icon: Tag },
   { title: "Parceiros", url: "/convenios", icon: Handshake },
   { title: "Contratos", url: "/contratos", icon: FileText },
   { title: "Automações", url: "/automacoes", icon: Send },

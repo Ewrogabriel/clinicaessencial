@@ -29,6 +29,11 @@ import Despesas from "./Despesas";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 import { useClinic } from "@/hooks/useClinic";
 import { FinanceDashboard } from "@/components/reports/FinanceDashboard";
+import { lazy, Suspense } from "react";
+import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+
+const NotasFiscais = lazy(() => import("./NotasFiscais"));
+const Comissoes = lazy(() => import("./Comissoes"));
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pago: { label: "Pago", variant: "default" },
@@ -220,11 +225,12 @@ const Financeiro = () => {
       {/* Tabs */}
       <Tabs defaultValue="fluxo" className="space-y-4">
         {!isPatient && (
-          <TabsList className="grid w-full grid-cols-5 lg:w-[700px]">
+          <TabsList className="flex flex-wrap w-full max-w-4xl gap-1">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="fluxo">Pagamentos</TabsTrigger>
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
             <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+            <TabsTrigger value="notas-fiscais">Notas Fiscais</TabsTrigger>
             <TabsTrigger value="dre">DRE</TabsTrigger>
           </TabsList>
         )}
@@ -409,7 +415,15 @@ const Financeiro = () => {
         </TabsContent>
 
         <TabsContent value="comissoes" className="space-y-4">
-          <CommissionExtract />
+          <Suspense fallback={<LazyLoadFallback />}>
+            <Comissoes />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="notas-fiscais" className="space-y-4">
+          <Suspense fallback={<LazyLoadFallback />}>
+            <NotasFiscais />
+          </Suspense>
         </TabsContent>
       </Tabs>
 

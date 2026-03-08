@@ -26,12 +26,10 @@ const Agenda = lazy(() => import("./pages/Agenda"));
 const Matriculas = lazy(() => import("./pages/Matriculas"));
 const CheckInProfissional = lazy(() => import("./pages/CheckInProfissional"));
 const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
-const Produtos = lazy(() => import("./pages/Produtos"));
 const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
-const Aniversariantes = lazy(() => import("./pages/Aniversariantes"));
-const DicasDiarias = lazy(() => import("./pages/DicasDiarias"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Inventario = lazy(() => import("./pages/Inventario"));
 const Modalidades = lazy(() => import("./pages/Modalidades"));
 const Profissionais = lazy(() => import("./pages/Profissionais"));
 const Prontuarios = lazy(() => import("./pages/Prontuarios"));
@@ -43,30 +41,23 @@ const MeusPagamentos = lazy(() => import("./pages/MeusPagamentos"));
 const Automacoes = lazy(() => import("./pages/Automacoes"));
 const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
 const AvisosAdmin = lazy(() => import("./pages/AvisosAdmin"));
-const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
 const MeuPerfil = lazy(() => import("./pages/MeuPerfil"));
 const Contratos = lazy(() => import("./pages/Contratos"));
-const Comissoes = lazy(() => import("./pages/Comissoes"));
 const PerfilProfissional = lazy(() => import("./pages/PerfilProfissional"));
 const PerfilProfissionalPublico = lazy(() => import("./pages/PerfilProfissionalPublico"));
 const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
 const MensagensInternas = lazy(() => import("./pages/MensagensInternas"));
 const PacienteAccess = lazy(() => import("./pages/PacienteAccess"));
 const SolicitacoesAlteracao = lazy(() => import("./pages/SolicitacoesAlteracao"));
-const FormasPagamento = lazy(() => import("./pages/FormasPagamento"));
 const ProfessionalDashboard = lazy(() => import("./pages/ProfessionalDashboard"));
-const ListaEspera = lazy(() => import("./pages/ListaEspera"));
 const Convenios = lazy(() => import("./pages/Convenios"));
-const VacancyCalendar = lazy(() => import("./pages/VacancyCalendar"));
 const PreCadastro = lazy(() => import("./pages/PreCadastro"));
 const PreCadastrosAdmin = lazy(() => import("./pages/PreCadastrosAdmin"));
-const NotasFiscais = lazy(() => import("./pages/NotasFiscais"));
 const GestaoClinicas = lazy(() => import("./pages/GestaoClinicas"));
 const SelecionarClinica = lazy(() => import("./pages/SelecionarClinica"));
 const MasterPanel = lazy(() => import("./pages/MasterPanel"));
 const ImportacaoMassa = lazy(() => import("./pages/ImportacaoMassa"));
 const MetasGamificacao = lazy(() => import("./pages/MetasGamificacao"));
-const Equipamentos = lazy(() => import("./pages/Equipamentos"));
 
 const queryClient = new QueryClient();
 
@@ -121,34 +112,35 @@ const App = () => (
               <Route path="/meu-perfil" element={<MeuPerfil />} />
               <Route path="/meu-historico" element={<HistoricoSessoes />} />
               <Route path="/matriculas" element={<Matriculas />} />
-              <Route path="/produtos" element={<Produtos />} />
+              <Route path="/inventario" element={<Inventario />} />
+              <Route path="/produtos" element={<Inventario />} />
+              <Route path="/equipamentos" element={<Inventario />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/aniversariantes" element={<Aniversariantes />} />
+              <Route path="/aniversariantes" element={<Dashboard />} />
               <Route path="/modalidades" element={<Modalidades />} />
               <Route path="/profissionais" element={<Profissionais />} />
               <Route path="/automacoes" element={<Automacoes />} />
-              <Route path="/dicas-diarias" element={<DicasDiarias />} />
+              <Route path="/dicas-diarias" element={<Dashboard />} />
               <Route path="/avisos" element={<AvisosAdmin />} />
               <Route path="/disponibilidade" element={<Profissionais />} />
               <Route path="/contratos" element={<Contratos />} />
-              <Route path="/comissoes" element={<Comissoes />} />
+              <Route path="/comissoes" element={<Financeiro />} />
               <Route path="/perfil-profissional" element={<PerfilProfissional />} />
               <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
               <Route path="/clinica" element={<ClinicSettings />} />
               <Route path="/mensagens" element={<MensagensInternas />} />
               <Route path="/solicitacoes-alteracao" element={<SolicitacoesAlteracao />} />
               <Route path="/formas-pagamento" element={<ClinicSettings />} />
-              <Route path="/lista-espera" element={<ListaEspera />} />
+              <Route path="/lista-espera" element={<Agenda />} />
               <Route path="/convenios" element={<Convenios />} />
-              <Route path="/vagas" element={<VacancyCalendar />} />
+              <Route path="/vagas" element={<Agenda />} />
               <Route path="/pre-cadastros" element={<PreCadastrosAdmin />} />
-              <Route path="/notas-fiscais" element={<NotasFiscais />} />
+              <Route path="/notas-fiscais" element={<Financeiro />} />
               <Route path="/gestao-clinicas" element={<GestaoClinicas />} />
               <Route path="/master" element={<MasterPanel />} />
               <Route path="/importacao" element={<ImportacaoMassa />} />
               <Route path="/metas" element={<MetasGamificacao />} />
-              <Route path="/equipamentos" element={<Equipamentos />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

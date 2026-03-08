@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, ChevronLeft, ChevronRight, FileDown, Filter, UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, ChevronLeft, ChevronRight, FileDown, Filter, UserPlus, CalendarCheck, ListChecks } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAgendamentos, useUpdateAgendamentoStatus, useAgendamentoCheckin, useRescheduleAgendamento } from "@/hooks/useAgendamentos";
 import { useProfissionaisBasic, buildProfColorMap } from "@/hooks/useProfissionais";
 import { usePacienteByUserId } from "@/hooks/usePacientes";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
@@ -17,6 +17,10 @@ import { DailyView, WeeklyView, MonthlyView, type Agendamento } from "@/componen
 import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
 import { toast } from "@/hooks/use-toast";
 import { usePersistedFilter } from "@/hooks/usePersistedFilter";
+import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+
+const VacancyCalendar = lazy(() => import("./VacancyCalendar"));
+const ListaEspera = lazy(() => import("./ListaEspera"));
 
 type ViewMode = "diario" | "semanal" | "mensal";
 
@@ -131,6 +135,10 @@ const Agenda = () => {
     return format(currentDate, "MMMM yyyy", { locale: ptBR });
   };
 
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "agenda";
+  const [mainTab, setMainTab] = useState(initialTab);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -153,6 +161,37 @@ const Agenda = () => {
         )}
       </div>
 
+      {/* Main Tabs: Agenda / Vagas / Lista de Espera */}
+      {isStaff && (
+        <Tabs value={mainTab} onValueChange={setMainTab}>
+          <TabsList>
+            <TabsTrigger value="agenda" className="gap-1.5">
+              <ChevronLeft className="h-3.5 w-3.5 hidden" />
+              Agenda
+            </TabsTrigger>
+            <TabsTrigger value="vagas" className="gap-1.5">
+              <CalendarCheck className="h-3.5 w-3.5" /> Vagas
+            </TabsTrigger>
+            <TabsTrigger value="lista-espera" className="gap-1.5">
+              <ListChecks className="h-3.5 w-3.5" /> Lista de Espera
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="vagas" className="mt-4">
+            <Suspense fallback={<LazyLoadFallback />}>
+              <VacancyCalendar />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="lista-espera" className="mt-4">
+            <Suspense fallback={<LazyLoadFallback />}>
+              <ListaEspera />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* Professional Filter + Navigation + View Toggle (only visible on agenda tab) */}
+      {(mainTab === "agenda" || !isStaff) && <>
       {/* Professional Filter + Navigation + View Toggle */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -254,6 +293,7 @@ const Agenda = () => {
       <AgendamentoForm open={formOpen} onOpenChange={setFormOpen} onSuccess={refetchAgendamentos} defaultDate={selectedDate} />
       <RescheduleDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} agendamento={rescheduleAg} onSuccess={refetchAgendamentos} />
       <AppointmentDetailDialog open={detailOpen} onOpenChange={setDetailOpen} agendamento={detailAg} onCancel={handleCancelAppointment} onCheckin={handleCheckin} onReschedule={handleReschedule} isPatient={isPatient} />
+      </>}
     </div>
   );
 };
