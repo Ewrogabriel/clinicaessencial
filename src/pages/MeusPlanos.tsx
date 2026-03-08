@@ -215,6 +215,23 @@ const MeusPlanos = () => {
   const planoAtivo = planos.find((p: any) => p.status === "ativo");
   const matriculaAtiva = matriculas.find((m: any) => m.status === "ativa");
 
+  // Fetch scheduled sessions for active plan to show correct available credits
+  const { data: sessoesAtivas = [] } = useQuery({
+    queryKey: ["sessoes-ativas-plano", planoAtivo?.id],
+    queryFn: async () => {
+      if (!planoAtivo?.id || !patientId) return [];
+      const { data } = await supabase
+        .from("agendamentos")
+        .select("id, status")
+        .eq("paciente_id", patientId)
+        .in("status", ["agendado", "confirmado", "pendente"] as any[])
+        .ilike("observacoes", `%plano:${planoAtivo.id}%`);
+      return data || [];
+    },
+    enabled: !!planoAtivo?.id && !!patientId,
+  });
+  const creditosReais = planoAtivo ? planoAtivo.total_sessoes - planoAtivo.sessoes_utilizadas - sessoesAtivas.length : 0;
+
 
 
   const statusPlano: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
