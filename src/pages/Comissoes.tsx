@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users } from "lucide-react";
+import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 
