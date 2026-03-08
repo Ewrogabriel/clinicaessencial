@@ -36,7 +36,7 @@ const Contratos = () => {
     queryKey: ["pacientes-contrato"],
     queryFn: async () => {
       if (isPatient && patientId) {
-        const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("id", patientId) as any;
+        const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("id", patientId);
         return data ?? [];
       }
       const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("status", "ativo").order("nome");
