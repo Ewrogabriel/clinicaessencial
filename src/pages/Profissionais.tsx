@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { maskPhone, maskCPF, maskRG, maskCEP } from "@/lib/masks";
+import { maskPhone, maskCPF, maskRG, maskCEP, isValidCPF, unmask } from "@/lib/masks";
 import { ALL_RESOURCES, DEFAULT_PERMISSIONS } from "@/lib/resources";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 
