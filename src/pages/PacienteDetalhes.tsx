@@ -24,6 +24,8 @@ import { EvolutionForm } from "@/components/clinical/EvolutionForm";
 import { EvaluationForm } from "@/components/clinical/EvaluationForm";
 import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
+import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
+import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
