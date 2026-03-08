@@ -344,7 +344,7 @@ const Dashboard = () => {
 
   const updateProfessional = useMutation({
     mutationFn: async ({ id, profissional_id }: { id: string; profissional_id: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ profissional_id }).eq("id", id);
+      const { error } = await supabase.from("agendamentos").update({ profissional_id }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
