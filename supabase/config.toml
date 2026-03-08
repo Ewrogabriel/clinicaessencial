@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.check-nfe-status]
 verify_jwt = false
+
+[functions.generate-clinic-report]
+verify_jwt = false

@@ -37,6 +37,7 @@ import { toast } from "@/hooks/use-toast";
 import { UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { ClinicReportButton } from "@/components/reports/ClinicReportButton";
 
 const tipoLabels: Record<string, string> = {
   fisioterapia: "Fisioterapia",
@@ -395,7 +396,8 @@ const Dashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {(isAdmin || isGestor) && <ClinicReportButton />}
           <span className="inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">
             <Clock className="h-4 w-4 text-primary" />
             {format(currentTime, "HH:mm:ss")}
