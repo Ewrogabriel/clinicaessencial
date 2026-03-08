@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import Despesas from "./Despesas";
-import Comissoes from "./Comissoes";
+import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pago: { label: "Pago", variant: "default" },
@@ -193,7 +193,7 @@ const Financeiro = () => {
           <TabsList className="grid w-full grid-cols-4 lg:w-[560px]">
             <TabsTrigger value="fluxo">Pagamentos</TabsTrigger>
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
-            <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+            <TabsTrigger value="comissoes">Extrato Comissões</TabsTrigger>
             <TabsTrigger value="dre">DRE Simples</TabsTrigger>
           </TabsList>
         )}
@@ -319,7 +319,7 @@ const Financeiro = () => {
         </TabsContent>
 
         <TabsContent value="comissoes" className="space-y-4">
-          <Comissoes />
+          <CommissionExtract />
         </TabsContent>
       </Tabs>
 
