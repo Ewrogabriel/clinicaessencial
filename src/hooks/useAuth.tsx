@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("user_id", userId)
       .eq("enabled", true);
     setPermissions(
-      data?.map((p: any) => ({ resource: p.resource, access_level: p.access_level || "edit" })) ?? []
+      data?.map((p: { resource: string; access_level: string }) => ({ resource: p.resource, access_level: (p.access_level || "edit") as "view" | "edit" })) ?? []
     );
   };
 
