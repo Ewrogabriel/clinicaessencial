@@ -507,9 +507,12 @@ const Matriculas = () => {
 
       {/* Main tabs */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
-        <TabsList className="grid grid-cols-2 sm:grid-cols-3 sm:w-[550px]">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 sm:w-[650px]">
           <TabsTrigger value="matriculas" className="gap-2">
             <User className="h-4 w-4" /> Matrículas
+          </TabsTrigger>
+          <TabsTrigger value="planos" className="gap-2">
+            <BarChart2 className="h-4 w-4" /> Planos de Sessões
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-2">
             <BarChart2 className="h-4 w-4" /> Relatórios
