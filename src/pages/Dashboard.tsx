@@ -88,9 +88,9 @@ const Dashboard = () => {
   const { data: financeData } = useQuery({
     queryKey: ["dashboard-finance", inicioMes, activeClinicId],
     queryFn: async () => {
-      let pQ = (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
-      let dQ = (supabase.from("expenses") as any).select("valor, status");
-      let cQ = (supabase.from("commissions") as any).select("valor");
+      let pQ = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
+      let dQ = supabase.from("expenses").select("valor, status");
+      let cQ = supabase.from("commissions").select("valor");
       if (activeClinicId) {
         pQ = pQ.eq("clinic_id", activeClinicId);
         dQ = dQ.eq("clinic_id", activeClinicId);
@@ -100,9 +100,9 @@ const Dashboard = () => {
       const { data: despesas } = await dQ;
       const { data: comissoes } = await cQ;
 
-      const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
-      const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc: number, d: any) => acc + Number(d.valor), 0) || 0;
-      const repasses = (comissoes || [])?.reduce((acc: number, c: any) => acc + Number(c.valor), 0) || 0;
+      const receita = (pagamentos || []).filter((p) => p.status === 'pago').reduce((acc, p) => acc + Number(p.valor), 0);
+      const custos = (despesas || []).filter((d) => d.status === 'pago').reduce((acc, d) => acc + Number(d.valor), 0);
+      const repasses = (comissoes || []).reduce((acc, c) => acc + Number(c.valor), 0);
 
       return { receita, custos, repasses, lucro: receita - custos - repasses };
     },
