@@ -195,9 +195,9 @@ const Convenios = () => {
           ) : convenios.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Globe className="h-12 w-12 mb-4 opacity-40" />
-              <p className="text-lg font-medium">Nenhum convênio cadastrado</p>
+              <p className="text-lg font-medium">Nenhum parceiro cadastrado</p>
               <Button className="mt-4" onClick={() => { resetForm(); setFormOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" /> Cadastrar primeiro
+                <Plus className="h-4 w-4 mr-2" /> Cadastrar primeiro parceiro
               </Button>
             </div>
           ) : (
