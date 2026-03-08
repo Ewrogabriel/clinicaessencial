@@ -37,7 +37,7 @@ const ListaEspera = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Lista de Espera & Interesses</h1>
