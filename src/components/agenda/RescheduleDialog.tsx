@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Clock, CheckCircle2, AlertTriangle, Lightbulb, RefreshCw } from "lucide-react";
+import { CalendarIcon, Clock, CheckCircle2, AlertTriangle, Lightbulb, RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
+import { suggestAvailableSlots, type SuggestedSlot } from "@/lib/suggestSlots";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [suggestedSlots, setSuggestedSlots] = useState<SuggestedSlot[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Reseta campos quando o modal abre
   useEffect(() => {
@@ -63,9 +66,19 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       setSelectedProfId(agendamento.profissional_id || "");
       setMotivo("");
       setAvailabilityResult(null);
+      setSuggestedSlots([]);
       fetchProfissionais();
     }
   }, [open, agendamento]);
+
+  // Load suggestions when professional changes
+  useEffect(() => {
+    if (!selectedProfId || !open) return;
+    setLoadingSuggestions(true);
+    suggestAvailableSlots(selectedProfId, 14, agendamento?.duracao_minutos || 50)
+      .then(setSuggestedSlots)
+      .finally(() => setLoadingSuggestions(false));
+  }, [selectedProfId, open]);
 
   const fetchProfissionais = async () => {
     // First get professional user_ids from user_roles
@@ -320,6 +333,33 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
                 <p className="font-semibold">{availabilityResult.isWithinSchedule && !availabilityResult.isOverCapacity ? "Horário Disponível" : "Horário Indisponível"}</p>
                 <p className="text-xs opacity-90">{availabilityResult.message}</p>
               </div>
+            </div>
+          )}
+
+          {/* Suggested Slots */}
+          {suggestedSlots.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3 w-3" /> Horários Sugeridos
+              </Label>
+              <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
+                {suggestedSlots.slice(0, 12).map((slot, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="text-[11px] px-2 py-1 rounded-md border bg-card hover:bg-primary/10 hover:border-primary transition-colors"
+                    onClick={() => {
+                      setDate(slot.date);
+                      setHorario(slot.horario);
+                    }}
+                  >
+                    <span className="font-medium">{slot.dayLabel}</span>
+                    <span className="text-muted-foreground ml-1">{slot.horario}</span>
+                    <span className="text-[9px] text-muted-foreground ml-1">({slot.vagas}v)</span>
+                  </button>
+                ))}
+              </div>
+              {loadingSuggestions && <span className="text-[10px] text-muted-foreground">Buscando horários...</span>}
             </div>
           )}
 

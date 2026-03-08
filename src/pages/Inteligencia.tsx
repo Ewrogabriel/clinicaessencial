@@ -12,6 +12,8 @@ import { Brain, TrendingUp, Users, Target, AlertTriangle, Sparkles, Loader2 } fr
 import { Badge } from "@/components/ui/badge";
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChurnPrediction } from "@/components/intelligence/ChurnPrediction";
+import { OccupancyReport } from "@/components/intelligence/OccupancyReport";
 
 const Inteligencia = () => {
   const { clinicId } = useAuth();
@@ -226,6 +228,12 @@ Receita mensal: ${historicalRevenue.map(h => `${h.name}: R$ ${h.valor.toFixed(2)
           </CardContent>
         </Card>
       </div>
+
+      {/* Churn Prediction - Detailed */}
+      <ChurnPrediction />
+
+      {/* Occupancy Report */}
+      <OccupancyReport />
 
       {/* Produtividade por Profissional */}
       <Card>
