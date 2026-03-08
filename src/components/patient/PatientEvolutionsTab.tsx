@@ -12,20 +12,20 @@ export function PatientEvolutionsTab({ pacienteId }: { pacienteId: string }) {
   const { data: evolutions = [], isLoading } = useQuery({
     queryKey: ["patient-evolutions-portal", pacienteId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("evolutions") as any)
+      const { data, error } = await supabase.from("evolutions")
         .select("id, descricao, conduta, data_evolucao, profissional_id")
         .eq("paciente_id", pacienteId)
         .order("data_evolucao", { ascending: false })
         .limit(50);
       if (error) throw error;
 
-      const profIds = [...new Set((data || []).map((e: any) => e.profissional_id))] as string[];
+      const profIds = [...new Set((data || []).map((e) => e.profissional_id))] as string[];
       let profMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
-        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+        (profs || []).forEach((p) => { profMap[p.user_id] = p.nome; });
       }
-      return (data || []).map((e: any) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "Profissional" }));
+      return (data || []).map((e) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "Profissional" }));
     },
     enabled: !!pacienteId,
   });
