@@ -91,12 +91,12 @@ serve(async (req) => {
       endereco: endereco || null, numero: numero || null,
       bairro: bairro || null, cidade: cidade || null,
       estado: estado || null, cep: cep || null,
-    }).eq("user_id", newUserId);
+    }, { onConflict: "user_id" });
 
-    await adminClient.from("user_roles").insert({
+    await adminClient.from("user_roles").upsert({
       user_id: newUserId,
       role: targetRole,
-    });
+    }, { onConflict: "user_id,role" });
 
     // permissions is now an array of { resource, access_level }
     if (permissions && Array.isArray(permissions) && permissions.length > 0) {
