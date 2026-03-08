@@ -302,7 +302,7 @@ const MeusPlanos = () => {
                   </p>
                 </div>
               </div>
-              {(planoAtivo.total_sessoes - planoAtivo.sessoes_utilizadas) > 0 && (
+              {creditosReais > 0 && (
                 <Button className="w-full gap-2" onClick={() => openAgendar(planoAtivo)}>
                   <CalendarPlus className="h-4 w-4" />
                   Agendar Consulta
