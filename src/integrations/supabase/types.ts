@@ -622,6 +622,59 @@ export type Database = {
         }
         Relationships: []
       }
+      lista_espera: {
+        Row: {
+          created_at: string
+          dia_semana: number[] | null
+          hora_preferida_fim: string | null
+          hora_preferida_inicio: string | null
+          id: string
+          notificado_em: string | null
+          observacoes: string | null
+          paciente_id: string
+          profissional_id: string | null
+          status: string
+          tipo_atendimento: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dia_semana?: number[] | null
+          hora_preferida_fim?: string | null
+          hora_preferida_inicio?: string | null
+          id?: string
+          notificado_em?: string | null
+          observacoes?: string | null
+          paciente_id: string
+          profissional_id?: string | null
+          status?: string
+          tipo_atendimento?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dia_semana?: number[] | null
+          hora_preferida_fim?: string | null
+          hora_preferida_inicio?: string | null
+          id?: string
+          notificado_em?: string | null
+          observacoes?: string | null
+          paciente_id?: string
+          profissional_id?: string | null
+          status?: string
+          tipo_atendimento?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lista_espera_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matriculas: {
         Row: {
           auto_renew: boolean

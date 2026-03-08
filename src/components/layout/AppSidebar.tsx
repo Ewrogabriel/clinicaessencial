@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, Calendar, ClipboardList, DollarSign, BarChart3,
   LogOut, Activity, Layers, UserCog, Receipt, Brain, Send, Megaphone,
   Clock, FileText, Tag, CreditCard, User, Calculator, MessageSquare,
-  Cake, Lightbulb, FileCheck, Wallet,
+  Cake, Lightbulb, FileCheck, Wallet, ListChecks,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -56,6 +56,7 @@ const menuAtendimento = [
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
   { title: "Matrículas", url: "/matriculas", icon: Receipt },
+  { title: "Lista de Espera", url: "/lista-espera", icon: ListChecks },
 ];
 
 const menuEquipeFinanceiro = [

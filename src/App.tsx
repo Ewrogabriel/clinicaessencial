@@ -44,14 +44,17 @@ import MensagensInternas from "./pages/MensagensInternas";
 import PacienteAccess from "./pages/PacienteAccess";
 import SolicitacoesAlteracao from "./pages/SolicitacoesAlteracao";
 import FormasPagamento from "./pages/FormasPagamento";
+import ProfessionalDashboard from "./pages/ProfessionalDashboard";
+import ListaEspera from "./pages/ListaEspera";
 // Despesas is now a tab inside Financeiro
 
 const queryClient = new QueryClient();
 
 const DashboardToggle = () => {
   const { isPatient, isAdmin, isGestor, isProfissional, isSecretario } = useAuth();
-  const isStaff = isAdmin || isGestor || isProfissional || isSecretario;
-  return isStaff ? <Dashboard /> : <PatientDashboard />;
+  if (isAdmin || isGestor || isSecretario) return <Dashboard />;
+  if (isProfissional) return <ProfessionalDashboard />;
+  return <PatientDashboard />;
 };
 
 const App = () => (
@@ -107,6 +110,7 @@ const App = () => (
               <Route path="/mensagens" element={<MensagensInternas />} />
               <Route path="/solicitacoes-alteracao" element={<SolicitacoesAlteracao />} />
               <Route path="/formas-pagamento" element={<ClinicSettings />} />
+              <Route path="/lista-espera" element={<ListaEspera />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
