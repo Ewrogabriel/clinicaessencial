@@ -102,6 +102,7 @@ const Contratos = () => {
   const paciente = (pacientes as any[]).find((p: any) => p.id === selectedPaciente);
   const plano = (planos as any[]).find((p: any) => p.id === selectedPlano);
   const profissional = (profissionais as any[]).find((p: any) => p.id === selectedProfissional);
+  const matricula = (matriculas as any[]).find((m: any) => m.id === selectedMatricula);
 
   const getContractData = () => ({
     pacienteNome: paciente?.nome || "",
@@ -110,12 +111,12 @@ const Contratos = () => {
     planoNome: plano?.nome || "A definir",
     planoFrequencia: plano?.frequencia_semanal || 1,
     planoModalidade: plano?.modalidade || "grupo",
-    planoValor: plano?.valor || 0,
+    planoValor: matricula?.valor_mensal || plano?.valor || 0,
     desconto: desconto?.percentual_desconto || 0,
     dataContrato: format(new Date(), "dd/MM/yyyy"),
   });
 
-  const valorFinal = plano ? plano.valor * (1 - (desconto?.percentual_desconto || 0) / 100) : 0;
+  const valorFinal = (matricula?.valor_mensal || (plano ? plano.valor : 0)) * (1 - (desconto?.percentual_desconto || 0) / 100);
 
   const handleDownload = async () => {
     if (!paciente) { toast({ title: "Selecione um paciente", variant: "destructive" }); return; }
