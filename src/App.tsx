@@ -36,7 +36,6 @@ import AvisosAdmin from "./pages/AvisosAdmin";
 import DisponibilidadeProfissional from "./pages/DisponibilidadeProfissional";
 import MeuPerfil from "./pages/MeuPerfil";
 import Contratos from "./pages/Contratos";
-import PrecosPlanos from "./pages/PrecosPlanos";
 // Comissoes is now a tab inside Financeiro
 import PerfilProfissional from "./pages/PerfilProfissional";
 import PerfilProfissionalPublico from "./pages/PerfilProfissionalPublico";
@@ -100,7 +99,7 @@ const App = () => (
               <Route path="/avisos" element={<AvisosAdmin />} />
               <Route path="/disponibilidade" element={<Profissionais />} />
               <Route path="/contratos" element={<Contratos />} />
-              <Route path="/precos-planos" element={<PrecosPlanos />} />
+              
               <Route path="/comissoes" element={<Financeiro />} />
               <Route path="/perfil-profissional" element={<PerfilProfissional />} />
               <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
