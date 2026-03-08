@@ -45,8 +45,12 @@ export const PatientAgendaTab = ({
                         {format(new Date(item.data_horario), "HH:mm")}
                       </p>
                     </div>
-                    <Badge variant={item.status === 'confirmado' ? 'default' : 'secondary'} className="capitalize">
-                      {item.status}
+                    <Badge variant={
+                      item.status === 'confirmado' ? 'default' :
+                      item.status === 'pendente' ? 'outline' : 'secondary'
+                    } className={`capitalize ${item.status === 'pendente' ? 'border-amber-500 text-amber-600' : ''}`}>
+                      {item.status === 'pendente' ? '⏳ Pendente' : item.status}
+                    </Badge>
                     </Badge>
                   </div>
 

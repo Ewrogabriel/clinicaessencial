@@ -49,7 +49,7 @@ const PatientDashboard = () => {
       if (!patientId) return [];
       const { data, error } = await (supabase.from("agendamentos").select("*")
         .eq("paciente_id", patientId).gte("data_horario", new Date().toISOString())
-        .in("status", ["agendado", "confirmado"]).order("data_horario", { ascending: true }).limit(5) as any);
+        .in("status", ["pendente", "agendado", "confirmado"]).order("data_horario", { ascending: true }).limit(10) as any);
       if (error) throw error;
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
       let profMap: Record<string, { nome: string; telefone: string }> = {};
