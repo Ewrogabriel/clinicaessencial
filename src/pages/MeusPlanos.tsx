@@ -544,7 +544,7 @@ const MeusPlanos = () => {
               {/* Step 2: Calendar with availability (only after time selected) */}
               {selectedTime && (
                 <div>
-                  <Label className="mb-2 block">2. Selecione a data (vagas para {selectedTime})</Label>
+                  <Label className="mb-2 block">3. Selecione a data (vagas para {selectedTime})</Label>
                   <Calendar
                     mode="single"
                     locale={ptBR}
