@@ -209,10 +209,12 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-primary" />
-            Solicitar Remarcação
+            Solicitar {tipoLabel}
           </DialogTitle>
           <DialogDescription>
-            Escolha uma nova data e horário para sua sessão de {agendamento.tipo_atendimento}.
+            {isCancelado
+              ? "Escolha uma nova data e horário para remarcar sua sessão cancelada."
+              : `Escolha uma nova data e horário para reagendar sua sessão de ${agendamento.tipo_atendimento}.`}
           </DialogDescription>
         </DialogHeader>
 
