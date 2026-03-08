@@ -165,7 +165,7 @@ const Pacientes = () => {
             Gerencie os pacientes da clínica
           </p>
         </div>
-        <Button onClick={() => navigate("/pacientes/novo")} disabled={usePlanLimitCheck("pacientes").isAtLimit}>
+        <Button onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Paciente
         </Button>
