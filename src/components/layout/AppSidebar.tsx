@@ -60,7 +60,6 @@ const menuAtendimento = [
 
 const menuGestao = [
   { title: "Profissionais", url: "/profissionais", icon: UserCog },
-  { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
 ];
 
@@ -82,8 +81,7 @@ const menuConfig = [
   { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
   { title: "Produtos", url: "/produtos", icon: Tag },
   { title: "Contratos", url: "/contratos", icon: FileText },
-  { title: "Formas de Pagamento", url: "/formas-pagamento", icon: Wallet },
-  { title: "Dados da Clínica", url: "/clinica", icon: Activity },
+  { title: "Clínica & Pagamento", url: "/clinica", icon: Activity },
 ];
 
 /* ── Patient menu ── */
