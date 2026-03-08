@@ -244,7 +244,11 @@ const Profissionais = () => {
         },
       });
 
-      if (fnError) throw new Error(fnError.message || "Erro ao criar usuário");
+      if (fnError) {
+        // Try to extract the actual error message from the response context
+        const errorMsg = result?.error || fnError.message || "Erro ao criar usuário";
+        throw new Error(errorMsg);
+      }
       if (result?.error) throw new Error(result.error);
 
       toast({ title: "Usuário criado com sucesso!" });
