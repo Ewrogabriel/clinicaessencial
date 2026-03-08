@@ -37,7 +37,6 @@ const MeusPlanos = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
-  const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
 
   // Planos de sessões
   const { data: planos = [] } = useQuery({
