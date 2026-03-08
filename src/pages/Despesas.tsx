@@ -32,11 +32,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { useClinic } from "@/hooks/useClinic";
 
 const categorias = ["aluguel", "luz", "agua", "internet", "limpeza", "pessoal", "impostos", "insumos", "marketing", "outros"];
 
 const Despesas = () => {
-    const { clinicId } = useAuth();
+    const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
     const [busca, setBusca] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
