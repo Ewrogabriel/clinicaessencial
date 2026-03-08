@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload, CreditCard, Settings2 } from "lucide-react";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useClinicSettings, useUpdateClinicSettings } from "@/hooks/useClinicSettings";
 import { supabase } from "@/integrations/supabase/client";
