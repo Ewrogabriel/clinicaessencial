@@ -33,13 +33,13 @@ export function PatientEvolutionsTab({ pacienteId }: { pacienteId: string }) {
   const { data: evaluation } = useQuery({
     queryKey: ["patient-evaluation-portal", pacienteId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("evaluations") as any)
+      const { data, error } = await supabase.from("evaluations")
         .select("*")
         .eq("paciente_id", pacienteId)
         .order("data_avaliacao", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (error && (error as any).code !== "PGRST116") throw error;
+      if (error && error.code !== "PGRST116") throw error;
       return data;
     },
     enabled: !!pacienteId,
