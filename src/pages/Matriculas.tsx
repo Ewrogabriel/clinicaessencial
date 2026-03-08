@@ -298,6 +298,7 @@ const Matriculas = () => {
           desconto: descValue,
           criada_por: user.id,
           status: "ativa",
+          clinic_id: activeClinicId,
         })
         .select()
         .single();
