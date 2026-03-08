@@ -1256,10 +1256,13 @@ export type Database = {
           created_at: string
           created_by: string
           descricao: string | null
+          exige_justificativa: boolean
           id: string
           multa_percentual: number
           nome: string
           prazo_aviso_horas: number
+          prazo_reagendamento_dias: number
+          prazo_remarcacao_dias: number
           updated_at: string
         }
         Insert: {
@@ -1269,10 +1272,13 @@ export type Database = {
           created_at?: string
           created_by: string
           descricao?: string | null
+          exige_justificativa?: boolean
           id?: string
           multa_percentual?: number
           nome: string
           prazo_aviso_horas?: number
+          prazo_reagendamento_dias?: number
+          prazo_remarcacao_dias?: number
           updated_at?: string
         }
         Update: {
@@ -1282,10 +1288,13 @@ export type Database = {
           created_at?: string
           created_by?: string
           descricao?: string | null
+          exige_justificativa?: boolean
           id?: string
           multa_percentual?: number
           nome?: string
           prazo_aviso_horas?: number
+          prazo_reagendamento_dias?: number
+          prazo_remarcacao_dias?: number
           updated_at?: string
         }
         Relationships: []
