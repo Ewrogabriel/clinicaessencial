@@ -85,21 +85,6 @@ const MeusPlanos = () => {
     enabled: matriculas.length > 0,
   });
 
-  // Disponibilidade do profissional for scheduling
-  const { data: disponibilidade = [] } = useQuery({
-    queryKey: ["disp-prof-agendar", selectedPlano?.profissional_id],
-    queryFn: async () => {
-      if (!selectedPlano?.profissional_id) return [];
-      const { data } = await supabase
-        .from("disponibilidade_profissional")
-        .select("*")
-        .eq("profissional_id", selectedPlano.profissional_id)
-        .eq("ativo", true)
-        .order("dia_semana");
-      return data || [];
-    },
-    enabled: !!selectedPlano?.profissional_id,
-  });
 
   // Sessions for selected plan
   const { data: sessoesPlan = [] } = useQuery({
