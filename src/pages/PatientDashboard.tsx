@@ -241,12 +241,30 @@ const PatientDashboard = () => {
         .insert([{ paciente_id: patientId, produto_id: selectedProduto.id, quantidade: 1, observacao: observacao || null, status: "pendente" }])
         .select().single();
       if (reservaError) throw reservaError;
+
+      // Create aviso
       await (supabase.from("avisos" as any) as any).insert([{
         tipo: "reserva_produto",
         titulo: `Nova reserva de ${selectedProduto.nome}`,
         mensagem: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}${observacao ? ` - ${observacao}` : ""}`,
         reserva_id: reserva?.id, lido: false
       }]);
+
+      // Create notification for admins
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+      if (adminIds.length > 0) {
+        const notifications = adminIds.map((adminId: string) => ({
+          user_id: adminId,
+          tipo: "reserva_produto",
+          titulo: "Nova reserva de produto",
+          resumo: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}`,
+          conteudo: `Reserva de ${selectedProduto.nome} - R$ ${Number(selectedProduto.preco).toFixed(2)}${observacao ? ` | Obs: ${observacao}` : ""}`,
+          link: "/produtos",
+        }));
+        await supabase.from("notificacoes").insert(notifications);
+      }
+
       return reserva;
     },
     onSuccess: () => {

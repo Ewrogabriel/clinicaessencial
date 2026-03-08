@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RescheduleDialog } from "./RescheduleDialog";
+import { MatriculaPayments } from "@/components/matriculas/MatriculaPayments";
 
 type Session = {
     id: string;
