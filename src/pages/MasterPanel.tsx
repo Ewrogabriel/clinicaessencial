@@ -667,7 +667,7 @@ export default function MasterPanel() {
       </div>
 
       <Tabs defaultValue="dashboard">
-        <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full max-w-2xl">
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="clinics">Clínicas</TabsTrigger>
           <TabsTrigger value="plans">Planos</TabsTrigger>
