@@ -189,6 +189,10 @@ const ClinicSettings = () => {
           <FormasPagamento />
         </TabsContent>
 
+        <TabsContent value="nfe">
+          <NfeConfigTab />
+        </TabsContent>
+
         <TabsContent value="logs">
           <AuditLogViewer />
         </TabsContent>
