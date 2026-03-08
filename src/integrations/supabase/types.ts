@@ -1248,6 +1248,48 @@ export type Database = {
           },
         ]
       }
+      politicas_cancelamento: {
+        Row: {
+          aplica_cancelamento: boolean
+          aplica_falta: boolean
+          ativo: boolean
+          created_at: string
+          created_by: string
+          descricao: string | null
+          id: string
+          multa_percentual: number
+          nome: string
+          prazo_aviso_horas: number
+          updated_at: string
+        }
+        Insert: {
+          aplica_cancelamento?: boolean
+          aplica_falta?: boolean
+          ativo?: boolean
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          id?: string
+          multa_percentual?: number
+          nome: string
+          prazo_aviso_horas?: number
+          updated_at?: string
+        }
+        Update: {
+          aplica_cancelamento?: boolean
+          aplica_falta?: boolean
+          ativo?: boolean
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          id?: string
+          multa_percentual?: number
+          nome?: string
+          prazo_aviso_horas?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       precos_planos: {
         Row: {
           ativo: boolean
