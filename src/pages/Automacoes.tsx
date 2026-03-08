@@ -105,6 +105,7 @@ const PatientDispatchRow = ({
 
 const Automacoes = () => {
   const _unused = useAuth(); // keep auth context
+  const { activeClinicId } = useClinic();
 
   const [searchPatient, setSearchPatient] = useState("");
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -114,8 +115,19 @@ const Automacoes = () => {
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
 
   const { data: patients = [] } = useQuery({
-    queryKey: ["automation-patients"],
+    queryKey: ["automation-patients", activeClinicId],
     queryFn: async () => {
+      if (activeClinicId) {
+        const { data: cp } = await supabase.from("clinic_pacientes")
+          .select("paciente_id").eq("clinic_id", activeClinicId);
+        const ids = (cp || []).map(c => c.paciente_id);
+        if (!ids.length) return [];
+        const { data, error } = await supabase.from("pacientes")
+          .select("id, nome, telefone, status")
+          .in("id", ids).eq("status", "ativo").order("nome");
+        if (error) throw error;
+        return data;
+      }
       const { data, error } = await supabase.from("pacientes")
         .select("id, nome, telefone, status")
         .eq("status", "ativo")
@@ -127,14 +139,16 @@ const Automacoes = () => {
 
   // Fetch next upcoming appointment per patient
   const { data: upcomingAppointments = [] } = useQuery({
-    queryKey: ["automation-upcoming-appointments"],
+    queryKey: ["automation-upcoming-appointments", activeClinicId],
     queryFn: async () => {
       const now = new Date().toISOString();
-      const { data, error } = await supabase.from("agendamentos")
+      let q = supabase.from("agendamentos")
         .select("id, paciente_id, data_horario, profissional_id")
         .gte("data_horario", now)
         .in("status", ["agendado", "confirmado"])
         .order("data_horario", { ascending: true });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
