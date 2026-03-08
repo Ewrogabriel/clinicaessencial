@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -106,6 +106,16 @@ const Matriculas = () => {
 
   const [mainTab, setMainTab] = useState("matriculas");
   const [formOpen, setFormOpen] = useState(false);
+
+  // Auto-open form when navigated with ?nova=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nova") === "1") {
+      setFormOpen(true);
+      // Clean up the URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [formData, setFormData] = useState<EnrollmentFormData>(getEmptyForm());
   const [editData, setEditData] = useState<EnrollmentEditData>(getEmptyEditForm());
