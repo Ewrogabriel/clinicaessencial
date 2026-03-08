@@ -218,21 +218,73 @@ const Financeiro = () => {
         )}
 
         <TabsContent value="fluxo" className="space-y-4">
+          {/* Filters */}
+          {!isPatient && (
+            <div className="flex flex-wrap gap-3 items-center">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={filterMes} onValueChange={setFilterMes}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Todos os meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os meses</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const d = subMonths(new Date(), i);
+                    return (
+                      <SelectItem key={i} value={format(d, "yyyy-MM")}>
+                        {format(d, "MMMM yyyy", { locale: ptBR })}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <Select value={filterForma} onValueChange={setFilterForma}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Todas as formas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as formas</SelectItem>
+                  {Object.entries(formaLabel).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(filterMes || filterForma !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(""); setFilterForma("all"); }}>
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
+          )}
+
           <Card>
             <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
-              ) : (pagamentos || []).length === 0 ? (
-                <div className="flex flex-col items-center py-16 text-muted-foreground">
-                  <DollarSign className="h-12 w-12 mb-4 opacity-40" />
-                  <p className="text-lg font-medium">Nenhum pagamento registrado</p>
-                  {!isPatient && (
-                    <Button className="mt-4" onClick={() => setFormOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
-                    </Button>
-                  )}
-                </div>
-              ) : (
+              {(() => {
+                let filtered = pagamentos || [];
+                if (filterMes && filterMes !== "all") {
+                  filtered = filtered.filter((p) => p.data_pagamento?.startsWith(filterMes));
+                }
+                if (filterForma && filterForma !== "all") {
+                  filtered = filtered.filter((p) => p.forma_pagamento === filterForma);
+                }
+                
+                if (isLoading) {
+                  return <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>;
+                }
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center py-16 text-muted-foreground">
+                      <DollarSign className="h-12 w-12 mb-4 opacity-40" />
+                      <p className="text-lg font-medium">Nenhum pagamento encontrado</p>
+                      {!isPatient && !filterMes && filterForma === "all" && (
+                        <Button className="mt-4" onClick={() => setFormOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
+                        </Button>
+                      )}
+                    </div>
+                  );
+                }
+                return (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -247,7 +299,7 @@ const Financeiro = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pagamentos.map((pagamento) => (
+                    {filtered.map((pagamento) => (
                       <TableRow key={pagamento.id}>
                         {!isPatient && <TableCell className="font-medium">{pagamento.pacientes?.nome ?? "—"}</TableCell>}
                         <TableCell>{pagamento.descricao || "—"}</TableCell>
