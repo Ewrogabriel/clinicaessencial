@@ -314,6 +314,7 @@ const DisponibilidadeProfissional = () => {
       profissional_id: profId, data: extraData,
       hora_inicio: extraHoraInicio, hora_fim: extraHoraFim,
       max_pacientes: extraMaxPacientes, motivo: extraMotivo || null,
+      clinic_id: activeClinicId,
     });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else {
