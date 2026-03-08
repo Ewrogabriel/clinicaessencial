@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users, Activity, AlertTriangle, ArrowRight, Trophy,
   CalendarCheck, Clock, TrendingUp, Lightbulb, PartyPopper,
-  CheckCircle2, XCircle, RefreshCw, MessageCircle
+  CheckCircle2, XCircle, RefreshCw, MessageCircle, UserPlus
 } from "lucide-react";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
