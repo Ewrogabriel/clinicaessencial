@@ -185,10 +185,21 @@ export function DailyView({
   onReschedule,
   onAppointmentClick,
   profColors = {},
+  onDrop,
 }: ViewProps) {
   const dayAgendamentos = agendamentos.filter((ag) =>
     isSameDay(new Date(ag.data_horario), currentDate)
   );
+
+  const handleDrop = (e: React.DragEvent, hour: number) => {
+    e.preventDefault();
+    const agId = e.dataTransfer.getData("agendamento-id");
+    if (agId && onDrop) {
+      const d = new Date(currentDate);
+      d.setHours(hour, 0, 0, 0);
+      onDrop(agId, d);
+    }
+  };
 
   return (
     <div className="border rounded-lg overflow-hidden bg-card">
