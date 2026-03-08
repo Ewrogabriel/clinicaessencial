@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -28,7 +28,7 @@ const SolicitacoesAlteracao = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState<"dados" | "reagendar" | "remarcar" | "reserva">("dados");
+  const [selectedType, setSelectedType] = useState<"dados" | "reagendar" | "remarcar" | "reserva" | "agendamento">("dados");
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
 
   // ── Solicitações de Alteração de Dados ──
@@ -87,6 +87,39 @@ const SolicitacoesAlteracao = () => {
           tipo_solicitacao: isCancelado ? "remarcar" : "reagendar",
         };
       });
+    },
+  });
+
+  // ── Solicitações de Agendamento (pendente) ──
+  const { data: agendamentosPendentes = [], isLoading: loadingAgend } = useQuery({
+    queryKey: ["agendamentos-pendentes-admin"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("agendamentos") as any)
+        .select("id, data_horario, tipo_atendimento, duracao_minutos, status, paciente_id, profissional_id, observacoes, created_at")
+        .eq("status", "pendente")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
+
+      const pacienteIds = [...new Set(data.map((a: any) => a.paciente_id))] as string[];
+      const profIds = [...new Set(data.map((a: any) => a.profissional_id))] as string[];
+
+      const { data: pacientes } = await supabase.from("pacientes").select("id, nome, user_id").in("id", pacienteIds);
+      const pacMap: Record<string, any> = {};
+      (pacientes || []).forEach((p: any) => { pacMap[p.id] = p; });
+
+      let profMap: Record<string, string> = {};
+      if (profIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
+        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+      }
+
+      return data.map((a: any) => ({
+        ...a,
+        paciente_nome: pacMap[a.paciente_id]?.nome || "—",
+        paciente_user_id: pacMap[a.paciente_id]?.user_id || null,
+        profissional_nome: profMap[a.profissional_id] || "—",
+      }));
     },
   });
 
@@ -268,14 +301,65 @@ const SolicitacoesAlteracao = () => {
     onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
   });
 
+  // ── Agendamento Mutations ──
+  const aprovarAgendamentoMutation = useMutation({
+    mutationFn: async (agend: any) => {
+      const { error } = await (supabase.from("agendamentos") as any)
+        .update({ status: "agendado" })
+        .eq("id", agend.id);
+      if (error) throw error;
+
+      if (agend.paciente_user_id) {
+        await supabase.from("notificacoes").insert({
+          user_id: agend.paciente_user_id,
+          tipo: "agendamento_aprovado",
+          titulo: "Agendamento aprovado! ✅",
+          resumo: `Sua sessão em ${format(new Date(agend.data_horario), "dd/MM 'às' HH:mm")} foi aprovada.`,
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Agendamento aprovado!" });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos-pendentes-admin"] });
+      setDetailOpen(false);
+    },
+    onError: (err: any) => toast({ title: "Erro ao aprovar", description: err.message, variant: "destructive" }),
+  });
+
+  const rejeitarAgendamentoMutation = useMutation({
+    mutationFn: async ({ agend, motivo }: { agend: any; motivo: string }) => {
+      const { error } = await (supabase.from("agendamentos") as any)
+        .update({ status: "cancelado" })
+        .eq("id", agend.id);
+      if (error) throw error;
+
+      if (agend.paciente_user_id) {
+        await supabase.from("notificacoes").insert({
+          user_id: agend.paciente_user_id,
+          tipo: "agendamento_rejeitado",
+          titulo: "Agendamento recusado",
+          resumo: motivo || "Sua solicitação de agendamento foi recusada.",
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Agendamento rejeitado." });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos-pendentes-admin"] });
+      setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
+    },
+    onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
+  });
+
   // ── Helpers ──
   const statusBadge = (status: string) => {
     const map: Record<string, { label: string; variant: "default" | "destructive" | "outline" | "secondary" }> = {
       pendente: { label: "Pendente", variant: "secondary" },
       aprovado: { label: "Aprovado", variant: "default" },
       aprovada: { label: "Aprovada", variant: "default" },
+      agendado: { label: "Aprovado", variant: "default" },
       rejeitado: { label: "Rejeitado", variant: "destructive" },
       rejeitada: { label: "Rejeitada", variant: "destructive" },
+      cancelado: { label: "Rejeitado", variant: "destructive" },
     };
     const s = map[status] || { label: status, variant: "outline" as const };
     return <Badge variant={s.variant}>{s.label}</Badge>;
@@ -284,6 +368,7 @@ const SolicitacoesAlteracao = () => {
   const tipoBadge = (tipo: string) => {
     if (tipo === "remarcar") return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Remarcar</Badge>;
     if (tipo === "reserva") return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Reserva</Badge>;
+    if (tipo === "agendamento") return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Agendamento</Badge>;
     return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Reagendar</Badge>;
   };
 
@@ -307,9 +392,10 @@ const SolicitacoesAlteracao = () => {
   const pendentesRemarcar = remarcacoes.filter((s: any) => s.status === "pendente");
   const pendentesReservas = reservas.filter((r: any) => r.status === "pendente");
   const historicoReservas = reservas.filter((r: any) => r.status !== "pendente");
-  const totalPendentes = pendentesDados.length + pendentesReagendar.length + pendentesRemarcar.length + pendentesReservas.length;
+  const pendentesAgendamentos = agendamentosPendentes;
+  const totalPendentes = pendentesDados.length + pendentesReagendar.length + pendentesRemarcar.length + pendentesReservas.length + pendentesAgendamentos.length;
 
-  const isLoading = loadingDados || loadingRemarc || loadingReservas;
+  const isLoading = loadingDados || loadingRemarc || loadingReservas || loadingAgend;
 
   // ── Render Remarcação/Reagendamento table ──
   const renderRemarcTable = (items: any[], tipo: "reagendar" | "remarcar") => {
@@ -417,7 +503,7 @@ const SolicitacoesAlteracao = () => {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Solicitações</h1>
         <p className="text-muted-foreground">
-          Gerencie solicitações de alteração de dados, reagendamentos, remarcações e reservas.
+          Gerencie solicitações de agendamento, alteração de dados, reagendamentos, remarcações e reservas.
           {totalPendentes > 0 && (
             <Badge variant="destructive" className="ml-2">{totalPendentes} pendente(s)</Badge>
           )}
@@ -425,9 +511,12 @@ const SolicitacoesAlteracao = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="todas" className="gap-1 text-xs">
             Todas {totalPendentes > 0 && <Badge variant="secondary" className="ml-1 scale-75">{totalPendentes}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="agendamentos" className="gap-1 text-xs">
+            <Clock className="h-3.5 w-3.5" /> Agend. {pendentesAgendamentos.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesAgendamentos.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="dados" className="gap-1 text-xs">
             <FileEdit className="h-3.5 w-3.5" /> Dados {pendentesDados.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesDados.length}</Badge>}
@@ -468,6 +557,29 @@ const SolicitacoesAlteracao = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {pendentesAgendamentos.map((a: any) => (
+                      <TableRow key={`agend-${a.id}`}>
+                        <TableCell>{tipoBadge("agendamento")}</TableCell>
+                        <TableCell className="font-medium">{a.paciente_nome}</TableCell>
+                        <TableCell>{format(new Date(a.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-sm">
+                          {format(new Date(a.data_horario), "dd/MM HH:mm")} • {a.tipo_atendimento} • {a.profissional_nome}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" variant="outline" onClick={() => { setSelected(a); setSelectedType("agendamento"); setDetailOpen(true); }}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" onClick={() => aprovarAgendamentoMutation.mutate(a)} disabled={aprovarAgendamentoMutation.isPending}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setSelected(a); setSelectedType("agendamento"); setRejectOpen(true); }}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                     {pendentesDados.map((s: any) => {
                       const changes = getChangedFields(s.dados_atuais, s.dados_novos);
                       return (
@@ -543,6 +655,64 @@ const SolicitacoesAlteracao = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Tab Agendamentos */}
+        <TabsContent value="agendamentos" className="mt-4 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" /> Agendamentos Pendentes ({pendentesAgendamentos.length})
+              </CardTitle>
+              <CardDescription>Sessões solicitadas por pacientes aguardando aprovação</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loadingAgend ? (
+                <div className="p-8 text-center text-muted-foreground">Carregando...</div>
+              ) : pendentesAgendamentos.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">Nenhum agendamento pendente.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Solicitado em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendentesAgendamentos.map((a: any) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-medium">{a.paciente_nome}</TableCell>
+                        <TableCell>{a.profissional_nome}</TableCell>
+                        <TableCell className="font-medium text-primary">
+                          {format(new Date(a.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="capitalize">{a.tipo_atendimento}</TableCell>
+                        <TableCell>{format(new Date(a.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" variant="outline" onClick={() => { setSelected(a); setSelectedType("agendamento"); setDetailOpen(true); }}>
+                              <Eye className="h-4 w-4 mr-1" /> Ver
+                            </Button>
+                            <Button size="sm" onClick={() => aprovarAgendamentoMutation.mutate(a)} disabled={aprovarAgendamentoMutation.isPending}>
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setSelected(a); setSelectedType("agendamento"); setRejectOpen(true); }}>
+                              <XCircle className="h-4 w-4 mr-1" /> Rejeitar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Tab Dados */}
@@ -775,6 +945,37 @@ const SolicitacoesAlteracao = () => {
                     ))}
                   </div>
                 </>
+              ) : selectedType === "agendamento" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Data/Hora Solicitada</Label>
+                      <p className="text-sm font-semibold text-primary">
+                        {format(new Date(selected.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Tipo</Label>
+                      <p className="text-sm capitalize">{selected.tipo_atendimento}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Profissional</Label>
+                      <p className="text-sm">{selected.profissional_nome}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Duração</Label>
+                      <p className="text-sm">{selected.duracao_minutos} min</p>
+                    </div>
+                  </div>
+                  {selected.observacoes && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Observações</Label>
+                      <p className="text-sm">{selected.observacoes}</p>
+                    </div>
+                  )}
+                </>
               ) : selectedType === "reserva" ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -847,8 +1048,9 @@ const SolicitacoesAlteracao = () => {
                   <Button onClick={() => {
                     if (selectedType === "dados") aprovarDadosMutation.mutate(selected);
                     else if (selectedType === "reserva") aprovarReservaMutation.mutate(selected);
+                    else if (selectedType === "agendamento") aprovarAgendamentoMutation.mutate(selected);
                     else aprovarRemarcacaoMutation.mutate(selected);
-                  }} disabled={aprovarDadosMutation.isPending || aprovarRemarcacaoMutation.isPending || aprovarReservaMutation.isPending}>
+                  }} disabled={aprovarDadosMutation.isPending || aprovarRemarcacaoMutation.isPending || aprovarReservaMutation.isPending || aprovarAgendamentoMutation.isPending}>
                     <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
                   </Button>
                 </DialogFooter>
@@ -887,10 +1089,12 @@ const SolicitacoesAlteracao = () => {
                   rejeitarDadosMutation.mutate({ solicitacao: selected, motivo: motivoRejeicao });
                 } else if (selectedType === "reserva") {
                   rejeitarReservaMutation.mutate({ reserva: selected, motivo: motivoRejeicao });
+                } else if (selectedType === "agendamento") {
+                  rejeitarAgendamentoMutation.mutate({ agend: selected, motivo: motivoRejeicao });
                 } else {
                   rejeitarRemarcacaoMutation.mutate({ solicitacao: selected, motivo: motivoRejeicao });
                 }
-              }} disabled={rejeitarDadosMutation.isPending || rejeitarRemarcacaoMutation.isPending || rejeitarReservaMutation.isPending}>
+              }} disabled={rejeitarDadosMutation.isPending || rejeitarRemarcacaoMutation.isPending || rejeitarReservaMutation.isPending || rejeitarAgendamentoMutation.isPending}>
                 Confirmar Rejeição
               </Button>
             </DialogFooter>

@@ -8,6 +8,7 @@ import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
+import { RequestsCard } from "@/components/dashboard/RequestsCard";
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#3b82f6"];
 
@@ -191,6 +192,9 @@ const ProfessionalDashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* All Requests Card */}
+      <RequestsCard />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Monthly Chart */}

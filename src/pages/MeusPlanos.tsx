@@ -37,6 +37,19 @@ const MeusPlanos = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
+  const [selectedProfId, setSelectedProfId] = useState("");
+
+  // All professionals for selection
+  const { data: allProfissionais = [] } = useQuery({
+    queryKey: ["all-prof-for-scheduling"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
+      const ids = roles?.map(r => r.user_id) ?? [];
+      if (!ids.length) return [];
+      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
+      return data ?? [];
+    },
+  });
 
   // Planos de sessões
   const { data: planos = [] } = useQuery({
@@ -108,14 +121,16 @@ const MeusPlanos = () => {
   });
 
   // Fetch monthly availability when professional/time changes or month changes
+  const activeProfId = selectedProfId || selectedPlano?.profissional_id;
+
   useEffect(() => {
-    if (!selectedPlano?.profissional_id) {
+    if (!activeProfId) {
       setMonthlyAvail({});
       return;
     }
     const fetchMonthly = async () => {
       const result = await getMonthlyAvailability(
-        selectedPlano.profissional_id,
+        activeProfId,
         currentMonth.getFullYear(),
         currentMonth.getMonth(),
         selectedTime || undefined
@@ -123,14 +138,14 @@ const MeusPlanos = () => {
       setMonthlyAvail(result);
     };
     fetchMonthly();
-  }, [selectedPlano?.profissional_id, currentMonth, selectedTime]);
+  }, [activeProfId, currentMonth, selectedTime]);
 
   // Check availability when date and time are selected
 
 
   // Check availability when time is selected
   useEffect(() => {
-    if (!selectedPlano?.profissional_id || !selectedDate || !selectedTime) {
+    if (!activeProfId || !selectedDate || !selectedTime) {
       setAvailabilityResult(null);
       return;
     }
@@ -138,11 +153,11 @@ const MeusPlanos = () => {
       const [h, m] = selectedTime.split(":").map(Number);
       const dt = new Date(selectedDate);
       dt.setHours(h, m, 0, 0);
-      const result = await checkAvailability(selectedPlano.profissional_id, dt);
+      const result = await checkAvailability(activeProfId, dt);
       setAvailabilityResult(result);
     }, 200);
     return () => clearTimeout(timer);
-  }, [selectedPlano?.profissional_id, selectedDate, selectedTime]);
+  }, [activeProfId, selectedDate, selectedTime]);
 
   const solicitarAgendamento = useMutation({
     mutationFn: async () => {
@@ -159,7 +174,7 @@ const MeusPlanos = () => {
       // Create the appointment with "pendente" status
       const { data: agendamento, error } = await supabase.from("agendamentos").insert({
         paciente_id: patientId,
-        profissional_id: selectedPlano.profissional_id,
+        profissional_id: activeProfId || selectedPlano.profissional_id,
         data_horario: dataHorario.toISOString(),
         duracao_minutos: parseInt(duracao),
         tipo_atendimento: selectedPlano.tipo_atendimento,
@@ -218,6 +233,7 @@ const MeusPlanos = () => {
 
   const openAgendar = (plano: any) => {
     setSelectedPlano(plano);
+    setSelectedProfId(plano.profissional_id);
     setSelectedDate(undefined);
     setSelectedTime("");
     setAvailabilityResult(null);
@@ -473,7 +489,7 @@ const MeusPlanos = () => {
             <div className="space-y-4">
               <div className="rounded-lg border p-3 bg-muted/30 text-sm space-y-1">
                 <p><strong>Plano:</strong> <span className="capitalize">{selectedPlano.tipo_atendimento}</span></p>
-                <p><strong>Profissional:</strong> {selectedPlano.profiles?.nome || "N/A"}</p>
+                <p><strong>Profissional padrão:</strong> {selectedPlano.profiles?.nome || "N/A"}</p>
                 <p><strong>Créditos restantes:</strong> {selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas}</p>
               </div>
 

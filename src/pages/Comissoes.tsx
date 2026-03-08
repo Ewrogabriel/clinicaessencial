@@ -93,6 +93,16 @@ const Comissoes = () => {
     enabled: canManage,
   });
 
+  // Planos data for commission calculation (plan value / total sessions)
+  const { data: planosData = [] } = useQuery({
+    queryKey: ["planos-comissoes", mesRef],
+    queryFn: async () => {
+      const { data } = await (supabase.from("planos") as any).select("id, valor, total_sessoes");
+      return data ?? [];
+    },
+    enabled: canManage,
+  });
+
   const { data: minhasComissoes = [] } = useQuery({
     queryKey: ["my-commissions", user?.id],
     queryFn: async () => {
@@ -212,20 +222,33 @@ const Comissoes = () => {
       const atendimentos = agendamentos.filter((a: any) => a.profissional_id === p.user_id);
 
       let comissaoTotal = 0;
-      const totalValor = atendimentos.reduce((s: number, a: any) => s + Number(a.valor_sessao || 0), 0);
+      let totalValor = 0;
 
-      if (profRegras.length > 0) {
-        // Use rules
-        for (const a of atendimentos) {
+      for (const a of atendimentos) {
+        // For plan sessions, calculate average value (plan value / total sessions)
+        let valorSessao = Number(a.valor_sessao || 0);
+        if (valorSessao === 0 && a.observacoes && typeof a.observacoes === "string" && a.observacoes.startsWith("plano:")) {
+          const planoId = a.observacoes.replace("plano:", "").trim();
+          // Look up plan to get average value — we fetch planos in a separate query
+          const plano = (planosData || []).find((pl: any) => pl.id === planoId);
+          if (plano && plano.total_sessoes > 0) {
+            valorSessao = Number(plano.valor) / plano.total_sessoes;
+          }
+        }
+        totalValor += valorSessao;
+
+        if (profRegras.length > 0) {
           const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
             || profRegras.find((r: any) => r.tipo_atendimento === "geral");
           if (tipoRegra) {
             const pct = Number(tipoRegra.percentual || 0);
             const fix = Number(tipoRegra.valor_fixo || 0);
-            comissaoTotal += (Number(a.valor_sessao || 0) * pct / 100) + fix;
+            comissaoTotal += (valorSessao * pct / 100) + fix;
           }
         }
-      } else {
+      }
+
+      if (profRegras.length === 0) {
         // Fallback to profile rates
         const rate = Number(p.commission_rate || 0);
         const fixed = Number(p.commission_fixed || 0);
