@@ -539,6 +539,7 @@ const MeusPlanos = () => {
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Step 2: Calendar with availability (only after time selected) */}
               {selectedTime && (
