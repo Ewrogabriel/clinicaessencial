@@ -193,7 +193,7 @@ const Financeiro = () => {
           <TabsList className="grid w-full grid-cols-4 lg:w-[560px]">
             <TabsTrigger value="fluxo">Pagamentos</TabsTrigger>
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
-            <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+            <TabsTrigger value="comissoes">Extrato Comissões</TabsTrigger>
             <TabsTrigger value="dre">DRE Simples</TabsTrigger>
           </TabsList>
         )}
