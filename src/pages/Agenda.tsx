@@ -32,6 +32,7 @@ const Agenda = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAg, setDetailAg] = useState<Agendamento | null>(null);
   const [filterProfId, setFilterProfId] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const isStaff = isAdmin || isGestor;
 
@@ -128,10 +129,12 @@ const Agenda = () => {
 
 
 
-  // Apply professional filter
-  const filteredAgendamentos = filterProfId === "all"
-    ? agendamentos
-    : agendamentos.filter(ag => ag.profissional_id === filterProfId);
+  // Apply filters
+  const filteredAgendamentos = agendamentos.filter(ag => {
+    const matchProf = filterProfId === "all" || ag.profissional_id === filterProfId;
+    const matchStatus = filterStatus === "all" || ag.status === filterStatus;
+    return matchProf && matchStatus;
+  });
 
   const handleSlotClick = (date: Date) => {
     if (!isPatient || isAdmin || isGestor) {
@@ -259,6 +262,22 @@ const Agenda = () => {
                 {(profissionais as any[]).map((p: any) => (
                   <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {isStaff && (
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos status</SelectItem>
+                <SelectItem value="agendado">Agendado</SelectItem>
+                <SelectItem value="confirmado">Confirmado</SelectItem>
+                <SelectItem value="realizado">Realizado</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+                <SelectItem value="falta">Falta</SelectItem>
               </SelectContent>
             </Select>
           )}

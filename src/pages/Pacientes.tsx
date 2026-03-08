@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { TableRowSkeleton } from "@/components/ui/skeletons";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,7 +136,7 @@ const Pacientes = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
@@ -206,19 +208,30 @@ const Pacientes = () => {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <p className="animate-pulse">Carregando pacientes...</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead className="hidden sm:table-cell">Telefone</TableHead>
+                    <TableHead className="hidden md:table-cell">CPF</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+                </TableBody>
+              </Table>
             </div>
           ) : filtrados.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Users className="h-12 w-12 mb-4 opacity-40" />
-              <p className="text-lg font-medium">Nenhum paciente encontrado</p>
-              <p className="text-sm mt-1">
-                {pacientes.length === 0
-                  ? 'Clique em "Novo Paciente" para cadastrar o primeiro'
-                  : "Tente ajustar os filtros de busca"}
-              </p>
-            </div>
+            <EmptyState
+              icon={<Users className="h-8 w-8 text-muted-foreground/50" />}
+              title="Nenhum paciente encontrado"
+              description={pacientes.length === 0 ? 'Clique em "Novo Paciente" para cadastrar o primeiro' : "Tente ajustar os filtros de busca"}
+              action={pacientes.length === 0 ? <Button onClick={() => navigate("/pacientes/novo")}><Plus className="h-4 w-4 mr-2" /> Novo Paciente</Button> : undefined}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

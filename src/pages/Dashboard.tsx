@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -341,11 +342,7 @@ const Dashboard = () => {
   ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

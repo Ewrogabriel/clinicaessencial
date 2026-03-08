@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { useClinicSettings } from "@/hooks/useClinicSettings";
 import { toast } from "@/hooks/use-toast";
 import { Lightbulb, RefreshCw } from "lucide-react";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
@@ -281,11 +282,7 @@ const PatientDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
