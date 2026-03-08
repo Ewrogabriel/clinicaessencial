@@ -41,7 +41,7 @@ const tipoLabels: Record<string, string> = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { profile, isAdmin, isGestor, loading } = useAuth();
+  const { profile, isAdmin, isGestor, isProfissional, isSecretario, loading } = useAuth();
   const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedSession, setSelectedSession] = useState<any>(null);
