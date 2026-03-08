@@ -184,6 +184,7 @@ const MeusPlanos = () => {
         status: "pendente" as any,
         observacoes: `plano:${selectedPlano.id}`,
         created_by: user!.id,
+        clinic_id: activeClinicId,
       }).select("id").single();
       if (error) throw error;
 
