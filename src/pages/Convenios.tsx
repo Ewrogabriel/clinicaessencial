@@ -231,9 +231,14 @@ const Convenios = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Parceiros</h1>
-          <p className="text-muted-foreground">Gerencie empresas parceiras</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Parceiros</h1>
+            <p className="text-muted-foreground">Gerencie empresas parceiras</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {!isPatient && (
