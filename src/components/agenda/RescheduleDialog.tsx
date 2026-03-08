@@ -336,6 +336,33 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
             </div>
           )}
 
+          {/* Suggested Slots */}
+          {suggestedSlots.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3 w-3" /> Horários Sugeridos
+              </Label>
+              <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
+                {suggestedSlots.slice(0, 12).map((slot, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="text-[11px] px-2 py-1 rounded-md border bg-card hover:bg-primary/10 hover:border-primary transition-colors"
+                    onClick={() => {
+                      setDate(slot.date);
+                      setHorario(slot.horario);
+                    }}
+                  >
+                    <span className="font-medium">{slot.dayLabel}</span>
+                    <span className="text-muted-foreground ml-1">{slot.horario}</span>
+                    <span className="text-[9px] text-muted-foreground ml-1">({slot.vagas}v)</span>
+                  </button>
+                ))}
+              </div>
+              {loadingSuggestions && <span className="text-[10px] text-muted-foreground">Buscando horários...</span>}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <Label className="text-xs font-bold uppercase text-muted-foreground">Motivo (Opcional)</Label>
             <Textarea
