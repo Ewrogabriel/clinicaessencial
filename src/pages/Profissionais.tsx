@@ -559,11 +559,11 @@ const Profissionais = () => {
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] pr-4">
             <Tabs defaultValue="dados" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsList className={`grid w-full mb-4 ${isCreating ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="endereco">Endereço</TabsTrigger>
                 <TabsTrigger value="profissional">Profissional</TabsTrigger>
                 {isCreating && <TabsTrigger value="acesso">Acesso</TabsTrigger>}
-                {!isCreating && <TabsTrigger value="endereco">Endereço</TabsTrigger>}
               </TabsList>
 
               <TabsContent value="dados" className="space-y-4">
@@ -643,6 +643,28 @@ const Profissionais = () => {
                 )}
               </TabsContent>
 
+              <TabsContent value="endereco" className="space-y-4">
+                <div className="space-y-2 max-w-[200px]">
+                  <Label>CEP</Label>
+                  <Input value={cep} onChange={e => { const v = maskCEP(e.target.value); setCep(v); fetchAddressFor(v); }} placeholder="00000-000" />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Endereço</Label>
+                    <Input value={endereco} onChange={e => setEndereco(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Número</Label>
+                    <Input value={numero} onChange={e => setNumero(e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2"><Label>Bairro</Label><Input value={bairro} onChange={e => setBairro(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Cidade</Label><Input value={cidade} onChange={e => setCidade(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Estado</Label><Input value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} /></div>
+                </div>
+              </TabsContent>
+
               <TabsContent value="profissional" className="space-y-4">
                 <div className="space-y-2">
                   <Label>Especialidade</Label>
@@ -712,30 +734,6 @@ const Profissionais = () => {
                         renderPermissionRow(r, selectedPermissions, setSelectedPermissions, selectedRole === "admin")
                       )}
                     </div>
-                  </div>
-                </TabsContent>
-              )}
-
-              {!isCreating && (
-                <TabsContent value="endereco" className="space-y-4">
-                  <div className="space-y-2 max-w-[200px]">
-                    <Label>CEP</Label>
-                    <Input value={cep} onChange={e => { const v = maskCEP(e.target.value); setCep(v); fetchAddressFor(v); }} placeholder="00000-000" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2 col-span-2">
-                      <Label>Endereço</Label>
-                      <Input value={endereco} onChange={e => setEndereco(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Número</Label>
-                      <Input value={numero} onChange={e => setNumero(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Bairro</Label><Input value={bairro} onChange={e => setBairro(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Cidade</Label><Input value={cidade} onChange={e => setCidade(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Estado</Label><Input value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} /></div>
                   </div>
                 </TabsContent>
               )}
