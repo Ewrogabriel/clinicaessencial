@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
+import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
