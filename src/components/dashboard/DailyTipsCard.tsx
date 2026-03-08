@@ -38,6 +38,7 @@ interface DailyTipsCardProps {
 
 export function DailyTipsCard({ tipo }: DailyTipsCardProps) {
   const [retryCount, setRetryCount] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["dicas-diarias-dashboard", tipo, retryCount],
@@ -53,57 +54,72 @@ export function DailyTipsCard({ tipo }: DailyTipsCardProps) {
   });
 
   const dicas = data?.dicas || [];
+  const dica = dicas[currentIndex];
+
+  const handleNext = () => {
+    if (dicas.length > 0) {
+      setCurrentIndex((prev) => (prev + 1) % dicas.length);
+    }
+  };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Lightbulb className="h-5 w-5 text-amber-500" />
-          Dicas do Dia
+          Dica do Dia
         </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => { setRetryCount(c => c + 1); refetch(); }}
-          disabled={isLoading}
-          className="gap-1 text-xs"
-        >
-          {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-          Novas
-        </Button>
+        <div className="flex items-center gap-1">
+          {dicas.length > 1 && !isLoading && (
+            <Button variant="ghost" size="sm" onClick={handleNext} className="gap-1 text-xs">
+              Próxima
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setRetryCount(c => c + 1); setCurrentIndex(0); refetch(); }}
+            disabled={isLoading}
+            className="gap-1 text-xs"
+          >
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Novas
+          </Button>
+        </div>
       </div>
 
       {isLoading && (
         <div className="flex items-center justify-center py-8 gap-2">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">Gerando dicas...</span>
+          <span className="text-sm text-muted-foreground">Gerando dica...</span>
         </div>
       )}
 
-      {!isLoading && dicas.length > 0 && (
-        <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--primary))" }}>
-          <CardContent className="p-4 space-y-4">
-            {dicas.map((dica, i) => {
-              const Icon = ICON_MAP[dica.categoria] || Lightbulb;
-              const colorClass = COLOR_MAP[dica.categoria] || "text-primary bg-primary/10";
-              return (
-                <div key={i} className={`flex items-start gap-3 ${i < dicas.length - 1 ? "pb-4 border-b border-border" : ""}`}>
-                  <div className={`p-1.5 rounded-md shrink-0 mt-0.5 ${colorClass}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold leading-tight">{dica.titulo}</span>
-                      <Badge variant="outline" className="text-[10px] shrink-0">{dica.categoria}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{dica.conteudo}</p>
-                  </div>
+      {!isLoading && dica && (() => {
+        const Icon = ICON_MAP[dica.categoria] || Lightbulb;
+        const colorClass = COLOR_MAP[dica.categoria] || "text-primary bg-primary/10";
+        return (
+          <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--primary))" }}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className={`p-1.5 rounded-md shrink-0 mt-0.5 ${colorClass}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold leading-tight">{dica.titulo}</span>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{dica.categoria}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{dica.conteudo}</p>
+                  {dicas.length > 1 && (
+                    <p className="text-[10px] text-muted-foreground mt-2">{currentIndex + 1} / {dicas.length}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {!isLoading && dicas.length === 0 && (
         <Card className="bg-muted/30">
