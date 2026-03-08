@@ -206,6 +206,20 @@ const Agenda = () => {
 
   const goToToday = () => setCurrentDate(new Date());
 
+  const handleDragDrop = async (agId: string, newDate: Date) => {
+    try {
+      const { error } = await supabase
+        .from("agendamentos")
+        .update({ data_horario: newDate.toISOString() })
+        .eq("id", agId);
+      if (error) throw error;
+      toast({ title: "Sessão reagendada! 📅", description: format(newDate, "dd/MM/yyyy 'às' HH:mm") });
+      refetchAgendamentos();
+    } catch {
+      toast({ title: "Erro ao mover sessão", variant: "destructive" });
+    }
+  };
+
   const getTitle = () => {
     if (viewMode === "diario") return format(currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     if (viewMode === "semanal") return format(currentDate, "MMMM yyyy", { locale: ptBR });
