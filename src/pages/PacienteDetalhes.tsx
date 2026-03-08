@@ -56,13 +56,13 @@ const PacienteDetalhes = () => {
     const { data: avaliacao, isLoading: loadingAvaliacao } = useQuery({
         queryKey: ["avaliacao", id],
         queryFn: async () => {
-            const { data, error } = await (supabase
+            const { data, error } = await supabase
                 .from("evaluations")
                 .select("*")
                 .eq("paciente_id", id)
                 .order("data_avaliacao", { ascending: false })
                 .limit(1)
-                .single() as any);
+                .single();
             if (error && error.code !== "PGRST116") throw error; // PGRST116 is "No rows found"
             return data;
         },
