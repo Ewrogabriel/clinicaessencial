@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Agendamento, StatusAgendamento } from "@/types/entities";
 import { toast } from "@/hooks/use-toast";
+import { useClinic } from "@/hooks/useClinic";
 
 interface UseAgendamentosOptions {
   pacienteId?: string;
@@ -11,9 +12,10 @@ interface UseAgendamentosOptions {
 
 export function useAgendamentos(options: UseAgendamentosOptions = {}) {
   const { pacienteId, profissionalId, enabled = true } = options;
+  const { activeClinicId } = useClinic();
 
   return useQuery({
-    queryKey: ["agendamentos", pacienteId, profissionalId],
+    queryKey: ["agendamentos", pacienteId, profissionalId, activeClinicId],
     queryFn: async () => {
       let query = supabase
         .from("agendamentos")
@@ -22,6 +24,9 @@ export function useAgendamentos(options: UseAgendamentosOptions = {}) {
           pacientes (id, nome, telefone)
         `);
 
+      if (activeClinicId) {
+        query = query.eq("clinic_id", activeClinicId);
+      }
       if (pacienteId) {
         query = query.eq("paciente_id", pacienteId);
       }

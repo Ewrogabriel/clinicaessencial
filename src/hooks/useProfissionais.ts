@@ -1,19 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profissional, ProfissionalBasic } from "@/types/entities";
+import { useClinic } from "@/hooks/useClinic";
 
 interface UseProfissionaisOptions {
   enabled?: boolean;
 }
 
 /**
- * Hook to fetch professionals (users with role 'profissional' or 'admin')
+ * Hook to fetch professionals filtered by active clinic
  */
 export function useProfissionais(options: UseProfissionaisOptions = {}) {
   const { enabled = true } = options;
+  const { activeClinicId } = useClinic();
 
   return useQuery({
-    queryKey: ["profissionais"],
+    queryKey: ["profissionais", activeClinicId],
     queryFn: async () => {
       // Get user IDs with professional or admin roles
       const { data: roles } = await supabase
@@ -21,8 +23,20 @@ export function useProfissionais(options: UseProfissionaisOptions = {}) {
         .select("user_id")
         .in("role", ["profissional", "admin"]);
 
-      const ids = roles?.map(r => r.user_id) ?? [];
+      let ids = roles?.map(r => r.user_id) ?? [];
       if (!ids.length) return [];
+
+      // Filter by clinic if active
+      if (activeClinicId) {
+        const { data: clinicUsers } = await (supabase
+          .from("clinic_users") as any)
+          .select("user_id")
+          .eq("clinic_id", activeClinicId);
+
+        const clinicUserIds = new Set(clinicUsers?.map((cu: any) => cu.user_id) ?? []);
+        ids = ids.filter(id => clinicUserIds.has(id));
+        if (!ids.length) return [];
+      }
 
       const { data, error } = await supabase
         .from("profiles")
@@ -38,21 +52,33 @@ export function useProfissionais(options: UseProfissionaisOptions = {}) {
 }
 
 /**
- * Hook to fetch a simplified list of professionals (id, user_id, nome, cor_agenda)
+ * Hook to fetch a simplified list of professionals
  */
 export function useProfissionaisBasic(options: UseProfissionaisOptions = {}) {
   const { enabled = true } = options;
+  const { activeClinicId } = useClinic();
 
   return useQuery({
-    queryKey: ["profissionais-basic"],
+    queryKey: ["profissionais-basic", activeClinicId],
     queryFn: async () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
         .in("role", ["profissional", "admin"]);
 
-      const ids = roles?.map(r => r.user_id) ?? [];
+      let ids = roles?.map(r => r.user_id) ?? [];
       if (!ids.length) return [];
+
+      if (activeClinicId) {
+        const { data: clinicUsers } = await (supabase
+          .from("clinic_users") as any)
+          .select("user_id")
+          .eq("clinic_id", activeClinicId);
+
+        const clinicUserIds = new Set(clinicUsers?.map((cu: any) => cu.user_id) ?? []);
+        ids = ids.filter(id => clinicUserIds.has(id));
+        if (!ids.length) return [];
+      }
 
       const { data, error } = await supabase
         .from("profiles")

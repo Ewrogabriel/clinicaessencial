@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Paciente, PacienteBasic } from "@/types/entities";
+import { useClinic } from "@/hooks/useClinic";
 
 interface UsePacientesOptions {
   status?: "ativo" | "inativo";
@@ -8,14 +9,41 @@ interface UsePacientesOptions {
 }
 
 /**
- * Hook to fetch list of patients
+ * Hook to fetch list of patients filtered by active clinic
  */
 export function usePacientes(options: UsePacientesOptions = {}) {
   const { status = "ativo", enabled = true } = options;
+  const { activeClinicId } = useClinic();
 
   return useQuery({
-    queryKey: ["pacientes", status],
+    queryKey: ["pacientes", status, activeClinicId],
     queryFn: async () => {
+      // If we have an active clinic, fetch patients linked to it
+      if (activeClinicId) {
+        const { data: clinicPacientes } = await (supabase
+          .from("clinic_pacientes") as any)
+          .select("paciente_id")
+          .eq("clinic_id", activeClinicId);
+
+        const ids = clinicPacientes?.map((cp: any) => cp.paciente_id) ?? [];
+        if (!ids.length) return [];
+
+        let query = supabase
+          .from("pacientes")
+          .select("*")
+          .in("id", ids)
+          .order("nome");
+
+        if (status) {
+          query = query.eq("status", status);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []) as Paciente[];
+      }
+
+      // Fallback: no clinic filter
       let query = supabase
         .from("pacientes")
         .select("*")
@@ -38,10 +66,35 @@ export function usePacientes(options: UsePacientesOptions = {}) {
  */
 export function usePacientesBasic(options: UsePacientesOptions = {}) {
   const { status = "ativo", enabled = true } = options;
+  const { activeClinicId } = useClinic();
 
   return useQuery({
-    queryKey: ["pacientes-basic", status],
+    queryKey: ["pacientes-basic", status, activeClinicId],
     queryFn: async () => {
+      if (activeClinicId) {
+        const { data: clinicPacientes } = await (supabase
+          .from("clinic_pacientes") as any)
+          .select("paciente_id")
+          .eq("clinic_id", activeClinicId);
+
+        const ids = clinicPacientes?.map((cp: any) => cp.paciente_id) ?? [];
+        if (!ids.length) return [];
+
+        let query = supabase
+          .from("pacientes")
+          .select("id, nome")
+          .in("id", ids)
+          .order("nome");
+
+        if (status) {
+          query = query.eq("status", status);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []) as PacienteBasic[];
+      }
+
       let query = supabase
         .from("pacientes")
         .select("id, nome")

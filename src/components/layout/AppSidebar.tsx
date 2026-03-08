@@ -13,6 +13,7 @@ import {
   SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { ClinicSwitcher } from "@/components/layout/ClinicSwitcher";
 
 /* Resource key → route mapping (for permission-based menus) */
 const RESOURCE_ROUTES: Record<string, string> = {
@@ -165,6 +166,8 @@ export function AppSidebar() {
           </div>
         )}
       </div>
+
+      <ClinicSwitcher collapsed={collapsed} />
 
       <SidebarContent>
         {(isAdmin || isGestor) ? (

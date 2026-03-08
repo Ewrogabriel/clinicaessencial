@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ClinicProvider } from "@/hooks/useClinic";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
@@ -68,6 +69,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <ClinicProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -127,6 +129,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </BrowserRouter>
+          </ClinicProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
