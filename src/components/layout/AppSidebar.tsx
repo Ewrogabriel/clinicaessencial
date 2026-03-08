@@ -73,6 +73,8 @@ const menuEquipeFinanceiro = [
 
 const menuInteligencia = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+  { title: "Metas & Ranking", url: "/metas", icon: Trophy },
+  { title: "Importação", url: "/importacao", icon: Upload },
 ];
 
 const menuComunicacao = [
