@@ -110,12 +110,15 @@ const ClinicSettings = () => {
       </div>
 
       <Tabs defaultValue="dados" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
           <TabsTrigger value="dados" className="gap-2">
             <Settings2 className="h-4 w-4" /> Dados
           </TabsTrigger>
           <TabsTrigger value="pagamento" className="gap-2">
             <CreditCard className="h-4 w-4" /> Pagamento
+          </TabsTrigger>
+          <TabsTrigger value="nfe" className="gap-2">
+            <FileText className="h-4 w-4" /> Nota Fiscal
           </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <Shield className="h-4 w-4" /> Logs
