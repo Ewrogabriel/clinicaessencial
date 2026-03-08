@@ -115,8 +115,8 @@ export const PatientAgendaTab = ({
                       {item.profiles?.nome} • {item.tipo_atendimento}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2" onClick={() => onReschedule(item)}>
-                    <RefreshCw className="h-4 w-4" /> Reagendar
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => onReschedule(item)}>
+                     <RefreshCw className="h-4 w-4" /> Remarcar
                   </Button>
                 </div>
               ))}
