@@ -8,9 +8,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Clock, ArrowRightLeft, UserPlus } from "lucide-react";
 import WaitingListTab from "@/components/lista-espera/WaitingListTab";
 import AddEntryDialog from "@/components/lista-espera/AddEntryDialog";
+import { useClinic } from "@/hooks/useClinic";
 
 const ListaEspera = () => {
   const { isAdmin, isGestor, isProfissional } = useAuth();
+  const { activeClinicId } = useClinic();
   const canManage = isAdmin || isGestor || isProfissional;
   const [activeTab, setActiveTab] = useState("espera");
   const [dialogOpen, setDialogOpen] = useState(false);
