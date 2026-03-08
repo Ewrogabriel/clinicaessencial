@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,8 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Mail, MailOpen, Plus, ArrowLeft } from "lucide-react";
+import { Send, Mail, MailOpen, Plus, Reply } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -28,7 +27,7 @@ interface Mensagem {
 }
 
 const MensagensInternas = () => {
-  const { user, isAdmin, isGestor } = useAuth();
+  const { user, isAdmin, isPatient } = useAuth();
   const queryClient = useQueryClient();
   const [composeOpen, setComposeOpen] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState<Mensagem | null>(null);
@@ -36,19 +35,33 @@ const MensagensInternas = () => {
   const [assunto, setAssunto] = useState("");
   const [conteudo, setConteudo] = useState("");
 
-  // Fetch profiles for recipient select (fetch roles to show proper labels)
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["msg-profiles", user?.id],
+  // Fetch all profiles + pacientes with user_id for recipient list
+  const { data: recipients = [] } = useQuery({
+    queryKey: ["msg-recipients", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data: allProfiles, error: profileError } = await supabase.from("profiles").select("user_id, nome, email");
-      if (profileError) return [];
+      
+      // Get profiles (professionals, admins, etc.)
+      const { data: allProfiles } = await supabase.from("profiles").select("user_id, nome, email");
       const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
-      const roleMap: Record<string, string> = {};
-      (allRoles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
-      return (allProfiles || [])
+      const roleMap: Record<string, string[]> = {};
+      (allRoles || []).forEach((r: any) => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role);
+      });
+
+      const profileRecipients = (allProfiles || [])
         .filter((p: any) => p.user_id !== user.id)
-        .map((p: any) => ({ ...p, role: roleMap[p.user_id] || "Usuário" }));
+        .map((p: any) => ({
+          user_id: p.user_id,
+          nome: p.nome,
+          label: roleMap[p.user_id]?.includes("admin") ? "Admin" :
+                 roleMap[p.user_id]?.includes("gestor") ? "Gestor" :
+                 roleMap[p.user_id]?.includes("profissional") ? "Profissional" :
+                 roleMap[p.user_id]?.includes("paciente") ? "Paciente" : "Usuário",
+        }));
+
+      return profileRecipients;
     },
     enabled: !!user,
   });
@@ -83,10 +96,35 @@ const MensagensInternas = () => {
     enabled: !!user,
   });
 
+  // Realtime subscription for new messages
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('mensagens-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens_internas',
+          filter: `destinatario_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["mensagens-recebidas"] });
+          toast.info("Nova mensagem recebida!");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   const sendMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      // Insert message
       const { error } = await (supabase.from("mensagens_internas").insert({
         remetente_id: user.id,
         destinatario_id: destinatario,
@@ -94,13 +132,13 @@ const MensagensInternas = () => {
         conteudo,
       }) as any);
       if (error) throw error;
+
       // Create notification for recipient
-      const remetenteProfile = profiles.find((p: any) => p.user_id === user.id);
-      const nome = remetenteProfile?.nome || "Alguém";
+      const senderName = recipients.find((p: any) => p.user_id === user.id)?.nome || "Alguém";
       await (supabase.from("notificacoes").insert({
         user_id: destinatario,
         tipo: "mensagem",
-        titulo: `Nova mensagem de ${nome}`,
+        titulo: `Nova mensagem de ${senderName}`,
         resumo: assunto,
         conteudo,
         link: "/mensagens",
@@ -125,8 +163,16 @@ const MensagensInternas = () => {
     setSelectedMsg(msg);
   };
 
-  const getProfileName = (userId: string) => {
-    const p = profiles.find((p: any) => p.user_id === userId);
+  const handleReply = (msg: Mensagem) => {
+    setDestinatario(msg.remetente_id);
+    setAssunto(`Re: ${msg.assunto}`);
+    setConteudo("");
+    setSelectedMsg(null);
+    setComposeOpen(true);
+  };
+
+  const getRecipientName = (userId: string) => {
+    const p = recipients.find((r: any) => r.user_id === userId);
     return p?.nome || "Desconhecido";
   };
 
@@ -151,7 +197,7 @@ const MensagensInternas = () => {
             <div className="flex-1 min-w-0">
               <p className={`text-sm truncate ${!m.lida && showSender ? "font-semibold" : ""}`}>{m.assunto}</p>
               <p className="text-xs text-muted-foreground truncate">
-                {showSender ? `De: ${getProfileName(m.remetente_id)}` : `Para: ${getProfileName(m.destinatario_id)}`}
+                {showSender ? `De: ${getRecipientName(m.remetente_id)}` : `Para: ${getRecipientName(m.destinatario_id)}`}
                 {" • "}
                 {format(new Date(m.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
               </p>
@@ -167,7 +213,9 @@ const MensagensInternas = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Mensagens</h1>
-          <p className="text-muted-foreground">Comunicação interna entre equipe.</p>
+          <p className="text-muted-foreground">
+            {isPatient ? "Converse com sua equipe de atendimento." : "Comunicação interna entre equipe e pacientes."}
+          </p>
         </div>
         <Button onClick={() => setComposeOpen(true)}>
           <Plus className="h-4 w-4 mr-2" /> Nova Mensagem
@@ -208,11 +256,11 @@ const MensagensInternas = () => {
               <Select value={destinatario} onValueChange={setDestinatario}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
-                  {profiles.length === 0 ? (
+                  {recipients.length === 0 ? (
                     <div className="p-3 text-sm text-muted-foreground text-center">Nenhum destinatário encontrado</div>
-                  ) : profiles.map((p: any) => (
+                  ) : recipients.map((p: any) => (
                     <SelectItem key={p.user_id} value={p.user_id}>
-                      {p.nome}{p.role ? ` (${p.role})` : ""}
+                      {p.nome} ({p.label})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -245,13 +293,20 @@ const MensagensInternas = () => {
           {selectedMsg && (
             <div className="space-y-3">
               <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>De:</strong> {getProfileName(selectedMsg.remetente_id)}</p>
-                <p><strong>Para:</strong> {getProfileName(selectedMsg.destinatario_id)}</p>
+                <p><strong>De:</strong> {getRecipientName(selectedMsg.remetente_id)}</p>
+                <p><strong>Para:</strong> {getRecipientName(selectedMsg.destinatario_id)}</p>
                 <p><strong>Data:</strong> {format(new Date(selectedMsg.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
               </div>
               <div className="rounded-lg bg-muted/50 p-4 text-sm whitespace-pre-wrap">
                 {selectedMsg.conteudo}
               </div>
+              {selectedMsg.destinatario_id === user?.id && (
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => handleReply(selectedMsg)}>
+                    <Reply className="h-4 w-4 mr-1" /> Responder
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
