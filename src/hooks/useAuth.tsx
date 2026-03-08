@@ -63,6 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles(data?.map((r) => r.role) ?? []);
   };
 
+  const fetchPermissions = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_permissions")
+      .select("resource")
+      .eq("user_id", userId)
+      .eq("enabled", true);
+    setPermissions(data?.map((p) => (p as any).resource) ?? []);
+  };
+
   useEffect(() => {
     // Set up auth listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
