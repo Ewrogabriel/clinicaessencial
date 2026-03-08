@@ -92,56 +92,69 @@ const MinhaAgenda = () => {
   const rescheduleMutation = useMutation({
     mutationFn: async ({ agendamentoId, novaData, motivo, novoProfId }: { agendamentoId: string; novaData: string; motivo: string; novoProfId: string }) => {
       if (!patientId || !user) throw new Error("Paciente não identificado");
-      // Insert reschedule request
+      const ag = rescheduleDialog;
+      const isCancelado = ag?.status === "cancelado" || ag?.status === "falta";
+      const tipoLabel = isCancelado ? "remarcação" : "reagendamento";
+
       const { error } = await (supabase
         .from("solicitacoes_remarcacao")
         .insert({
           agendamento_id: agendamentoId,
           paciente_id: patientId,
           nova_data_horario: novaData,
-          motivo: novoProfId !== rescheduleDialog?.profissional_id
+          motivo: novoProfId !== ag?.profissional_id
             ? `[Troca de profissional] ${motivo}`
             : motivo,
         }) as any);
       if (error) throw error;
 
-      // If different professional, notify both old and new
-      const ag = rescheduleDialog;
-      const patientName = "Paciente";
       const oldProfName = ag?.profiles?.nome || "Profissional";
 
       if (novoProfId !== ag?.profissional_id) {
-        // Notify new professional
         await (supabase.from("notificacoes").insert({
           user_id: novoProfId,
-          tipo: "remarcacao",
-          titulo: "Solicitação de remarcação (novo profissional)",
-          resumo: `${patientName} solicita remarcação para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
-          conteudo: `Um paciente solicitou remarcação de uma sessão originalmente com ${oldProfName} para você.\n\nNova data: ${format(new Date(novaData), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
-          link: "/agenda",
+          tipo: isCancelado ? "remarcacao" : "reagendamento",
+          titulo: `Solicitação de ${tipoLabel} (novo profissional)`,
+          resumo: `Paciente solicita ${tipoLabel} para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
+          conteudo: `Paciente solicitou ${tipoLabel} de sessão originalmente com ${oldProfName}.\nNova data: ${format(new Date(novaData), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
+          link: "/solicitacoes-alteracao",
         }) as any);
-        // Notify old professional
         await (supabase.from("notificacoes").insert({
           user_id: ag.profissional_id,
-          tipo: "remarcacao",
-          titulo: "Paciente solicitou troca de profissional",
-          resumo: `Remarcação com outro profissional solicitada`,
-          conteudo: `Um paciente solicitou remarcação para outro profissional.\nData original: ${format(new Date(ag.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
+          tipo: isCancelado ? "remarcacao" : "reagendamento",
+          titulo: `Paciente solicitou troca de profissional (${tipoLabel})`,
+          resumo: `${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} com outro profissional solicitada`,
+          conteudo: `Paciente solicitou ${tipoLabel} para outro profissional.\nData original: ${format(new Date(ag.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
+          link: "/solicitacoes-alteracao",
         }) as any);
       } else {
-        // Same professional, just notify them
         await (supabase.from("notificacoes").insert({
           user_id: ag.profissional_id,
-          tipo: "remarcacao",
-          titulo: "Solicitação de remarcação",
-          resumo: `Remarcação para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
-          conteudo: `Paciente solicita remarcação.\nData atual: ${format(new Date(ag.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nNova data: ${format(new Date(novaData), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
-          link: "/agenda",
+          tipo: isCancelado ? "remarcacao" : "reagendamento",
+          titulo: `Solicitação de ${tipoLabel}`,
+          resumo: `${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
+          conteudo: `Paciente solicita ${tipoLabel}.\nData ${isCancelado ? "cancelada" : "atual"}: ${format(new Date(ag.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nNova data: ${format(new Date(novaData), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
+          link: "/solicitacoes-alteracao",
+        }) as any);
+      }
+
+      // Notify admins
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      for (const admin of (adminRoles || [])) {
+        if (admin.user_id === ag.profissional_id || admin.user_id === novoProfId) continue;
+        await (supabase.from("notificacoes").insert({
+          user_id: admin.user_id,
+          tipo: isCancelado ? "remarcacao" : "reagendamento",
+          titulo: `Nova solicitação de ${tipoLabel}`,
+          resumo: `Paciente solicita ${tipoLabel} para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
+          link: "/solicitacoes-alteracao",
         }) as any);
       }
     },
     onSuccess: () => {
-      toast.success("Solicitação de remarcação enviada! Aguarde a confirmação.");
+      const ag = rescheduleDialog;
+      const isCancelado = ag?.status === "cancelado" || ag?.status === "falta";
+      toast.success(`Solicitação de ${isCancelado ? "remarcação" : "reagendamento"} enviada! Aguarde a confirmação.`);
       setRescheduleDialog(null);
       setRescheduleObs("");
       setNewDateTime("");
