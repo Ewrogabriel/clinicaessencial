@@ -4,7 +4,7 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, CreditCard, FileText, CalendarPlus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getMonthlyAvailability, getAvailableSlots, checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
+import { getMonthlyAvailability, checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,6 @@ const MeusPlanos = () => {
   const [duracao, setDuracao] = useState("50");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
-  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
 
   // Planos de sessões
@@ -102,7 +101,13 @@ const MeusPlanos = () => {
     enabled: !!selectedPlano?.id && !!patientId,
   });
 
-  // Fetch monthly availability when professional changes or month changes
+  // Generate hourly time options (7:00 to 21:00)
+  const hourlyOptions = Array.from({ length: 15 }, (_, i) => {
+    const h = 7 + i;
+    return `${String(h).padStart(2, "0")}:00`;
+  });
+
+  // Fetch monthly availability when professional/time changes or month changes
   useEffect(() => {
     if (!selectedPlano?.profissional_id) {
       setMonthlyAvail({});
@@ -112,26 +117,16 @@ const MeusPlanos = () => {
       const result = await getMonthlyAvailability(
         selectedPlano.profissional_id,
         currentMonth.getFullYear(),
-        currentMonth.getMonth()
+        currentMonth.getMonth(),
+        selectedTime || undefined
       );
       setMonthlyAvail(result);
     };
     fetchMonthly();
-  }, [selectedPlano?.profissional_id, currentMonth]);
+  }, [selectedPlano?.profissional_id, currentMonth, selectedTime]);
 
-  // Fetch available slots when date is selected
-  useEffect(() => {
-    if (!selectedPlano?.profissional_id || !selectedDate) {
-      setAvailableSlots([]);
-      setSelectedTime("");
-      return;
-    }
-    const fetchSlots = async () => {
-      const slots = await getAvailableSlots(selectedPlano.profissional_id, selectedDate);
-      setAvailableSlots(slots);
-    };
-    fetchSlots();
-  }, [selectedPlano?.profissional_id, selectedDate]);
+  // Check availability when date and time are selected
+
 
   // Check availability when time is selected
   useEffect(() => {
@@ -481,78 +476,68 @@ const MeusPlanos = () => {
                 <p><strong>Créditos restantes:</strong> {selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas}</p>
               </div>
 
-              {/* Calendar with availability */}
+              {/* Step 1: Select time */}
               <div>
-                <Label className="mb-2 block">Selecione a data</Label>
-                <Calendar
-                  mode="single"
-                  locale={ptBR}
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  onMonthChange={setCurrentMonth}
-                  disabled={(date) =>
-                    date < new Date(new Date().setHours(0, 0, 0, 0))
-                  }
-                  className={cn("rounded-md border shadow-sm pointer-events-auto")}
-                  components={{
-                    DayContent: ({ date: dayDate }) => {
-                      const vacancies = monthlyAvail[dayDate.getDate()];
-                      const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
-                      const isCurrentMonth = dayDate.getMonth() === currentMonth.getMonth();
-
-                      return (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center">
-                          <span>{dayDate.getDate()}</span>
-                          {isCurrentMonth && !isPast && selectedPlano?.profissional_id && (
-                            <span className={cn(
-                              "text-[9px] mt-0.5 px-1 rounded-full",
-                              vacancies > 0
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold"
-                                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                            )}>
-                              {vacancies ?? 0}v
-                            </span>
-                          )}
-                        </div>
-                      );
-                    }
-                  }}
-                />
+                <Label className="mb-2 block">1. Selecione o horário</Label>
+                <div className="flex flex-wrap gap-2">
+                  {hourlyOptions.map((time) => (
+                    <Button
+                      key={time}
+                      type="button"
+                      size="sm"
+                      variant={selectedTime === time ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectedTime(time);
+                        setSelectedDate(undefined);
+                        setAvailabilityResult(null);
+                      }}
+                      className="text-xs"
+                    >
+                      <Clock className="h-3 w-3 mr-1" />
+                      {time}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
-              {/* Time slots for selected date */}
-              {selectedDate && (
+              {/* Step 2: Calendar with availability (only after time selected) */}
+              {selectedTime && (
                 <div>
-                  <Label className="mb-2 block">Horários disponíveis em {format(selectedDate, "dd/MM/yyyy")}</Label>
-                  {availableSlots.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {availableSlots.map((s: any) => {
-                        const timeLabel = s.slot.hora_inicio.slice(0, 5);
-                        const isFull = s.available <= 0;
-                        const isSelected = selectedTime === timeLabel;
+                  <Label className="mb-2 block">2. Selecione a data (vagas para {selectedTime})</Label>
+                  <Calendar
+                    mode="single"
+                    locale={ptBR}
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    onMonthChange={setCurrentMonth}
+                    disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                    className={cn("rounded-md border shadow-sm pointer-events-auto")}
+                    components={{
+                      DayContent: ({ date: dayDate }) => {
+                        const vacancies = monthlyAvail[dayDate.getDate()];
+                        const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
+                        const isCurrentMonth = dayDate.getMonth() === currentMonth.getMonth();
+
                         return (
-                          <Button
-                            key={s.slot.id}
-                            type="button"
-                            size="sm"
-                            variant={isSelected ? "default" : "outline"}
-                            disabled={isFull}
-                            onClick={() => setSelectedTime(timeLabel)}
-                            className={cn(
-                              "text-xs",
-                              isFull && "opacity-50 line-through"
+                          <div className="relative w-full h-full flex flex-col items-center justify-center">
+                            <span>{dayDate.getDate()}</span>
+                            {isCurrentMonth && !isPast && selectedPlano?.profissional_id && (
+                              <span className={cn(
+                                "text-[9px] mt-0.5 px-1 rounded-full",
+                                vacancies && vacancies > 0
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold"
+                                  : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                              )}>
+                                {vacancies ?? 0}v
+                              </span>
                             )}
-                          >
-                            <Clock className="h-3 w-3 mr-1" />
-                            {timeLabel}
-                            <span className="ml-1 text-[10px]">({s.available}v)</span>
-                          </Button>
+                          </div>
                         );
-                      })}
-                    </div>
-                  )}
+                      }
+                    }}
+                  />
                 </div>
               )}
 
