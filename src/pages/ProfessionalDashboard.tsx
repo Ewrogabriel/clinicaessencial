@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
+import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#3b82f6"];
 
@@ -174,6 +175,8 @@ const ProfessionalDashboard = () => {
       </div>
 
       <DailyTipsCard tipo="profissional" />
+
+      <ConvenioCard />
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

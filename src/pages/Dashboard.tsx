@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
+import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -392,6 +393,8 @@ const Dashboard = () => {
 
       {/* Dicas do Dia - AI powered */}
       <DailyTipsCard tipo={tipRole} />
+
+      <ConvenioCard />
 
       {/* Birthdays - compact in the top row if present */}
       {birthdays.length > 0 && (

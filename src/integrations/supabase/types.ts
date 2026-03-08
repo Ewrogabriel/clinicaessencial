@@ -378,6 +378,60 @@ export type Database = {
           },
         ]
       }
+      convenios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string
+          descricao: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          imagem_card_url: string | null
+          imagem_descricao_url: string | null
+          instagram: string | null
+          nome: string
+          site: string | null
+          telefone: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          imagem_card_url?: string | null
+          imagem_descricao_url?: string | null
+          instagram?: string | null
+          nome: string
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          imagem_card_url?: string | null
+          imagem_descricao_url?: string | null
+          instagram?: string | null
+          nome?: string
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       descontos_pacientes: {
         Row: {
           ativo: boolean
