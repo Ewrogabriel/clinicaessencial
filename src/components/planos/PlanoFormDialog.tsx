@@ -37,6 +37,7 @@ const defaultForm = {
 
 export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, modalidades, userId }: PlanoFormDialogProps) => {
   const queryClient = useQueryClient();
+  const { activeClinicId } = useClinic();
   const isEdit = !!editPlano;
 
   const [formData, setFormData] = useState(defaultForm);
