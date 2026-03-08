@@ -253,7 +253,7 @@ const Convenios = () => {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Remover convênio?</AlertDialogTitle>
+                              <AlertDialogTitle>Remover parceiro?</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Essa ação não pode ser desfeita.
                               </AlertDialogDescription>
