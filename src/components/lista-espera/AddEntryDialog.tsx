@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useModalidades } from "@/hooks/useModalidades";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -23,7 +24,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
     paciente_id: "",
     profissional_id: "",
     matricula_id: "",
-    tipo_atendimento: "pilates",
+    tipo_atendimento: "",
     dia_semana: [] as number[],
     hora_preferida_inicio: "",
     hora_preferida_fim: "",
@@ -33,7 +34,8 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-lista-espera"],
     queryFn: async () => {
-      const { data } = await (supabase.from("pacientes") as any).select("id, nome").eq("status", "ativo").order("nome");
+      const { data, error } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      if (error) throw error;
       return data || [];
     },
   });
@@ -41,22 +43,27 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-lista-espera"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
+      const { data: roles, error: rolesError } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+      if (rolesError) throw rolesError;
       const ids = (roles || []).map(r => r.user_id);
       if (ids.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids);
+      const { data, error } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
+      if (error) throw error;
       return data || [];
     },
   });
+
+  const { data: modalidades = [] } = useModalidades({ ativo: true });
 
   const { data: matriculas = [] } = useQuery({
     queryKey: ["matriculas-paciente", form.paciente_id],
     enabled: tipo === "interesse_mudanca" && !!form.paciente_id,
     queryFn: async () => {
-      const { data } = await (supabase.from("matriculas") as any)
+      const { data, error } = await supabase.from("matriculas")
         .select("id, tipo_atendimento, status, valor_mensal")
         .eq("paciente_id", form.paciente_id)
         .eq("status", "ativa");
+      if (error) throw error;
       return data || [];
     },
   });
@@ -66,12 +73,12 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
       if (!form.paciente_id) throw new Error("Selecione um paciente");
       if (tipo === "interesse_mudanca" && !form.matricula_id) throw new Error("Selecione uma matrícula");
 
-      const { error } = await (supabase.from("lista_espera") as any).insert({
+      const { error } = await supabase.from("lista_espera").insert({
         paciente_id: form.paciente_id,
         profissional_id: form.profissional_id || null,
         matricula_id: tipo === "interesse_mudanca" ? form.matricula_id : null,
         tipo,
-        tipo_atendimento: form.tipo_atendimento,
+        tipo_atendimento: form.tipo_atendimento || "fisioterapia",
         dia_semana: form.dia_semana.length > 0 ? form.dia_semana : null,
         hora_preferida_inicio: form.hora_preferida_inicio || null,
         hora_preferida_fim: form.hora_preferida_fim || null,
@@ -88,12 +95,12 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
       onOpenChange(false);
       resetForm();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const resetForm = () => setForm({
     paciente_id: "", profissional_id: "", matricula_id: "",
-    tipo_atendimento: "pilates", dia_semana: [], hora_preferida_inicio: "", hora_preferida_fim: "", observacoes: "",
+    tipo_atendimento: "", dia_semana: [], hora_preferida_inicio: "", hora_preferida_fim: "", observacoes: "",
   });
 
   const toggleDay = (day: number) => {
@@ -121,7 +128,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
             <Select value={form.paciente_id} onValueChange={(v) => setForm({ ...form, paciente_id: v, matricula_id: "" })}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
-                {pacientes.map((p: any) => (
+                {pacientes.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                 ))}
               </SelectContent>
@@ -134,7 +141,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
               <Select value={form.matricula_id} onValueChange={(v) => setForm({ ...form, matricula_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione a matrícula..." /></SelectTrigger>
                 <SelectContent>
-                  {matriculas.map((m: any) => (
+                  {matriculas.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.tipo_atendimento} - R$ {Number(m.valor_mensal).toFixed(2)}
                     </SelectItem>
@@ -149,7 +156,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
             <Select value={form.profissional_id} onValueChange={(v) => setForm({ ...form, profissional_id: v })}>
               <SelectTrigger><SelectValue placeholder="Qualquer profissional" /></SelectTrigger>
               <SelectContent>
-                {profissionais.map((p: any) => (
+                {profissionais.map((p) => (
                   <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
                 ))}
               </SelectContent>
@@ -159,11 +166,11 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
           <div className="space-y-2">
             <Label>Modalidade</Label>
             <Select value={form.tipo_atendimento} onValueChange={(v) => setForm({ ...form, tipo_atendimento: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecione a modalidade..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="pilates">Pilates</SelectItem>
-                <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
-                <SelectItem value="rpg">RPG</SelectItem>
+                {modalidades.filter(m => m.ativo).map((m) => (
+                  <SelectItem key={m.id} value={m.nome.toLowerCase()}>{m.nome}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -19,7 +19,7 @@ const ListaEspera = () => {
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["lista-espera"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("lista_espera") as any)
+      const { data, error } = await supabase.from("lista_espera")
         .select("*, pacientes(nome, telefone), matriculas(tipo_atendimento, status)")
         .order("created_at", { ascending: true });
       if (error) throw error;

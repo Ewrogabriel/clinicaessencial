@@ -198,18 +198,19 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const freqLabel = freqSemanal === 1 ? "1x" : freqSemanal === 2 ? "2x" : freqSemanal === 3 ? "3x" : `${freqSemanal}x`;
 
   const fetchPacientes = async () => {
-    const { data } = await (supabase.from("pacientes") as any)
+    const { data } = await supabase.from("pacientes")
       .select("id, nome")
       .eq("status", "ativo")
       .order("nome");
-    setPacientes(data ?? []);
+    setPacientes((data ?? []) as Paciente[]);
   };
 
   const fetchProfissionais = async () => {
-    const { data } = await (supabase.from("profiles") as any)
-      .select("id, user_id, nome")
-      .order("nome");
-    setProfissionais(data ?? []);
+    const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+    const ids = (roles || []).map(r => r.user_id);
+    if (!ids.length) { setProfissionais([]); return; }
+    const { data } = await supabase.from("profiles").select("id, user_id, nome").in("user_id", ids).order("nome");
+    setProfissionais((data ?? []) as Profissional[]);
   };
 
   const fetchModalidades = async () => {

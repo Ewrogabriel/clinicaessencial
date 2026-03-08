@@ -36,7 +36,7 @@ const Contratos = () => {
     queryKey: ["pacientes-contrato"],
     queryFn: async () => {
       if (isPatient && patientId) {
-        const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("id", patientId) as any;
+        const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("id", patientId);
         return data ?? [];
       }
       const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("status", "ativo").order("nome");
@@ -47,7 +47,7 @@ const Contratos = () => {
   const { data: planos = [] } = useQuery({
     queryKey: ["precos-planos-contrato"],
     queryFn: async () => {
-      const { data } = await supabase.from("precos_planos").select("*").eq("ativo", true).order("nome") as any;
+      const { data } = await supabase.from("precos_planos").select("*").eq("ativo", true).order("nome");
       return data ?? [];
     },
   });
@@ -91,8 +91,8 @@ const Contratos = () => {
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
       if (!selectedPaciente) return null;
-      const query = supabase.from("descontos_pacientes").select("percentual_desconto, motivo").eq("paciente_id", selectedPaciente).eq("ativo", true) as any;
-      if (selectedPlano) query.eq("preco_plano_id", selectedPlano);
+      let query = supabase.from("descontos_pacientes").select("percentual_desconto, motivo").eq("paciente_id", selectedPaciente).eq("ativo", true);
+      if (selectedPlano) query = query.eq("preco_plano_id", selectedPlano);
       const { data } = await query.maybeSingle();
       return data;
     },
