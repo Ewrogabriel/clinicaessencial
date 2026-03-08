@@ -505,6 +505,7 @@ const PatientDashboard = () => {
             pagamentosSessoes={pagamentosSessoes}
             formasPagamento={formasPagamento}
             configPixMap={configPixMap}
+            matriculaPayments={matriculaPayments}
           />
         </TabsContent>
 
