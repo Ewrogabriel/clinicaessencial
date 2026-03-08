@@ -241,7 +241,22 @@ export function AppointmentDetailDialog({
 
         <Separator />
 
-        {/* Quick Navigation */}
+        {/* Teleconsulta */}
+        {canAct && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+            <Video className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs font-medium flex-1">Teleconsulta</span>
+            <TeleconsultaButton
+              agendamentoId={ag.id}
+              pacienteNome={pacienteNome}
+              profissionalNome={profNome}
+              dataHorario={ag.data_horario}
+              compact
+            />
+          </div>
+        )}
+
+        <Separator />
         {!isPatient && (
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => { onOpenChange(false); navigate(`/pacientes/${ag.paciente_id}/detalhes`); }}>
