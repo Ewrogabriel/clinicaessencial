@@ -96,7 +96,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
     const { data: attachments = [] } = useQuery({
         queryKey: ["attachments-evol", pacienteId],
         queryFn: async () => {
-            const { data } = await (supabase.from("patient_attachments") as any)
+            const { data } = await supabase.from("patient_attachments")
                 .select("file_name, file_type, descricao")
                 .eq("paciente_id", pacienteId)
                 .limit(20);
