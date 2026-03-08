@@ -293,7 +293,36 @@ export function CommissionExtract() {
   const summary = calcSummary();
   const totalComissoes = summary.reduce((s, item) => s + item.comissao, 0);
 
-  // Close commission mutation
+  // Per-session commission detail calculator
+  const getSessionCommission = (profId: string, atendimento: any) => {
+    const prof = profissionais.find((p: any) => p.user_id === profId);
+    const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
+    let valorSessao = Number(atendimento.valor_sessao || 0);
+    if (valorSessao === 0 && atendimento.observacoes?.startsWith("plano:")) {
+      const planoId = atendimento.observacoes.replace("plano:", "").trim();
+      const plano = planosData.find((pl: any) => pl.id === planoId);
+      if (plano && plano.total_sessoes > 0) valorSessao = Number(plano.valor) / plano.total_sessoes;
+    }
+    let percentual = 0;
+    let fixo = 0;
+    let comissao = 0;
+    if (profRegras.length > 0) {
+      const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === atendimento.tipo_atendimento)
+        || profRegras.find((r: any) => r.tipo_atendimento === "geral");
+      if (tipoRegra) {
+        percentual = Number(tipoRegra.percentual || 0);
+        fixo = Number(tipoRegra.valor_fixo || 0);
+        comissao = (valorSessao * percentual / 100) + fixo;
+      }
+    } else if (prof) {
+      percentual = Number(prof.commission_rate || 0);
+      fixo = Number(prof.commission_fixed || 0);
+      comissao = (valorSessao * percentual / 100) + fixo;
+    }
+    return { valorSessao, percentual, fixo, comissao };
+  };
+
+
   const closeMutation = useMutation({
     mutationFn: async (prof: ProfSummary) => {
       if (!user) throw new Error("Não autenticado");
