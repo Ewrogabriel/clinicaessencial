@@ -48,6 +48,7 @@ const Pacientes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeClinicId } = useClinic();
+  const { isAtLimit: pacienteLimitReached } = usePlanLimitCheck("pacientes");
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
