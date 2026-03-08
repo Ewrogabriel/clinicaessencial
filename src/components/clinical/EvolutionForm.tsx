@@ -158,7 +158,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
         mutationFn: async () => {
             if (!user) throw new Error("Usuário não autenticado");
 
-            const { error } = await (supabase.from("evolutions") as any).insert({
+            const { error } = await supabase.from("evolutions").insert({
                 clinic_id: activeClinicId,
                 paciente_id: pacienteId,
                 profissional_id: user.id,

@@ -40,7 +40,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
         mutationFn: async () => {
             if (!user) throw new Error("Usuário não autenticado");
 
-            const { error } = await (supabase.from("evaluations") as any).insert({
+            const { error } = await supabase.from("evaluations").insert({
                 clinic_id: activeClinicId,
                 paciente_id: pacienteId,
                 profissional_id: user.id,

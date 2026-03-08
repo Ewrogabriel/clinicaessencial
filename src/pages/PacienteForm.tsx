@@ -421,7 +421,7 @@ const PacienteForm = () => {
 
         // Link patient to active clinic
         if (activeClinicId && savedPatientId) {
-          await (supabase.from("clinic_pacientes") as any).insert({
+          await supabase.from("clinic_pacientes").insert({
             clinic_id: activeClinicId,
             paciente_id: savedPatientId,
           });

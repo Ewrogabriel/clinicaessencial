@@ -80,18 +80,18 @@ const PacienteDetalhes = () => {
             if (error) throw error;
             
             // Fetch profissional names
-            const profIds = [...new Set((data || []).map((e: any) => e.profissional_id))] as string[];
+            const profIds = [...new Set((data || []).map((e) => e.profissional_id))] as string[];
             let profMap: Record<string, string> = {};
             if (profIds.length > 0) {
-              const { data: profs } = await (supabase
+              const { data: profs } = await supabase
                 .from("profiles")
                 .select("user_id, nome")
-                .in("user_id", profIds) as any);
+                .in("user_id", profIds);
               if (profs) {
-                profMap = Object.fromEntries(profs.map((p: any) => [p.user_id, p.nome]));
+                profMap = Object.fromEntries(profs.map((p) => [p.user_id, p.nome]));
               }
             }
-            return (data || []).map((e: any) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "—" }));
+            return (data || []).map((e) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "—" }));
         },
         enabled: !!id,
     });

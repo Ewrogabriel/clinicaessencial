@@ -25,7 +25,7 @@ export default function PacienteAccess() {
       const cleanCode = codigoAcesso.trim().toUpperCase();
       
       // Find patient by access code
-      const { data: pacientes, error: searchError } = await (supabase.from("pacientes") as any)
+      const { data: pacientes, error: searchError } = await supabase.from("pacientes")
         .select("id, nome, cpf")
         .eq("codigo_acesso", cleanCode);
       

@@ -27,7 +27,7 @@ export function useCrossBookingClinics(clinicId: string | null) {
         .in("group_id", groupIds)
         .eq("cross_booking_enabled", true);
 
-      const clinicIds = [...new Set((linkedMembers || []).map((m: any) => m.clinic_id))];
+      const clinicIds = [...new Set((linkedMembers || []).map((m) => m.clinic_id))];
       return clinicIds.length > 0 ? clinicIds : [clinicId];
     },
     enabled: !!clinicId,

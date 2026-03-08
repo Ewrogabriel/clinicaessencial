@@ -130,8 +130,8 @@ const Automacoes = () => {
     queryKey: ["automation-upcoming-appointments"],
     queryFn: async () => {
       const now = new Date().toISOString();
-      const { data, error } = await (supabase.from("agendamentos") as any)
-        .select("id, paciente_id, data_horario, profissional_id, profiles:profissional_id(nome)")
+      const { data, error } = await supabase.from("agendamentos")
+        .select("id, paciente_id, data_horario, profissional_id")
         .gte("data_horario", now)
         .in("status", ["agendado", "confirmado"])
         .order("data_horario", { ascending: true });

@@ -153,7 +153,7 @@ const Produtos = () => {
       const produto = produtos.find((p: any) => p.id === stockData.produto_id);
       if (!produto) throw new Error("Produto não encontrado");
       const qty = parseInt(stockData.quantidade) || 0;
-      const { error } = await (supabase.from("entradas_estoque") as any).insert({
+      const { error } = await supabase.from("entradas_estoque").insert({
         produto_id: stockData.produto_id,
         quantidade: qty,
         data_entrada: stockData.data_entrada,

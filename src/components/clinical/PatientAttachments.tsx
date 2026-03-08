@@ -104,7 +104,7 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
           .upload(filePath, file);
         if (uploadError) throw uploadError;
 
-        const { error: dbError } = await (supabase
+        const { error: dbError } = await supabase
           .from("patient_attachments")
           .insert({
             paciente_id: pacienteId,
@@ -114,7 +114,7 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
             file_type: file.type,
             file_size: file.size,
             descricao: descricao.trim() || null,
-          }) as any);
+          });
         if (dbError) throw dbError;
       }
 

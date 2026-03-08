@@ -71,7 +71,7 @@ export function AIClinicalAssistant({ pacienteId, modalidade }: AIClinicalAssist
   const { data: attachments = [] } = useQuery({
     queryKey: ["attachments-ai", pacienteId],
     queryFn: async () => {
-      const { data } = await (supabase.from("patient_attachments") as any)
+      const { data } = await supabase.from("patient_attachments")
         .select("file_name, file_type, descricao, created_at")
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false })
