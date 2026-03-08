@@ -320,7 +320,7 @@ const PacienteForm = () => {
     setLoading(true);
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         nome,
         cpf: cpf || null,
         rg: rg || null,
