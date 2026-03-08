@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DollarSign, QrCode } from "lucide-react";
+import { DollarSign, QrCode, Receipt } from "lucide-react";
 
 interface PatientFinanceTabProps {
   pendencias: any[];
@@ -11,14 +11,51 @@ interface PatientFinanceTabProps {
   pagamentosSessoes: any[];
   formasPagamento: any[];
   configPixMap: Record<string, any>;
+  matriculaPayments?: any[];
 }
 
 export const PatientFinanceTab = ({
   pendencias, pagamentosMensalidade, pagamentosSessoes,
-  formasPagamento, configPixMap
+  formasPagamento, configPixMap, matriculaPayments = []
 }: PatientFinanceTabProps) => {
   return (
     <div className="space-y-4">
+      {/* Matrícula Payments */}
+      {matriculaPayments.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" />
+              Mensalidades da Matrícula
+            </CardTitle>
+            <CardDescription>Acompanhe o status das suas mensalidades</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {matriculaPayments.map((p: any) => (
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <p className="text-sm font-medium capitalize">
+                      {format(new Date(p.mes_referencia + "T12:00:00"), "MMMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      R$ {Number(p.valor).toFixed(2)}
+                      {p.data_pagamento && ` • Pago em ${format(new Date(p.data_pagamento), "dd/MM/yyyy")}`}
+                    </p>
+                  </div>
+                  <Badge variant={
+                    p.status === "pago" ? "default" :
+                    p.status === "aberto" ? "destructive" : "outline"
+                  }>
+                    {p.status === "pago" ? "Pago" : p.status === "aberto" ? "Em Aberto" : p.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Pendências gerais */}
       {pendencias.length > 0 && (
         <Card className="border-destructive/30">
@@ -56,10 +93,10 @@ export const PatientFinanceTab = ({
 
       {/* Mensalidades + Sessões abertas com formas de pagamento */}
       {(pagamentosMensalidade.length > 0 || pagamentosSessoes.length > 0) && formasPagamento.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50/30">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-orange-600" />
+              <DollarSign className="h-5 w-5 text-primary" />
               Formas de Pagamento
             </CardTitle>
             <CardDescription>Escolha como deseja realizar o pagamento</CardDescription>
@@ -73,7 +110,7 @@ export const PatientFinanceTab = ({
                 </div>
                 <div className="space-y-2">
                   {pagamentosMensalidade.map((pag: any) => (
-                    <div key={pag.id} className="p-3 rounded-lg border bg-background flex items-center justify-between">
+                    <div key={pag.id} className="p-3 rounded-lg border bg-card flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">{format(new Date(pag.mes_referencia), "MMMM 'de' yyyy", { locale: ptBR })}</p>
                         <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
@@ -93,7 +130,7 @@ export const PatientFinanceTab = ({
                 </div>
                 <div className="space-y-2">
                   {pagamentosSessoes.slice(0, 3).map((pag: any) => (
-                    <div key={pag.id} className="p-3 rounded-lg border bg-background flex items-center justify-between">
+                    <div key={pag.id} className="p-3 rounded-lg border bg-card flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium">Sessão</p>
                         <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
@@ -115,19 +152,19 @@ export const PatientFinanceTab = ({
                   const pixConfig = configPixMap[forma.id];
                   return (
                     <button key={forma.id}
-                      className="p-4 rounded-lg border border-orange-200 bg-background hover:bg-orange-50 hover:border-orange-400 transition-colors text-left">
+                      className="p-4 rounded-lg border bg-card hover:bg-accent hover:border-primary/50 transition-colors text-left">
                       <div className="flex items-start justify-between mb-2">
                         <h5 className="font-semibold text-sm">{forma.nome}</h5>
-                        {forma.tipo === "pix" && <QrCode className="h-4 w-4 text-orange-600" />}
+                        {forma.tipo === "pix" && <QrCode className="h-4 w-4 text-primary" />}
                       </div>
                       {forma.descricao && <p className="text-xs text-muted-foreground mb-2">{forma.descricao}</p>}
                       {forma.tipo === "pix" && pixConfig && (
-                        <div className="bg-blue-50 rounded p-2 text-xs space-y-1">
-                          <p className="text-blue-900"><strong>Chave PIX:</strong> {pixConfig.chave_pix}</p>
-                          <p className="text-blue-900"><strong>Beneficiário:</strong> {pixConfig.nome_beneficiario}</p>
+                        <div className="bg-muted rounded p-2 text-xs space-y-1">
+                          <p><strong>Chave PIX:</strong> {pixConfig.chave_pix}</p>
+                          <p><strong>Beneficiário:</strong> {pixConfig.nome_beneficiario}</p>
                         </div>
                       )}
-                      <Button size="sm" className="w-full mt-3 bg-orange-600 hover:bg-orange-700">
+                      <Button size="sm" className="w-full mt-3">
                         Pagar com {forma.nome}
                       </Button>
                     </button>
@@ -139,10 +176,10 @@ export const PatientFinanceTab = ({
         </Card>
       )}
 
-      {pendencias.length === 0 && pagamentosMensalidade.length === 0 && pagamentosSessoes.length === 0 && (
+      {pendencias.length === 0 && pagamentosMensalidade.length === 0 && pagamentosSessoes.length === 0 && matriculaPayments.length === 0 && (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200 mb-2">Em dia</Badge>
+            <Badge variant="outline" className="border-green-300 text-green-700 mb-2">Em dia</Badge>
             <p className="text-sm">Nenhuma pendência financeira.</p>
           </CardContent>
         </Card>

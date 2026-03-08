@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign } from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -35,13 +35,6 @@ type Credit = {
     generated_from_session_id: string;
 };
 
-type CommissionSplit = {
-    id: string;
-    professional_id: string;
-    commission_value: number;
-    profiles?: { nome: string };
-};
-
 const SESSION_STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     agendado: { label: "Agendado", variant: "secondary" },
     confirmado: { label: "Confirmado", variant: "default" },
@@ -56,6 +49,7 @@ type Props = {
         id: string;
         valor_mensal: number;
         paciente_id: string;
+        tipo_atendimento?: string;
         pacientes?: { nome: string };
     };
 };
@@ -67,7 +61,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
     const [activeTab, setActiveTab] = useState("sessions");
     const [rescheduleSession, setRescheduleSession] = useState<Session | null>(null);
 
-    // Sessions (agendamentos linked to this enrollment)
+    // Sessions
     const { data: sessions = [], isLoading: loadingSessions } = useQuery({
         queryKey: ["enrollment-sessions", enrollment.id],
         queryFn: async () => {
@@ -80,7 +74,6 @@ export function EnrollmentDetails({ enrollment }: Props) {
             if (sErr) throw sErr;
             if (!agendamentos || agendamentos.length === 0) return [];
 
-            // Fetch professionals to map names
             const { data: profs } = await supabase.from("profiles").select("user_id, nome");
 
             return agendamentos.map(s => ({
@@ -104,18 +97,82 @@ export function EnrollmentDetails({ enrollment }: Props) {
         },
     });
 
-    // Commission splits for this enrollment's sessions
-    const { data: commissions = [], isLoading: loadingComm } = useQuery({
-        queryKey: ["enrollment-commissions", enrollment.id],
+    // Predicted commissions from regras_comissao
+    const { data: predictedCommissions = [] } = useQuery({
+        queryKey: ["predicted-commissions", enrollment.id],
         queryFn: async () => {
-            const sessionIds = sessions.map((s) => s.id);
-            if (sessionIds.length === 0) return [];
-            const { data, error } = await (supabase as any)
-                .from("commission_splits")
-                .select("*, profiles:professional_id(nome)")
-                .in("session_id", sessionIds);
-            if (error) throw error;
-            return data as CommissionSplit[];
+            // Get unique professional IDs from sessions
+            const profIds = [...new Set(sessions.map(s => s.profissional_id))];
+            if (profIds.length === 0) return [];
+
+            // Fetch commission rules for these professionals
+            const { data: regras } = await supabase
+                .from("regras_comissao")
+                .select("*")
+                .in("profissional_id", profIds)
+                .eq("ativo", true);
+
+            // Fetch profiles for fallback rates
+            const { data: profiles } = await supabase
+                .from("profiles")
+                .select("user_id, nome, commission_rate, commission_fixed")
+                .in("user_id", profIds);
+
+            const tipoAtendimento = enrollment.tipo_atendimento || "pilates";
+
+            return profIds.map(profId => {
+                const prof = profiles?.find(p => p.user_id === profId);
+                const profName = prof?.nome || "—";
+
+                // Find specific rule for this tipo_atendimento
+                const regraEspecifica = (regras || []).find(
+                    r => r.profissional_id === profId && r.tipo_atendimento.toLowerCase() === tipoAtendimento.toLowerCase()
+                );
+                // Fallback to generic rule
+                const regraGenerica = (regras || []).find(
+                    r => r.profissional_id === profId && r.tipo_atendimento === "todos"
+                );
+                const regra = regraEspecifica || regraGenerica;
+
+                // Count sessions for this professional
+                const profSessions = sessions.filter(s => s.profissional_id === profId);
+                const totalSessoes = profSessions.length;
+                const sessoesRealizadas = profSessions.filter(s => s.status === "realizado").length;
+                const sessoesPendentes = profSessions.filter(s => ["agendado", "confirmado"].includes(s.status)).length;
+
+                // Calculate commission per session
+                let commissionPerSession = 0;
+                if (regra) {
+                    if (regra.valor_fixo && regra.valor_fixo > 0) {
+                        commissionPerSession = regra.valor_fixo;
+                    } else if (regra.percentual && regra.percentual > 0) {
+                        const valorSessao = totalSessoes > 0 ? enrollment.valor_mensal / totalSessoes : 0;
+                        commissionPerSession = (valorSessao * regra.percentual) / 100;
+                    }
+                } else if (prof?.commission_rate) {
+                    const valorSessao = totalSessoes > 0 ? enrollment.valor_mensal / totalSessoes : 0;
+                    commissionPerSession = (valorSessao * prof.commission_rate) / 100;
+                } else if (prof?.commission_fixed) {
+                    commissionPerSession = prof.commission_fixed;
+                }
+
+                const totalPrevisto = commissionPerSession * totalSessoes;
+                const totalRealizado = commissionPerSession * sessoesRealizadas;
+                const totalPendente = commissionPerSession * sessoesPendentes;
+
+                return {
+                    profissional_id: profId,
+                    nome: profName,
+                    tipo_regra: regra ? (regra.valor_fixo && regra.valor_fixo > 0 ? "Valor fixo" : "Percentual") : (prof?.commission_fixed ? "Fixo (perfil)" : "% (perfil)"),
+                    valor_por_sessao: commissionPerSession,
+                    total_sessoes: totalSessoes,
+                    sessoes_realizadas: sessoesRealizadas,
+                    sessoes_pendentes: sessoesPendentes,
+                    total_previsto: totalPrevisto,
+                    total_realizado: totalRealizado,
+                    total_pendente: totalPendente,
+                };
+            });
         },
         enabled: sessions.length > 0,
     });
@@ -155,12 +212,11 @@ export function EnrollmentDetails({ enrollment }: Props) {
                 .eq("id", sessionId);
             if (error) throw error;
 
-            // If approved, generate credit
             if (action === "approved") {
                 const session = sessions.find((s) => s.id === sessionId);
                 if (session) {
                     const expDate = new Date();
-                    expDate.setDate(expDate.getDate() + 30); // default 30 days
+                    expDate.setDate(expDate.getDate() + 30);
                     await (supabase as any).from("reschedule_credits").insert({
                         enrollment_id: enrollment.id,
                         generated_from_session_id: sessionId,
@@ -175,16 +231,6 @@ export function EnrollmentDetails({ enrollment }: Props) {
             queryClient.invalidateQueries({ queryKey: ["enrollment-credits", enrollment.id] });
             toast({ title: vars.action === "approved" ? "Justificativa aprovada. Crédito gerado!" : "Justificativa negada." });
         },
-    });
-
-    // Group commissions by professional
-    const commissionByProfessional: Record<string, { nome: string; total: number }> = {};
-    commissions.forEach((c) => {
-        const id = c.professional_id;
-        if (!commissionByProfessional[id]) {
-            commissionByProfessional[id] = { nome: c.profiles?.nome || "—", total: 0 };
-        }
-        commissionByProfessional[id].total += c.commission_value;
     });
 
     return (
@@ -211,19 +257,19 @@ export function EnrollmentDetails({ enrollment }: Props) {
                 </Card>
                 <Card className="p-3">
                     <div className="flex gap-2 items-center">
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                         <div>
                             <div className="text-xs text-muted-foreground">Canceladas</div>
-                            <div className="text-lg font-bold text-red-600">{canceledSessions}</div>
+                            <div className="text-lg font-bold text-destructive">{canceledSessions}</div>
                         </div>
                     </div>
                 </Card>
                 <Card className="p-3">
                     <div className="flex gap-2 items-center">
-                        <DollarSign className="h-4 w-4 text-blue-500" />
+                        <DollarSign className="h-4 w-4 text-primary" />
                         <div>
                             <div className="text-xs text-muted-foreground">Valor/Sessão</div>
-                            <div className="text-lg font-bold text-blue-600">R$ {sessionValue}</div>
+                            <div className="text-lg font-bold text-primary">R$ {sessionValue}</div>
                         </div>
                     </div>
                 </Card>
@@ -272,7 +318,6 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                             </TableCell>
                                             <TableCell className="text-sm">R$ {(s.valor_sessao || 0).toFixed(2)}</TableCell>
                                             <TableCell className="space-x-1">
-                                                {/* Reagendar: disponível para agendado/confirmado */}
                                                 {["agendado", "confirmado"].includes(s.status) && (
                                                     <Button size="sm" variant="outline" className="text-xs gap-1"
                                                         onClick={() => setRescheduleSession(s)}>
@@ -280,7 +325,6 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                                         Reagendar
                                                     </Button>
                                                 )}
-                                                {/* Admin: aprovar/negar justificativa */}
                                                 {isAdmin && s.justification_status === "pending" && (
                                                     <>
                                                         <Button size="sm" variant="outline" className="text-xs"
@@ -350,30 +394,78 @@ export function EnrollmentDetails({ enrollment }: Props) {
                     )}
                 </TabsContent>
 
-                {/* COMMISSIONS TAB */}
+                {/* COMMISSIONS TAB - Predicted */}
                 <TabsContent value="commissions" className="mt-3">
-                    {loadingComm ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">Carregando comissões...</p>
-                    ) : Object.keys(commissionByProfessional).length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma comissão calculada para esta matrícula.</p>
+                    {predictedCommissions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                            Nenhuma comissão prevista. Verifique se há regras de comissão configuradas para os profissionais.
+                        </p>
                     ) : (
-                        <div className="overflow-x-auto rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Profissional</TableHead>
-                                        <TableHead>Total Comissão</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(commissionByProfessional).map(([id, data]) => (
-                                        <TableRow key={id}>
-                                            <TableCell className="font-medium">{data.nome}</TableCell>
-                                            <TableCell className="text-green-600 font-semibold">R$ {data.total.toFixed(2)}</TableCell>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border text-sm">
+                                <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+                                <span className="text-muted-foreground">
+                                    Previsão de comissões com base nas regras configuradas. O pagamento efetivo é feito no módulo Financeiro.
+                                </span>
+                            </div>
+                            <div className="overflow-x-auto rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Profissional</TableHead>
+                                            <TableHead>Regra</TableHead>
+                                            <TableHead>R$/Sessão</TableHead>
+                                            <TableHead>Previsto</TableHead>
+                                            <TableHead>Realizado</TableHead>
+                                            <TableHead>Pendente</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {predictedCommissions.map((c: any) => (
+                                            <TableRow key={c.profissional_id}>
+                                                <TableCell className="font-medium">{c.nome}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-xs">{c.tipo_regra}</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-sm">R$ {c.valor_por_sessao.toFixed(2)}</TableCell>
+                                                <TableCell className="text-sm font-semibold">
+                                                    R$ {c.total_previsto.toFixed(2)}
+                                                    <span className="text-xs text-muted-foreground ml-1">({c.total_sessoes} sess.)</span>
+                                                </TableCell>
+                                                <TableCell className="text-sm font-semibold text-green-600">
+                                                    R$ {c.total_realizado.toFixed(2)}
+                                                    <span className="text-xs text-muted-foreground ml-1">({c.sessoes_realizadas})</span>
+                                                </TableCell>
+                                                <TableCell className="text-sm font-semibold text-amber-600">
+                                                    R$ {c.total_pendente.toFixed(2)}
+                                                    <span className="text-xs text-muted-foreground ml-1">({c.sessoes_pendentes})</span>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            {/* Totals */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <Card className="p-3 text-center">
+                                    <p className="text-xs text-muted-foreground">Total Previsto</p>
+                                    <p className="text-lg font-bold">
+                                        R$ {predictedCommissions.reduce((s: number, c: any) => s + c.total_previsto, 0).toFixed(2)}
+                                    </p>
+                                </Card>
+                                <Card className="p-3 text-center">
+                                    <p className="text-xs text-muted-foreground">Realizado</p>
+                                    <p className="text-lg font-bold text-green-600">
+                                        R$ {predictedCommissions.reduce((s: number, c: any) => s + c.total_realizado, 0).toFixed(2)}
+                                    </p>
+                                </Card>
+                                <Card className="p-3 text-center">
+                                    <p className="text-xs text-muted-foreground">Pendente</p>
+                                    <p className="text-lg font-bold text-amber-600">
+                                        R$ {predictedCommissions.reduce((s: number, c: any) => s + c.total_pendente, 0).toFixed(2)}
+                                    </p>
+                                </Card>
+                            </div>
                         </div>
                     )}
                 </TabsContent>

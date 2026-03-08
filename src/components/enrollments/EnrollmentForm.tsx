@@ -34,6 +34,7 @@ export type EnrollmentFormData = {
     desconto_tipo: string;
     observacoes: string;
     weekly_schedules: WeeklyScheduleEntry[];
+    preco_plano_id?: string;
 };
 
 const WEEKDAYS = [
@@ -69,6 +70,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
     const [newProfessional, setNewProfessional] = useState("");
     const [newDuration, setNewDuration] = useState("60");
     const [modalidades, setModalidades] = useState<{ id: string; nome: string }[]>([]);
+    const [precosPlanos, setPrecosPlanos] = useState<any[]>([]);
     const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
@@ -82,7 +84,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 newProfessional,
                 currentMonth.getFullYear(),
                 currentMonth.getMonth(),
-                newTime // Pass the specific time to filter availability
+                newTime
             );
             setMonthlyAvail(result);
         };
@@ -90,23 +92,39 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
     }, [newProfessional, currentMonth, newTime]);
 
     useEffect(() => {
-        const fetchModalidades = async () => {
-            const { data } = await supabase
-                .from("modalidades")
-                .select("id, nome")
-                .eq("ativo", true)
-                .order("nome");
-            setModalidades(data ?? []);
+        const fetchData = async () => {
+            const [modRes, planosRes] = await Promise.all([
+                supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome"),
+                supabase.from("precos_planos").select("*").eq("ativo", true).order("nome"),
+            ]);
+            setModalidades(modRes.data ?? []);
+            setPrecosPlanos(planosRes.data ?? []);
         };
-        fetchModalidades();
+        fetchData();
     }, []);
+
+    const handlePlanoChange = (planoId: string) => {
+        if (planoId === "manual") {
+            setFormData({ ...formData, preco_plano_id: undefined });
+            return;
+        }
+        const plano = precosPlanos.find((p: any) => p.id === planoId);
+        if (plano) {
+            setFormData({
+                ...formData,
+                preco_plano_id: planoId,
+                monthly_value: String(plano.valor),
+                tipo_atendimento: plano.modalidade?.toLowerCase() || formData.tipo_atendimento,
+            });
+        }
+    };
 
     const valor = parseFloat(formData.monthly_value) || 0;
     const desconto = parseFloat(formData.desconto) || 0;
     const desconto_valor = formData.desconto_tipo === "percentual" ? (valor * desconto) / 100 : desconto;
     const valor_final = valor - desconto_valor;
     const totalSessoes = formData.weekly_schedules.length > 0
-        ? Math.round(formData.weekly_schedules.length * 4.33) // avg weeks/month
+        ? Math.round(formData.weekly_schedules.length * 4.33)
         : 0;
     const valorPorSessao = totalSessoes > 0 ? (valor_final / totalSessoes).toFixed(2) : "0.00";
 
@@ -114,8 +132,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
         if (newWeekday === "" || !newTime || !newProfessional) return;
         const weekday = Number(newWeekday);
 
-        // Check for schedule conflicts
-        // First check if the professional already has this day/time in weekly_schedules
         const existingOnWeekday = formData.weekly_schedules.some(
             (s: WeeklyScheduleEntry) => s.weekday === weekday && s.professional_id === newProfessional
         );
@@ -129,29 +145,19 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
             return;
         }
 
-        // Check for time conflicts on the same day
         const timeConflict = formData.weekly_schedules.some((s: WeeklyScheduleEntry) => {
             if (s.weekday !== weekday) return false;
-            
-            const existingTime = s.time;
-            const existingStart = new Date(`2000-01-01T${existingTime}:00`);
+            const existingStart = new Date(`2000-01-01T${s.time}:00`);
             const existingEnd = new Date(existingStart.getTime() + s.session_duration * 60000);
-            
             const newStart = new Date(`2000-01-01T${newTime}:00`);
             const newEnd = new Date(newStart.getTime() + parseInt(newDuration) * 60000);
-            
-            // Check if there's a time overlap
-            if (existingStart < newEnd && newStart < existingEnd) {
-                return true;
-            }
-            
-            return false;
+            return existingStart < newEnd && newStart < existingEnd;
         });
 
         if (timeConflict) {
             toast({
                 title: "⚠️ Conflito de Horário",
-                description: "Existe conflito de horário com outra sessão. Sessões individuais não podem sobrepor outras sessões.",
+                description: "Existe conflito de horário com outra sessão.",
                 variant: "destructive"
             });
             return;
@@ -199,6 +205,32 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 </Select>
             </div>
 
+            {/* Plano */}
+            <div>
+                <Label>Plano / Tabela de Preços</Label>
+                <Select
+                    value={formData.preco_plano_id || "manual"}
+                    onValueChange={handlePlanoChange}
+                >
+                    <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione um plano ou defina manualmente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="manual">Definir valor manualmente</SelectItem>
+                        {precosPlanos.map((plano: any) => (
+                            <SelectItem key={plano.id} value={plano.id}>
+                                {plano.nome} — R$ {Number(plano.valor).toFixed(2)} ({plano.frequencia_semanal}x/sem • {plano.modalidade})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {formData.preco_plano_id && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                        ✅ Plano selecionado. O valor e modalidade foram preenchidos automaticamente.
+                    </p>
+                )}
+            </div>
+
             {/* Tipo + Due Day */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -237,7 +269,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                         step="0.01"
                         className="mt-1"
                         value={formData.monthly_value}
-                        onChange={(e) => setFormData({ ...formData, monthly_value: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, monthly_value: e.target.value, preco_plano_id: undefined })}
                         placeholder="0.00"
                     />
                 </div>
@@ -306,7 +338,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 </div>
             </div>
 
-            {/* Frequência Semanal com Múltiplos Profissionais */}
+            {/* Frequência Semanal */}
             <div className="space-y-3 border rounded-xl p-4">
                 <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">Frequência Semanal</Label>
