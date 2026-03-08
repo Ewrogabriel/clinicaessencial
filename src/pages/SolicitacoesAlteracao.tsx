@@ -1048,8 +1048,9 @@ const SolicitacoesAlteracao = () => {
                   <Button onClick={() => {
                     if (selectedType === "dados") aprovarDadosMutation.mutate(selected);
                     else if (selectedType === "reserva") aprovarReservaMutation.mutate(selected);
+                    else if (selectedType === "agendamento") aprovarAgendamentoMutation.mutate(selected);
                     else aprovarRemarcacaoMutation.mutate(selected);
-                  }} disabled={aprovarDadosMutation.isPending || aprovarRemarcacaoMutation.isPending || aprovarReservaMutation.isPending}>
+                  }} disabled={aprovarDadosMutation.isPending || aprovarRemarcacaoMutation.isPending || aprovarReservaMutation.isPending || aprovarAgendamentoMutation.isPending}>
                     <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
                   </Button>
                 </DialogFooter>
