@@ -187,7 +187,12 @@ const Comissoes = () => {
   if (isProfissional && !canManage) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Minhas Comissões</h1>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Minhas Comissões</h1>
+        </div>
 
         {minhasRegras.length > 0 && (
           <Card>
