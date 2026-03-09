@@ -531,6 +531,20 @@ const Dashboard = () => {
         </Card>
       )}
 
+      {/* AI KPI Insights */}
+      {(isAdmin || isGestor) && (
+        <AIKpiInsights 
+          kpiData={{
+            pacientesAtivos: pacientes.filter((p: any) => p.status === "ativo").length,
+            sessoesRealizadas: todayStats?.realizados || 0,
+            taxaFaltas: todayStats?.total ? Math.round((todayStats.faltas / todayStats.total) * 100) : 0,
+            faturamento: financeData?.receita || 0,
+            despesas: financeData?.custos || 0,
+            ocupacao: occupancyRate,
+          }}
+        />
+      )}
+
       {/* All Requests Card */}
       <RequestsCard />
 
