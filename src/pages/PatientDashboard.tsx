@@ -441,6 +441,42 @@ const PatientDashboard = () => {
       )}
 
 
+      {/* Exercise Plans Widget */}
+      {myExercisePlans.length > 0 && (
+        <Card className="border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Dumbbell className="h-4 w-4 text-primary" />
+              Meus Planos de Exercícios
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {myExercisePlans.map((plan: any) => (
+              <div key={plan.id} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{plan.titulo}</p>
+                    <p className="text-xs text-muted-foreground">{plan.duracao_semanas} semanas • {plan.exercicios_plano?.length || 0} exercícios</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">{plan.status}</Badge>
+                </div>
+                {plan.exercicios_plano?.slice(0, 3).map((ex: any, i: number) => (
+                  <div key={i} className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[10px] text-primary font-bold">{i + 1}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-foreground">{ex.nome}</span>
+                      {ex.series && <span className="ml-1">{ex.series}x{ex.repeticoes}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Dicas do Dia */}
       <DailyTipsCard tipo="paciente" />
 
