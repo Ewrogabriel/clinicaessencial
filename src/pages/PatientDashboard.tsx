@@ -294,8 +294,16 @@ const PatientDashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           {patientId && <FichaRequestButton pacienteId={patientId} />}
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+            const clinicName = clinicSettings?.nome || "nossa clínica";
+            const msg = `Olá! 😊 Quero indicar a ${clinicName} para você! Atendimento incrível em fisioterapia e pilates. Confira: ${window.location.origin}\n\nVocê vai adorar! 💪`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+          }}>
+            <Share2 className="h-4 w-4" /> Indicar Clínica
+          </Button>
+          <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
           <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
             <MessageCircle className="h-4 w-4" /> Suporte
           </Button>
