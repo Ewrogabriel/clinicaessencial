@@ -99,7 +99,7 @@ function ClinicsTab() {
       const vencimento = new Date();
       vencimento.setMonth(vencimento.getMonth() + 1);
 
-      await (supabase.from("clinic_subscriptions") as any).insert({
+      const { data: subscription } = await (supabase.from("clinic_subscriptions") as any).insert({
         clinic_id: clinic.id,
         plan_id: form.plan_id,
         responsavel_nome: form.responsavel_nome || null,
@@ -107,11 +107,63 @@ function ClinicsTab() {
         responsavel_telefone: form.responsavel_telefone || null,
         observacoes: form.observacoes || null,
         data_vencimento: vencimento.toISOString().split("T")[0],
-      });
+      }).select().single();
+
+      // Generate contract PDF if subscription created
+      if (subscription && plan) {
+        const contractData = {
+          clinicaNome: form.nome,
+          clinicaCNPJ: form.cnpj || "",
+          clinicaEndereco: form.endereco || "",
+          clinicaCidade: form.cidade || "",
+          clinicaEstado: form.estado || "",
+          responsavelNome: form.responsavel_nome || "",
+          responsavelEmail: form.responsavel_email || "",
+          responsavelTelefone: form.responsavel_telefone || "",
+          planoNome: plan.nome,
+          planoValor: Number(plan.valor_mensal),
+          recursos: plan.recursos_disponiveis || [],
+          dataContrato: format(new Date(), "dd/MM/yyyy", { locale: ptBR }),
+        };
+
+        const pdfDoc = await generateSubscriptionContractPDF(contractData);
+        pdfDoc.save(`Contrato_${form.nome.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`);
+      }
+    }
+
+    // Create admin user if provided
+    if (form.admin_email && form.admin_nome && clinic) {
+      try {
+        const { data, error: adminError } = await supabase.functions.invoke('create-clinic-admin', {
+          body: {
+            clinic_id: clinic.id,
+            admin_email: form.admin_email,
+            admin_nome: form.admin_nome,
+            clinic_nome: form.nome,
+          }
+        });
+
+        if (adminError) throw adminError;
+
+        if (data?.tempPassword) {
+          toast({
+            title: "Admin criado com sucesso! 🎉",
+            description: `Email: ${form.admin_email}\nSenha temporária: ${data.tempPassword}`,
+            duration: 10000,
+          });
+        }
+      } catch (adminError: any) {
+        console.error("Error creating admin:", adminError);
+        toast({
+          title: "Clínica criada, mas erro ao criar admin",
+          description: adminError.message,
+          variant: "destructive",
+        });
+      }
     }
 
     toast({ title: "Clínica criada com sucesso! ✅" });
-    setForm({ nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", telefone: "", whatsapp: "", email: "", instagram: "", responsavel_nome: "", responsavel_email: "", responsavel_telefone: "", plan_id: "", observacoes: "" });
+    setForm({ nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", telefone: "", whatsapp: "", email: "", instagram: "", responsavel_nome: "", responsavel_email: "", responsavel_telefone: "", plan_id: "", observacoes: "", admin_nome: "", admin_email: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
     queryClient.invalidateQueries({ queryKey: ["master-subscriptions"] });
