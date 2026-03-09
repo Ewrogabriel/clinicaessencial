@@ -430,19 +430,6 @@ export function EnrollmentAdminPanel() {
                 </CardContent>
             </Card>
 
-            {/* Regras de Comissão */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Percent className="h-4 w-4 text-primary" />
-                        Regras de Comissão por Profissional
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <CommissionRulesEditor />
-                </CardContent>
-            </Card>
-
             {/* Bloqueio de Matrículas */}
             <Card>
                 <CardHeader className="pb-3">
