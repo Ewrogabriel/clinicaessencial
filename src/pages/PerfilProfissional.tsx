@@ -192,7 +192,7 @@ const PerfilProfissional = () => {
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Telefone</Label>
+                <Label>{t("common.phone")}</Label>
                 <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
               </div>
               <div className="space-y-2">
