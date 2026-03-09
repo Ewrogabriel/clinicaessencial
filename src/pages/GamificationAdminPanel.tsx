@@ -377,6 +377,7 @@ export default function GamificationAdminPanel() {
 
         {/* ── GOALS TAB ── */}
         <TabsContent value="goals" className="space-y-4">
+          <AISuggestionsPanel tipo="profissional" />
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Metas ({goals.length})</h2>
             <Button onClick={() => openGoalDialog()}>
