@@ -273,7 +273,7 @@ const PerfilProfissional = () => {
           {aceitaDomiciliar && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t">
               <div className="space-y-2">
-                <Label>Raio de atendimento (km)</Label>
+                <Label>{t("profile.radius_km")}</Label>
                 <Input type="number" value={domiciliarRaioKm} onChange={(e) => setDomiciliarRaioKm(e.target.value)} placeholder="Ex: 15" />
               </div>
               <div className="space-y-2">
