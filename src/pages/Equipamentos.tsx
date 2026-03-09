@@ -193,6 +193,7 @@ export default function Equipamentos() {
                     <TableHead>{t("equip.brand")} / {t("equip.model")}</TableHead>
                     <TableHead>{t("equip.type")}</TableHead>
                     <TableHead className="text-center">{t("common.quantity")}</TableHead>
+                    <TableHead>{t("equip.value")}</TableHead>
                     <TableHead className="text-center">Estoque</TableHead>
                     <TableHead>{t("equip.next_review")}</TableHead>
                     <TableHead>{t("common.status")}</TableHead>
