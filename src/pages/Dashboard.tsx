@@ -517,6 +517,7 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {(isAdmin || isGestor) && <ClinicReportButton />}
+          <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
           <span className="inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">
             <Clock className="h-4 w-4 text-primary" />
             {format(currentTime, "HH:mm:ss")}
