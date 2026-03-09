@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.generate-manual]
 verify_jwt = false
+
+[functions.summarize-teleconsulta]
+verify_jwt = false
+
+[functions.ai-exercise-plan]
+verify_jwt = false
