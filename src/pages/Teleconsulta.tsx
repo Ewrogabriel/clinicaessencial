@@ -512,10 +512,45 @@ export default function Teleconsulta() {
         <div className="text-center space-y-3">
           <Video className="h-10 w-10 text-primary mx-auto animate-pulse" />
           <p className="text-muted-foreground">Carregando teleconsulta...</p>
-        </div>
       </div>
-    );
-  }
+
+      {/* Dialog de notas pós-consulta */}
+      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Finalizar Teleconsulta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Resumo Clínico (gerado por IA)</Label>
+              <div className="p-4 bg-muted rounded-lg text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
+                {clinicalSummary || "Nenhum resumo gerado ainda"}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações e Anotações Adicionais</Label>
+              <Textarea
+                id="notes"
+                placeholder="Adicione observações, orientações ou informações complementares..."
+                value={postConsultNotes}
+                onChange={(e) => setPostConsultNotes(e.target.value)}
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNotesDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEvolution} disabled={isSavingEvolution}>
+              {isSavingEvolution ? "Salvando..." : "Salvar no Prontuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
   if (!session) {
     return (
