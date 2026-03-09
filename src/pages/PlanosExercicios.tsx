@@ -15,12 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import {
   Dumbbell, Plus, Sparkles, Loader2, Trash2, Edit2, ChevronDown,
-  ChevronUp, Search, User, Target, Clock, ImageIcon,
+  ChevronUp, Search, User, Target, Clock, ImageIcon, FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePacientes } from "@/hooks/usePacientes";
+import jsPDF from "jspdf";
 
 interface Exercise {
   id?: string;
@@ -51,10 +52,25 @@ interface Plan {
 }
 
 export default function PlanosExercicios() {
-  const { user, profile, activeClinicId: clinicFromAuth } = useAuth() as any;
+  const { user, profile, isPatient, isProfissional, isAdmin, isGestor } = useAuth() as any;
   const { activeClinicId } = useClinic();
   const qc = useQueryClient();
   const { data: pacientesData = [] } = usePacientes();
+  const isStaff = isProfissional || isAdmin || isGestor;
+
+  // Get paciente record for patient users
+  const { data: patientRecord } = useQuery({
+    queryKey: ["my-patient-record", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pacientes")
+        .select("id")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id && isPatient,
+  });
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -81,18 +97,27 @@ export default function PlanosExercicios() {
     semanas: 4,
     observacoes: "",
     paciente_id: "",
+    tipo_plano: "fisioterapia",
   });
 
   const { data: plans = [], isLoading } = useQuery({
-    queryKey: ["planos-exercicios", activeClinicId],
+    queryKey: ["planos-exercicios", activeClinicId, patientRecord?.id, isPatient],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("planos_exercicios")
         .select("*, pacientes(nome), exercicios_plano(*)")
         .order("created_at", { ascending: false });
+
+      // Patients only see their own plans
+      if (isPatient && patientRecord?.id) {
+        query = query.eq("paciente_id", patientRecord.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: isPatient ? !!patientRecord?.id : true,
   });
 
   const savePlan = useMutation({
@@ -179,7 +204,7 @@ export default function PlanosExercicios() {
     setGeneratingAI(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-exercise-plan", {
-        body: aiForm,
+        body: { ...aiForm },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -277,25 +302,55 @@ export default function PlanosExercicios() {
       p.pacientes?.nome?.toLowerCase().includes(search.toLowerCase());
   });
 
+  const exportPlanPDF = (plan: Plan) => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(plan.titulo, 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Paciente: ${plan.pacientes?.nome || "—"}`, 14, 28);
+    doc.text(`Objetivo: ${plan.objetivo || "—"}`, 14, 34);
+    doc.text(`Duração: ${plan.duracao_semanas} semanas | Status: ${plan.status}`, 14, 40);
+    doc.text(`Criado em: ${format(new Date(plan.created_at), "dd/MM/yyyy", { locale: ptBR })}`, 14, 46);
+
+    let y = 56;
+    (plan.exercicios_plano || []).forEach((ex, idx) => {
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setFontSize(12);
+      doc.text(`${idx + 1}. ${ex.nome}`, 14, y); y += 6;
+      doc.setFontSize(9);
+      if (ex.descricao) { doc.text(`   Como executar: ${ex.descricao}`, 14, y); y += 5; }
+      doc.text(`   Séries: ${ex.series || "—"} | Rep.: ${ex.repeticoes || "—"} | Freq.: ${ex.frequencia || "—"}`, 14, y); y += 5;
+      if (ex.carga) { doc.text(`   Carga: ${ex.carga}`, 14, y); y += 5; }
+      if (ex.observacoes) { doc.text(`   Obs.: ${ex.observacoes}`, 14, y); y += 5; }
+      y += 4;
+    });
+
+    doc.save(`plano-${plan.titulo.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+    toast.success("PDF exportado!");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Dumbbell className="h-6 w-6 text-primary" /> Planos de Exercícios
+            <Dumbbell className="h-6 w-6 text-primary" />
+            {isPatient ? "Meus Planos de Exercícios" : "Planos de Exercícios"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Crie planos personalizados com auxílio de IA
+            {isPatient ? "Planos criados pelo seu profissional" : "Crie planos personalizados com auxílio de IA"}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(true)} className="gap-2">
-            <Sparkles className="h-4 w-4 text-primary" /> Gerar com IA
-          </Button>
-          <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Plano
-          </Button>
-        </div>
+        {isStaff && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(true)} className="gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Gerar com IA
+            </Button>
+            <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Plano
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="relative">
@@ -352,12 +407,19 @@ export default function PlanosExercicios() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(plan); }}>
-                      <Edit2 className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); exportPlanPDF(plan); }}>
+                      <FileDown className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); deletePlan.mutate(plan.id); }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {isStaff && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEdit(plan); }}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); deletePlan.mutate(plan.id); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 </div>
@@ -542,6 +604,21 @@ export default function PlanosExercicios() {
               </Select>
             </div>
             <div className="space-y-1.5">
+              <Label>Tipo de plano *</Label>
+              <Select value={aiForm.tipo_plano} onValueChange={(v) => setAiForm((f) => ({ ...f, tipo_plano: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
+                  <SelectItem value="pilates_aparelho">Pilates Aparelho (Reformer)</SelectItem>
+                  <SelectItem value="pilates_solo">Pilates Solo (Mat)</SelectItem>
+                  <SelectItem value="pilates_misto">Pilates Misto (Solo + Aparelho)</SelectItem>
+                  <SelectItem value="fortalecimento">Fortalecimento Muscular</SelectItem>
+                  <SelectItem value="alongamento">Alongamento e Flexibilidade</SelectItem>
+                  <SelectItem value="funcional">Treinamento Funcional</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>Objetivo principal *</Label>
               <Input value={aiForm.objetivo} onChange={(e) => setAiForm((f) => ({ ...f, objetivo: e.target.value }))}
                 placeholder="Ex: Fortalecimento lombar, reabilitação joelho..." />
@@ -553,13 +630,14 @@ export default function PlanosExercicios() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Nível</Label>
+                <Label>Nível do paciente</Label>
                 <Select value={aiForm.nivel} onValueChange={(v) => setAiForm((f) => ({ ...f, nivel: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="iniciante">Iniciante</SelectItem>
                     <SelectItem value="intermediario">Intermediário</SelectItem>
                     <SelectItem value="avancado">Avançado</SelectItem>
+                    <SelectItem value="adaptado">Adaptado (Restrições)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -570,9 +648,9 @@ export default function PlanosExercicios() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Observações adicionais</Label>
+              <Label>Observações para a IA</Label>
               <Textarea value={aiForm.observacoes} onChange={(e) => setAiForm((f) => ({ ...f, observacoes: e.target.value }))}
-                placeholder="Restrições, preferências, equipamentos disponíveis..." rows={2} />
+                placeholder="Ex: Exercícios no Reformer, sem carga em MMSS, foco em core, usar bola suíça..." rows={3} />
             </div>
           </div>
           <DialogFooter>
