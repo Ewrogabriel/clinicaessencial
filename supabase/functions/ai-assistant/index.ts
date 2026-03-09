@@ -20,7 +20,7 @@ serve(async (req) => {
 
     switch (action) {
       case "churn_reengagement":
-        systemPrompt = `Você é especialista em retenção de pacientes para clínicas de fisioterapia e pilates.
+        systemPrompt = `Você é especialista em retenção de pacientes para clínicas de saúde (fisioterapia, pilates, psicologia, nutrição, estética, etc).
 Analise os dados do paciente em risco de churn e sugira 3 ações personalizadas de reengajamento.
 Seja criativo, empático e específico. Considere promoções, mensagens personalizadas, ofertas especiais.`;
         userPrompt = `Paciente: ${context.nome}
