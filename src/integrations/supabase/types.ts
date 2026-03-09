@@ -3653,9 +3653,12 @@ export type Database = {
           id: string
           paciente_id: string
           profissional_id: string
+          resumo_clinico: string | null
+          resumo_gerado_em: string | null
           room_id: string
           started_at: string | null
           status: string
+          transcricao_bruta: string | null
           updated_at: string
           waiting_room_entered_at: string | null
         }
@@ -3669,9 +3672,12 @@ export type Database = {
           id?: string
           paciente_id: string
           profissional_id: string
+          resumo_clinico?: string | null
+          resumo_gerado_em?: string | null
           room_id: string
           started_at?: string | null
           status?: string
+          transcricao_bruta?: string | null
           updated_at?: string
           waiting_room_entered_at?: string | null
         }
@@ -3685,9 +3691,12 @@ export type Database = {
           id?: string
           paciente_id?: string
           profissional_id?: string
+          resumo_clinico?: string | null
+          resumo_gerado_em?: string | null
           room_id?: string
           started_at?: string | null
           status?: string
+          transcricao_bruta?: string | null
           updated_at?: string
           waiting_room_entered_at?: string | null
         }
