@@ -313,7 +313,7 @@ const DocumentosClinicos = () => {
       <Dialog open={isFormOpen} onOpenChange={(o) => { if (!o) resetForm(); }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingDoc ? "Editar Documento" : "Novo Documento Clínico"}</DialogTitle>
+            <DialogTitle>{editingDoc ? t("docs.edit") : t("docs.new_title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4">
