@@ -352,6 +352,7 @@ export type Database = {
           icone: string
           id: string
           meta: Json
+          metric_type: string
           pontos_recompensa: number
           tipo: string
           titulo: string
@@ -365,6 +366,7 @@ export type Database = {
           icone: string
           id?: string
           meta: Json
+          metric_type?: string
           pontos_recompensa?: number
           tipo: string
           titulo: string
@@ -378,6 +380,7 @@ export type Database = {
           icone?: string
           id?: string
           meta?: Json
+          metric_type?: string
           pontos_recompensa?: number
           tipo?: string
           titulo?: string
