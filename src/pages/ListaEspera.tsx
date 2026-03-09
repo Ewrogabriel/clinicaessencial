@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Clock, ArrowRightLeft, UserPlus } from "lucide-react";
 import WaitingListTab from "@/components/lista-espera/WaitingListTab";
 import AddEntryDialog from "@/components/lista-espera/AddEntryDialog";
+import { AIWaitingListPriority } from "@/components/lista-espera/AIWaitingListPriority";
 import { useClinic } from "@/hooks/useClinic";
 
 const ListaEspera = () => {
