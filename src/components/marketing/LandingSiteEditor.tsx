@@ -184,7 +184,7 @@ export function LandingSiteEditor() {
           <h3 className="text-lg font-semibold">Editor do Site de Vendas</h3>
           <p className="text-sm text-muted-foreground">Edite cada seção do site com auxílio da IA</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => <Button variant="outline" className="gap-2" onClick={() => window.open("/site", "_blank")}>}>
+        <Button variant="outline" className="gap-2" onClick={() => window.open("/site", "_blank")}>
           <ExternalLink className="h-4 w-4" /> Visualizar site
         </Button>
       </div>
