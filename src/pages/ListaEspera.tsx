@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Clock, ArrowRightLeft, UserPlus } from "lucide-react";
 import WaitingListTab from "@/components/lista-espera/WaitingListTab";
 import AddEntryDialog from "@/components/lista-espera/AddEntryDialog";
+import { AIWaitingListPriority } from "@/components/lista-espera/AIWaitingListPriority";
 import { useClinic } from "@/hooks/useClinic";
 
 const ListaEspera = () => {
@@ -49,6 +50,11 @@ const ListaEspera = () => {
           </p>
         </div>
       </div>
+
+      {/* AI Priority Panel */}
+      {canManage && entries.length > 0 && (
+        <AIWaitingListPriority waitingList={entries.filter((e: any) => e.status === "aguardando")} />
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">

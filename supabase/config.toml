@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.gamification-suggestions]
 verify_jwt = false
+
+[functions.ai-assistant]
+verify_jwt = false

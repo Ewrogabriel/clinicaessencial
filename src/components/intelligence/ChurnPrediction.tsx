@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, TrendingDown, MessageSquare, Eye } from "lucide-react";
+import { AIChurnSuggestions } from "./AIChurnSuggestions";
 import { format, subMonths, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -200,6 +201,9 @@ export function ChurnPrediction() {
                       Última sessão: {format(new Date(r.lastSession), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   )}
+                  
+                  {/* AI Suggestions */}
+                  <AIChurnSuggestions patient={r} />
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600"

@@ -38,6 +38,7 @@ import { UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { ClinicReportButton } from "@/components/reports/ClinicReportButton";
+import { AIKpiInsights } from "@/components/reports/AIKpiInsights";
 
 const tipoLabels: Record<string, string> = {
   fisioterapia: "Fisioterapia",
@@ -528,6 +529,20 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      )}
+
+      {/* AI KPI Insights */}
+      {(isAdmin || isGestor) && (
+        <AIKpiInsights 
+          kpiData={{
+            pacientesAtivos: pacientes.filter((p: any) => p.status === "ativo").length,
+            sessoesRealizadas: todayStats?.realizados || 0,
+            taxaFaltas: todayStats?.total ? Math.round((todayStats.faltas / todayStats.total) * 100) : 0,
+            faturamento: financeData?.receita || 0,
+            despesas: financeData?.custos || 0,
+            ocupacao: occupancyRate,
+          }}
+        />
       )}
 
       {/* All Requests Card */}

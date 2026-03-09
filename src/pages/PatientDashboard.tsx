@@ -22,6 +22,7 @@ import { usePatientFinance } from "@/hooks/usePatientFinance";
 import { usePatientProdutos } from "@/hooks/usePatientProdutos";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FichaRequestButton } from "@/components/patient/FichaRequestButton";
+import { PatientChatbot } from "@/components/patient/PatientChatbot";
 
 // Lazy load tab components
 const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTab").then(m => ({ default: m.PatientAgendaTab })));
@@ -509,6 +510,14 @@ const PatientDashboard = () => {
         onOpenChange={setIsRescheduleOpen}
         agendamento={rescheduleData}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["patient-solicitacoes"] })}
+      />
+
+      {/* AI Chatbot */}
+      <PatientChatbot
+        pacienteNome={paciente?.nome || profile?.nome || "Paciente"}
+        proximaConsulta={nextAgenda ? format(new Date(nextAgenda.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : undefined}
+        pendencias={pendenciasCount.length}
+        sessoesRestantes={sessoesRestantes}
       />
     </div>
   );
