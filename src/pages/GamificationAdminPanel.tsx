@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { Plus, Edit2, Trash2, Target, Trophy, Star, Users, User, Calendar, Activity, DollarSign, Clock, CheckCircle, TrendingUp, Dumbbell } from "lucide-react";
 import { toast } from "sonner";
 import { AISuggestionsPanel } from "@/components/gamification/AISuggestionsPanel";
+import { RewardsCatalogAdmin } from "@/components/gamification/RewardsCatalogAdmin";
 
 // ─────────────────────────────────────────────────────────────
 // METRIC DEFINITIONS — linked to real system data
@@ -364,7 +365,7 @@ export default function GamificationAdminPanel() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="goals" className="gap-2">
             <Target className="h-4 w-4" />
             Metas Profissionais
@@ -372,6 +373,10 @@ export default function GamificationAdminPanel() {
           <TabsTrigger value="challenges" className="gap-2">
             <Trophy className="h-4 w-4" />
             Desafios
+          </TabsTrigger>
+          <TabsTrigger value="rewards" className="gap-2">
+            <Star className="h-4 w-4" />
+            Recompensas
           </TabsTrigger>
         </TabsList>
 
@@ -551,6 +556,11 @@ export default function GamificationAdminPanel() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* ── REWARDS TAB ── */}
+        <TabsContent value="rewards" className="space-y-4">
+          <RewardsCatalogAdmin />
         </TabsContent>
       </Tabs>
 
