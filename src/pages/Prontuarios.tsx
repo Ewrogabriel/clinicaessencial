@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Stethoscope, User, ChevronRight } from "lucide-react";
+import { Search, Stethoscope, User, ChevronRight, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,6 +19,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const Prontuarios = () => {
+    const navigate = useNavigate();
+    const { activeClinicId } = useClinic();
+    const { isAdmin, isProfessional } = useAuth();
+    const [busca, setBusca] = useState("");
+
+    // Only admin and professionals can access this page
+    if (!isAdmin && !isProfessional) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted-foreground">
+                <ShieldAlert className="h-12 w-12 opacity-30" />
+                <p className="text-lg font-medium">Acesso restrito</p>
+                <p className="text-sm">Apenas profissionais e administradores podem acessar prontuários.</p>
+            </div>
+        );
+    }
     const navigate = useNavigate();
     const { activeClinicId } = useClinic();
     const [busca, setBusca] = useState("");
