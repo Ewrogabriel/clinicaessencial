@@ -61,6 +61,8 @@ export function MetasClinicaForm() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMeta, setEditingMeta] = useState<Meta | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   // Form state
   const [titulo, setTitulo] = useState("");
@@ -72,6 +74,26 @@ export function MetasClinicaForm() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [statusMeta, setStatusMeta] = useState("ativa");
+
+  const fetchAiSuggestions = async () => {
+    setLoadingAi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-goals-suggestions", {
+        body: { clinicId: activeClinicId }
+      });
+      if (error) throw error;
+      setAiSuggestions(data?.suggestions || []);
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar sugestões", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setTitulo(suggestion);
+    setAiSuggestions([]);
+  };
 
   const { data: metas = [], isLoading } = useQuery({
     queryKey: ["metas-clinica", activeClinicId],
