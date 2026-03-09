@@ -219,15 +219,15 @@ const PatientDashboard = () => {
   const planoVencimento = planoAtivo?.data_vencimento ? new Date(planoAtivo.data_vencimento) : null;
   const diasParaVencer = planoVencimento ? differenceInDays(planoVencimento, hoje) : null;
 
-  // Trending products: prioritize products the patient has reserved before, then fill with others
+  // Trending products: prioritize products the patient has reserved before
   const getTrendingProducts = () => {
-    const reservedProductIds = minhasReservas.map((r: any) => r.produto_id);
+    const reservedProductIds = produtosHook.minhasReservas.map((r: any) => r.produto_id);
     const reservedCount: Record<string, number> = {};
     reservedProductIds.forEach((id: string) => {
       reservedCount[id] = (reservedCount[id] || 0) + 1;
     });
 
-    const sorted = [...produtosDisponiveis].sort((a: any, b: any) => {
+    const sorted = [...produtosHook.produtosDisponiveis].sort((a: any, b: any) => {
       return (reservedCount[b.id] || 0) - (reservedCount[a.id] || 0);
     });
 
