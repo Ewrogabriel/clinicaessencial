@@ -563,6 +563,74 @@ const Marketing = () => {
             </div>
           )}
         </TabsContent>
+
+        {/* HISTORY TAB */}
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <History className="h-5 w-5" /> Campanhas Salvas
+              </CardTitle>
+              <CardDescription>Histórico de conteúdos gerados e salvos pela IA</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {savedCampaigns.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Nenhuma campanha salva ainda. Gere conteúdos nas abas acima e clique em "Salvar".
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {savedCampaigns.map((campaign: any) => (
+                    <Card key={campaign.id} className="border-border/50">
+                      <CardHeader className="py-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-sm">{campaign.titulo || "Campanha"}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {campaign.tipo === "clinic_ads" ? "Anúncios da Clínica" :
+                               campaign.tipo === "app_plans" ? "Venda de Planos" : "Posts Sociais"}
+                              {campaign.plataforma && ` • ${campaign.plataforma}`}
+                              {" • "}
+                              {new Date(campaign.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                            </CardDescription>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs"
+                              onClick={() => {
+                                const content = campaign.conteudo;
+                                if (campaign.tipo === "clinic_ads" || campaign.tipo === "app_plans") {
+                                  setClinicAds(content.ads || []);
+                                  setActiveTab(campaign.tipo === "clinic_ads" ? "clinic-ads" : "plan-ads");
+                                } else {
+                                  setSocialPosts(content.posts || []);
+                                  setActiveTab("social-posts");
+                                }
+                                toast({ title: "Campanha carregada!" });
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3" /> Ver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs text-destructive hover:text-destructive"
+                              onClick={() => deleteCampaign(campaign.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
