@@ -548,42 +548,26 @@ const PatientDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Section Cards Navigation */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[
-          { key: "agenda", label: "Agenda", icon: <Calendar className="h-5 w-5" />, color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400" },
-          { key: "financeiro", label: "Financeiro", icon: <DollarSign className="h-5 w-5" />, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400" },
-          { key: "produtos", label: "Produtos", icon: <ShoppingBag className="h-5 w-5" />, color: "text-purple-600 bg-purple-50 dark:bg-purple-950/30 dark:text-purple-400" },
-          { key: "conquistas", label: "Conquistas", icon: <Activity className="h-5 w-5" />, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400" },
-          { key: "info", label: "Informações", icon: <AlertCircle className="h-5 w-5" />, color: "text-rose-600 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400" },
-        ].map((item) => (
-          <Card
-            key={item.key}
-            className={`cursor-pointer transition-all hover:shadow-md border-2 ${activeTab === item.key ? "border-primary ring-1 ring-primary/20" : "border-transparent hover:border-muted-foreground/20"}`}
-            onClick={() => setActiveTab(item.key)}
-          >
-            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-              <div className={`rounded-full p-2.5 ${item.color}`}>
-                {item.icon}
-              </div>
-              <span className={`text-xs font-semibold ${activeTab === item.key ? "text-primary" : "text-muted-foreground"}`}>
-                {item.label}
-              </span>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       {/* Tab Content */}
       <Card>
         <CardContent className="p-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="hidden">
-              <TabsTrigger value="agenda">Agenda</TabsTrigger>
-              <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-              <TabsTrigger value="produtos">Produtos</TabsTrigger>
-              <TabsTrigger value="conquistas">Conquistas</TabsTrigger>
-              <TabsTrigger value="info">Info</TabsTrigger>
+            <TabsList className="w-full h-auto flex-wrap gap-1 bg-muted/50 p-1.5 rounded-lg grid grid-cols-3 sm:grid-cols-5">
+              <TabsTrigger value="agenda" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm py-2">
+                <Calendar className="h-4 w-4" /> Agenda
+              </TabsTrigger>
+              <TabsTrigger value="financeiro" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm py-2">
+                <DollarSign className="h-4 w-4" /> Financeiro
+              </TabsTrigger>
+              <TabsTrigger value="produtos" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm py-2">
+                <ShoppingBag className="h-4 w-4" /> Produtos
+              </TabsTrigger>
+              <TabsTrigger value="conquistas" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm py-2">
+                <Activity className="h-4 w-4" /> Conquistas
+              </TabsTrigger>
+              <TabsTrigger value="info" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm py-2">
+                <AlertCircle className="h-4 w-4" /> Info
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="agenda" className="mt-4">

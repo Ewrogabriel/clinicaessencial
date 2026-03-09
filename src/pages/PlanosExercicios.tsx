@@ -135,10 +135,29 @@ export default function PlanosExercicios() {
           await supabase.from("exercicios_plano").insert(exData);
         }
       }
+
+      // Send notification to patient when creating a new plan
+      if (!editingPlan && form.paciente_id) {
+        const { data: paciente } = await supabase
+          .from("pacientes")
+          .select("user_id, nome")
+          .eq("id", form.paciente_id)
+          .single();
+
+        if (paciente?.user_id) {
+          await supabase.from("notificacoes").insert({
+            user_id: paciente.user_id,
+            tipo: "plano_exercicio",
+            titulo: "Novo Plano de Exercícios",
+            resumo: `Seu profissional criou o plano "${form.titulo}" para você. Confira seus exercícios!`,
+            link: "/planos-exercicios",
+          });
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["planos-exercicios"] });
-      toast.success(editingPlan ? "Plano atualizado!" : "Plano criado!");
+      toast.success(editingPlan ? "Plano atualizado!" : "Plano criado com sucesso! O paciente foi notificado.");
       setDialogOpen(false);
       resetForm();
     },
