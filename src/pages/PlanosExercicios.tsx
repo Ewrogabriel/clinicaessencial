@@ -9,14 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Dumbbell, Plus, Sparkles, Loader2, Trash2, Edit2, ChevronDown,
-  ChevronUp, Search, User, Target, Clock,
+  ChevronUp, Search, User, Target, Clock, ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -34,6 +33,7 @@ interface Exercise {
   frequencia: string;
   observacoes: string;
   ordem?: number;
+  imagem_url?: string | null;
 }
 
 interface Plan {
@@ -62,8 +62,8 @@ export default function PlanosExercicios() {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [generatingImageIdx, setGeneratingImageIdx] = useState<number | null>(null);
 
-  // Form state
   const [form, setForm] = useState({
     paciente_id: "",
     titulo: "",
@@ -74,7 +74,6 @@ export default function PlanosExercicios() {
   });
   const [exercises, setExercises] = useState<Exercise[]>([]);
 
-  // AI form
   const [aiForm, setAiForm] = useState({
     objetivo: "",
     condicao: "",
@@ -115,9 +114,7 @@ export default function PlanosExercicios() {
         planId = data.id;
       }
 
-      // Save exercises
       if (planId) {
-        // Delete existing exercises if editing
         if (editingPlan) {
           await supabase.from("exercicios_plano").delete().eq("plano_id", planId);
         }
@@ -132,6 +129,7 @@ export default function PlanosExercicios() {
             tempo_execucao: ex.tempo_execucao,
             frequencia: ex.frequencia,
             observacoes: ex.observacoes,
+            imagem_url: ex.imagem_url || null,
             ordem: idx,
           }));
           await supabase.from("exercicios_plano").insert(exData);
@@ -187,6 +185,37 @@ export default function PlanosExercicios() {
     }
   };
 
+  const generateExerciseImage = async (idx: number) => {
+    const ex = exercises[idx];
+    if (!ex?.nome) {
+      toast.error("Preencha o nome do exercício primeiro.");
+      return;
+    }
+    setGeneratingImageIdx(idx);
+    try {
+      const prompt = `Create a clean, professional medical/physiotherapy illustration showing a person performing the exercise: "${ex.nome}". ${ex.descricao ? `Details: ${ex.descricao}.` : ""} Style: simple anatomical illustration, white background, clear body positioning, suitable for a clinical exercise plan. No text.`;
+
+      const { data, error } = await supabase.functions.invoke("ai-generate-image", {
+        body: { prompt },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data?.imageUrl) {
+        updateExercise(idx, "imagem_url", data.imageUrl);
+        toast.success("Imagem gerada!");
+      }
+    } catch (e: any) {
+      toast.error("Erro ao gerar imagem: " + e.message);
+    } finally {
+      setGeneratingImageIdx(null);
+    }
+  };
+
   const resetForm = () => {
     setForm({ paciente_id: "", titulo: "", descricao: "", objetivo: "", duracao_semanas: 4, status: "ativo" });
     setExercises([]);
@@ -211,6 +240,7 @@ export default function PlanosExercicios() {
     setExercises((prev) => [...prev, {
       nome: "", descricao: "", series: 3, repeticoes: "10-12",
       carga: "Peso corporal", tempo_execucao: "30s", frequencia: "3x/semana", observacoes: "",
+      imagem_url: null,
     }]);
   };
 
@@ -230,7 +260,6 @@ export default function PlanosExercicios() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -250,14 +279,12 @@ export default function PlanosExercicios() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar por título ou paciente..." value={search}
           onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      {/* Plans list */}
       <div className="space-y-3">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -327,6 +354,9 @@ export default function PlanosExercicios() {
                     <div className="grid gap-2 sm:grid-cols-2">
                       {(plan.exercicios_plano || []).map((ex, idx) => (
                         <div key={idx} className="bg-card border rounded-lg p-3 text-xs space-y-1">
+                          {ex.imagem_url && (
+                            <img src={ex.imagem_url} alt={ex.nome} className="w-full h-32 object-contain rounded mb-2 bg-muted/30" />
+                          )}
                           <p className="font-semibold text-sm">{ex.nome}</p>
                           {ex.descricao && <p className="text-muted-foreground">{ex.descricao}</p>}
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -357,7 +387,6 @@ export default function PlanosExercicios() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Patient */}
             <div className="space-y-1.5">
               <Label>Paciente *</Label>
               <Select value={form.paciente_id} onValueChange={(v) => setForm((f) => ({ ...f, paciente_id: v }))}>
@@ -404,10 +433,41 @@ export default function PlanosExercicios() {
                   <Card key={idx} className="p-3 bg-muted/30">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-medium text-muted-foreground">Exercício {idx + 1}</p>
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeExercise(idx)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          disabled={generatingImageIdx === idx || !ex.nome}
+                          onClick={() => generateExerciseImage(idx)}
+                        >
+                          {generatingImageIdx === idx ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <ImageIcon className="h-3 w-3" />
+                          )}
+                          {generatingImageIdx === idx ? "Gerando..." : "Gerar Imagem"}
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeExercise(idx)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
+                    {ex.imagem_url && (
+                      <div className="mb-2 relative">
+                        <img src={ex.imagem_url} alt={ex.nome} className="w-full h-36 object-contain rounded border bg-background" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => updateExercise(idx, "imagem_url", null)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="col-span-2">
                         <Input placeholder="Nome do exercício *" value={ex.nome}
