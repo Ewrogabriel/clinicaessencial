@@ -1462,6 +1462,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ficha_requests: {
+        Row: {
+          created_at: string
+          id: string
+          motivo_rejeicao: string | null
+          paciente_id: string
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          paciente_id: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          paciente_id?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficha_requests_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean | null

@@ -12,8 +12,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag, Clock, FileDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { FichaRequestsPanel } from "@/components/admin/FichaRequestsPanel";
 
 const FIELD_LABELS: Record<string, string> = {
   telefone: "Telefone", email: "Email", data_nascimento: "Data de Nascimento",
@@ -511,7 +512,7 @@ const SolicitacoesAlteracao = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="todas" className="gap-1 text-xs">
             Todas {totalPendentes > 0 && <Badge variant="secondary" className="ml-1 scale-75">{totalPendentes}</Badge>}
           </TabsTrigger>
@@ -529,6 +530,9 @@ const SolicitacoesAlteracao = () => {
           </TabsTrigger>
           <TabsTrigger value="reservas" className="gap-1 text-xs">
             <ShoppingBag className="h-3.5 w-3.5" /> Reservas {pendentesReservas.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesReservas.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="fichas" className="gap-1 text-xs">
+            <FileDown className="h-3.5 w-3.5" /> Fichas
           </TabsTrigger>
         </TabsList>
 
@@ -901,6 +905,11 @@ const SolicitacoesAlteracao = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Tab Fichas */}
+        <TabsContent value="fichas" className="mt-4">
+          <FichaRequestsPanel />
         </TabsContent>
       </Tabs>
 

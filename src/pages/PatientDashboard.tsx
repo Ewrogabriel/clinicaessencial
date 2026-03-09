@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag, FileDown } from "lucide-react";
+import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ import { usePatientAgenda } from "@/hooks/usePatientAgenda";
 import { usePatientFinance } from "@/hooks/usePatientFinance";
 import { usePatientProdutos } from "@/hooks/usePatientProdutos";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FichaRequestButton } from "@/components/patient/FichaRequestButton";
 
 // Lazy load tab components
 const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTab").then(m => ({ default: m.PatientAgendaTab })));
@@ -28,7 +29,6 @@ const PatientFinanceTab = lazy(() => import("@/components/patient/PatientFinance
 const PatientProdutosTab = lazy(() => import("@/components/patient/PatientProdutosTab").then(m => ({ default: m.PatientProdutosTab })));
 const PatientInfoTab = lazy(() => import("@/components/patient/PatientInfoTab").then(m => ({ default: m.PatientInfoTab })));
 const GamificationDashboard = lazy(() => import("@/components/gamification/GamificationDashboard").then(m => ({ default: m.GamificationDashboard })));
-import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 
 const PatientDashboard = () => {
   const { profile, patientId, loading } = useAuth();
@@ -283,7 +283,7 @@ const PatientDashboard = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          {patientId && <ExportPatientPDFButton pacienteId={patientId} label="Minha Ficha" />}
+          {patientId && <FichaRequestButton pacienteId={patientId} />}
           <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
             <MessageCircle className="h-4 w-4" /> Suporte
           </Button>
