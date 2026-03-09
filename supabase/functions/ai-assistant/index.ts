@@ -253,6 +253,65 @@ ${context.evolucoes_recentes}
 Melhore o texto acima mantendo o sentido original, enriquecendo com dados clínicos relevantes e usando linguagem técnica apropriada.`;
         break;
 
+      case "document_generate":
+        // Generate initial document text based on type
+        const templates: Record<string, string> = {
+          comparecimento: `Gere um Comprovante de Comparecimento para uso clínico. Deve conter:
+- Declaração formal de que o paciente compareceu à clínica
+- Data e horário do atendimento
+- Nome do profissional responsável
+- Finalidade genérica (consulta de fisioterapia/pilates)
+Use linguagem formal e objetiva. O texto deve servir para apresentar a empregadores ou instituições.`,
+          atestado: `Gere um Atestado clínico para fisioterapia/pilates. Deve conter:
+- Declaração de atendimento
+- Período de afastamento se aplicável
+- CID se informado no contexto
+- Recomendações gerais
+Use linguagem formal e técnica.`,
+          receituario: `Gere um modelo de Receituário para fisioterapia. Pode incluir:
+- Exercícios domiciliares
+- Orientações posturais
+- Recomendações de frequência
+- Cuidados específicos
+Use linguagem clara e didática para o paciente.`,
+          relatorio: `Gere um modelo de Relatório Clínico para fisioterapia/pilates. Deve conter:
+- Identificação do paciente
+- Diagnóstico clínico/funcional
+- Objetivos do tratamento
+- Evolução observada
+- Condutas realizadas
+- Prognóstico
+Use linguagem técnica apropriada.`,
+          encaminhamento: `Gere um modelo de Encaminhamento médico. Deve conter:
+- Dados do paciente
+- Motivo do encaminhamento
+- Histórico relevante resumido
+- Avaliação funcional atual
+- Solicitação específica ao colega
+Use linguagem formal e técnica.`
+        };
+
+        systemPrompt = `Você é um fisioterapeuta experiente que gera documentos clínicos profissionais.
+Gere um documento completo e profissional baseado no tipo solicitado.
+Use os dados do paciente fornecidos para personalizar o documento.
+Retorne APENAS o texto do documento, pronto para uso, sem explicações.`;
+
+        userPrompt = `${templates[context.tipo_documento] || "Gere um documento clínico apropriado."}
+
+Dados do paciente:
+- Nome: ${context.paciente_nome || "Paciente"}
+- Data do atendimento: ${context.data || new Date().toLocaleDateString("pt-BR")}
+- Profissional: ${context.profissional_nome || "Profissional"}
+- Registro: ${context.profissional_registro || ""}
+
+Dados clínicos (se disponíveis):
+Avaliação: ${context.avaliacao || "Não informada"}
+Última evolução: ${context.ultima_evolucao || "Não informada"}
+
+Gere o documento completo e profissional.`;
+        break;
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

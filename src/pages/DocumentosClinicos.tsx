@@ -47,6 +47,7 @@ const DocumentosClinicos = () => {
   const [conteudo, setConteudo] = useState("");
   const [pacienteId, setPacienteId] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const [incluirCarimbo, setIncluirCarimbo] = useState(true);
 
   // Fetch documents
