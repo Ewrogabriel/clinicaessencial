@@ -51,6 +51,11 @@ const ListaEspera = () => {
         </div>
       </div>
 
+      {/* AI Priority Panel */}
+      {canManage && entries.length > 0 && (
+        <AIWaitingListPriority waitingList={entries.filter((e: any) => e.status === "aguardando")} />
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="espera" className="gap-1.5 text-xs">
