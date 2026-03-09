@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag, Share2 } from "lucide-react";
+import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag, Share2, Dumbbell, ChevronDown, ChevronUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
