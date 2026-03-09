@@ -154,6 +154,8 @@ const App = () => (
               <Route path="/documentos-clinicos" element={<DocumentosClinicos />} />
               <Route path="/marketing" element={<Marketing />} />
               <Route path="/teleconsulta" element={<Teleconsulta />} />
+              <Route path="/teleconsulta-hub" element={<TeleconsultaHub />} />
+              <Route path="/planos-exercicios" element={<PlanosExercicios />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

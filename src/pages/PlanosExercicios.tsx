@@ -456,7 +456,7 @@ export default function PlanosExercicios() {
               <Select value={aiForm.paciente_id} onValueChange={(v) => setAiForm((f) => ({ ...f, paciente_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione o paciente" /></SelectTrigger>
                 <SelectContent>
-                  {pacientes.map((p: any) => (
+                  {pacientesData.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                   ))}
                 </SelectContent>

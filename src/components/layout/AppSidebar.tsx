@@ -75,6 +75,7 @@ export function AppSidebar() {
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
+    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
     { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
   ];
 
