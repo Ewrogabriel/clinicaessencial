@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -20,13 +21,15 @@ import {
 } from "@/components/ui/table";
 import {
   Building2, CreditCard, Crown, Link2, Plus, Users, AlertTriangle, Check, X,
-  DollarSign, TrendingUp, Package,
+  DollarSign, TrendingUp, Package, FileText,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { maskPhone, maskCNPJ, maskCEP } from "@/lib/masks";
 import { ClinicDetailDialog } from "@/components/master/ClinicDetailDialog";
+import { ALL_RESOURCES } from "@/lib/resources";
+import { generateSubscriptionContractPDF } from "@/lib/generateSubscriptionContractPDF";
 
 const STATUS_COLORS: Record<string, string> = {
   ativa: "default",
