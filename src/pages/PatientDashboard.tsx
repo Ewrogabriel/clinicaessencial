@@ -40,37 +40,33 @@ const PatientDashboard = () => {
   const [isReservaDialogOpen, setIsReservaDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("agenda");
 
-  // ── Queries ──
+  // ── Core Queries (always loaded for KPI cards) ──
   const { data: paciente } = useQuery({
     queryKey: ["patient-self", patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await (supabase.from("pacientes").select("*").eq("id", patientId).single() as any);
+      const { data, error } = await supabase.from("pacientes").select("*").eq("id", patientId).single();
       if (error) throw error;
       return data;
     },
     enabled: !!patientId,
   });
 
-  const { data: agenda = [] } = useQuery({
-    queryKey: ["patient-agenda", patientId],
+  const { data: nextAgenda } = useQuery({
+    queryKey: ["patient-next-agenda", patientId],
     queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("agendamentos").select("*")
-        .eq("paciente_id", patientId).gte("data_horario", new Date().toISOString())
-        .in("status", ["pendente", "agendado", "confirmado"]).order("data_horario", { ascending: true }).limit(10) as any);
+      if (!patientId) return null;
+      const { data, error } = await supabase
+        .from("agendamentos")
+        .select("data_horario")
+        .eq("paciente_id", patientId)
+        .gte("data_horario", new Date().toISOString())
+        .in("status", ["pendente", "agendado", "confirmado"])
+        .order("data_horario", { ascending: true })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
-      if (profIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
-        (profs || []).forEach((p: any) => { profMap[p.user_id] = { nome: p.nome, telefone: p.telefone }; });
-      }
-      return (data || []).map((a: any) => ({
-        ...a,
-        profiles: { nome: profMap[a.profissional_id]?.nome || "Profissional" },
-        profissional_telefone: profMap[a.profissional_id]?.telefone || ""
-      }));
+      return data;
     },
     enabled: !!patientId,
   });
