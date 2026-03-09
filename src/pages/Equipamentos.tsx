@@ -116,6 +116,7 @@ export default function Equipamentos() {
       data_ultima_revisao: item.data_ultima_revisao || "",
       data_proxima_revisao: item.data_proxima_revisao || "",
       observacoes_manutencao: item.observacoes_manutencao || "", status: item.status,
+      valor: Number(item.valor) || 0,
     });
     setDialogOpen(true);
   };
