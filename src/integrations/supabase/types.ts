@@ -352,6 +352,7 @@ export type Database = {
           icone: string
           id: string
           meta: Json
+          metric_type: string
           pontos_recompensa: number
           tipo: string
           titulo: string
@@ -365,6 +366,7 @@ export type Database = {
           icone: string
           id?: string
           meta: Json
+          metric_type?: string
           pontos_recompensa?: number
           tipo: string
           titulo: string
@@ -378,6 +380,7 @@ export type Database = {
           icone?: string
           id?: string
           meta?: Json
+          metric_type?: string
           pontos_recompensa?: number
           tipo?: string
           titulo?: string
@@ -2807,11 +2810,14 @@ export type Database = {
           ativo: boolean | null
           created_at: string | null
           created_by: string
+          data_fim: string | null
+          data_inicio: string | null
           descricao: string | null
           id: string
           meta_tipo: string
           meta_valor: number
           pontos_recompensa: number | null
+          target_user_id: string | null
           tipo: string
           titulo: string
         }
@@ -2819,11 +2825,14 @@ export type Database = {
           ativo?: boolean | null
           created_at?: string | null
           created_by: string
+          data_fim?: string | null
+          data_inicio?: string | null
           descricao?: string | null
           id?: string
           meta_tipo: string
           meta_valor?: number
           pontos_recompensa?: number | null
+          target_user_id?: string | null
           tipo?: string
           titulo: string
         }
@@ -2831,11 +2840,14 @@ export type Database = {
           ativo?: boolean | null
           created_at?: string | null
           created_by?: string
+          data_fim?: string | null
+          data_inicio?: string | null
           descricao?: string | null
           id?: string
           meta_tipo?: string
           meta_valor?: number
           pontos_recompensa?: number | null
+          target_user_id?: string | null
           tipo?: string
           titulo?: string
         }

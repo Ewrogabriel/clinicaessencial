@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings, Shield, Percent, Lock, Unlock, RefreshCw } from "lucide-react";
+import { Settings, Shield, Lock, Unlock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -194,7 +194,7 @@ function CommissionRulesEditor() {
                         <TableCell className="font-medium">{p.nome}</TableCell>
                         <TableCell>
                             <div className="flex items-center gap-2">
-                                <Input
+                        <Input
                                     type="number"
                                     min={0}
                                     max={100}
@@ -203,7 +203,7 @@ function CommissionRulesEditor() {
                                     value={getEditValue(p.user_id)}
                                     onChange={(e) => setEditPct({ ...editPct, [p.user_id]: e.target.value })}
                                 />
-                                <Percent className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">%</span>
                             </div>
                         </TableCell>
                         <TableCell>
@@ -427,19 +427,6 @@ export function EnrollmentAdminPanel() {
                 </CardHeader>
                 <CardContent>
                     <CancellationPolicyEditor />
-                </CardContent>
-            </Card>
-
-            {/* Regras de Comissão */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Percent className="h-4 w-4 text-primary" />
-                        Regras de Comissão por Profissional
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <CommissionRulesEditor />
                 </CardContent>
             </Card>
 
