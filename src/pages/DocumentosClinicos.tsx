@@ -404,10 +404,10 @@ const DocumentosClinicos = () => {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
                 <Label className="font-medium flex items-center gap-2">
-                  <Stamp className="h-4 w-4" /> Incluir Carimbo Profissional
+                  <Stamp className="h-4 w-4" /> {t("docs.stamp")}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Adiciona carimbo com nome, registro profissional e especialidade no documento
+                  {t("docs.stamp_desc")}
                 </p>
               </div>
               <Switch checked={incluirCarimbo} onCheckedChange={setIncluirCarimbo} />
