@@ -761,6 +761,19 @@ const Profissionais = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="formacoes" className="space-y-4">
+                {editingId ? (
+                  <FormacoesManager 
+                    profissionalId={users.find(u => u.id === editingId)?.user_id || ""} 
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p>Salve o cadastro primeiro para adicionar formações</p>
+                  </div>
+                )}
+              </TabsContent>
+
               {isCreating && (
                 <TabsContent value="acesso" className="space-y-4">
                   <div className="rounded-lg border p-4">
