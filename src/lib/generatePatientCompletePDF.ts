@@ -222,11 +222,12 @@ export const generatePatientCompletePDF = (data: PatientPDFData) => {
     });
   }
 
+  await addWatermarkToAllPages(doc);
   return doc;
 };
 
-export const downloadPatientCompletePDF = (data: PatientPDFData) => {
-  const doc = generatePatientCompletePDF(data);
+export const downloadPatientCompletePDF = async (data: PatientPDFData) => {
+  const doc = await generatePatientCompletePDF(data);
   const nome = (data.paciente.nome || "paciente").replace(/\s+/g, "_");
   doc.save(`ficha_completa_${nome}.pdf`);
 };
