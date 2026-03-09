@@ -68,41 +68,52 @@ export function AppSidebar() {
     navigate("/login");
   };
 
-  /* ── Menus with i18n ── */
-  const menuAtendimento = [
+  /* ── Menus organizados por área ── */
+  
+  // Área Clínica
+  const menuClinico = [
     { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
-    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
-    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
     { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
     { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
+    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
   ];
 
-  const menuEquipeFinanceiro = [
+  // Área Administrativa
+  const menuAdministrativo = [
+    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
     { title: t("nav.team"), url: "/profissionais", icon: UserCog },
-    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
-    { title: t("nav.requests"), url: "/solicitacoes-alteracao", icon: FileCheck },
     { title: t("nav.pre_registrations"), url: "/pre-cadastros", icon: UserCog },
+    { title: t("nav.requests"), url: "/solicitacoes-alteracao", icon: FileCheck },
+    { title: t("nav.inventory"), url: "/inventario", icon: Tag },
   ];
 
-  const menuInteligencia = [
+  // Área Financeira
+  const menuFinanceiro = [
+    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
+    { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
+  ];
+
+  // Relatórios e Inteligência
+  const menuRelatorios = [
     { title: t("nav.reports"), url: "/relatorios", icon: BarChart3 },
     { title: t("nav.goals"), url: "/metas", icon: Trophy },
     { title: t("nav.gamification"), url: "/gamificacao-admin", icon: Trophy },
     { title: t("nav.import"), url: "/importacao", icon: Upload },
   ];
 
+  // Comunicação
   const menuComunicacao = [
     { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
     { title: t("nav.notices"), url: "/avisos", icon: Megaphone },
     { title: "Marketing", url: "/marketing", icon: Target },
   ];
 
+  // Configurações
   const menuConfig = [
     { title: t("nav.modalities"), url: "/modalidades", icon: Layers },
-    { title: t("nav.inventory"), url: "/inventario", icon: Tag },
     { title: t("nav.partners"), url: "/convenios", icon: Handshake },
     { title: t("nav.contracts"), url: "/contratos", icon: FileText },
     { title: t("nav.automations"), url: "/automacoes", icon: Send },
