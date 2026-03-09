@@ -557,6 +557,11 @@ export default function GamificationAdminPanel() {
             )}
           </div>
         </TabsContent>
+
+        {/* ── REWARDS TAB ── */}
+        <TabsContent value="rewards" className="space-y-4">
+          <RewardsCatalogAdmin />
+        </TabsContent>
       </Tabs>
 
       {/* ── GOAL DIALOG ── */}
