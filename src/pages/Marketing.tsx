@@ -10,9 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinicSettings } from "@/hooks/useClinicSettings";
+import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sparkles, Loader2, Copy, Instagram, Globe, Target,
-  Megaphone, Image, Clock, Hash, ExternalLink, RefreshCw, FileText
+  Megaphone, Image, Clock, Hash, ExternalLink, RefreshCw, FileText,
+  Save, History, Trash2
 } from "lucide-react";
 
 interface Ad {
