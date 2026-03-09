@@ -17,6 +17,7 @@ import { ptBR } from "date-fns/locale";
 
 interface ChatMessage {
   id: string;
+  sender_id: string;
   sender_name: string;
   sender_role: string;
   message: string;
