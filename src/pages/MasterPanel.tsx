@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import {
   Building2, CreditCard, Crown, Link2, Plus, Users, AlertTriangle, Check, X,
-  DollarSign, TrendingUp, Package, FileText,
+  DollarSign, TrendingUp, Package, FileText, BookOpen,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
