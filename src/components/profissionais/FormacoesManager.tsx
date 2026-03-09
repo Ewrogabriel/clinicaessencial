@@ -71,14 +71,14 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
 
       if (editingId) {
         const { error } = await supabase
-          .from("profissional_formacoes" as any)
-          .update(payload)
+          .from("profissional_formacoes")
+          .update(payload as any)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("profissional_formacoes" as any)
-          .insert([payload]);
+          .from("profissional_formacoes")
+          .insert([payload] as any);
         if (error) throw error;
       }
     },
