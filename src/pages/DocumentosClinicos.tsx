@@ -346,7 +346,7 @@ const DocumentosClinicos = () => {
 
             {tipo === "outros" && (
               <div>
-                <Label>Nome do Tipo de Documento *</Label>
+                <Label>{t("docs.doc_type_name")} *</Label>
                 <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex: Declaração, Laudo, etc." />
               </div>
             )}
