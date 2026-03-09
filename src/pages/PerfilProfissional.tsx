@@ -173,10 +173,10 @@ const PerfilProfissional = () => {
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {aceitaTeleconsulta && (
-                <Badge variant="outline" className="gap-1"><Video className="h-3 w-3" /> Teleconsulta</Badge>
+                <Badge variant="outline" className="gap-1"><Video className="h-3 w-3" /> {t("profile.teleconsultation")}</Badge>
               )}
               {aceitaDomiciliar && (
-                <Badge variant="outline" className="gap-1"><Home className="h-3 w-3" /> Domiciliar</Badge>
+                <Badge variant="outline" className="gap-1"><Home className="h-3 w-3" /> {t("profile.home_visit")}</Badge>
               )}
             </div>
           </CardContent>
