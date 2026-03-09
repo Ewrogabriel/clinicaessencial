@@ -251,11 +251,11 @@ const DocumentosClinicos = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Documentos Clínicos</h1>
-          <p className="text-muted-foreground">Receituários, relatórios, atestados, encaminhamentos e mais</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("docs.title")}</h1>
+          <p className="text-muted-foreground">{t("docs.subtitle")}</p>
         </div>
         <Button className="gap-2" onClick={() => { resetForm(); setIsFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> Novo Documento
+          <Plus className="h-4 w-4" /> {t("docs.new")}
         </Button>
       </div>
 
