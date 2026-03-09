@@ -297,6 +297,7 @@ function PlansTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false,
+    recursos_selecionados: [] as string[],
   });
 
   const { data: plans = [] } = useQuery({
