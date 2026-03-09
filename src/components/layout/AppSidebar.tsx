@@ -3,7 +3,7 @@ import {
   LogOut, Activity, Layers, UserCog, Receipt, Send, Megaphone,
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   FileCheck, Handshake, Video,
-  Building2, Crown, Upload, Trophy, Stethoscope, Target,
+  Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -77,6 +77,7 @@ export function AppSidebar() {
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
     { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
     { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
+    { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
   ];
 
   const menuEquipeFinanceiro = [

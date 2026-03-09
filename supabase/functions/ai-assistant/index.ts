@@ -310,7 +310,6 @@ Avaliação: ${context.avaliacao || "Não informada"}
 
 Gere o documento completo e profissional.`;
         break;
-        break;
 
       default:
         throw new Error(`Unknown action: ${action}`);
