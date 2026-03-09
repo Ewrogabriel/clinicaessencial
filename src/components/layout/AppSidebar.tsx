@@ -170,7 +170,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">Essencial</span>
-            <span className="text-[11px] text-sidebar-foreground/60">FisioPilates</span>
+            <span className="text-[11px] text-sidebar-foreground/60">Clínicas</span>
           </div>
         )}
       </div>
