@@ -334,7 +334,7 @@ function PlansTab() {
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
 
     toast({ title: "Plano criado! ✅" });
-    setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false, recursos_selecionados: [] });
+    setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false, recursos_selecionados: [], validade_dias: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["platform-plans"] });
   };
