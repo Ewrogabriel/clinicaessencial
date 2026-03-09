@@ -151,7 +151,8 @@ export async function addLogoToPDF(
   x: number, 
   y: number, 
   maxWidth: number = 30,
-  maxHeight: number = 20
+  maxHeight: number = 20,
+  centered: boolean = true
 ): Promise<number> {
   const settings = await getClinicSettings();
   
@@ -179,7 +180,14 @@ export async function addLogoToPDF(
       width = (img.width / img.height) * height;
     }
     
-    doc.addImage(logoData.base64, logoData.format, x, y, width, height);
+    // Calculate centered X position if needed
+    let finalX = x;
+    if (centered) {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      finalX = (pageWidth - width) / 2;
+    }
+    
+    doc.addImage(logoData.base64, logoData.format, finalX, y, width, height);
     
     return y + height + 4;
   } catch (error) {

@@ -552,12 +552,12 @@ const PatientDashboard = () => {
       <Card>
         <CardContent className="p-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="agenda">Agenda</TabsTrigger>
-              <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-              <TabsTrigger value="produtos">Produtos</TabsTrigger>
-              <TabsTrigger value="conquistas">🎮</TabsTrigger>
-              <TabsTrigger value="info">Info</TabsTrigger>
+            <TabsList className="w-full flex overflow-x-auto gap-1 justify-start sm:grid sm:grid-cols-5 sm:gap-0">
+              <TabsTrigger value="agenda" className="shrink-0 text-xs sm:text-sm">Agenda</TabsTrigger>
+              <TabsTrigger value="financeiro" className="shrink-0 text-xs sm:text-sm">Financeiro</TabsTrigger>
+              <TabsTrigger value="produtos" className="shrink-0 text-xs sm:text-sm">Produtos</TabsTrigger>
+              <TabsTrigger value="conquistas" className="shrink-0 text-xs sm:text-sm">🎮</TabsTrigger>
+              <TabsTrigger value="info" className="shrink-0 text-xs sm:text-sm">Info</TabsTrigger>
             </TabsList>
 
             <TabsContent value="agenda" className="mt-4">
