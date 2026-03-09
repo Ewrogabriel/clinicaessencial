@@ -579,6 +579,11 @@ const Marketing = () => {
           )}
         </TabsContent>
 
+        {/* SITE EDITOR TAB */}
+        <TabsContent value="site-editor" className="space-y-6">
+          <LandingSiteEditor />
+        </TabsContent>
+
         {/* HISTORY TAB */}
         <TabsContent value="history" className="space-y-6">
           <Card>
