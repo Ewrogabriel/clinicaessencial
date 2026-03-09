@@ -1174,6 +1174,7 @@ export type Database = {
           status: string
           tipo: string
           updated_at: string
+          valor: number | null
         }
         Insert: {
           clinic_id?: string | null
@@ -1197,6 +1198,7 @@ export type Database = {
           status?: string
           tipo?: string
           updated_at?: string
+          valor?: number | null
         }
         Update: {
           clinic_id?: string | null
@@ -1220,6 +1222,7 @@ export type Database = {
           status?: string
           tipo?: string
           updated_at?: string
+          valor?: number | null
         }
         Relationships: [
           {
@@ -2752,6 +2755,72 @@ export type Database = {
           id?: string
           nome?: string
           profissional_id?: string
+        }
+        Relationships: []
+      }
+      professional_goals: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string
+          descricao: string | null
+          id: string
+          meta_tipo: string
+          meta_valor: number
+          pontos_recompensa: number | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by: string
+          descricao?: string | null
+          id?: string
+          meta_tipo: string
+          meta_valor?: number
+          pontos_recompensa?: number | null
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string
+          descricao?: string | null
+          id?: string
+          meta_tipo?: string
+          meta_valor?: number
+          pontos_recompensa?: number | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      professional_points: {
+        Row: {
+          created_at: string | null
+          id: string
+          motivo: string
+          pontos: number
+          profissional_id: string
+          referencia_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          motivo: string
+          pontos?: number
+          profissional_id: string
+          referencia_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          motivo?: string
+          pontos?: number
+          profissional_id?: string
+          referencia_id?: string | null
         }
         Relationships: []
       }
