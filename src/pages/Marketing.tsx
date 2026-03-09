@@ -10,9 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinicSettings } from "@/hooks/useClinicSettings";
+import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sparkles, Loader2, Copy, Instagram, Globe, Target,
-  Megaphone, Image, Clock, Hash, ExternalLink, RefreshCw, FileText
+  Megaphone, Image, Clock, Hash, ExternalLink, RefreshCw, FileText,
+  Save, History, Trash2
 } from "lucide-react";
 
 interface Ad {
@@ -34,7 +38,10 @@ interface SocialPost {
 
 const Marketing = () => {
   const { data: settings } = useClinicSettings();
+  const { activeClinicId } = useClinic();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [savingCampaign, setSavingCampaign] = useState(false);
   const [activeTab, setActiveTab] = useState("clinic-ads");
 
   // Clinic Ads state
@@ -129,6 +136,51 @@ const Marketing = () => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Saved campaigns
+  const { data: savedCampaigns = [], refetch: refetchCampaigns } = useQuery({
+    queryKey: ["marketing-campaigns", activeClinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("marketing_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const saveCampaign = async (tipo: string, conteudo: any, titulo?: string) => {
+    if (!user) return;
+    setSavingCampaign(true);
+    try {
+      const { error } = await supabase.from("marketing_campaigns").insert({
+        clinic_id: activeClinicId || null,
+        tipo,
+        plataforma: tipo === "clinic_ads" ? platform : tipo === "app_plans" ? planPlatform : postPlatform,
+        conteudo,
+        titulo: titulo || `Campanha ${tipo} - ${new Date().toLocaleDateString("pt-BR")}`,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      toast({ title: "Campanha salva!", description: "Você pode acessá-la no histórico." });
+      refetchCampaigns();
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingCampaign(false);
+    }
+  };
+
+  const deleteCampaign = async (id: string) => {
+    const { error } = await supabase.from("marketing_campaigns").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    } else {
+      toast({ title: "Campanha excluída" });
+      refetchCampaigns();
     }
   };
 
@@ -260,7 +312,7 @@ const Marketing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
           <TabsTrigger value="clinic-ads" className="gap-2">
             <Target className="h-4 w-4" /> Anúncios da Clínica
           </TabsTrigger>
@@ -269,6 +321,9 @@ const Marketing = () => {
           </TabsTrigger>
           <TabsTrigger value="social-posts" className="gap-2">
             <Instagram className="h-4 w-4" /> Posts Sociais
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="h-4 w-4" /> Histórico
           </TabsTrigger>
         </TabsList>
 
@@ -355,9 +410,14 @@ const Marketing = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Anúncios Gerados</h3>
-                <Button variant="outline" size="sm" onClick={generateClinicAds} disabled={loading} className="gap-1">
-                  <RefreshCw className="h-3 w-3" /> Regenerar
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => saveCampaign("clinic_ads", { ads: clinicAds })} disabled={savingCampaign} className="gap-1">
+                    <Save className="h-3 w-3" /> Salvar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={generateClinicAds} disabled={loading} className="gap-1">
+                    <RefreshCw className="h-3 w-3" /> Regenerar
+                  </Button>
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {clinicAds.map((ad, i) => renderAdCard(ad, i))}
@@ -418,9 +478,14 @@ const Marketing = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Anúncios de Planos Gerados</h3>
-                <Button variant="outline" size="sm" onClick={generatePlanAds} disabled={loading} className="gap-1">
-                  <RefreshCw className="h-3 w-3" /> Regenerar
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => saveCampaign("app_plans", { ads: planAds })} disabled={savingCampaign} className="gap-1">
+                    <Save className="h-3 w-3" /> Salvar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={generatePlanAds} disabled={loading} className="gap-1">
+                    <RefreshCw className="h-3 w-3" /> Regenerar
+                  </Button>
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {planAds.map((ad, i) => renderAdCard(ad, i))}
@@ -483,15 +548,88 @@ const Marketing = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Posts Gerados</h3>
-                <Button variant="outline" size="sm" onClick={generateSocialPosts} disabled={loading} className="gap-1">
-                  <RefreshCw className="h-3 w-3" /> Regenerar
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => saveCampaign("social_post", { posts: socialPosts })} disabled={savingCampaign} className="gap-1">
+                    <Save className="h-3 w-3" /> Salvar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={generateSocialPosts} disabled={loading} className="gap-1">
+                    <RefreshCw className="h-3 w-3" /> Regenerar
+                  </Button>
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {socialPosts.map((post, i) => renderPostCard(post, i))}
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* HISTORY TAB */}
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <History className="h-5 w-5" /> Campanhas Salvas
+              </CardTitle>
+              <CardDescription>Histórico de conteúdos gerados e salvos pela IA</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {savedCampaigns.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Nenhuma campanha salva ainda. Gere conteúdos nas abas acima e clique em "Salvar".
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {savedCampaigns.map((campaign: any) => (
+                    <Card key={campaign.id} className="border-border/50">
+                      <CardHeader className="py-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-sm">{campaign.titulo || "Campanha"}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {campaign.tipo === "clinic_ads" ? "Anúncios da Clínica" :
+                               campaign.tipo === "app_plans" ? "Venda de Planos" : "Posts Sociais"}
+                              {campaign.plataforma && ` • ${campaign.plataforma}`}
+                              {" • "}
+                              {new Date(campaign.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                            </CardDescription>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs"
+                              onClick={() => {
+                                const content = campaign.conteudo;
+                                if (campaign.tipo === "clinic_ads" || campaign.tipo === "app_plans") {
+                                  setClinicAds(content.ads || []);
+                                  setActiveTab(campaign.tipo === "clinic_ads" ? "clinic-ads" : "plan-ads");
+                                } else {
+                                  setSocialPosts(content.posts || []);
+                                  setActiveTab("social-posts");
+                                }
+                                toast({ title: "Campanha carregada!" });
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3" /> Ver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs text-destructive hover:text-destructive"
+                              onClick={() => deleteCampaign(campaign.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

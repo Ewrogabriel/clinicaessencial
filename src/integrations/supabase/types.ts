@@ -838,6 +838,42 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          mensagem: string | null
+          nome: string
+          origem: string | null
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          mensagem?: string | null
+          nome: string
+          origem?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          mensagem?: string | null
+          nome?: string
+          origem?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contratos_digitais: {
         Row: {
           assinado_em: string | null
@@ -1674,6 +1710,50 @@ export type Database = {
             columns: ["paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaigns: {
+        Row: {
+          clinic_id: string | null
+          conteudo: Json
+          created_at: string | null
+          created_by: string
+          id: string
+          plataforma: string | null
+          tipo: string
+          titulo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          conteudo?: Json
+          created_at?: string | null
+          created_by: string
+          id?: string
+          plataforma?: string | null
+          tipo: string
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          conteudo?: Json
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          plataforma?: string | null
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
         ]

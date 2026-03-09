@@ -5,27 +5,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Activity, Send, Mail, Instagram, CheckCircle2 } from "lucide-react";
+import { Activity, Send, Mail, Instagram, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ContactSection = () => {
   const [formData, setFormData] = useState({ nome: "", email: "", telefone: "", mensagem: "" });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome || !formData.email) {
       toast({ title: "Preencha nome e email", variant: "destructive" });
       return;
     }
-    // For now, open mailto with the form data
-    const subject = encodeURIComponent(`Contato - ${formData.nome}`);
-    const body = encodeURIComponent(
-      `Nome: ${formData.nome}\nEmail: ${formData.email}\nTelefone: ${formData.telefone}\n\n${formData.mensagem}`
-    );
-    window.open(`mailto:contato@essencialclinicas.com.br?subject=${subject}&body=${body}`);
-    setSent(true);
-    toast({ title: "Formulário enviado!", description: "Entraremos em contato em breve." });
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("contact_submissions").insert({
+        nome: formData.nome,
+        email: formData.email,
+        telefone: formData.telefone || null,
+        mensagem: formData.mensagem || null,
+        origem: "landing_page",
+      });
+      if (error) throw error;
+      setSent(true);
+      toast({ title: "Mensagem enviada!", description: "Entraremos em contato em breve." });
+    } catch (err: any) {
+      console.error("Contact form error:", err);
+      // Fallback to mailto
+      const subject = encodeURIComponent(`Contato - ${formData.nome}`);
+      const body = encodeURIComponent(
+        `Nome: ${formData.nome}\nEmail: ${formData.email}\nTelefone: ${formData.telefone}\n\n${formData.mensagem}`
+      );
+      window.open(`mailto:contato@essencialclinicas.com.br?subject=${subject}&body=${body}`);
+      setSent(true);
+      toast({ title: "Redirecionado para email", description: "Tente novamente ou envie por email." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,7 +96,9 @@ export const ContactSection = () => {
                       <CheckCircle2 className="h-16 w-16 text-primary" />
                       <h3 className="text-xl font-bold">Mensagem enviada!</h3>
                       <p className="text-muted-foreground">Entraremos em contato em breve.</p>
-                      <Button variant="outline" onClick={() => setSent(false)}>Enviar outra mensagem</Button>
+                      <Button variant="outline" onClick={() => { setSent(false); setFormData({ nome: "", email: "", telefone: "", mensagem: "" }); }}>
+                        Enviar outra mensagem
+                      </Button>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,8 +124,9 @@ export const ContactSection = () => {
                           value={formData.mensagem}
                           onChange={(e) => setFormData({ ...formData, mensagem: e.target.value })} />
                       </div>
-                      <Button type="submit" className="w-full gap-2">
-                        <Send className="h-4 w-4" /> Enviar mensagem
+                      <Button type="submit" className="w-full gap-2" disabled={loading}>
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        {loading ? "Enviando..." : "Enviar mensagem"}
                       </Button>
                     </form>
                   )}
