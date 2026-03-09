@@ -168,7 +168,7 @@ const PerfilProfissional = () => {
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             </div>
             <div className="text-center">
-              <p className="font-semibold text-lg">{nome || "Profissional"}</p>
+              <p className="font-semibold text-lg">{nome || t("common.professional")}</p>
               {especialidade && <Badge variant="secondary" className="mt-1 capitalize">{especialidade}</Badge>}
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
