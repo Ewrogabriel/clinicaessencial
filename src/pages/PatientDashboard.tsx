@@ -324,7 +324,7 @@ const PatientDashboard = () => {
             <div>
               <p className="text-xs text-muted-foreground">Próxima</p>
               <p className="text-sm font-bold">
-                {agenda.length > 0 ? format(new Date(agenda[0].data_horario), "dd/MM HH:mm") : "—"}
+                {nextAgenda ? format(new Date(nextAgenda.data_horario), "dd/MM HH:mm") : "—"}
               </p>
             </div>
           </div>
