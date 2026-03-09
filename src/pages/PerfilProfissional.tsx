@@ -277,7 +277,7 @@ const PerfilProfissional = () => {
                 <Input type="number" value={domiciliarRaioKm} onChange={(e) => setDomiciliarRaioKm(e.target.value)} placeholder="Ex: 15" />
               </div>
               <div className="space-y-2">
-                <Label>Valor adicional (R$)</Label>
+                <Label>{t("profile.additional_fee")}</Label>
                 <Input type="number" step="0.01" value={domiciliarValorAdicional} onChange={(e) => setDomiciliarValorAdicional(e.target.value)} placeholder="0.00" />
               </div>
               <div className="space-y-2 sm:col-span-1">
