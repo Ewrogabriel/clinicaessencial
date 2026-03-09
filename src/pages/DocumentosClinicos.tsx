@@ -266,7 +266,7 @@ const DocumentosClinicos = () => {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>Nenhum documento criado ainda.</p>
+            <p>{t("docs.no_docs")}</p>
           </CardContent>
         </Card>
       ) : (
