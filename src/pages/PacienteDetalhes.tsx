@@ -28,6 +28,8 @@ import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
+import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
+import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
