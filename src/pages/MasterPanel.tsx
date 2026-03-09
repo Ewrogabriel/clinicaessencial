@@ -386,10 +386,11 @@ function PlansTab() {
             <div><Label>Nome *</Label><Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Profissional" /></div>
             <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} /></div>
             <div><Label>Valor mensal (R$) *</Label><Input type="number" value={form.valor_mensal} onChange={e => setForm(f => ({ ...f, valor_mensal: e.target.value }))} /></div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div><Label>Máx. Pacientes</Label><Input type="number" value={form.max_pacientes} onChange={e => setForm(f => ({ ...f, max_pacientes: e.target.value }))} placeholder="∞" /></div>
               <div><Label>Máx. Profissionais</Label><Input type="number" value={form.max_profissionais} onChange={e => setForm(f => ({ ...f, max_profissionais: e.target.value }))} placeholder="∞" /></div>
               <div><Label>Máx. Unidades</Label><Input type="number" value={form.max_clinicas} onChange={e => setForm(f => ({ ...f, max_clinicas: e.target.value }))} /></div>
+              <div><Label>Validade (dias)</Label><Input type="number" value={form.validade_dias} onChange={e => setForm(f => ({ ...f, validade_dias: e.target.value }))} placeholder="∞" /></div>
             </div>
             <div><Label>Cor</Label><Input type="color" value={form.cor} onChange={e => setForm(f => ({ ...f, cor: e.target.value }))} className="h-10 w-20" /></div>
             
