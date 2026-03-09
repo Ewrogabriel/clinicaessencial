@@ -212,8 +212,8 @@ const PerfilProfissional = () => {
                 <Input value={cursos} onChange={(e) => setCursos(e.target.value)} placeholder="Pilates Clínico, RPG Souchard, Dry Needling" />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label>Bio / Sobre Mim</Label>
-                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Fale um pouco sobre sua experiência..." />
+                <Label>{t("profile.bio")}</Label>
+                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder={t("profile.bio_placeholder")} />
               </div>
             </div>
           </CardContent>
