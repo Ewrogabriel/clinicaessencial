@@ -139,6 +139,51 @@ const Marketing = () => {
     }
   };
 
+  // Saved campaigns
+  const { data: savedCampaigns = [], refetch: refetchCampaigns } = useQuery({
+    queryKey: ["marketing-campaigns", activeClinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("marketing_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const saveCampaign = async (tipo: string, conteudo: any, titulo?: string) => {
+    if (!user) return;
+    setSavingCampaign(true);
+    try {
+      const { error } = await supabase.from("marketing_campaigns").insert({
+        clinic_id: activeClinicId || null,
+        tipo,
+        plataforma: tipo === "clinic_ads" ? platform : tipo === "app_plans" ? planPlatform : postPlatform,
+        conteudo,
+        titulo: titulo || `Campanha ${tipo} - ${new Date().toLocaleDateString("pt-BR")}`,
+        created_by: user.id,
+      });
+      if (error) throw error;
+      toast({ title: "Campanha salva!", description: "Você pode acessá-la no histórico." });
+      refetchCampaigns();
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingCampaign(false);
+    }
+  };
+
+  const deleteCampaign = async (id: string) => {
+    const { error } = await supabase.from("marketing_campaigns").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    } else {
+      toast({ title: "Campanha excluída" });
+      refetchCampaigns();
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
