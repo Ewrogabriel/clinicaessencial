@@ -464,7 +464,7 @@ const Dashboard = () => {
         </Card>
       ) : null;
       case "stats": return (
-        <div key="stats" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div key="stats" className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {stats.map((stat) => (
             <Card key={stat.title} className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -522,7 +522,7 @@ const Dashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {(isAdmin || isGestor) && <ClinicReportButton />}
           <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
           <span className="inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">

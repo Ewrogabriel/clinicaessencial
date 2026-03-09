@@ -104,11 +104,35 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Prevent text/button overflow on small screens */
+  .safe-truncate {
+    @apply truncate max-w-full;
+  }
+
+  /* Responsive flex wrapper that wraps on mobile */
+  .responsive-row {
+    @apply flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-md;
+  }
+
+  /* Scrollable tabs on small screens */
+  .tabs-scroll {
+    @apply overflow-x-auto scrollbar-none;
   }
 }

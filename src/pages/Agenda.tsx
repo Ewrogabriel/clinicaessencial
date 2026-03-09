@@ -142,20 +142,23 @@ const Agenda = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
         {(!isPatient || isGestor || isAdmin) && (
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={handleExportPDF}>
-              <FileDown className="h-4 w-4 mr-2" />
-              Exportar PDF
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <FileDown className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Exportar PDF</span>
+              <span className="sm:hidden">PDF</span>
             </Button>
-            <Button variant="outline" onClick={() => navigate("/matriculas?nova=1")}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Nova Matrícula
+            <Button variant="outline" size="sm" onClick={() => navigate("/matriculas?nova=1")}>
+              <UserPlus className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Nova Matrícula</span>
+              <span className="sm:hidden">Matrícula</span>
             </Button>
-            <Button onClick={handleNewAgendamento}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Agendamento
+            <Button size="sm" onClick={handleNewAgendamento}>
+              <Plus className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Novo Agendamento</span>
+              <span className="sm:hidden">Novo</span>
             </Button>
           </div>
         )}
@@ -193,7 +196,8 @@ const Agenda = () => {
       {/* Professional Filter + Navigation + View Toggle (only visible on agenda tab) */}
       {(mainTab === "agenda" || !isStaff) && <>
       {/* Professional Filter + Navigation + View Toggle */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="flex flex-col gap-3">
+        {/* Navigation row */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="icon" onClick={navigatePrev}>
             <ChevronLeft className="h-4 w-4" />
@@ -202,18 +206,19 @@ const Agenda = () => {
           <Button variant="outline" size="icon" onClick={navigateNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <span className="text-lg font-semibold capitalize ml-2">{getTitle()}</span>
+          <span className="text-base sm:text-lg font-semibold capitalize">{getTitle()}</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Filters + View Toggle row */}
+        <div className="flex flex-wrap items-center gap-2">
           {isStaff && (
             <Select value={filterProfId} onValueChange={setFilterProfId}>
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Filtrar profissional" />
+              <SelectTrigger className="w-full sm:w-[180px] text-sm">
+                <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="Profissional" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os profissionais</SelectItem>
+                <SelectItem value="all">Todos profissionais</SelectItem>
                 {profissionais.map((p) => (
                   <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
                 ))}
@@ -223,7 +228,7 @@ const Agenda = () => {
 
           {isStaff && (
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[140px] text-sm">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -237,11 +242,11 @@ const Agenda = () => {
             </Select>
           )}
 
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <TabsList>
-              <TabsTrigger value="diario">Diário</TabsTrigger>
-              <TabsTrigger value="semanal">Semanal</TabsTrigger>
-              <TabsTrigger value="mensal">Mensal</TabsTrigger>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="ml-auto">
+            <TabsList className="h-8">
+              <TabsTrigger value="diario" className="text-xs px-2.5">Diário</TabsTrigger>
+              <TabsTrigger value="semanal" className="text-xs px-2.5">Semanal</TabsTrigger>
+              <TabsTrigger value="mensal" className="text-xs px-2.5">Mensal</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
