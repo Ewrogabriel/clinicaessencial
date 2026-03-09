@@ -299,9 +299,9 @@ const PerfilProfissional = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Documentos & Certificados</CardTitle>
+            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> {t("profile.documents")}</CardTitle>
             <Button size="sm" variant="outline" onClick={() => docInputRef.current?.click()}>
-              <Upload className="h-4 w-4 mr-1" /> Anexar
+              <Upload className="h-4 w-4 mr-1" /> {t("profile.attach")}
             </Button>
             <input ref={docInputRef} type="file" className="hidden" onChange={handleDocUpload} />
           </div>
