@@ -356,7 +356,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             description: `${totalOccurrences} sessões agendadas (mesmo dia/horário, semanalmente).`,
           });
         } else {
-          const { error } = await (supabase.from("agendamentos") as any).insert({
+          const { data: agendamentoData, error } = await (supabase.from("agendamentos") as any).insert({
             paciente_id: values.paciente_id,
             profissional_id: values.profissional_id,
             data_horario: dataHorario.toISOString(),
@@ -367,8 +367,23 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             created_by: user.id,
             valor_sessao: values.valor_sessao || null,
             clinic_id: activeClinicId,
-          });
+          }).select("id").single();
           if (error) throw error;
+
+          // Auto-create teleconsulta session if marked as teleconsulta
+          if (values.observacoes?.includes("[TELECONSULTA]") && agendamentoData?.id) {
+            const roomId = crypto.randomUUID();
+            const teleconsultaLink = `${window.location.origin}/teleconsulta?session=`;
+            await (supabase.from("teleconsulta_sessions") as any).insert({
+              paciente_id: values.paciente_id,
+              profissional_id: values.profissional_id,
+              agendamento_id: agendamentoData.id,
+              room_id: roomId,
+              status: "aguardando",
+              clinic_id: activeClinicId,
+            });
+          }
+
           toast({ title: "Agendamento criado com sucesso!" });
         }
       }

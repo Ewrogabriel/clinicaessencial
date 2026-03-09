@@ -154,7 +154,7 @@ export default function TeleconsultaHub() {
           {isProfOrAdmin && (
             <>
               <Button variant="outline" size="sm" onClick={() => navigate("/planos-exercicios")} className="gap-2">
-                <Dumbbell className="h-4 w-4" /> Planos de Exercícios
+                <Activity className="h-4 w-4" /> Planos de Exercícios
               </Button>
               <Button size="sm" onClick={() => navigate("/teleconsulta?nova=1")} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova Teleconsulta
