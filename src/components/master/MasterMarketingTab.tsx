@@ -244,7 +244,7 @@ export function MasterMarketingTab() {
             </Badge>
           ))}
         </div>
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-2 flex-wrap">
           <Button variant="outline" size="sm" className="gap-1"
             onClick={() => copyToClipboard(`${ad.titulo}\n\n${ad.texto}\n\n${ad.cta}\n\n${ad.hashtags?.map(h => h.startsWith("#") ? h : `#${h}`).join(" ")}`)}>
             <Copy className="h-3 w-3" /> Copiar Tudo
@@ -252,6 +252,10 @@ export function MasterMarketingTab() {
           <Button variant="ghost" size="sm" className="gap-1" onClick={() => copyToClipboard(ad.texto)}>
             <FileText className="h-3 w-3" /> Só Texto
           </Button>
+          <MarketingImageGenerator
+            prompt={ad.sugestao_imagem}
+            context={`${ad.titulo} - ${ad.texto}`}
+          />
         </div>
       </CardContent>
     </Card>
