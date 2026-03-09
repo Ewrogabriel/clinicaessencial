@@ -204,7 +204,7 @@ export default function Equipamentos() {
                   {loading ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("common.loading")}</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("common.no_data")}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t("common.no_data")}</TableCell></TableRow>
                   ) : filtered.map((item) => {
                     const reviewOverdue = item.data_proxima_revisao && isPast(new Date(item.data_proxima_revisao));
                     const reviewSoon = item.data_proxima_revisao && !reviewOverdue &&
