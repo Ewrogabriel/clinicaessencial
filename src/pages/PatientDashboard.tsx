@@ -369,7 +369,7 @@ const PatientDashboard = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {trendingProducts.map((produto: any) => {
-                const isReserved = minhasReservas.some((r: any) => r.produto_id === produto.id);
+                const isReserved = produtosHook.minhasReservas.some((r: any) => r.produto_id === produto.id);
                 return (
                   <div
                     key={produto.id}
