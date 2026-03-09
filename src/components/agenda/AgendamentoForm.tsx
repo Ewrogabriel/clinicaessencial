@@ -616,6 +616,53 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               />
             </div>
 
+            {/* Tipo de consulta: Teleconsulta / Domiciliar */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <Label className="font-medium text-sm">Tipo de Consulta</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("observacoes")?.includes("[TELECONSULTA]") ? "default" : "outline"}
+                  className="gap-2"
+                  onClick={() => {
+                    const obs = form.getValues("observacoes") || "";
+                    if (obs.includes("[TELECONSULTA]")) {
+                      form.setValue("observacoes", obs.replace("[TELECONSULTA]", "").trim());
+                    } else {
+                      form.setValue("observacoes", `[TELECONSULTA] ${obs.replace("[DOMICILIAR]", "").trim()}`.trim());
+                    }
+                  }}
+                >
+                  <Video className="h-4 w-4" />
+                  Teleconsulta
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("observacoes")?.includes("[DOMICILIAR]") ? "default" : "outline"}
+                  className="gap-2"
+                  onClick={() => {
+                    const obs = form.getValues("observacoes") || "";
+                    if (obs.includes("[DOMICILIAR]")) {
+                      form.setValue("observacoes", obs.replace("[DOMICILIAR]", "").trim());
+                    } else {
+                      form.setValue("observacoes", `[DOMICILIAR] ${obs.replace("[TELECONSULTA]", "").trim()}`.trim());
+                    }
+                  }}
+                >
+                  <Home className="h-4 w-4" />
+                  Consulta Domiciliar
+                </Button>
+              </div>
+              {form.watch("observacoes")?.includes("[TELECONSULTA]") && (
+                <p className="text-xs text-muted-foreground">📹 Um link de teleconsulta será gerado para esta sessão.</p>
+              )}
+              {form.watch("observacoes")?.includes("[DOMICILIAR]") && (
+                <p className="text-xs text-muted-foreground">🏠 Esta sessão será realizada no domicílio do paciente.</p>
+              )}
+            </div>
+
             {availabilityResult && (
               <Alert variant={availabilityResult.isOverCapacity ? "destructive" : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? "destructive" : "default"}>
                 <div className="flex items-center gap-2">
