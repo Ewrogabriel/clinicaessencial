@@ -117,7 +117,6 @@ export function AppSidebar() {
     { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
     { title: t("nav.my_plans"), url: "/meus-planos", icon: ClipboardList },
     { title: t("nav.my_history"), url: "/meu-historico", icon: ClipboardList },
-    { title: t("nav.my_records"), url: "/prontuarios", icon: Stethoscope },
     { title: t("nav.my_payments"), url: "/meus-pagamentos", icon: CreditCard },
     { title: t("nav.partners"), url: "/convenios", icon: Handshake },
     { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },

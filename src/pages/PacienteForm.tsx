@@ -101,6 +101,20 @@ const PacienteForm = () => {
     },
   });
 
+  const { data: convenios = [] } = useQuery({
+    queryKey: ["convenios-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("convenios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
+  const [convenioId, setConvenioId] = useState<string | null>(null);
+
   useEffect(() => {
     if (id) {
       setLoadingData(true);

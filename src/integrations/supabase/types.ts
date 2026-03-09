@@ -1525,6 +1525,8 @@ export type Database = {
           id: string
           motivo_rejeicao: string | null
           paciente_id: string
+          pdf_available_until: string | null
+          pdf_url: string | null
           requested_at: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -1536,6 +1538,8 @@ export type Database = {
           id?: string
           motivo_rejeicao?: string | null
           paciente_id: string
+          pdf_available_until?: string | null
+          pdf_url?: string | null
           requested_at?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1547,6 +1551,8 @@ export type Database = {
           id?: string
           motivo_rejeicao?: string | null
           paciente_id?: string
+          pdf_available_until?: string | null
+          pdf_url?: string | null
           requested_at?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1787,6 +1793,65 @@ export type Database = {
         }
         Relationships: []
       }
+      metas_clinica: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          created_by: string
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          id: string
+          meta_quantidade: number | null
+          meta_valor: number | null
+          status: string
+          tipo: string
+          titulo: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          created_by: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          meta_quantidade?: number | null
+          meta_valor?: number | null
+          status?: string
+          tipo?: string
+          titulo: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          meta_quantidade?: number | null
+          meta_valor?: number | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_clinica_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modalidades: {
         Row: {
           ativo: boolean
@@ -1906,6 +1971,7 @@ export type Database = {
           cidade: string | null
           codigo_acesso: string | null
           complemento: string | null
+          convenio_id: string | null
           cpf: string | null
           created_at: string
           created_by: string
@@ -1959,6 +2025,7 @@ export type Database = {
           cidade?: string | null
           codigo_acesso?: string | null
           complemento?: string | null
+          convenio_id?: string | null
           cpf?: string | null
           created_at?: string
           created_by: string
@@ -2012,6 +2079,7 @@ export type Database = {
           cidade?: string | null
           codigo_acesso?: string | null
           complemento?: string | null
+          convenio_id?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string
@@ -2059,7 +2127,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pacientes_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pagamentos: {
         Row: {
