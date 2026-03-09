@@ -906,6 +906,11 @@ const SolicitacoesAlteracao = () => {
             </Card>
           )}
         </TabsContent>
+
+        {/* Tab Fichas */}
+        <TabsContent value="fichas" className="mt-4">
+          <FichaRequestsPanel />
+        </TabsContent>
       </Tabs>
 
       {/* Detail Dialog */}
