@@ -101,10 +101,10 @@ const PerfilProfissional = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Perfil atualizado!" });
+      toast({ title: t("profile.updated") });
       queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("common.error"), description: e.message, variant: "destructive" }),
   });
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
