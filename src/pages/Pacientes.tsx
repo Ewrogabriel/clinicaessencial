@@ -156,25 +156,25 @@ const Pacientes = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <PlanLimitBanner resource="pacientes" label="Pacientes" />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
             Pacientes
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Gerencie os pacientes da clínica
           </p>
         </div>
-        <Button onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Paciente
-        </Button>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={exportPDF}>
             <Download className="h-4 w-4 mr-1" /> PDF
           </Button>
           <Button variant="outline" size="sm" onClick={exportExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
+          </Button>
+          <Button size="sm" onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
+            <Plus className="h-4 w-4 mr-1" />
+            Novo Paciente
           </Button>
         </div>
       </div>
