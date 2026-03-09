@@ -55,6 +55,7 @@ const LandingPage = () => {
       </header>
 
       <HeroSection onScrollTo={scrollToSection} />
+      <StatsSection />
       <FeaturesSection />
       <PlansSection onScrollTo={scrollToSection} />
       <TestimonialsSection />
