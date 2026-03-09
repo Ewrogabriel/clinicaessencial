@@ -302,25 +302,55 @@ export default function PlanosExercicios() {
       p.pacientes?.nome?.toLowerCase().includes(search.toLowerCase());
   });
 
+  const exportPlanPDF = (plan: Plan) => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(plan.titulo, 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Paciente: ${plan.pacientes?.nome || "—"}`, 14, 28);
+    doc.text(`Objetivo: ${plan.objetivo || "—"}`, 14, 34);
+    doc.text(`Duração: ${plan.duracao_semanas} semanas | Status: ${plan.status}`, 14, 40);
+    doc.text(`Criado em: ${format(new Date(plan.created_at), "dd/MM/yyyy", { locale: ptBR })}`, 14, 46);
+
+    let y = 56;
+    (plan.exercicios_plano || []).forEach((ex, idx) => {
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setFontSize(12);
+      doc.text(`${idx + 1}. ${ex.nome}`, 14, y); y += 6;
+      doc.setFontSize(9);
+      if (ex.descricao) { doc.text(`   Como executar: ${ex.descricao}`, 14, y); y += 5; }
+      doc.text(`   Séries: ${ex.series || "—"} | Rep.: ${ex.repeticoes || "—"} | Freq.: ${ex.frequencia || "—"}`, 14, y); y += 5;
+      if (ex.carga) { doc.text(`   Carga: ${ex.carga}`, 14, y); y += 5; }
+      if (ex.observacoes) { doc.text(`   Obs.: ${ex.observacoes}`, 14, y); y += 5; }
+      y += 4;
+    });
+
+    doc.save(`plano-${plan.titulo.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+    toast.success("PDF exportado!");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Dumbbell className="h-6 w-6 text-primary" /> Planos de Exercícios
+            <Dumbbell className="h-6 w-6 text-primary" />
+            {isPatient ? "Meus Planos de Exercícios" : "Planos de Exercícios"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Crie planos personalizados com auxílio de IA
+            {isPatient ? "Planos criados pelo seu profissional" : "Crie planos personalizados com auxílio de IA"}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(true)} className="gap-2">
-            <Sparkles className="h-4 w-4 text-primary" /> Gerar com IA
-          </Button>
-          <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Plano
-          </Button>
-        </div>
+        {isStaff && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAiDialogOpen(true)} className="gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Gerar com IA
+            </Button>
+            <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Plano
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="relative">
