@@ -256,7 +256,7 @@ export default function GamificationAdminPanel() {
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground">{goal.descricao}</p>
                   <div className="flex items-center gap-2 text-xs">
-                    <Badge variant="outline">{goal.categoria}</Badge>
+                    <Badge variant="outline">{goal.meta_tipo}</Badge>
                     <Badge variant="outline">{goal.tipo}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
