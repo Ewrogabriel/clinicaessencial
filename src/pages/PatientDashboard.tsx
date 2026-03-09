@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,18 @@ import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
-import { PatientAgendaTab } from "@/components/patient/PatientAgendaTab";
-import { PatientFinanceTab } from "@/components/patient/PatientFinanceTab";
-import { PatientProdutosTab } from "@/components/patient/PatientProdutosTab";
-import { PatientInfoTab } from "@/components/patient/PatientInfoTab";
-import { PatientEvolutionsTab } from "@/components/patient/PatientEvolutionsTab";
 import { NpsSurvey } from "@/components/patient/NpsSurvey";
+import { usePatientAgenda } from "@/hooks/usePatientAgenda";
+import { usePatientFinance } from "@/hooks/usePatientFinance";
+import { usePatientProdutos } from "@/hooks/usePatientProdutos";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load tab components
+const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTab").then(m => ({ default: m.PatientAgendaTab })));
+const PatientFinanceTab = lazy(() => import("@/components/patient/PatientFinanceTab").then(m => ({ default: m.PatientFinanceTab })));
+const PatientProdutosTab = lazy(() => import("@/components/patient/PatientProdutosTab").then(m => ({ default: m.PatientProdutosTab })));
+const PatientInfoTab = lazy(() => import("@/components/patient/PatientInfoTab").then(m => ({ default: m.PatientInfoTab })));
+const PatientEvolutionsTab = lazy(() => import("@/components/patient/PatientEvolutionsTab").then(m => ({ default: m.PatientEvolutionsTab })));
 
 const PatientDashboard = () => {
   const { profile, patientId, loading } = useAuth();
@@ -34,47 +40,48 @@ const PatientDashboard = () => {
   const [isReservaDialogOpen, setIsReservaDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("agenda");
 
-  // ── Queries ──
+  // ── Core Queries (always loaded for KPI cards) ──
   const { data: paciente } = useQuery({
     queryKey: ["patient-self", patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await (supabase.from("pacientes").select("*").eq("id", patientId).single() as any);
+      const { data, error } = await supabase.from("pacientes").select("*").eq("id", patientId).single();
       if (error) throw error;
       return data;
     },
     enabled: !!patientId,
   });
 
-  const { data: agenda = [] } = useQuery({
-    queryKey: ["patient-agenda", patientId],
+  const { data: nextAgenda } = useQuery({
+    queryKey: ["patient-next-agenda", patientId],
     queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("agendamentos").select("*")
-        .eq("paciente_id", patientId).gte("data_horario", new Date().toISOString())
-        .in("status", ["pendente", "agendado", "confirmado"]).order("data_horario", { ascending: true }).limit(10) as any);
+      if (!patientId) return null;
+      const { data, error } = await supabase
+        .from("agendamentos")
+        .select("data_horario")
+        .eq("paciente_id", patientId)
+        .gte("data_horario", new Date().toISOString())
+        .in("status", ["pendente", "agendado", "confirmado"])
+        .order("data_horario", { ascending: true })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
-      if (profIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
-        (profs || []).forEach((p: any) => { profMap[p.user_id] = { nome: p.nome, telefone: p.telefone }; });
-      }
-      return (data || []).map((a: any) => ({
-        ...a,
-        profiles: { nome: profMap[a.profissional_id]?.nome || "Profissional" },
-        profissional_telefone: profMap[a.profissional_id]?.telefone || ""
-      }));
+      return data;
     },
     enabled: !!patientId,
   });
+
 
   const { data: planoAtivo } = useQuery({
     queryKey: ["patient-plano", patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await (supabase.from("planos").select("*")
-        .eq("paciente_id", patientId).eq("status", "ativo").maybeSingle() as any);
+      const { data, error } = await supabase
+        .from("planos")
+        .select("*")
+        .eq("paciente_id", patientId)
+        .eq("status", "ativo")
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -85,17 +92,38 @@ const PatientDashboard = () => {
     queryKey: ["patient-frequency", patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await (supabase.from("agendamentos").select("status").eq("paciente_id", patientId) as any);
+      const { data, error } = await supabase.from("agendamentos").select("status").eq("paciente_id", patientId);
       if (error) throw error;
       const total = data?.length || 0;
-      const realizados = data?.filter((a: any) => a.status === "realizado").length || 0;
-      const cancelados = data?.filter((a: any) => a.status === "cancelado").length || 0;
-      const faltas = data?.filter((a: any) => a.status === "falta").length || 0;
+      const realizados = data?.filter((a) => a.status === "realizado").length || 0;
+      const cancelados = data?.filter((a) => a.status === "cancelado").length || 0;
+      const faltas = data?.filter((a) => a.status === "falta").length || 0;
       return { total, realizados, cancelados, faltas, taxa: total > 0 ? Math.round((realizados / total) * 100) : 0 };
     },
     enabled: !!patientId,
   });
 
+  const { data: pendenciasCount = [] } = useQuery({
+    queryKey: ["patient-pendencias-count", patientId],
+    queryFn: async () => {
+      if (!patientId) return [];
+      const { data, error } = await supabase
+        .from("pagamentos")
+        .select("id")
+        .eq("paciente_id", patientId)
+        .eq("status", "pendente");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!patientId,
+  });
+
+  // ── Tab-conditional data hooks ──
+  const agendaHook = usePatientAgenda(patientId, activeTab === "agenda");
+  const financeHook = usePatientFinance(patientId, activeTab === "financeiro");
+  const produtosHook = usePatientProdutos(patientId, activeTab === "produtos" || activeTab === "");
+
+  // Info tab queries (only when active)
   const { data: avisos = [] } = useQuery({
     queryKey: ["avisos-ativos"],
     queryFn: async () => {
@@ -103,6 +131,7 @@ const PatientDashboard = () => {
       if (error) throw error;
       return data;
     },
+    enabled: activeTab === "info",
   });
 
   const { data: feriados = [] } = useQuery({
@@ -110,145 +139,17 @@ const PatientDashboard = () => {
     queryFn: async () => {
       const hoje = new Date();
       const dataFutura = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const { data, error } = await (supabase.from("feriados").select("*")
-        .gte("data", hoje.toISOString().split("T")[0]).lte("data", dataFutura.toISOString().split("T")[0])
-        .order("data").limit(10) as any);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: pendencias = [] } = useQuery({
-    queryKey: ["patient-pendencias", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("pagamentos").select("*")
-        .eq("paciente_id", patientId).eq("status", "pendente").order("data_vencimento", { ascending: true }) as any);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: solicitacoes = [] } = useQuery({
-    queryKey: ["patient-solicitacoes", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await supabase.from("solicitacoes_remarcacao")
-        .select("agendamento_id, status").eq("paciente_id", patientId).eq("status", "pendente");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!patientId,
-  });
-
-  // Products - always fetch for the trending card
-  const { data: produtosDisponiveis = [] } = useQuery({
-    queryKey: ["produtos-disponiveis"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("produtos").select("*")
-        .gt("estoque", 0).eq("ativo", true).order("nome") as any);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Patient's past reservations for trending
-  const { data: minhasReservas = [] } = useQuery({
-    queryKey: ["minhas-reservas", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
       const { data, error } = await supabase
-        .from("reservas_produtos")
-        .select("produto_id")
-        .eq("paciente_id", patientId);
+        .from("feriados")
+        .select("*")
+        .gte("data", hoje.toISOString().split("T")[0])
+        .lte("data", dataFutura.toISOString().split("T")[0])
+        .order("data")
+        .limit(10);
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!patientId,
-  });
-
-  const { data: formasPagamento = [] } = useQuery({
-    queryKey: ["formas-pagamento-ativas"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("formas_pagamento" as any) as any)
-        .select("*").eq("ativo", true).order("ordem");
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: activeTab === "financeiro",
-  });
-
-  const { data: pagamentosMensalidade = [] } = useQuery({
-    queryKey: ["pagamentos-mensalidade-paciente", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("pagamentos_mensalidade" as any) as any)
-        .select("*").eq("paciente_id", patientId).order("mes_referencia", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!patientId && activeTab === "financeiro",
-  });
-
-  const { data: pagamentosSessoes = [] } = useQuery({
-    queryKey: ["pagamentos-sessoes-paciente", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("pagamentos_sessoes" as any) as any)
-        .select("*").eq("paciente_id", patientId).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!patientId && activeTab === "financeiro",
-  });
-
-  const { data: configPixMap = {} } = useQuery({
-    queryKey: ["config-pix-map"],
-    queryFn: async () => {
-      const { data } = await (supabase.from("config_pix" as any) as any)
-        .select("forma_pagamento_id, chave_pix, tipo_chave, nome_beneficiario");
-      const map: any = {};
-      (data || []).forEach((p: any) => { map[p.forma_pagamento_id] = p; });
-      return map;
-    },
-    enabled: activeTab === "financeiro",
-  });
-
-  // Matrícula payments for patient
-  const { data: matriculaPayments = [] } = useQuery({
-    queryKey: ["matricula-payments-patient", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("pagamentos_mensalidade" as any) as any)
-        .select("*").eq("paciente_id", patientId).order("mes_referencia", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!patientId && activeTab === "financeiro",
-  });
-
-  const { data: pastAgenda = [] } = useQuery({
-    queryKey: ["patient-agenda-past", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase.from("agendamentos").select("*")
-        .eq("paciente_id", patientId).lt("data_horario", new Date().toISOString())
-        .order("data_horario", { ascending: false }).limit(10) as any);
-      if (error) throw error;
-      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
-      if (profIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
-        (profs || []).forEach((p: any) => { profMap[p.user_id] = { nome: p.nome, telefone: p.telefone }; });
-      }
-      return (data || []).map((a: any) => ({
-        ...a,
-        profiles: { nome: profMap[a.profissional_id]?.nome || "Profissional" },
-        profissional_telefone: profMap[a.profissional_id]?.telefone || ""
-      }));
-    },
-    enabled: !!patientId,
+    enabled: activeTab === "info",
   });
 
   // ── Mutations ──
@@ -318,15 +219,15 @@ const PatientDashboard = () => {
   const planoVencimento = planoAtivo?.data_vencimento ? new Date(planoAtivo.data_vencimento) : null;
   const diasParaVencer = planoVencimento ? differenceInDays(planoVencimento, hoje) : null;
 
-  // Trending products: prioritize products the patient has reserved before, then fill with others
+  // Trending products: prioritize products the patient has reserved before
   const getTrendingProducts = () => {
-    const reservedProductIds = minhasReservas.map((r: any) => r.produto_id);
+    const reservedProductIds = produtosHook.minhasReservas.map((r: any) => r.produto_id);
     const reservedCount: Record<string, number> = {};
     reservedProductIds.forEach((id: string) => {
       reservedCount[id] = (reservedCount[id] || 0) + 1;
     });
 
-    const sorted = [...produtosDisponiveis].sort((a: any, b: any) => {
+    const sorted = [...produtosHook.produtosDisponiveis].sort((a: any, b: any) => {
       return (reservedCount[b.id] || 0) - (reservedCount[a.id] || 0);
     });
 
@@ -423,7 +324,7 @@ const PatientDashboard = () => {
             <div>
               <p className="text-xs text-muted-foreground">Próxima</p>
               <p className="text-sm font-bold">
-                {agenda.length > 0 ? format(new Date(agenda[0].data_horario), "dd/MM HH:mm") : "—"}
+                {nextAgenda ? format(new Date(nextAgenda.data_horario), "dd/MM HH:mm") : "—"}
               </p>
             </div>
           </div>
@@ -446,8 +347,8 @@ const PatientDashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Financeiro</p>
-              {pendencias.length > 0 ? (
-                <Badge variant="destructive" className="text-xs">{pendencias.length} pendência(s)</Badge>
+              {pendenciasCount.length > 0 ? (
+                <Badge variant="destructive" className="text-xs">{pendenciasCount.length} pendência(s)</Badge>
               ) : (
                 <Badge variant="outline" className="text-xs border-green-300 text-green-700">Em dia</Badge>
               )}
@@ -468,7 +369,7 @@ const PatientDashboard = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {trendingProducts.map((produto: any) => {
-                const isReserved = minhasReservas.some((r: any) => r.produto_id === produto.id);
+                const isReserved = produtosHook.minhasReservas.some((r: any) => r.produto_id === produto.id);
                 return (
                   <div
                     key={produto.id}
@@ -516,48 +417,58 @@ const PatientDashboard = () => {
         </TabsList>
 
         <TabsContent value="agenda" className="mt-4">
-          <PatientAgendaTab
-            agenda={agenda}
-            pastAgenda={pastAgenda}
-            solicitacoes={solicitacoes}
-            updateSessionStatus={updateSessionStatus}
-            openWhatsAppProfissional={openWhatsAppProfissional}
-            onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
-          />
+          <Suspense fallback={<div className="space-y-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div>}>
+            <PatientAgendaTab
+              agenda={agendaHook.futureAgenda}
+              pastAgenda={agendaHook.pastAgenda}
+              solicitacoes={agendaHook.solicitacoes}
+              updateSessionStatus={updateSessionStatus}
+              openWhatsAppProfissional={openWhatsAppProfissional}
+              onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="prontuario" className="mt-4">
-          {patientId && <PatientEvolutionsTab pacienteId={patientId} />}
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            {patientId && <PatientEvolutionsTab pacienteId={patientId} />}
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-4">
-          <PatientFinanceTab
-            pendencias={pendencias}
-            pagamentosMensalidade={pagamentosMensalidade}
-            pagamentosSessoes={pagamentosSessoes}
-            formasPagamento={formasPagamento}
-            configPixMap={configPixMap}
-            matriculaPayments={matriculaPayments}
-            pacienteNome={paciente?.nome || profile?.nome || ""}
-            pacienteCpf={paciente?.cpf || ""}
-          />
+          <Suspense fallback={<div className="space-y-4"><Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" /></div>}>
+            <PatientFinanceTab
+              pendencias={financeHook.pendencias}
+              pagamentosMensalidade={financeHook.pagamentosMensalidade}
+              pagamentosSessoes={financeHook.pagamentosSessoes}
+              formasPagamento={financeHook.formasPagamento}
+              configPixMap={financeHook.configPixMap}
+              matriculaPayments={financeHook.pagamentosMensalidade}
+              pacienteNome={paciente?.nome || profile?.nome || ""}
+              pacienteCpf={paciente?.cpf || ""}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="produtos" className="mt-4">
-          <PatientProdutosTab
-            produtosDisponiveis={produtosDisponiveis}
-            onReservar={(produto) => { setSelectedProduto(produto); setIsReservaDialogOpen(true); }}
-          />
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <PatientProdutosTab
+              produtosDisponiveis={produtosHook.produtosDisponiveis}
+              onReservar={(produto) => { setSelectedProduto(produto); setIsReservaDialogOpen(true); }}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="info" className="mt-4">
-          <PatientInfoTab
-            avisos={avisos}
-            feriados={feriados}
-            frequencyStats={frequencyStats}
-            clinicSettings={clinicSettings}
-            openWhatsAppClinic={openWhatsAppClinic}
-          />
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <PatientInfoTab
+              avisos={avisos}
+              feriados={feriados}
+              frequencyStats={frequencyStats}
+              clinicSettings={clinicSettings}
+              openWhatsAppClinic={openWhatsAppClinic}
+            />
+          </Suspense>
         </TabsContent>
       </Tabs>
 
