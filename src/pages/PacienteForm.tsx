@@ -824,6 +824,20 @@ const PacienteForm = () => {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Convênio</Label>
+              <Select value={convenioId || "none"} onValueChange={(v) => setConvenioId(v === "none" ? null : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um convênio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {(convenios || []).map((conv: any) => (
+                    <SelectItem key={conv.id} value={conv.id}>{conv.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as "ativo" | "inativo")}>
                 <SelectTrigger>
