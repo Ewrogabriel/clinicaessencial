@@ -19,6 +19,7 @@ import {
   Save, History, Trash2
 } from "lucide-react";
 import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
+import { LandingSiteEditor } from "@/components/marketing/LandingSiteEditor";
 
 interface Ad {
   titulo: string;
