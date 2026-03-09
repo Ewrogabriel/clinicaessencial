@@ -95,6 +95,7 @@ export function AppSidebar() {
   const menuComunicacao = [
     { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
     { title: t("nav.notices"), url: "/avisos", icon: Megaphone },
+    { title: "Marketing", url: "/marketing", icon: Target },
   ];
 
   const menuConfig = [
