@@ -3604,6 +3604,117 @@ export type Database = {
           },
         ]
       }
+      teleconsulta_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+          sender_name: string
+          sender_role: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+          sender_name: string
+          sender_role?: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+          sender_name?: string
+          sender_role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teleconsulta_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "teleconsulta_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teleconsulta_sessions: {
+        Row: {
+          admitted_at: string | null
+          agendamento_id: string | null
+          clinic_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          paciente_id: string
+          profissional_id: string
+          room_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          waiting_room_entered_at: string | null
+        }
+        Insert: {
+          admitted_at?: string | null
+          agendamento_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          paciente_id: string
+          profissional_id: string
+          room_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          waiting_room_entered_at?: string | null
+        }
+        Update: {
+          admitted_at?: string | null
+          agendamento_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          paciente_id?: string
+          profissional_id?: string
+          room_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          waiting_room_entered_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teleconsulta_sessions_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teleconsulta_sessions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teleconsulta_sessions_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           access_level: string
