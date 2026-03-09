@@ -194,7 +194,7 @@ function CommissionRulesEditor() {
                         <TableCell className="font-medium">{p.nome}</TableCell>
                         <TableCell>
                             <div className="flex items-center gap-2">
-                                <Input
+                        <Input
                                     type="number"
                                     min={0}
                                     max={100}
@@ -203,7 +203,7 @@ function CommissionRulesEditor() {
                                     value={getEditValue(p.user_id)}
                                     onChange={(e) => setEditPct({ ...editPct, [p.user_id]: e.target.value })}
                                 />
-                                <Percent className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">%</span>
                             </div>
                         </TableCell>
                         <TableCell>
