@@ -1638,6 +1638,30 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_content: {
+        Row: {
+          conteudo: Json
+          id: string
+          secao: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          conteudo?: Json
+          id?: string
+          secao: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          conteudo?: Json
+          id?: string
+          secao?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       lista_espera: {
         Row: {
           clinic_id: string | null

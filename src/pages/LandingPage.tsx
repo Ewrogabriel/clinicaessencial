@@ -7,9 +7,11 @@ import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { PlansSection } from "@/components/landing/PlansSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { ContactSection } from "@/components/landing/ContactSection";
+import { useLandingContent } from "@/hooks/useLandingContent";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { data: content } = useLandingContent();
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -54,12 +56,12 @@ const LandingPage = () => {
         </div>
       </header>
 
-      <HeroSection onScrollTo={scrollToSection} />
+      <HeroSection onScrollTo={scrollToSection} content={content?.hero} />
       <StatsSection />
       <FeaturesSection />
-      <PlansSection onScrollTo={scrollToSection} />
-      <TestimonialsSection />
-      <ContactSection />
+      <PlansSection onScrollTo={scrollToSection} content={content?.planos} />
+      <TestimonialsSection content={content?.depoimentos} />
+      <ContactSection content={content?.contato} />
 
       {/* Footer */}
       <footer className="border-t py-8">

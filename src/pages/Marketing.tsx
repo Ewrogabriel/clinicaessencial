@@ -19,6 +19,7 @@ import {
   Save, History, Trash2
 } from "lucide-react";
 import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
+import { LandingSiteEditor } from "@/components/marketing/LandingSiteEditor";
 
 interface Ad {
   titulo: string;
@@ -323,18 +324,21 @@ const Marketing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[900px]">
           <TabsTrigger value="clinic-ads" className="gap-2">
-            <Target className="h-4 w-4" /> Anúncios da Clínica
+            <Target className="h-4 w-4" /> <span className="hidden sm:inline">Anúncios</span>
           </TabsTrigger>
           <TabsTrigger value="plan-ads" className="gap-2">
-            <Megaphone className="h-4 w-4" /> Venda de Planos
+            <Megaphone className="h-4 w-4" /> <span className="hidden sm:inline">Planos</span>
           </TabsTrigger>
           <TabsTrigger value="social-posts" className="gap-2">
-            <Instagram className="h-4 w-4" /> Posts Sociais
+            <Instagram className="h-4 w-4" /> <span className="hidden sm:inline">Posts</span>
+          </TabsTrigger>
+          <TabsTrigger value="site-editor" className="gap-2">
+            <Globe className="h-4 w-4" /> <span className="hidden sm:inline">Site</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
-            <History className="h-4 w-4" /> Histórico
+            <History className="h-4 w-4" /> <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
         </TabsList>
 
@@ -573,6 +577,11 @@ const Marketing = () => {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* SITE EDITOR TAB */}
+        <TabsContent value="site-editor" className="space-y-6">
+          <LandingSiteEditor />
         </TabsContent>
 
         {/* HISTORY TAB */}

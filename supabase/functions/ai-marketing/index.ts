@@ -81,6 +81,26 @@ Para cada post:
 
 Responda APENAS em JSON:
 {"posts": [{"legenda": "...", "hashtags": ["..."], "sugestao_visual": "...", "melhor_horario": "..."}]}`;
+    } else if (type === "landing_section") {
+      const section = context.section || "hero";
+      systemPrompt = `Você é um copywriter especialista em landing pages de SaaS para o setor de saúde.
+Gere conteúdo persuasivo e profissional para a seção "${section}" de uma landing page do sistema "Essencial Clínicas".
+O sistema é uma plataforma completa de gestão de clínicas de saúde com IA integrada.
+Mantenha o tom profissional, persuasivo e moderno. Retorne APENAS JSON válido.`;
+
+      const sectionInstructions: Record<string, string> = {
+        hero: `Gere conteúdo para a seção Hero. ${context.prompt || ""}
+Retorne JSON: {"badge":"...","titulo":"...","subtitulo":"...","cta_primario":"...","cta_secundario":"...","destaques":["...","...","..."]}`,
+        planos: `Gere conteúdo para a seção de Planos/Preços. ${context.prompt || ""}
+Retorne JSON: {"titulo":"...","subtitulo":"...","planos":[{"name":"...","price":"...","description":"...","highlighted":false,"features":["..."]}]}`,
+        depoimentos: `Gere depoimentos realistas de profissionais de saúde. ${context.prompt || ""}
+Retorne JSON: {"titulo":"...","depoimentos":[{"name":"...","role":"...","rating":5,"text":"..."}]}`,
+        contato: `Gere textos para a seção de contato. ${context.prompt || ""}
+Retorne JSON: {"whatsapp":"...","email":"...","instagram":"...","titulo":"...","subtitulo":"..."}`,
+      };
+
+      userPrompt = sectionInstructions[section] || context.prompt || "Gere conteúdo para a landing page.";
+      userPrompt += `\n\nConteúdo atual para referência: ${JSON.stringify(context.currentContent)}`;
     } else {
       throw new Error("Tipo de conteúdo inválido");
     }
