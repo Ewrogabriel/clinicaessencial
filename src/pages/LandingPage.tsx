@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Activity, ArrowRight } from "lucide-react";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { StatsSection } from "@/components/landing/StatsSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { PlansSection } from "@/components/landing/PlansSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
