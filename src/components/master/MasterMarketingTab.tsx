@@ -17,6 +17,7 @@ import {
   Save, History, Trash2, ExternalLink, Rocket, TrendingUp,
   Mail, MessageSquare
 } from "lucide-react";
+import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
 
 interface Ad {
   titulo: string;
@@ -243,7 +244,7 @@ export function MasterMarketingTab() {
             </Badge>
           ))}
         </div>
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-2 flex-wrap">
           <Button variant="outline" size="sm" className="gap-1"
             onClick={() => copyToClipboard(`${ad.titulo}\n\n${ad.texto}\n\n${ad.cta}\n\n${ad.hashtags?.map(h => h.startsWith("#") ? h : `#${h}`).join(" ")}`)}>
             <Copy className="h-3 w-3" /> Copiar Tudo
@@ -251,6 +252,10 @@ export function MasterMarketingTab() {
           <Button variant="ghost" size="sm" className="gap-1" onClick={() => copyToClipboard(ad.texto)}>
             <FileText className="h-3 w-3" /> Só Texto
           </Button>
+          <MarketingImageGenerator
+            prompt={ad.sugestao_imagem}
+            context={`${ad.titulo} - ${ad.texto}`}
+          />
         </div>
       </CardContent>
     </Card>
@@ -287,10 +292,16 @@ export function MasterMarketingTab() {
             </Badge>
           ))}
         </div>
-        <Button variant="outline" size="sm" className="gap-1"
-          onClick={() => copyToClipboard(`${post.legenda}\n\n${post.hashtags?.map(h => h.startsWith("#") ? h : `#${h}`).join(" ")}`)}>
-          <Copy className="h-3 w-3" /> Copiar Post
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="gap-1"
+            onClick={() => copyToClipboard(`${post.legenda}\n\n${post.hashtags?.map(h => h.startsWith("#") ? h : `#${h}`).join(" ")}`)}>
+            <Copy className="h-3 w-3" /> Copiar Post
+          </Button>
+          <MarketingImageGenerator
+            prompt={post.sugestao_visual}
+            context={post.legenda.substring(0, 200)}
+          />
+        </div>
       </CardContent>
     </Card>
   );
