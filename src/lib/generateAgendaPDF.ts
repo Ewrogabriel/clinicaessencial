@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { addLogoToPDF, getClinicSettings } from "./pdfLogo";
+import { addLogoToPDF, getClinicSettings, addWatermarkToAllPages } from "./pdfLogo";
 
 interface AgendamentoForPDF {
   data_horario: string;
