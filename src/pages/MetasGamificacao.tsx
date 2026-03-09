@@ -21,7 +21,6 @@ import { MetasClinicaForm } from "@/components/metas/MetasClinicaForm";
 const MetasGamificacao = () => {
   const { user, isAdmin, isGestor } = useAuth();
   const [mesSelecionado, setMesSelecionado] = useState(format(new Date(), "yyyy-MM"));
-  const [mesSelecionado, setMesSelecionado] = useState(format(new Date(), "yyyy-MM"));
 
   const mesDate = new Date(mesSelecionado + "-01");
   const mesInicio = format(startOfMonth(mesDate), "yyyy-MM-dd");
