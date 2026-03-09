@@ -236,7 +236,7 @@ const PerfilProfissional = () => {
           {aceitaTeleconsulta && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
               <div className="space-y-2">
-                <Label>Plataforma</Label>
+                <Label>{t("profile.platform")}</Label>
                 <Select value={teleconsultaPlataforma} onValueChange={setTeleconsultaPlataforma}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
