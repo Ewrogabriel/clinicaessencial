@@ -522,7 +522,7 @@ const Dashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {(isAdmin || isGestor) && <ClinicReportButton />}
           <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
           <span className="inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">
