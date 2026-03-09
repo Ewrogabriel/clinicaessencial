@@ -260,21 +260,21 @@ Melhore o texto acima mantendo o sentido original, enriquecendo com dados clíni
 - Declaração formal de que o paciente compareceu à clínica
 - Data e horário do atendimento
 - Nome do profissional responsável
-- Finalidade genérica (consulta de fisioterapia/pilates)
+- Finalidade genérica (consulta/atendimento clínico)
 Use linguagem formal e objetiva. O texto deve servir para apresentar a empregadores ou instituições.`,
-          atestado: `Gere um Atestado clínico para fisioterapia/pilates. Deve conter:
+          atestado: `Gere um Atestado clínico. Deve conter:
 - Declaração de atendimento
 - Período de afastamento se aplicável
 - CID se informado no contexto
 - Recomendações gerais
 Use linguagem formal e técnica.`,
-          receituario: `Gere um modelo de Receituário para fisioterapia. Pode incluir:
-- Exercícios domiciliares
-- Orientações posturais
+          receituario: `Gere um modelo de Receituário/Prescrição clínica. Pode incluir:
+- Orientações terapêuticas
+- Exercícios ou cuidados domiciliares
 - Recomendações de frequência
 - Cuidados específicos
 Use linguagem clara e didática para o paciente.`,
-          relatorio: `Gere um modelo de Relatório Clínico para fisioterapia/pilates. Deve conter:
+          relatorio: `Gere um modelo de Relatório Clínico. Deve conter:
 - Identificação do paciente
 - Diagnóstico clínico/funcional
 - Objetivos do tratamento

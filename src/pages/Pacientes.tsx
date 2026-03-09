@@ -130,7 +130,7 @@ const Pacientes = () => {
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("Lista de Pacientes — Essencial Fisio Pilates", 14, 15);
+    doc.text("Lista de Pacientes", 14, 15);
     doc.setFontSize(8);
     doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 22);
     autoTable(doc, {

@@ -180,7 +180,7 @@ const Login = () => {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground">
-          Sistema de Gestão para Fisioterapia e Pilates
+          Sistema de Gestão para Clínicas de Saúde
         </p>
       </div>
     </div>

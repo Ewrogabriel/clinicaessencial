@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const systemPrompt = `Você é um consultor especialista em gestão de clínicas de fisioterapia e pilates. 
+    const systemPrompt = `Você é um consultor especialista em gestão de clínicas de saúde multiespecialidade. 
 Analise os dados fornecidos e gere insights acionáveis em português brasileiro.
 Seja direto, objetivo e forneça recomendações práticas.
 Formate a resposta em markdown com seções claras:

@@ -163,7 +163,7 @@ const PatientOnboarding = () => {
           </div>
           <h1 className="text-2xl font-bold font-[Plus_Jakarta_Sans]">Bem-vindo(a), {paciente?.nome?.split(' ')[0]}!</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Finalize seu cadastro no Essencial FisioPilates
+            Finalize seu cadastro na clínica
           </p>
         </div>
 

@@ -56,7 +56,7 @@ const PacienteForm = () => {
   const [estado, setEstado] = useState("");
 
   // Clinical
-  const [tipoAtendimento, setTipoAtendimento] = useState("fisioterapia");
+  const [tipoAtendimento, setTipoAtendimento] = useState("");
   const [status, setStatus] = useState<"ativo" | "inativo">("ativo");
   const [observacoes, setObservacoes] = useState("");
 

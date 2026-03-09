@@ -709,19 +709,15 @@ const Profissionais = () => {
               <TabsContent value="profissional" className="space-y-4">
                 <div className="space-y-2">
                   <Label>Especialidade</Label>
-                  <Select value={especialidade || "none"} onValueChange={v => setEspecialidade(v === "none" ? null : v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma</SelectItem>
-                      <SelectItem value="fisioterapia">Fisioterapia</SelectItem>
-                      <SelectItem value="pilates">Pilates</SelectItem>
-                      <SelectItem value="rpg">RPG</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={especialidade || ""}
+                    onChange={e => setEspecialidade(e.target.value || null)}
+                    placeholder="Ex: Fisioterapia, Psicologia, Nutrição, Pilates..."
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Registro Profissional (CREFITO)</Label>
-                  <Input value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} placeholder="Ex: CREFITO-3/12345-F" />
+                  <Label>Registro Profissional</Label>
+                  <Input value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} placeholder="Ex: CREFITO, CRP, CRM, CRN..." />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
