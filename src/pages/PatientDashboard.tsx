@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag, Share2, Dumbbell, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag, Share2, Dumbbell, ChevronDown, ChevronUp, MapPin, Navigation } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -496,6 +496,50 @@ const PatientDashboard = () => {
           <DailyTipsCard tipo="paciente" />
         </CardContent>
       </Card>
+
+      {/* Como Chegar */}
+      {clinicSettings && (clinicSettings.endereco || clinicSettings.cidade) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              Como Chegar
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1 text-sm text-muted-foreground">
+                {clinicSettings.endereco && (
+                  <p>{clinicSettings.endereco}{clinicSettings.numero ? `, ${clinicSettings.numero}` : ""}</p>
+                )}
+                {clinicSettings.bairro && <p>{clinicSettings.bairro}</p>}
+                {(clinicSettings.cidade || clinicSettings.estado) && (
+                  <p>{[clinicSettings.cidade, clinicSettings.estado].filter(Boolean).join(" - ")}</p>
+                )}
+                {clinicSettings.cep && <p>CEP: {clinicSettings.cep}</p>}
+              </div>
+              <Button
+                size="sm"
+                className="gap-2 shrink-0"
+                onClick={() => {
+                  const parts = [
+                    clinicSettings.endereco,
+                    clinicSettings.numero,
+                    clinicSettings.bairro,
+                    clinicSettings.cidade,
+                    clinicSettings.estado,
+                    clinicSettings.cep,
+                  ].filter(Boolean).join(", ");
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(parts)}`, "_blank");
+                }}
+              >
+                <Navigation className="h-4 w-4" />
+                Traçar Rota
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Convênios */}
       <Card>
