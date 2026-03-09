@@ -347,8 +347,8 @@ const PatientDashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Financeiro</p>
-              {pendencias.length > 0 ? (
-                <Badge variant="destructive" className="text-xs">{pendencias.length} pendência(s)</Badge>
+              {pendenciasCount.length > 0 ? (
+                <Badge variant="destructive" className="text-xs">{pendenciasCount.length} pendência(s)</Badge>
               ) : (
                 <Badge variant="outline" className="text-xs border-green-300 text-green-700">Em dia</Badge>
               )}
