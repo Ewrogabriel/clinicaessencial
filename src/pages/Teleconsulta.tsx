@@ -27,6 +27,9 @@ interface SessionInfo {
   id: string;
   room_id: string;
   status: string;
+  started_at?: string | null;
+  waiting_room_entered_at?: string | null;
+  duration_seconds?: number | null;
   paciente_nome?: string;
   profissional_nome?: string;
   agendamento_id?: string;

@@ -151,6 +151,7 @@ const App = () => (
               <Route path="/gamificacao-admin" element={<GamificationAdminPanel />} />
               <Route path="/documentos-clinicos" element={<DocumentosClinicos />} />
               <Route path="/marketing" element={<Marketing />} />
+              <Route path="/teleconsulta" element={<Teleconsulta />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
