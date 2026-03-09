@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, Calendar, ClipboardList, DollarSign, BarChart3,
   LogOut, Activity, Layers, UserCog, Receipt, Send, Megaphone,
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
-  FileCheck, Handshake, Video, Dumbbell,
+  FileCheck, Handshake, Video,
   Building2, Crown, Upload, Trophy, Stethoscope, Target,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
