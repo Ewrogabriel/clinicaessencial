@@ -31,6 +31,7 @@ import { ClinicDetailDialog } from "@/components/master/ClinicDetailDialog";
 import { ALL_RESOURCES } from "@/lib/resources";
 import { generateSubscriptionContractPDF } from "@/lib/generateSubscriptionContractPDF";
 import { MasterMarketingTab } from "@/components/master/MasterMarketingTab";
+import { ManualTab } from "@/components/master/ManualTab";
 import { Rocket } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
