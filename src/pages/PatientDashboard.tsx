@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,18 @@ import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
-import { PatientAgendaTab } from "@/components/patient/PatientAgendaTab";
-import { PatientFinanceTab } from "@/components/patient/PatientFinanceTab";
-import { PatientProdutosTab } from "@/components/patient/PatientProdutosTab";
-import { PatientInfoTab } from "@/components/patient/PatientInfoTab";
-import { PatientEvolutionsTab } from "@/components/patient/PatientEvolutionsTab";
 import { NpsSurvey } from "@/components/patient/NpsSurvey";
+import { usePatientAgenda } from "@/hooks/usePatientAgenda";
+import { usePatientFinance } from "@/hooks/usePatientFinance";
+import { usePatientProdutos } from "@/hooks/usePatientProdutos";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load tab components
+const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTab").then(m => ({ default: m.PatientAgendaTab })));
+const PatientFinanceTab = lazy(() => import("@/components/patient/PatientFinanceTab").then(m => ({ default: m.PatientFinanceTab })));
+const PatientProdutosTab = lazy(() => import("@/components/patient/PatientProdutosTab").then(m => ({ default: m.PatientProdutosTab })));
+const PatientInfoTab = lazy(() => import("@/components/patient/PatientInfoTab").then(m => ({ default: m.PatientInfoTab })));
+const PatientEvolutionsTab = lazy(() => import("@/components/patient/PatientEvolutionsTab").then(m => ({ default: m.PatientEvolutionsTab })));
 
 const PatientDashboard = () => {
   const { profile, patientId, loading } = useAuth();
