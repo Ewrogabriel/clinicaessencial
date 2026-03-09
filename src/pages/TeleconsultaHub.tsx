@@ -11,10 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   Video, Plus, Clock, CheckCircle2, Users, Search,
-  FileText, Mic, Calendar, ChevronRight, Dumbbell,
+  FileText, Mic, Calendar, ChevronRight, Activity,
+  Copy, ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   aguardando: { label: "Sala de espera", color: "bg-amber-100 text-amber-800" },
@@ -34,7 +36,7 @@ export default function TeleconsultaHub() {
     queryFn: async () => {
       let query = supabase
         .from("teleconsulta_sessions")
-        .select("*, pacientes(nome, telefone), profiles:profissional_id(nome)")
+        .select("*, pacientes(nome, telefone)")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -51,12 +53,26 @@ export default function TeleconsultaHub() {
   const filtered = sessions.filter((s: any) => {
     if (!search) return true;
     const nome = s.pacientes?.nome?.toLowerCase() || "";
-    const prof = s.profiles?.nome?.toLowerCase() || "";
-    return nome.includes(search.toLowerCase()) || prof.includes(search.toLowerCase());
+    return nome.includes(search.toLowerCase());
   });
 
   const active = filtered.filter((s: any) => ["aguardando", "em_andamento"].includes(s.status));
   const past = filtered.filter((s: any) => s.status === "finalizado");
+
+  const getTeleconsultaLink = (sessionId: string) => `${window.location.origin}/teleconsulta?session=${sessionId}`;
+
+  const copyLink = (sessionId: string) => {
+    navigator.clipboard.writeText(getTeleconsultaLink(sessionId));
+    toast.success("Link copiado!");
+  };
+
+  const sendWhatsApp = (session: any) => {
+    const link = getTeleconsultaLink(session.id);
+    const phone = session.pacientes?.telefone?.replace(/\D/g, "") || "";
+    const fullPhone = phone.startsWith("55") ? phone : `55${phone}`;
+    const msg = `Olá ${session.pacientes?.nome || ""}! 😊\n\nSua teleconsulta está pronta. Acesse pelo link abaixo:\n${link}\n\nAguardamos você!`;
+    window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   const SessionCard = ({ session }: { session: any }) => {
     const sc = statusConfig[session.status] || statusConfig.aguardando;
@@ -65,20 +81,17 @@ export default function TeleconsultaHub() {
     const durationMin = session.duration_seconds ? Math.floor(session.duration_seconds / 60) : null;
 
     return (
-      <Card className="hover:border-primary/40 transition-colors cursor-pointer group"
-        onClick={() => navigate(`/teleconsulta?session=${session.id}`)}>
+      <Card className="hover:border-primary/40 transition-colors group">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
+            <div className="flex items-start gap-3 min-w-0 cursor-pointer"
+              onClick={() => navigate(`/teleconsulta?session=${session.id}`)}>
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Video className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="font-medium text-sm truncate">
                   {session.pacientes?.nome || "Paciente"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {session.profiles?.nome || "Profissional"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(new Date(session.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -104,6 +117,22 @@ export default function TeleconsultaHub() {
               </div>
             </div>
           </div>
+          {/* Action buttons for active sessions */}
+          {session.status !== "finalizado" && (
+            <div className="flex gap-2 mt-3 pt-3 border-t">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-1" onClick={() => copyLink(session.id)}>
+                <Copy className="h-3 w-3" /> Copiar Link
+              </Button>
+              {session.pacientes?.telefone && (
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-1" onClick={() => sendWhatsApp(session)}>
+                  <ExternalLink className="h-3 w-3" /> Enviar WhatsApp
+                </Button>
+              )}
+              <Button size="sm" className="gap-1.5 text-xs" onClick={() => navigate(`/teleconsulta?session=${session.id}`)}>
+                <Video className="h-3 w-3" /> Entrar
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
