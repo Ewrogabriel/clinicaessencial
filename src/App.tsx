@@ -58,6 +58,7 @@ const SelecionarClinica = lazy(() => import("./pages/SelecionarClinica"));
 const MasterPanel = lazy(() => import("./pages/MasterPanel"));
 const ImportacaoMassa = lazy(() => import("./pages/ImportacaoMassa"));
 const MetasGamificacao = lazy(() => import("./pages/MetasGamificacao"));
+const GamificationAdminPanel = lazy(() => import("./pages/GamificationAdminPanel"));
 
 const queryClient = new QueryClient();
 
