@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { downloadEquipamentosPDF } from "@/lib/generateEquipamentosPDF";
 
 interface Equipamento {
   id: string;
@@ -36,6 +37,7 @@ interface Equipamento {
   observacoes_manutencao: string | null;
   status: string;
   foto_url: string | null;
+  valor: number | null;
   created_at: string;
 }
 
@@ -43,7 +45,7 @@ const emptyForm = {
   nome: "", marca: "", modelo: "", cor: "", quantidade: 1, descricao: "",
   tipo: "equipamento", e_consumo: false, estoque_atual: 0, estoque_minimo: 0,
   data_aquisicao: "", data_ultima_revisao: "", data_proxima_revisao: "",
-  observacoes_manutencao: "", status: "ativo",
+  observacoes_manutencao: "", status: "ativo", valor: 0,
 };
 
 export default function Equipamentos() {
@@ -115,6 +117,7 @@ export default function Equipamentos() {
       data_ultima_revisao: item.data_ultima_revisao || "",
       data_proxima_revisao: item.data_proxima_revisao || "",
       observacoes_manutencao: item.observacoes_manutencao || "", status: item.status,
+      valor: Number(item.valor) || 0,
     });
     setDialogOpen(true);
   };
@@ -139,9 +142,14 @@ export default function Equipamentos() {
           <h1 className="text-2xl font-bold text-foreground">{t("equip.title")}</h1>
           <p className="text-sm text-muted-foreground">Gerencie aparelhos, recursos e materiais de consumo</p>
         </div>
-        <Button onClick={() => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> {t("equip.add")}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => downloadEquipamentosPDF(items)} variant="outline" className="gap-2">
+            <Package className="h-4 w-4" /> Extrair Lista PDF
+          </Button>
+          <Button onClick={() => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> {t("equip.add")}
+          </Button>
+        </div>
       </div>
 
       {(reviewAlerts > 0 || lowStock > 0) && (
@@ -186,6 +194,7 @@ export default function Equipamentos() {
                     <TableHead>{t("equip.brand")} / {t("equip.model")}</TableHead>
                     <TableHead>{t("equip.type")}</TableHead>
                     <TableHead className="text-center">{t("common.quantity")}</TableHead>
+                    <TableHead>{t("equip.value")}</TableHead>
                     <TableHead className="text-center">Estoque</TableHead>
                     <TableHead>{t("equip.next_review")}</TableHead>
                     <TableHead>{t("common.status")}</TableHead>
@@ -218,6 +227,7 @@ export default function Equipamentos() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">{item.quantidade}</TableCell>
+                        <TableCell className="text-right">R$ {(Number(item.valor) || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-center">
                           {item.e_consumo ? (
                             <span className={stockLow ? "text-orange-600 font-semibold" : ""}>
@@ -334,6 +344,10 @@ export default function Equipamentos() {
             <div className="space-y-2 col-span-full">
               <Label>{t("common.description")}</Label>
               <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={2} />
+            </div>
+            <div className="space-y-2 col-span-full">
+              <Label>{t("equip.value")}</Label>
+              <Input type="number" min={0} step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: Number(e.target.value) })} />
             </div>
             <div className="space-y-2 col-span-full">
               <Label>{t("equip.maintenance_notes")}</Label>

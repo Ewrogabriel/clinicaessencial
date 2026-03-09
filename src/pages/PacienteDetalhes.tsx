@@ -28,6 +28,8 @@ import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
+import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
+import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
@@ -130,6 +132,10 @@ const PacienteDetalhes = () => {
                     <p className="text-muted-foreground text-sm">
                         {paciente.tipo_atendimento.charAt(0).toUpperCase() + paciente.tipo_atendimento.slice(1)} • {paciente.telefone}
                     </p>
+                </div>
+                <div className="flex gap-2 ml-auto">
+                    <ExportPatientPDFButton pacienteId={id!} />
+                    <AIPatientAnalysisButton pacienteId={id!} pacienteNome={paciente.nome} />
                 </div>
             </div>
 

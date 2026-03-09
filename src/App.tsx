@@ -58,6 +58,7 @@ const SelecionarClinica = lazy(() => import("./pages/SelecionarClinica"));
 const MasterPanel = lazy(() => import("./pages/MasterPanel"));
 const ImportacaoMassa = lazy(() => import("./pages/ImportacaoMassa"));
 const MetasGamificacao = lazy(() => import("./pages/MetasGamificacao"));
+const GamificationAdminPanel = lazy(() => import("./pages/GamificationAdminPanel"));
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
               <Route path="/master" element={<MasterPanel />} />
               <Route path="/importacao" element={<ImportacaoMassa />} />
               <Route path="/metas" element={<MetasGamificacao />} />
+              <Route path="/gamificacao-admin" element={<GamificationAdminPanel />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

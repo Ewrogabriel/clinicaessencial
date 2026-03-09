@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag } from "lucide-react";
+import { Calendar, DollarSign, Activity, AlertCircle, Clock, MessageCircle, ShoppingBag, FileDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,8 +27,8 @@ const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTa
 const PatientFinanceTab = lazy(() => import("@/components/patient/PatientFinanceTab").then(m => ({ default: m.PatientFinanceTab })));
 const PatientProdutosTab = lazy(() => import("@/components/patient/PatientProdutosTab").then(m => ({ default: m.PatientProdutosTab })));
 const PatientInfoTab = lazy(() => import("@/components/patient/PatientInfoTab").then(m => ({ default: m.PatientInfoTab })));
-const PatientEvolutionsTab = lazy(() => import("@/components/patient/PatientEvolutionsTab").then(m => ({ default: m.PatientEvolutionsTab })));
 const GamificationDashboard = lazy(() => import("@/components/gamification/GamificationDashboard").then(m => ({ default: m.GamificationDashboard })));
+import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 
 const PatientDashboard = () => {
   const { profile, patientId, loading } = useAuth();
@@ -282,9 +282,12 @@ const PatientDashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
-          <MessageCircle className="h-4 w-4" /> Suporte
-        </Button>
+        <div className="flex gap-2">
+          {patientId && <ExportPatientPDFButton pacienteId={patientId} label="Minha Ficha" />}
+          <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
+            <MessageCircle className="h-4 w-4" /> Suporte
+          </Button>
+        </div>
       </div>
 
       {/* Plan warnings - compact */}
@@ -409,9 +412,8 @@ const PatientDashboard = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="agenda">Agenda</TabsTrigger>
-          <TabsTrigger value="prontuario">Prontuário</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="produtos">Produtos</TabsTrigger>
           <TabsTrigger value="conquistas">🎮</TabsTrigger>
@@ -428,12 +430,6 @@ const PatientDashboard = () => {
               openWhatsAppProfissional={openWhatsAppProfissional}
               onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
             />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="prontuario" className="mt-4">
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            {patientId && <PatientEvolutionsTab pacienteId={patientId} />}
           </Suspense>
         </TabsContent>
 
