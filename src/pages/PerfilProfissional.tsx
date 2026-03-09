@@ -281,8 +281,8 @@ const PerfilProfissional = () => {
                 <Input type="number" step="0.01" value={domiciliarValorAdicional} onChange={(e) => setDomiciliarValorAdicional(e.target.value)} placeholder="0.00" />
               </div>
               <div className="space-y-2 sm:col-span-1">
-                <Label>Observações</Label>
-                <Input value={domiciliarObservacoes} onChange={(e) => setDomiciliarObservacoes(e.target.value)} placeholder="Restrições, bairros..." />
+                <Label>{t("common.obs")}</Label>
+                <Input value={domiciliarObservacoes} onChange={(e) => setDomiciliarObservacoes(e.target.value)} placeholder={t("profile.restrictions")} />
               </div>
             </div>
           )}
