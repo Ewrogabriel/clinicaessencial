@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2, Video, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -614,6 +614,53 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Tipo de consulta: Teleconsulta / Domiciliar */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <Label className="font-medium text-sm">Tipo de Consulta</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("observacoes")?.includes("[TELECONSULTA]") ? "default" : "outline"}
+                  className="gap-2"
+                  onClick={() => {
+                    const obs = form.getValues("observacoes") || "";
+                    if (obs.includes("[TELECONSULTA]")) {
+                      form.setValue("observacoes", obs.replace("[TELECONSULTA]", "").trim());
+                    } else {
+                      form.setValue("observacoes", `[TELECONSULTA] ${obs.replace("[DOMICILIAR]", "").trim()}`.trim());
+                    }
+                  }}
+                >
+                  <Video className="h-4 w-4" />
+                  Teleconsulta
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("observacoes")?.includes("[DOMICILIAR]") ? "default" : "outline"}
+                  className="gap-2"
+                  onClick={() => {
+                    const obs = form.getValues("observacoes") || "";
+                    if (obs.includes("[DOMICILIAR]")) {
+                      form.setValue("observacoes", obs.replace("[DOMICILIAR]", "").trim());
+                    } else {
+                      form.setValue("observacoes", `[DOMICILIAR] ${obs.replace("[TELECONSULTA]", "").trim()}`.trim());
+                    }
+                  }}
+                >
+                  <Home className="h-4 w-4" />
+                  Consulta Domiciliar
+                </Button>
+              </div>
+              {form.watch("observacoes")?.includes("[TELECONSULTA]") && (
+                <p className="text-xs text-muted-foreground">📹 Um link de teleconsulta será gerado para esta sessão.</p>
+              )}
+              {form.watch("observacoes")?.includes("[DOMICILIAR]") && (
+                <p className="text-xs text-muted-foreground">🏠 Esta sessão será realizada no domicílio do paciente.</p>
+              )}
             </div>
 
             {availabilityResult && (

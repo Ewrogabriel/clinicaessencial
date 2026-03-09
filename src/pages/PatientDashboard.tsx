@@ -328,74 +328,86 @@ const PatientDashboard = () => {
         </div>
       </div>
 
-      {/* Plan warnings - compact */}
+      {/* Plan warnings */}
       {planoVencimento && diasParaVencer !== null && diasParaVencer <= 15 && diasParaVencer >= 0 && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-          <Clock className="h-4 w-4 shrink-0" />
-          <span><strong>Plano vence em {diasParaVencer} dia(s)</strong> — {format(planoVencimento, "dd/MM/yyyy")}</span>
-        </div>
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="flex items-center gap-2 p-4 text-amber-800 dark:text-amber-200 text-sm">
+            <Clock className="h-4 w-4 shrink-0" />
+            <span><strong>Plano vence em {diasParaVencer} dia(s)</strong> — {format(planoVencimento, "dd/MM/yyyy")}</span>
+          </CardContent>
+        </Card>
       )}
       {planoVencimento && diasParaVencer !== null && diasParaVencer < 0 && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span><strong>Plano vencido</strong> em {format(planoVencimento, "dd/MM/yyyy")} — regularize junto à clínica.</span>
-        </div>
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent className="flex items-center gap-2 p-4 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span><strong>Plano vencido</strong> em {format(planoVencimento, "dd/MM/yyyy")} — regularize junto à clínica.</span>
+          </CardContent>
+        </Card>
       )}
 
-      {/* KPI Cards - 3 columns, cleaner */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Activity className="h-5 w-5 text-primary" />
+      {/* KPI Cards */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Sessões</p>
+                <p className="text-lg font-bold">
+                  {planoAtivo ? `${sessoesRestantes}/${planoAtivo.total_sessoes}` : "—"}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Sessões</p>
-              <p className="text-lg font-bold">
-                {planoAtivo ? `${sessoesRestantes}/${planoAtivo.total_sessoes}` : "—"}
-              </p>
-            </div>
-          </div>
-          {planoAtivo && <Progress value={sessoesPercent} className="mt-2 h-1.5" />}
+            {planoAtivo && <Progress value={sessoesPercent} className="mt-2 h-1.5" />}
+          </CardContent>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-primary" />
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Próxima Sessão</p>
+                <p className="text-sm font-bold">
+                  {nextAgenda ? format(new Date(nextAgenda.data_horario), "dd/MM HH:mm") : "—"}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Próxima</p>
-              <p className="text-sm font-bold">
-                {nextAgenda ? format(new Date(nextAgenda.data_horario), "dd/MM HH:mm") : "—"}
-              </p>
-            </div>
-          </div>
+          </CardContent>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Activity className="h-5 w-5 text-primary" />
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Frequência</p>
+                <p className="text-lg font-bold">{frequencyStats?.taxa ?? 0}%</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Frequência</p>
-              <p className="text-lg font-bold">{frequencyStats?.taxa ?? 0}%</p>
-            </div>
-          </div>
+          </CardContent>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-primary" />
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Financeiro</p>
+                {pendenciasCount.length > 0 ? (
+                  <Badge variant="destructive" className="text-xs">{pendenciasCount.length} pendência(s)</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Em dia ✅</Badge>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Financeiro</p>
-              {pendenciasCount.length > 0 ? (
-                <Badge variant="destructive" className="text-xs">{pendenciasCount.length} pendência(s)</Badge>
-              ) : (
-                <Badge variant="outline" className="text-xs border-green-300 text-green-700">Em dia</Badge>
-              )}
-            </div>
-          </div>
+          </CardContent>
         </Card>
       </div>
 
@@ -440,10 +452,9 @@ const PatientDashboard = () => {
         </Card>
       )}
 
-
-      {/* Exercise Plans Widget */}
+      {/* Exercise Plans Card */}
       {myExercisePlans.length > 0 && (
-        <Card className="border-primary/20">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-primary" />
@@ -452,104 +463,125 @@ const PatientDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {myExercisePlans.map((plan: any) => (
-              <div key={plan.id} className="border rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{plan.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{plan.duracao_semanas} semanas • {plan.exercicios_plano?.length || 0} exercícios</p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px]">{plan.status}</Badge>
-                </div>
-                {plan.exercicios_plano?.slice(0, 3).map((ex: any, i: number) => (
-                  <div key={i} className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
-                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] text-primary font-bold">{i + 1}</span>
-                    </div>
+              <Card key={plan.id} className="shadow-none">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-medium text-foreground">{ex.nome}</span>
-                      {ex.series && <span className="ml-1">{ex.series}x{ex.repeticoes}</span>}
+                      <p className="font-medium text-sm">{plan.titulo}</p>
+                      <p className="text-xs text-muted-foreground">{plan.duracao_semanas} semanas • {plan.exercicios_plano?.length || 0} exercícios</p>
                     </div>
+                    <Badge variant="outline" className="text-[10px]">{plan.status}</Badge>
                   </div>
-                ))}
-              </div>
+                  {plan.exercicios_plano?.slice(0, 3).map((ex: any, i: number) => (
+                    <div key={i} className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] text-primary font-bold">{i + 1}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">{ex.nome}</span>
+                        {ex.series && <span className="ml-1">{ex.series}x{ex.repeticoes}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             ))}
           </CardContent>
         </Card>
       )}
 
       {/* Dicas do Dia */}
-      <DailyTipsCard tipo="paciente" />
+      <Card>
+        <CardContent className="p-0">
+          <DailyTipsCard tipo="paciente" />
+        </CardContent>
+      </Card>
 
-      <ConvenioCard />
+      {/* Convênios */}
+      <Card>
+        <CardContent className="p-0">
+          <ConvenioCard />
+        </CardContent>
+      </Card>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="agenda">Agenda</TabsTrigger>
-          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="produtos">Produtos</TabsTrigger>
-          <TabsTrigger value="conquistas">🎮</TabsTrigger>
-          <TabsTrigger value="info">Info</TabsTrigger>
-        </TabsList>
+      {/* Tabs Card */}
+      <Card>
+        <CardContent className="p-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="agenda">Agenda</TabsTrigger>
+              <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+              <TabsTrigger value="produtos">Produtos</TabsTrigger>
+              <TabsTrigger value="conquistas">🎮</TabsTrigger>
+              <TabsTrigger value="info">Info</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="agenda" className="mt-4">
-          <Suspense fallback={<div className="space-y-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div>}>
-            <PatientAgendaTab
-              agenda={agendaHook.futureAgenda}
-              pastAgenda={agendaHook.pastAgenda}
-              solicitacoes={agendaHook.solicitacoes}
-              updateSessionStatus={updateSessionStatus}
-              openWhatsAppProfissional={openWhatsAppProfissional}
-              onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
-            />
-          </Suspense>
-        </TabsContent>
+            <TabsContent value="agenda" className="mt-4">
+              <Suspense fallback={<div className="space-y-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div>}>
+                <PatientAgendaTab
+                  agenda={agendaHook.futureAgenda}
+                  pastAgenda={agendaHook.pastAgenda}
+                  solicitacoes={agendaHook.solicitacoes}
+                  updateSessionStatus={updateSessionStatus}
+                  openWhatsAppProfissional={openWhatsAppProfissional}
+                  onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
+                />
+              </Suspense>
+            </TabsContent>
 
-        <TabsContent value="financeiro" className="mt-4">
-          <Suspense fallback={<div className="space-y-4"><Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" /></div>}>
-            <PatientFinanceTab
-              pendencias={financeHook.pendencias}
-              pagamentosMensalidade={financeHook.pagamentosMensalidade}
-              pagamentosSessoes={financeHook.pagamentosSessoes}
-              formasPagamento={financeHook.formasPagamento}
-              configPixMap={financeHook.configPixMap}
-              matriculaPayments={financeHook.pagamentosMensalidade}
-              pacienteNome={paciente?.nome || profile?.nome || ""}
-              pacienteCpf={paciente?.cpf || ""}
-            />
-          </Suspense>
-        </TabsContent>
+            <TabsContent value="financeiro" className="mt-4">
+              <Suspense fallback={<div className="space-y-4"><Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" /></div>}>
+                <PatientFinanceTab
+                  pendencias={financeHook.pendencias}
+                  pagamentosMensalidade={financeHook.pagamentosMensalidade}
+                  pagamentosSessoes={financeHook.pagamentosSessoes}
+                  formasPagamento={financeHook.formasPagamento}
+                  configPixMap={financeHook.configPixMap}
+                  matriculaPayments={financeHook.pagamentosMensalidade}
+                  pacienteNome={paciente?.nome || profile?.nome || ""}
+                  pacienteCpf={paciente?.cpf || ""}
+                />
+              </Suspense>
+            </TabsContent>
 
-        <TabsContent value="produtos" className="mt-4">
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            <PatientProdutosTab
-              produtosDisponiveis={produtosHook.produtosDisponiveis}
-              onReservar={(produto) => { setSelectedProduto(produto); setIsReservaDialogOpen(true); }}
-            />
-          </Suspense>
-        </TabsContent>
+            <TabsContent value="produtos" className="mt-4">
+              <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                <PatientProdutosTab
+                  produtosDisponiveis={produtosHook.produtosDisponiveis}
+                  onReservar={(produto) => { setSelectedProduto(produto); setIsReservaDialogOpen(true); }}
+                />
+              </Suspense>
+            </TabsContent>
 
-        <TabsContent value="conquistas" className="mt-4">
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            {patientId && <GamificationDashboard pacienteId={patientId} />}
-          </Suspense>
-        </TabsContent>
+            <TabsContent value="conquistas" className="mt-4">
+              <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                {patientId && <GamificationDashboard pacienteId={patientId} />}
+              </Suspense>
+            </TabsContent>
 
-        <TabsContent value="info" className="mt-4">
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            <PatientInfoTab
-              avisos={avisos}
-              feriados={feriados}
-              frequencyStats={frequencyStats}
-              clinicSettings={clinicSettings}
-              openWhatsAppClinic={openWhatsAppClinic}
-            />
-          </Suspense>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="info" className="mt-4">
+              <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                <PatientInfoTab
+                  avisos={avisos}
+                  feriados={feriados}
+                  frequencyStats={frequencyStats}
+                  clinicSettings={clinicSettings}
+                  openWhatsAppClinic={openWhatsAppClinic}
+                />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
-      {/* Avaliação de Experiência - NPS Survey (no final do dashboard) */}
-      {patientId && <NpsSurvey pacienteId={patientId} />}
+      {/* NPS Survey Card */}
+      {patientId && (
+        <Card>
+          <CardContent className="p-0">
+            <NpsSurvey pacienteId={patientId} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Reserva Dialog */}
       {isReservaDialogOpen && selectedProduto && (

@@ -123,6 +123,7 @@ export function AppSidebar() {
     { title: t("nav.partners"), url: "/convenios", icon: Handshake },
     { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
     { title: t("nav.my_contract"), url: "/contratos", icon: FileText },
+    { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Activity },
     { title: t("nav.my_profile"), url: "/meu-perfil", icon: Users },
   ];
 
