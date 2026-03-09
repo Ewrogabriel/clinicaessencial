@@ -283,7 +283,7 @@ const PatientDashboard = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          {patientId && <ExportPatientPDFButton pacienteId={patientId} label="Minha Ficha" />}
+          {patientId && <FichaRequestButton pacienteId={patientId} />}
           <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
             <MessageCircle className="h-4 w-4" /> Suporte
           </Button>
