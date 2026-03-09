@@ -170,5 +170,6 @@ export async function generateSubscriptionContractPDF(data: SubscriptionContract
   addText(data.clinicaNome, 9);
   addText(data.responsavelNome, 9);
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }
