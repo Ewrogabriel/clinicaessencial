@@ -3512,6 +3512,105 @@ export type Database = {
           },
         ]
       }
+      rewards_catalog: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          limite_resgates: number | null
+          nome: string
+          percentual_desconto: number | null
+          pontos_necessarios: number
+          tipo: string
+          updated_at: string
+          validade_dias: number | null
+          valor_desconto: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          limite_resgates?: number | null
+          nome: string
+          percentual_desconto?: number | null
+          pontos_necessarios?: number
+          tipo?: string
+          updated_at?: string
+          validade_dias?: number | null
+          valor_desconto?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          limite_resgates?: number | null
+          nome?: string
+          percentual_desconto?: number | null
+          pontos_necessarios?: number
+          tipo?: string
+          updated_at?: string
+          validade_dias?: number | null
+          valor_desconto?: number
+        }
+        Relationships: []
+      }
+      rewards_redemptions: {
+        Row: {
+          codigo_desconto: string | null
+          created_at: string
+          expira_em: string | null
+          id: string
+          paciente_id: string
+          pontos_gastos: number
+          reward_id: string
+          status: string
+          utilizado_em: string | null
+        }
+        Insert: {
+          codigo_desconto?: string | null
+          created_at?: string
+          expira_em?: string | null
+          id?: string
+          paciente_id: string
+          pontos_gastos: number
+          reward_id: string
+          status?: string
+          utilizado_em?: string | null
+        }
+        Update: {
+          codigo_desconto?: string | null
+          created_at?: string
+          expira_em?: string | null
+          id?: string
+          paciente_id?: string
+          pontos_gastos?: number
+          reward_id?: string
+          status?: string
+          utilizado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_redemptions_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solicitacoes_alteracao_dados: {
         Row: {
           approved_at: string | null
