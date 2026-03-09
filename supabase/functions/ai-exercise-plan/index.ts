@@ -5,45 +5,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const TIPO_PLANO_DESCRIPTIONS: Record<string, string> = {
+  fisioterapia: "fisioterapia e reabilitação",
+  pilates_aparelho: "Pilates em aparelhos (Reformer, Cadillac, Chair, Barrel). Inclua o aparelho utilizado em cada exercício.",
+  pilates_solo: "Pilates solo/Mat, exercícios no colchonete com acessórios como bola, faixa elástica, magic circle",
+  pilates_misto: "Pilates misto combinando exercícios de solo (Mat) e aparelhos (Reformer, Cadillac, Chair)",
+  fortalecimento: "fortalecimento muscular com pesos livres e equipamentos",
+  alongamento: "alongamento e flexibilidade",
+  funcional: "treinamento funcional com exercícios compostos e multiarticulares",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { objetivo, condicao, nivel, semanas, observacoes } = await req.json();
+    const { objetivo, condicao, nivel, semanas, observacoes, tipo_plano } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `Você é um fisioterapeuta e especialista em pilates com ampla experiência em criação de planos de exercícios terapêuticos e de condicionamento físico.
+    const tipoDesc = TIPO_PLANO_DESCRIPTIONS[tipo_plano || "fisioterapia"] || "exercícios terapêuticos";
 
-Sua tarefa é criar um plano de exercícios detalhado e estruturado para um paciente.
+    const systemPrompt = `Você é um fisioterapeuta e instrutor de Pilates altamente qualificado, com vasta experiência em ${tipoDesc}.
+
+Sua tarefa é criar um plano de exercícios detalhado e estruturado para um paciente/aluno.
+
+REGRAS IMPORTANTES:
+- Adapte completamente os exercícios ao tipo de plano solicitado
+- Para Pilates Aparelho: especifique o aparelho (Reformer, Cadillac, Chair, Barrel) e a resistência das molas
+- Para Pilates Solo: especifique os acessórios necessários (bola, faixa, magic circle, etc.)
+- Considere o nível do paciente/aluno ao definir complexidade, carga e número de repetições
+- Para nível "adaptado": inclua modificações e alternativas seguras
+- Inclua sempre instruções claras de respiração quando aplicável
 
 Retorne SOMENTE um JSON válido com a seguinte estrutura, sem texto adicional:
 {
   "titulo": "Nome do plano",
-  "descricao": "Descrição geral do plano",
+  "descricao": "Descrição geral do plano incluindo equipamentos necessários",
   "objetivo": "Objetivo principal",
   "exercicios": [
     {
-      "nome": "Nome do exercício",
-      "descricao": "Como executar",
+      "nome": "Nome do exercício (incluir aparelho se aplicável)",
+      "descricao": "Descrição detalhada de como executar, posicionamento, respiração",
       "series": 3,
-      "repeticoes": "10-12",
-      "carga": "Leve/Moderada/Peso corporal",
+      "repeticoes": "8-10",
+      "carga": "Mola leve/média/pesada ou peso corporal",
       "tempo_execucao": "30 segundos",
       "frequencia": "3x por semana",
-      "observacoes": "Cuidados e dicas"
+      "observacoes": "Cuidados, variações e progressões"
     }
   ]
 }
 
-Crie entre 5 e 8 exercícios adequados ao perfil informado.`;
+Crie entre 6 e 10 exercícios adequados ao perfil informado, em ordem progressiva de dificuldade.`;
 
-    const userPrompt = `Crie um plano de exercícios com as seguintes especificações:
+    const userPrompt = `Crie um plano de ${tipoDesc} com as seguintes especificações:
+- Tipo de plano: ${tipo_plano || "fisioterapia"}
 - Objetivo: ${objetivo || "Condicionamento geral e bem-estar"}
-- Condição do paciente: ${condicao || "Sem restrições especiais"}
+- Condição do paciente/aluno: ${condicao || "Sem restrições especiais"}
 - Nível: ${nivel || "Iniciante"}
 - Duração do plano: ${semanas || 4} semanas
-- Observações adicionais: ${observacoes || "Nenhuma"}`;
+- Observações do profissional: ${observacoes || "Nenhuma"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
