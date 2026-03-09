@@ -15,12 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import {
   Dumbbell, Plus, Sparkles, Loader2, Trash2, Edit2, ChevronDown,
-  ChevronUp, Search, User, Target, Clock, ImageIcon,
+  ChevronUp, Search, User, Target, Clock, ImageIcon, FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePacientes } from "@/hooks/usePacientes";
+import jsPDF from "jspdf";
 
 interface Exercise {
   id?: string;
