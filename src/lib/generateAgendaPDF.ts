@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { addLogoToPDF, getClinicSettings } from "./pdfLogo";
+import { addLogoToPDF, getClinicSettings, addWatermarkToAllPages } from "./pdfLogo";
 
 interface AgendamentoForPDF {
   data_horario: string;
@@ -111,6 +111,8 @@ export async function generateWeeklyPDF(
     },
   });
 
+  await addWatermarkToAllPages(doc);
+  
   const fileName = professionalName
     ? `agenda-semanal-${professionalName.replace(/\s+/g, "_")}-${format(weekStart, "yyyy-MM-dd")}.pdf`
     : `agenda-semanal-${format(weekStart, "yyyy-MM-dd")}.pdf`;

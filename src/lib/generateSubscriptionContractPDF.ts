@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { addWatermarkToAllPages } from "./pdfLogo";
 
 interface SubscriptionContractData {
   clinicaNome: string;
@@ -169,5 +170,6 @@ export async function generateSubscriptionContractPDF(data: SubscriptionContract
   addText(data.clinicaNome, 9);
   addText(data.responsavelNome, 9);
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }

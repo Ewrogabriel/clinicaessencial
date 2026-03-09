@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { addWatermarkToAllPages } from "./pdfLogo";
 
 interface PatientPDFData {
   paciente: any;
@@ -12,7 +13,7 @@ interface PatientPDFData {
   anexos?: any[];
 }
 
-export const generatePatientCompletePDF = (data: PatientPDFData) => {
+export const generatePatientCompletePDF = async (data: PatientPDFData) => {
   const doc = new jsPDF();
   const { paciente, avaliacao, evolucoes = [], agendamentos = [], pagamentos = [], anexos = [] } = data;
   let y = 20;
@@ -221,11 +222,12 @@ export const generatePatientCompletePDF = (data: PatientPDFData) => {
     });
   }
 
+  await addWatermarkToAllPages(doc);
   return doc;
 };
 
-export const downloadPatientCompletePDF = (data: PatientPDFData) => {
-  const doc = generatePatientCompletePDF(data);
+export const downloadPatientCompletePDF = async (data: PatientPDFData) => {
+  const doc = await generatePatientCompletePDF(data);
   const nome = (data.paciente.nome || "paciente").replace(/\s+/g, "_");
   doc.save(`ficha_completa_${nome}.pdf`);
 };

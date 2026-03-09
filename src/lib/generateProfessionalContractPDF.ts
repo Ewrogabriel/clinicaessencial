@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { addLogoToPDF, getClinicSettings, formatClinicAddress } from "./pdfLogo";
+import { addLogoToPDF, getClinicSettings, formatClinicAddress, addWatermarkToAllPages } from "./pdfLogo";
 
 interface ProfessionalContractData {
   profissionalNome: string;
@@ -230,5 +230,6 @@ export async function generateProfessionalContractPDF(data: ProfessionalContract
   if (data.registroProfissional) addText(`Registro: ${data.registroProfissional}`, 9);
   if (data.cpf) addText(`CPF: ${data.cpf}`, 9);
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }

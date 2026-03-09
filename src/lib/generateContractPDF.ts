@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { addLogoToPDF, getClinicSettings, formatClinicAddress } from "./pdfLogo";
+import { addLogoToPDF, getClinicSettings, formatClinicAddress, addWatermarkToAllPages } from "./pdfLogo";
 
 interface ContractData {
   pacienteNome: string;
@@ -157,5 +157,6 @@ export async function generateContractPDF(data: ContractData) {
   addText("CONTRATANTE", 9);
   addText(data.pacienteNome, 9);
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }

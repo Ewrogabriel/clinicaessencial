@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, Upload, FileText, Trash2, Camera } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { User, Upload, FileText, Trash2, Camera, Video, Home } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const PerfilProfissional = () => {
@@ -25,6 +27,13 @@ const PerfilProfissional = () => {
   const [especialidade, setEspecialidade] = useState("");
   const [registroProfissional, setRegistroProfissional] = useState("");
   const [cursos, setCursos] = useState("");
+  const [aceitaTeleconsulta, setAceitaTeleconsulta] = useState(false);
+  const [teleconsultaPlataforma, setTeleconsultaPlataforma] = useState("");
+  const [teleconsultaLink, setTeleconsultaLink] = useState("");
+  const [aceitaDomiciliar, setAceitaDomiciliar] = useState(false);
+  const [domiciliarRaioKm, setDomiciliarRaioKm] = useState("");
+  const [domiciliarValorAdicional, setDomiciliarValorAdicional] = useState("");
+  const [domiciliarObservacoes, setDomiciliarObservacoes] = useState("");
   const [loaded, setLoaded] = useState(false);
 
   const { data: profileData } = useQuery({
@@ -39,13 +48,21 @@ const PerfilProfissional = () => {
 
   // Initialize form
   if (profileData && !loaded) {
-    setNome((profileData as any).nome || "");
-    setTelefone((profileData as any).telefone || "");
-    setBio((profileData as any).bio || "");
-    setGraduacao((profileData as any).graduacao || "");
-    setEspecialidade((profileData as any).especialidade || "");
-    setRegistroProfissional((profileData as any).registro_profissional || "");
-    setCursos(((profileData as any).cursos || []).join(", "));
+    const p = profileData as any;
+    setNome(p.nome || "");
+    setTelefone(p.telefone || "");
+    setBio(p.bio || "");
+    setGraduacao(p.graduacao || "");
+    setEspecialidade(p.especialidade || "");
+    setRegistroProfissional(p.registro_profissional || "");
+    setCursos((p.cursos || []).join(", "));
+    setAceitaTeleconsulta(p.aceita_teleconsulta || false);
+    setTeleconsultaPlataforma(p.teleconsulta_plataforma || "");
+    setTeleconsultaLink(p.teleconsulta_link || "");
+    setAceitaDomiciliar(p.aceita_domiciliar || false);
+    setDomiciliarRaioKm(p.domiciliar_raio_km ? String(p.domiciliar_raio_km) : "");
+    setDomiciliarValorAdicional(p.domiciliar_valor_adicional ? String(p.domiciliar_valor_adicional) : "");
+    setDomiciliarObservacoes(p.domiciliar_observacoes || "");
     setLoaded(true);
   }
 
@@ -71,6 +88,13 @@ const PerfilProfissional = () => {
         especialidade: especialidade || null,
         registro_profissional: registroProfissional || null,
         cursos: cursos ? cursos.split(",").map(c => c.trim()).filter(Boolean) : [],
+        aceita_teleconsulta: aceitaTeleconsulta,
+        teleconsulta_plataforma: teleconsultaPlataforma || null,
+        teleconsulta_link: teleconsultaLink || null,
+        aceita_domiciliar: aceitaDomiciliar,
+        domiciliar_raio_km: domiciliarRaioKm ? parseFloat(domiciliarRaioKm) : null,
+        domiciliar_valor_adicional: domiciliarValorAdicional ? parseFloat(domiciliarValorAdicional) : 0,
+        domiciliar_observacoes: domiciliarObservacoes || null,
       } as any).eq("id", (profileData as any).id);
       if (error) throw error;
     },
@@ -145,6 +169,14 @@ const PerfilProfissional = () => {
               <p className="font-semibold text-lg">{nome || "Profissional"}</p>
               {especialidade && <Badge variant="secondary" className="mt-1 capitalize">{especialidade}</Badge>}
             </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {aceitaTeleconsulta && (
+                <Badge variant="outline" className="gap-1"><Video className="h-3 w-3" /> Teleconsulta</Badge>
+              )}
+              {aceitaDomiciliar && (
+                <Badge variant="outline" className="gap-1"><Home className="h-3 w-3" /> Domiciliar</Badge>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -182,13 +214,83 @@ const PerfilProfissional = () => {
                 <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Fale um pouco sobre sua experiência..." />
               </div>
             </div>
-            <div className="flex justify-end">
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? "Salvando..." : "Salvar Perfil"}
-              </Button>
-            </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Teleconsulta Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Video className="h-5 w-5 text-primary" /> Teleconsulta</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Aceita teleconsulta?</p>
+              <p className="text-xs text-muted-foreground">Permitir agendamentos de tele atendimento</p>
+            </div>
+            <Switch checked={aceitaTeleconsulta} onCheckedChange={setAceitaTeleconsulta} />
+          </div>
+          {aceitaTeleconsulta && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+              <div className="space-y-2">
+                <Label>Plataforma</Label>
+                <Select value={teleconsultaPlataforma} onValueChange={setTeleconsultaPlataforma}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="google_meet">Google Meet</SelectItem>
+                    <SelectItem value="zoom">Zoom</SelectItem>
+                    <SelectItem value="teams">Microsoft Teams</SelectItem>
+                    <SelectItem value="whatsapp_video">WhatsApp Vídeo</SelectItem>
+                    <SelectItem value="outro">Outra</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Link da sala (opcional)</Label>
+                <Input value={teleconsultaLink} onChange={(e) => setTeleconsultaLink(e.target.value)} placeholder="https://meet.google.com/..." />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Atendimento Domiciliar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5 text-primary" /> Atendimento Domiciliar</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Aceita atendimento domiciliar?</p>
+              <p className="text-xs text-muted-foreground">Permitir agendamentos em domicílio</p>
+            </div>
+            <Switch checked={aceitaDomiciliar} onCheckedChange={setAceitaDomiciliar} />
+          </div>
+          {aceitaDomiciliar && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t">
+              <div className="space-y-2">
+                <Label>Raio de atendimento (km)</Label>
+                <Input type="number" value={domiciliarRaioKm} onChange={(e) => setDomiciliarRaioKm(e.target.value)} placeholder="Ex: 15" />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor adicional (R$)</Label>
+                <Input type="number" step="0.01" value={domiciliarValorAdicional} onChange={(e) => setDomiciliarValorAdicional(e.target.value)} placeholder="0.00" />
+              </div>
+              <div className="space-y-2 sm:col-span-1">
+                <Label>Observações</Label>
+                <Input value={domiciliarObservacoes} onChange={(e) => setDomiciliarObservacoes(e.target.value)} placeholder="Restrições, bairros..." />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} size="lg">
+          {saveMutation.isPending ? "Salvando..." : "Salvar Perfil"}
+        </Button>
       </div>
 
       {/* Documents */}

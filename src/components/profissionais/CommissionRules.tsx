@@ -45,14 +45,19 @@ export function CommissionRules() {
     ...modalidades.map((m: any) => ({ value: m.nome.toLowerCase(), label: m.nome })),
   ];
 
-  const { data: profissionais = [] } = useQuery({
+  const { data: profissionais = [], isLoading: loadingProfs } = useQuery({
     queryKey: ["prof-for-comissoes"],
     queryFn: async () => {
+      // First get all profiles, then filter by role
+      const { data: allProfiles } = await supabase.from("profiles").select("*").order("nome");
       const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
-      const ids = roles?.map(r => r.user_id) ?? [];
-      if (!ids.length) return [];
-      const { data } = await supabase.from("profiles").select("*").in("user_id", ids).order("nome");
-      return data ?? [];
+      const profIds = new Set((roles || []).map(r => r.user_id));
+      
+      // Also include admins who may have sessions
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const adminIds = new Set((adminRoles || []).map(r => r.user_id));
+      
+      return (allProfiles || []).filter((p: any) => profIds.has(p.user_id) || adminIds.has(p.user_id));
     },
     enabled: canManage,
   });

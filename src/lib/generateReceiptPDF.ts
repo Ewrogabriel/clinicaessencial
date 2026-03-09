@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { addLogoToPDF, getClinicSettings, formatClinicAddress } from "./pdfLogo";
+import { addLogoToPDF, getClinicSettings, formatClinicAddress, addWatermarkToAllPages } from "./pdfLogo";
 
 interface ReceiptData {
   numero: string;
@@ -140,6 +140,7 @@ export async function generateReceiptPDF(data: ReceiptData) {
     doc.text(`CNPJ: ${settings.cnpj}`, margin, y);
   }
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }
 

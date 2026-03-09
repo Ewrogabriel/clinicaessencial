@@ -1,8 +1,9 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { addWatermarkToAllPages } from "./pdfLogo";
 
-export const downloadEquipamentosPDF = (items: any[]) => {
+export const downloadEquipamentosPDF = async (items: any[]) => {
   const doc = new jsPDF("landscape");
 
   doc.setFontSize(16);
@@ -39,5 +40,6 @@ export const downloadEquipamentosPDF = (items: any[]) => {
     margin: { left: 14, right: 14 },
   });
 
+  await addWatermarkToAllPages(doc);
   doc.save("relatorio_equipamentos.pdf");
 };

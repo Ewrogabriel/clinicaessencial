@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addLogoToPDF, getClinicSettings } from "./pdfLogo";
+import { addLogoToPDF, getClinicSettings, addWatermarkToAllPages } from "./pdfLogo";
 
 interface AvailabilitySlot {
   dia_semana: number;
@@ -68,6 +68,7 @@ export async function generateAvailabilityPDF(slots: AvailabilitySlot[], profess
       }
     },
   });
-
+  await addWatermarkToAllPages(doc);
+  
   doc.save(`grade-semanal-${professionalName.replace(/\s+/g, "_").toLowerCase()}.pdf`);
 }
