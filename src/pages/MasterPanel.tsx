@@ -369,6 +369,7 @@ function PlansTab() {
                 <p>📋 {plan.max_pacientes ? `Até ${plan.max_pacientes} pacientes` : "Pacientes ilimitados"}</p>
                 <p>👥 {plan.max_profissionais ? `Até ${plan.max_profissionais} profissionais` : "Profissionais ilimitados"}</p>
                 <p>🏢 {plan.max_clinicas ? `Até ${plan.max_clinicas} unidade(s)` : "Unidades ilimitadas"}</p>
+                {plan.validade_dias && <p>⏱️ Validade: {plan.validade_dias} dias</p>}
               </div>
             </CardContent>
           </Card>
