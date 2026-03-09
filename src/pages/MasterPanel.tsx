@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import {
   Building2, CreditCard, Crown, Link2, Plus, Users, AlertTriangle, Check, X,
-  DollarSign, TrendingUp, Package, FileText,
+  DollarSign, TrendingUp, Package, FileText, BookOpen,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -31,6 +31,7 @@ import { ClinicDetailDialog } from "@/components/master/ClinicDetailDialog";
 import { ALL_RESOURCES } from "@/lib/resources";
 import { generateSubscriptionContractPDF } from "@/lib/generateSubscriptionContractPDF";
 import { MasterMarketingTab } from "@/components/master/MasterMarketingTab";
+import { ManualTab } from "@/components/master/ManualTab";
 import { Rocket } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -299,7 +300,7 @@ function PlansTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false,
-    recursos_selecionados: [] as string[],
+    recursos_selecionados: [] as string[], validade_dias: "",
   });
 
   const { data: plans = [] } = useQuery({
@@ -328,12 +329,13 @@ function PlansTab() {
       cor: form.cor,
       destaque: form.destaque,
       recursos_disponiveis: recursos,
+      validade_dias: form.validade_dias ? parseInt(form.validade_dias) : null,
     });
 
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
 
     toast({ title: "Plano criado! ✅" });
-    setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false, recursos_selecionados: [] });
+    setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false, recursos_selecionados: [], validade_dias: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["platform-plans"] });
   };
@@ -368,6 +370,7 @@ function PlansTab() {
                 <p>📋 {plan.max_pacientes ? `Até ${plan.max_pacientes} pacientes` : "Pacientes ilimitados"}</p>
                 <p>👥 {plan.max_profissionais ? `Até ${plan.max_profissionais} profissionais` : "Profissionais ilimitados"}</p>
                 <p>🏢 {plan.max_clinicas ? `Até ${plan.max_clinicas} unidade(s)` : "Unidades ilimitadas"}</p>
+                {plan.validade_dias && <p>⏱️ Validade: {plan.validade_dias} dias</p>}
               </div>
             </CardContent>
           </Card>
@@ -384,10 +387,11 @@ function PlansTab() {
             <div><Label>Nome *</Label><Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Profissional" /></div>
             <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} /></div>
             <div><Label>Valor mensal (R$) *</Label><Input type="number" value={form.valor_mensal} onChange={e => setForm(f => ({ ...f, valor_mensal: e.target.value }))} /></div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div><Label>Máx. Pacientes</Label><Input type="number" value={form.max_pacientes} onChange={e => setForm(f => ({ ...f, max_pacientes: e.target.value }))} placeholder="∞" /></div>
               <div><Label>Máx. Profissionais</Label><Input type="number" value={form.max_profissionais} onChange={e => setForm(f => ({ ...f, max_profissionais: e.target.value }))} placeholder="∞" /></div>
               <div><Label>Máx. Unidades</Label><Input type="number" value={form.max_clinicas} onChange={e => setForm(f => ({ ...f, max_clinicas: e.target.value }))} /></div>
+              <div><Label>Validade (dias)</Label><Input type="number" value={form.validade_dias} onChange={e => setForm(f => ({ ...f, validade_dias: e.target.value }))} placeholder="∞" /></div>
             </div>
             <div><Label>Cor</Label><Input type="color" value={form.cor} onChange={e => setForm(f => ({ ...f, cor: e.target.value }))} className="h-10 w-20" /></div>
             
@@ -792,6 +796,9 @@ export default function MasterPanel() {
           <TabsTrigger value="marketing" className="gap-1 text-xs sm:text-sm">
             <Rocket className="h-3 w-3" /> Marketing
           </TabsTrigger>
+          <TabsTrigger value="manual" className="gap-1 text-xs sm:text-sm">
+            <BookOpen className="h-3 w-3" /> Manual
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><MasterDashboardTab /></TabsContent>
         <TabsContent value="clinics"><ClinicsTab /></TabsContent>
@@ -799,6 +806,7 @@ export default function MasterPanel() {
         <TabsContent value="payments"><PaymentsTab /></TabsContent>
         <TabsContent value="groups"><GroupsTab /></TabsContent>
         <TabsContent value="marketing"><MasterMarketingTab /></TabsContent>
+        <TabsContent value="manual"><ManualTab /></TabsContent>
       </Tabs>
     </div>
   );

@@ -1738,6 +1738,36 @@ export type Database = {
           },
         ]
       }
+      manual_sections: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          imagem_url: string | null
+          ordem: number
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          ordem?: number
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       marketing_campaigns: {
         Row: {
           clinic_id: string | null
@@ -2753,6 +2783,7 @@ export type Database = {
           nome: string
           recursos_disponiveis: Json | null
           updated_at: string
+          validade_dias: number | null
           valor_mensal: number
         }
         Insert: {
@@ -2768,6 +2799,7 @@ export type Database = {
           nome: string
           recursos_disponiveis?: Json | null
           updated_at?: string
+          validade_dias?: number | null
           valor_mensal?: number
         }
         Update: {
@@ -2783,6 +2815,7 @@ export type Database = {
           nome?: string
           recursos_disponiveis?: Json | null
           updated_at?: string
+          validade_dias?: number | null
           valor_mensal?: number
         }
         Relationships: []
