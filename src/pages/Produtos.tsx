@@ -28,6 +28,9 @@ const Produtos = () => {
   const [mesRef, setMesRef] = useState(format(new Date(), "yyyy-MM"));
 
   const [formData, setFormData] = useState({ nome: "", descricao: "", preco: "", estoque: "", foto_url: "" });
+  const [aiDescLoading, setAiDescLoading] = useState(false);
+  const [aiImageLoading, setAiImageLoading] = useState(false);
+  const [descSuggestions, setDescSuggestions] = useState<string[]>([]);
   const [saleData, setSaleData] = useState({ produto_id: "", paciente_id: "", quantidade: "1", data_venda: format(new Date(), "yyyy-MM-dd"), observacoes: "" });
   const [stockData, setStockData] = useState({ produto_id: "", quantidade: "", data_entrada: format(new Date(), "yyyy-MM-dd"), observacoes: "" });
 
