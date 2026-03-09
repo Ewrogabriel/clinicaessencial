@@ -308,7 +308,7 @@ const PerfilProfissional = () => {
         </CardHeader>
         <CardContent>
           {documents.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-6">Nenhum documento anexado.</p>
+            <p className="text-center text-sm text-muted-foreground py-6">{t("profile.no_docs")}</p>
           ) : (
             <div className="space-y-2">
               {documents.map((doc: any) => (
