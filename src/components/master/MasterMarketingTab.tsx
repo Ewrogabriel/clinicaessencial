@@ -318,15 +318,18 @@ export function MasterMarketingTab() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[700px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[850px]">
           <TabsTrigger value="sell-app" className="gap-2 text-xs sm:text-sm">
-            <Target className="h-4 w-4" /> Anúncios App
+            <Target className="h-4 w-4" /> Anúncios
           </TabsTrigger>
           <TabsTrigger value="email-campaigns" className="gap-2 text-xs sm:text-sm">
-            <Mail className="h-4 w-4" /> Email Marketing
+            <Mail className="h-4 w-4" /> Email
           </TabsTrigger>
           <TabsTrigger value="social-selling" className="gap-2 text-xs sm:text-sm">
-            <TrendingUp className="h-4 w-4" /> Social Selling
+            <TrendingUp className="h-4 w-4" /> Social
+          </TabsTrigger>
+          <TabsTrigger value="site-editor" className="gap-2 text-xs sm:text-sm">
+            <Globe className="h-4 w-4" /> Site
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2 text-xs sm:text-sm">
             <History className="h-4 w-4" /> Histórico
