@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { FileDown, Loader2, Clock, CheckCircle, XCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +31,13 @@ export const FichaRequestButton = ({ pacienteId }: Props) => {
 
   const createRequest = useMutation({
     mutationFn: async () => {
+      // First delete any old rejected request so patient can re-request
+      await (supabase as any)
+        .from("ficha_requests")
+        .delete()
+        .eq("paciente_id", pacienteId)
+        .eq("status", "rejeitado");
+
       const { error } = await (supabase as any)
         .from("ficha_requests")
         .insert([{ paciente_id: pacienteId, status: "pendente" }]);
@@ -70,7 +76,6 @@ export const FichaRequestButton = ({ pacienteId }: Props) => {
     );
   }
 
-  // No request yet
   if (!request) {
     return (
       <Button
@@ -90,13 +95,12 @@ export const FichaRequestButton = ({ pacienteId }: Props) => {
     );
   }
 
-  // Pending request
   if (request.status === "pendente") {
     return (
       <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="gap-1.5 text-xs py-1 px-3">
+        <Badge variant="secondary" className="gap-1.5 py-1 px-3">
           <Clock className="h-3 w-3" />
-          Solicitação pendente de aprovação
+          Aguardando aprovação
         </Badge>
         <Button
           variant="ghost"
@@ -111,11 +115,10 @@ export const FichaRequestButton = ({ pacienteId }: Props) => {
     );
   }
 
-  // Rejected
   if (request.status === "rejeitado") {
     return (
-      <div className="flex flex-col gap-1">
-        <Badge variant="destructive" className="gap-1.5 text-xs py-1 px-3 w-fit">
+      <div className="flex flex-col gap-2">
+        <Badge variant="destructive" className="gap-1.5 py-1 px-3 w-fit">
           <XCircle className="h-3 w-3" />
           Solicitação rejeitada
         </Badge>
@@ -127,7 +130,7 @@ export const FichaRequestButton = ({ pacienteId }: Props) => {
           size="sm"
           onClick={() => createRequest.mutate()}
           disabled={createRequest.isPending}
-          className="gap-2 w-fit mt-1"
+          className="gap-2 w-fit"
         >
           <Send className="h-3 w-3" />
           Nova Solicitação
@@ -136,12 +139,11 @@ export const FichaRequestButton = ({ pacienteId }: Props) => {
     );
   }
 
-  // Approved — show download message (admin generates and shares)
   if (request.status === "aprovado") {
     return (
-      <Badge variant="outline" className="gap-1.5 text-xs py-1 px-3 border-green-400 text-green-700">
+      <Badge variant="outline" className="gap-1.5 py-1 px-3 border-primary text-primary">
         <CheckCircle className="h-3 w-3" />
-        Ficha aprovada em {request.reviewed_at ? format(new Date(request.reviewed_at), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+        Ficha aprovada — entre em contato para receber o PDF
       </Badge>
     );
   }
