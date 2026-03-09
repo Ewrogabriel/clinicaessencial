@@ -548,16 +548,42 @@ const PatientDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Tabs Card */}
+      {/* Section Cards Navigation */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {[
+          { key: "agenda", label: "Agenda", icon: <Calendar className="h-5 w-5" />, color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400" },
+          { key: "financeiro", label: "Financeiro", icon: <DollarSign className="h-5 w-5" />, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400" },
+          { key: "produtos", label: "Produtos", icon: <ShoppingBag className="h-5 w-5" />, color: "text-purple-600 bg-purple-50 dark:bg-purple-950/30 dark:text-purple-400" },
+          { key: "conquistas", label: "Conquistas", icon: <Activity className="h-5 w-5" />, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400" },
+          { key: "info", label: "Informações", icon: <AlertCircle className="h-5 w-5" />, color: "text-rose-600 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400" },
+        ].map((item) => (
+          <Card
+            key={item.key}
+            className={`cursor-pointer transition-all hover:shadow-md border-2 ${activeTab === item.key ? "border-primary ring-1 ring-primary/20" : "border-transparent hover:border-muted-foreground/20"}`}
+            onClick={() => setActiveTab(item.key)}
+          >
+            <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
+              <div className={`rounded-full p-2.5 ${item.color}`}>
+                {item.icon}
+              </div>
+              <span className={`text-xs font-semibold ${activeTab === item.key ? "text-primary" : "text-muted-foreground"}`}>
+                {item.label}
+              </span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Tab Content */}
       <Card>
         <CardContent className="p-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full flex overflow-x-auto gap-1 justify-start sm:grid sm:grid-cols-5 sm:gap-0">
-              <TabsTrigger value="agenda" className="shrink-0 text-xs sm:text-sm">Agenda</TabsTrigger>
-              <TabsTrigger value="financeiro" className="shrink-0 text-xs sm:text-sm">Financeiro</TabsTrigger>
-              <TabsTrigger value="produtos" className="shrink-0 text-xs sm:text-sm">Produtos</TabsTrigger>
-              <TabsTrigger value="conquistas" className="shrink-0 text-xs sm:text-sm">🎮</TabsTrigger>
-              <TabsTrigger value="info" className="shrink-0 text-xs sm:text-sm">Info</TabsTrigger>
+            <TabsList className="hidden">
+              <TabsTrigger value="agenda">Agenda</TabsTrigger>
+              <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+              <TabsTrigger value="produtos">Produtos</TabsTrigger>
+              <TabsTrigger value="conquistas">Conquistas</TabsTrigger>
+              <TabsTrigger value="info">Info</TabsTrigger>
             </TabsList>
 
             <TabsContent value="agenda" className="mt-4">
