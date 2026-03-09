@@ -2,10 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Video, VideoOff, Phone, MessageSquare, Users,
   Send, Clock, CheckCircle2, ArrowLeft, DoorOpen,
@@ -39,6 +45,7 @@ interface SessionInfo {
   profissional_nome?: string;
   agendamento_id?: string;
   paciente_id?: string;
+  profissional_id?: string;
   clinic_id?: string | null;
 }
 
@@ -52,6 +59,7 @@ export default function Teleconsulta() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user, profile, isProfissional, isAdmin, isGestor } = useAuth();
+  const { activeClinicId } = useClinic();
 
   const agendamentoId = params.get("agendamento");
   const roomParam = params.get("room");
@@ -72,6 +80,11 @@ export default function Teleconsulta() {
   const [interimText, setInterimText] = useState("");
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [clinicalSummary, setClinicalSummary] = useState("");
+
+  // Post-consultation notes
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [postConsultNotes, setPostConsultNotes] = useState("");
+  const [isSavingEvolution, setIsSavingEvolution] = useState(false);
 
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
   const jitsiApiRef = useRef<any>(null);
@@ -174,7 +187,7 @@ export default function Teleconsulta() {
     document.body.appendChild(script);
   }, []);
 
-  // ─── Start Jitsi ───
+  // ─── Start Jitsi + Auto start transcription ───
   useEffect(() => {
     if (!callActive || !jitsiLoaded || !session || !jitsiContainerRef.current) return;
     if (jitsiApiRef.current) return;
@@ -207,6 +220,11 @@ export default function Teleconsulta() {
     supabase.from("teleconsulta_sessions")
       .update({ status: "em_andamento", started_at: new Date().toISOString() })
       .eq("id", session.id).then();
+
+    // Auto-start transcription when call starts
+    if (isProfOrAdmin && !isTranscribing) {
+      setTimeout(() => startTranscription(), 2000);
+    }
 
     return () => {
       if (jitsiApiRef.current) { jitsiApiRef.current.dispose(); jitsiApiRef.current = null; }
@@ -298,7 +316,7 @@ export default function Teleconsulta() {
     recognition.start();
     setIsTranscribing(true);
     setTranscriptionOpen(true);
-    toast.success("Transcrição iniciada");
+    toast.success("Transcrição iniciada automaticamente");
   };
 
   const stopTranscription = async () => {
@@ -421,6 +439,18 @@ export default function Teleconsulta() {
       y += 5;
     }
 
+    // Post-consult notes
+    if (postConsultNotes) {
+      doc.setDrawColor(45, 100, 160);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y);
+      y += 8;
+      addText("OBSERVAÇÕES DO PROFISSIONAL", 12, true);
+      y += 2;
+      addText(postConsultNotes, 10);
+      y += 5;
+    }
+
     // Transcription section
     if (transcriptLines.length > 0) {
       doc.setDrawColor(45, 100, 160);
@@ -497,8 +527,73 @@ export default function Teleconsulta() {
       }
 
       await supabase.from("teleconsulta_sessions").update(updateData).eq("id", session.id);
+
+      // Auto-generate summary if not already generated
+      if (!clinicalSummary && transcriptLines.length > 0 && isProfOrAdmin) {
+        await generateSummary();
+      }
+
+      // Open notes dialog for professionals
+      if (isProfOrAdmin) {
+        setShowNotesDialog(true);
+      } else {
+        toast.success("Teleconsulta finalizada");
+        navigate("/teleconsulta-hub");
+      }
+    } else {
+      toast.success("Teleconsulta finalizada");
+      navigate("/teleconsulta-hub");
     }
-    toast.success("Teleconsulta finalizada");
+  };
+
+  const handleSaveEvolution = async () => {
+    if (!session || !activeClinicId) return;
+    setIsSavingEvolution(true);
+
+    try {
+      // Criar evolução no prontuário
+      const evolutionContent = `**Teleconsulta realizada em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}**
+
+${clinicalSummary || ""}
+
+**Transcrição:**
+${transcriptLines.join("\n") || "Transcrição não disponível"}
+
+${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : ""}`;
+
+      const { data: evolution, error: evolutionError } = await supabase
+        .from("evolutions")
+        .insert({
+          paciente_id: session.paciente_id!,
+          profissional_id: session.profissional_id!,
+          clinic_id: activeClinicId,
+          data_evolucao: new Date().toISOString(),
+          descricao: evolutionContent,
+          conduta: clinicalSummary || undefined,
+        })
+        .select()
+        .single();
+
+      if (evolutionError) throw evolutionError;
+
+      // Atualizar sessão com referência à evolução e notas
+      await supabase
+        .from("teleconsulta_sessions")
+        .update({
+          evolution_id: evolution.id,
+          notas_pos_consulta: postConsultNotes || null,
+          resumo_clinico: clinicalSummary || null,
+        })
+        .eq("id", session.id);
+
+      toast.success("Registro salvo no prontuário do paciente");
+      navigate("/teleconsulta-hub");
+    } catch (error) {
+      console.error("Erro ao salvar evolução:", error);
+      toast.error("Erro ao salvar no prontuário");
+    } finally {
+      setIsSavingEvolution(false);
+    }
   };
 
   const goBack = () => {
@@ -564,37 +659,26 @@ export default function Teleconsulta() {
             </Button>
           )}
 
-          {/* Start/Stop transcription */}
-          {callActive && (
-            isTranscribing ? (
-              <Button variant="destructive" size="sm" onClick={stopTranscription} className="gap-1.5">
-                <MicOff className="h-4 w-4" />
-                <span className="hidden sm:inline">Parar Transcrição</span>
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" onClick={startTranscription} className="gap-1.5 border-primary/30 text-primary">
-                <Mic className="h-4 w-4" />
-                <span className="hidden sm:inline">Transcrever</span>
-              </Button>
-            )
-          )}
-
-          {/* Chat */}
+          {/* Chat toggle */}
           <Button variant={chatOpen ? "default" : "outline"} size="sm"
             onClick={() => setChatOpen(!chatOpen)} className="gap-1.5">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">Chat</span>
-            {chatMessages.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
-                {chatMessages.length}
-              </Badge>
-            )}
+            {chatMessages.length > 0 && <Badge variant="secondary" className="ml-1 h-5">{chatMessages.length}</Badge>}
           </Button>
+
+          {/* Export PDF */}
+          {(hasTranscription || clinicalSummary) && (
+            <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar PDF</span>
+            </Button>
+          )}
 
           {/* End call */}
           {callActive && (
             <Button variant="destructive" size="sm" onClick={endCall} className="gap-1.5">
-              <Phone className="h-4 w-4" />
+              <Phone className="h-4 w-4 rotate-135" />
               <span className="hidden sm:inline">Encerrar</span>
             </Button>
           )}
@@ -602,182 +686,236 @@ export default function Teleconsulta() {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         {/* Video area */}
-        <div className="flex-1 relative bg-black/95 min-w-0">
-          {callActive ? (
-            <div ref={jitsiContainerRef} className="w-full h-full" />
-          ) : isWaiting ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-6 p-8 max-w-md">
-                <div className="mx-auto w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                  <DoorOpen className="h-12 w-12 text-primary" />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Waiting room */}
+          {isWaiting && !callActive && (
+            <div className="flex-1 flex items-center justify-center bg-muted/30">
+              <div className="text-center space-y-4 p-6 max-w-md">
+                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Clock className="h-10 w-10 text-primary animate-pulse" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-2">Sala de Espera</h2>
-                  <p className="text-white/60 text-sm">
-                    {isProfOrAdmin
-                      ? "Você é o profissional. Inicie a chamada quando estiver pronto."
-                      : "Aguarde o profissional admitir você na sala."}
-                  </p>
-                </div>
-                {session.waiting_room_entered_at && !isProfOrAdmin && (
-                  <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
-                    <Clock className="h-4 w-4 animate-pulse" /><span>Aguardando admissão...</span>
-                  </div>
-                )}
+                <h2 className="text-xl font-semibold">Sala de Espera</h2>
                 {isProfOrAdmin ? (
-                  <div className="space-y-3">
-                    <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full" onClick={admitPatient}>
-                      <Video className="h-5 w-5" /> Iniciar Teleconsulta
+                  <>
+                    <p className="text-muted-foreground">
+                      Paciente: <strong>{session.paciente_nome || "Aguardando..."}</strong>
+                    </p>
+                    <Button onClick={admitPatient} size="lg" className="gap-2">
+                      <DoorOpen className="h-5 w-5" /> Iniciar Teleconsulta
                     </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground">
+                      Aguarde o profissional <strong>{session.profissional_nome}</strong> admitir você na sala.
+                    </p>
+                    {!session.waiting_room_entered_at && (
+                      <Button onClick={enterWaitingRoom} variant="outline">Entrar na sala de espera</Button>
+                    )}
                     {session.waiting_room_entered_at && (
-                      <div className="flex items-center justify-center gap-2 text-green-400 text-sm">
-                        <CheckCircle2 className="h-4 w-4" /><span>Paciente está na sala de espera</span>
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        Você está na sala de espera
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <Button size="lg" variant="outline" className="gap-2 w-full border-white/20 text-white hover:bg-white/10"
-                    onClick={enterWaitingRoom} disabled={!!session.waiting_room_entered_at}>
-                    <Users className="h-5 w-5" />
-                    {session.waiting_room_entered_at ? "Na sala de espera" : "Entrar na sala de espera"}
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : isFinished ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-4 p-8 max-w-lg">
-                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-                <h2 className="text-xl font-semibold text-white">Teleconsulta Finalizada</h2>
-                {session.duration_seconds != null && (
-                  <p className="text-white/60">
-                    Duração: {Math.floor(session.duration_seconds / 60)}min {session.duration_seconds % 60}s
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {hasTranscription && !clinicalSummary && (
-                    <Button onClick={generateSummary} disabled={generatingSummary}
-                      className="gap-2 bg-primary hover:bg-primary/90">
-                      {generatingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Gerar Resumo Clínico (IA)
-                    </Button>
-                  )}
-                  {(hasTranscription || clinicalSummary) && (
-                    <Button variant="outline" onClick={exportPDF}
-                      className="gap-2 border-white/20 text-white hover:bg-white/10">
-                      <Download className="h-4 w-4" /> Exportar PDF
-                    </Button>
-                  )}
-                  <Button variant="outline" onClick={() => navigate(-1)}
-                    className="border-white/20 text-white hover:bg-white/10">
-                    <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Transcription panel */}
-        {transcriptionOpen && (
-          <div className="w-80 border-l flex flex-col bg-card shrink-0">
-            <div className="p-3 border-b flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" /> Transcrição
-              </h3>
-              <div className="flex gap-1">
-                {hasTranscription && (
-                  <>
-                    <Button variant="ghost" size="sm" onClick={generateSummary} disabled={generatingSummary}
-                      className="h-7 text-xs gap-1">
-                      {generatingSummary ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      Resumo IA
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={exportPDF} className="h-7 text-xs gap-1">
-                      <Download className="h-3 w-3" /> PDF
-                    </Button>
                   </>
                 )}
               </div>
             </div>
+          )}
 
-            <ScrollArea className="flex-1">
-              <div className="p-3 space-y-2">
-                {/* Clinical summary */}
-                {clinicalSummary && (
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
-                    <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" /> Resumo Clínico (IA)
-                    </p>
-                    <div className="prose prose-sm max-w-none text-xs">
-                      <ReactMarkdown>{clinicalSummary}</ReactMarkdown>
-                    </div>
-                  </div>
-                )}
+          {/* Jitsi video */}
+          {callActive && (
+            <div ref={jitsiContainerRef} className="flex-1 bg-black" />
+          )}
 
-                {/* Raw transcription */}
-                {transcriptLines.length === 0 && !isTranscribing && (
-                  <p className="text-xs text-muted-foreground text-center py-8">
-                    {callActive ? 'Clique em "Transcrever" para iniciar a transcrição automática.'
-                      : "Nenhuma transcrição disponível."}
+          {/* Finished state */}
+          {isFinished && !callActive && (
+            <div className="flex-1 flex items-center justify-center bg-muted/30">
+              <div className="text-center space-y-4 p-6 max-w-md">
+                <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="h-10 w-10 text-green-600" />
+                </div>
+                <h2 className="text-xl font-semibold">Teleconsulta Finalizada</h2>
+                <p className="text-muted-foreground">
+                  Duração: {session.duration_seconds ? `${Math.floor(session.duration_seconds / 60)}min` : "N/A"}
+                </p>
+                {hasTranscription && (
+                  <p className="text-sm text-muted-foreground">
+                    Transcrição e resumo disponíveis abaixo
                   </p>
                 )}
-                {transcriptLines.map((line, i) => (
-                  <p key={i} className="text-xs text-foreground/80 leading-relaxed">{line}</p>
-                ))}
-                {interimText && (
-                  <p className="text-xs text-muted-foreground italic">{interimText}...</p>
-                )}
-                <div ref={transcriptEndRef} />
-              </div>
-            </ScrollArea>
-          </div>
-        )}
-
-        {/* Chat panel */}
-        {chatOpen && !transcriptionOpen && (
-          <div className="w-80 border-l flex flex-col bg-card shrink-0">
-            <div className="p-3 border-b">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary" /> Chat da Teleconsulta
-              </h3>
-            </div>
-            <ScrollArea className="flex-1 p-3">
-              <div className="space-y-3">
-                {chatMessages.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-8">Nenhuma mensagem ainda.</p>
-                )}
-                {chatMessages.map((msg) => {
-                  const isMe = msg.sender_id === user?.id;
-                  return (
-                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                        {!isMe && <p className="text-[10px] font-medium opacity-70 mb-0.5">{msg.sender_name}</p>}
-                        <p className="whitespace-pre-wrap break-words">{msg.message}</p>
-                        <p className={`text-[10px] mt-1 ${isMe ? "opacity-70" : "text-muted-foreground"}`}>
-                          {format(new Date(msg.created_at), "HH:mm")}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={chatEndRef} />
-              </div>
-            </ScrollArea>
-            <div className="p-3 border-t">
-              <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
-                <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Digite uma mensagem..." className="text-sm" />
-                <Button type="submit" size="icon" disabled={!newMessage.trim()}>
-                  <Send className="h-4 w-4" />
+                <Button variant="outline" onClick={() => navigate("/teleconsulta-hub")}>
+                  Ver histórico
                 </Button>
-              </form>
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* Side panels */}
+        {(transcriptionOpen || chatOpen) && (
+          <div className="w-96 border-l flex flex-col overflow-hidden">
+            <Tabs value={transcriptionOpen ? "transcription" : "chat"} className="flex-1 flex flex-col">
+              <TabsList className="w-full grid grid-cols-2 shrink-0">
+                <TabsTrigger value="transcription" onClick={() => { setTranscriptionOpen(true); setChatOpen(false); }}>
+                  <FileText className="h-4 w-4 mr-1.5" /> Transcrição
+                </TabsTrigger>
+                <TabsTrigger value="chat" onClick={() => { setChatOpen(true); setTranscriptionOpen(false); }}>
+                  <MessageSquare className="h-4 w-4 mr-1.5" /> Chat
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Transcription panel */}
+              <TabsContent value="transcription" className="flex-1 flex flex-col overflow-hidden m-0 data-[state=active]:flex">
+                <div className="p-3 border-b space-y-2 shrink-0">
+                  {callActive && !isTranscribing && (
+                    <Button size="sm" onClick={startTranscription} className="w-full gap-2">
+                      <Mic className="h-4 w-4" /> Iniciar Transcrição
+                    </Button>
+                  )}
+                  {isTranscribing && (
+                    <Button size="sm" variant="destructive" onClick={stopTranscription} className="w-full gap-2">
+                      <MicOff className="h-4 w-4" /> Parar Transcrição
+                    </Button>
+                  )}
+                  {hasTranscription && !generatingSummary && !clinicalSummary && (
+                    <Button size="sm" variant="outline" onClick={generateSummary} className="w-full gap-2">
+                      <Sparkles className="h-4 w-4" /> Gerar Resumo IA
+                    </Button>
+                  )}
+                  {generatingSummary && (
+                    <Button size="sm" variant="outline" disabled className="w-full gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Gerando resumo...
+                    </Button>
+                  )}
+                </div>
+
+                <ScrollArea className="flex-1 p-3">
+                  <div className="space-y-4">
+                    {clinicalSummary && (
+                      <Card className="border-primary/20 bg-primary/5">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-primary" /> Resumo Clínico (IA)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm">
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{clinicalSummary}</ReactMarkdown>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {hasTranscription && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase">Transcrição em tempo real</p>
+                        {transcriptLines.map((line, i) => (
+                          <p key={i} className="text-sm font-mono text-muted-foreground leading-relaxed">
+                            {line}
+                          </p>
+                        ))}
+                        {interimText && (
+                          <p className="text-sm font-mono text-muted-foreground/60 italic leading-relaxed">
+                            {interimText}
+                          </p>
+                        )}
+                        <div ref={transcriptEndRef} />
+                      </div>
+                    )}
+
+                    {!hasTranscription && !clinicalSummary && (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        Nenhuma transcrição disponível
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              {/* Chat panel */}
+              <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden m-0 data-[state=active]:flex">
+                <ScrollArea className="flex-1 p-3">
+                  <div className="space-y-3">
+                    {chatMessages.map((msg) => (
+                      <div key={msg.id} className={`flex flex-col gap-1 ${msg.sender_id === user?.id ? "items-end" : "items-start"}`}>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className="font-medium">{msg.sender_name}</span>
+                          <span>•</span>
+                          <span>{format(new Date(msg.created_at), "HH:mm")}</span>
+                        </div>
+                        <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                          msg.sender_id === user?.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}>
+                          {msg.message}
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                </ScrollArea>
+                <div className="p-3 border-t shrink-0">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Digite sua mensagem..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    />
+                    <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </div>
+
+      {/* Dialog de notas pós-consulta */}
+      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Finalizar Teleconsulta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Resumo Clínico (gerado por IA)</Label>
+              <div className="p-4 bg-muted rounded-lg text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
+                {clinicalSummary || "Nenhum resumo gerado ainda"}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações e Anotações Adicionais</Label>
+              <Textarea
+                id="notes"
+                placeholder="Adicione observações, orientações ou informações complementares..."
+                value={postConsultNotes}
+                onChange={(e) => setPostConsultNotes(e.target.value)}
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowNotesDialog(false);
+              navigate("/teleconsulta-hub");
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEvolution} disabled={isSavingEvolution}>
+              {isSavingEvolution ? "Salvando..." : "Salvar no Prontuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
