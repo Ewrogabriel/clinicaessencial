@@ -21,7 +21,7 @@ import { usePatientAgenda } from "@/hooks/usePatientAgenda";
 import { usePatientFinance } from "@/hooks/usePatientFinance";
 import { usePatientProdutos } from "@/hooks/usePatientProdutos";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { FichaRequestButton } from "@/components/patient/FichaRequestButton";
 
 // Lazy load tab components
 const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTab").then(m => ({ default: m.PatientAgendaTab })));
@@ -282,7 +282,8 @@ const PatientDashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {patientId && <FichaRequestButton pacienteId={patientId} />}
           <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
             <MessageCircle className="h-4 w-4" /> Suporte
           </Button>

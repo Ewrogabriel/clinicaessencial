@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Plus, Edit2, Trash2, Target, Trophy, Star, Users, User, Calendar, Activity, DollarSign, Clock, CheckCircle, TrendingUp, Dumbbell } from "lucide-react";
 import { toast } from "sonner";
+import { AISuggestionsPanel } from "@/components/gamification/AISuggestionsPanel";
 
 // ─────────────────────────────────────────────────────────────
 // METRIC DEFINITIONS — linked to real system data
@@ -376,6 +377,7 @@ export default function GamificationAdminPanel() {
 
         {/* ── GOALS TAB ── */}
         <TabsContent value="goals" className="space-y-4">
+          <AISuggestionsPanel tipo="profissional" />
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Metas ({goals.length})</h2>
             <Button onClick={() => openGoalDialog()}>
@@ -455,6 +457,7 @@ export default function GamificationAdminPanel() {
 
         {/* ── CHALLENGES TAB ── */}
         <TabsContent value="challenges" className="space-y-4">
+          <AISuggestionsPanel tipo="paciente" />
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Desafios ({challenges.length})</h2>
             <Button onClick={() => openChallengeDialog()}>
