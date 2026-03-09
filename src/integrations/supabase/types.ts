@@ -1047,6 +1047,60 @@ export type Database = {
           },
         ]
       }
+      documentos_clinicos: {
+        Row: {
+          clinic_id: string | null
+          conteudo: string
+          created_at: string
+          dados_extras: Json | null
+          id: string
+          paciente_id: string
+          profissional_id: string
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          conteudo?: string
+          created_at?: string
+          dados_extras?: Json | null
+          id?: string
+          paciente_id: string
+          profissional_id: string
+          tipo: string
+          titulo?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string | null
+          conteudo?: string
+          created_at?: string
+          dados_extras?: Json | null
+          id?: string
+          paciente_id?: string
+          profissional_id?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_clinicos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_clinicos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emissoes_nf: {
         Row: {
           clinic_id: string | null
