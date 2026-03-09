@@ -311,6 +311,11 @@ function PlansTab() {
   const handleSave = async () => {
     if (!form.nome || !form.valor_mensal) { toast({ title: "Nome e valor são obrigatórios", variant: "destructive" }); return; }
 
+    const recursos = form.recursos_selecionados.map(key => {
+      const recurso = ALL_RESOURCES.find(r => r.key === key);
+      return recurso ? recurso.label : key;
+    });
+
     const { error } = await (supabase.from("platform_plans") as any).insert({
       nome: form.nome,
       descricao: form.descricao || null,
@@ -320,12 +325,13 @@ function PlansTab() {
       max_clinicas: parseInt(form.max_clinicas) || 1,
       cor: form.cor,
       destaque: form.destaque,
+      recursos_disponiveis: recursos,
     });
 
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
 
     toast({ title: "Plano criado! ✅" });
-    setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false });
+    setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false, recursos_selecionados: [] });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["platform-plans"] });
   };
