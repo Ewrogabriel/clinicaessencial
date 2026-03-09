@@ -93,7 +93,7 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("profissional_formacoes" as any)
+        .from("profissional_formacoes")
         .delete()
         .eq("id", id);
       if (error) throw error;
