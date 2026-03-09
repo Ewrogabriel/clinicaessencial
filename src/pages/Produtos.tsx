@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, ShoppingCart, Trash2, Edit2, Package, History, TrendingUp } from "lucide-react";
+import { Plus, ShoppingCart, Trash2, Edit2, Package, History, TrendingUp, Sparkles, Image, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
