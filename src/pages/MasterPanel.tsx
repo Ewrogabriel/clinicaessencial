@@ -328,6 +328,7 @@ function PlansTab() {
       cor: form.cor,
       destaque: form.destaque,
       recursos_disponiveis: recursos,
+      validade_dias: form.validade_dias ? parseInt(form.validade_dias) : null,
     });
 
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
