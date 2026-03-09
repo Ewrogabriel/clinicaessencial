@@ -803,9 +803,9 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm">
-                          <ReactMarkdown className="prose prose-sm max-w-none">
-                            {clinicalSummary}
-                          </ReactMarkdown>
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{clinicalSummary}</ReactMarkdown>
+                          </div>
                         </CardContent>
                       </Card>
                     )}
