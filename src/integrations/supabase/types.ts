@@ -2826,6 +2826,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          aceita_domiciliar: boolean | null
+          aceita_teleconsulta: boolean | null
           bairro: string | null
           bio: string | null
           cep: string | null
@@ -2838,6 +2840,9 @@ export type Database = {
           created_at: string
           cursos: string[] | null
           data_nascimento: string | null
+          domiciliar_observacoes: string | null
+          domiciliar_raio_km: number | null
+          domiciliar_valor_adicional: number | null
           email: string | null
           endereco: string | null
           especialidade: string | null
@@ -2851,12 +2856,16 @@ export type Database = {
           numero: string | null
           registro_profissional: string | null
           rg: string | null
+          teleconsulta_link: string | null
+          teleconsulta_plataforma: string | null
           telefone: string | null
           tipo_contratacao: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          aceita_domiciliar?: boolean | null
+          aceita_teleconsulta?: boolean | null
           bairro?: string | null
           bio?: string | null
           cep?: string | null
@@ -2869,6 +2878,9 @@ export type Database = {
           created_at?: string
           cursos?: string[] | null
           data_nascimento?: string | null
+          domiciliar_observacoes?: string | null
+          domiciliar_raio_km?: number | null
+          domiciliar_valor_adicional?: number | null
           email?: string | null
           endereco?: string | null
           especialidade?: string | null
@@ -2882,12 +2894,16 @@ export type Database = {
           numero?: string | null
           registro_profissional?: string | null
           rg?: string | null
+          teleconsulta_link?: string | null
+          teleconsulta_plataforma?: string | null
           telefone?: string | null
           tipo_contratacao?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          aceita_domiciliar?: boolean | null
+          aceita_teleconsulta?: boolean | null
           bairro?: string | null
           bio?: string | null
           cep?: string | null
@@ -2900,6 +2916,9 @@ export type Database = {
           created_at?: string
           cursos?: string[] | null
           data_nascimento?: string | null
+          domiciliar_observacoes?: string | null
+          domiciliar_raio_km?: number | null
+          domiciliar_valor_adicional?: number | null
           email?: string | null
           endereco?: string | null
           especialidade?: string | null
@@ -2913,6 +2932,8 @@ export type Database = {
           numero?: string | null
           registro_profissional?: string | null
           rg?: string | null
+          teleconsulta_link?: string | null
+          teleconsulta_plataforma?: string | null
           telefone?: string | null
           tipo_contratacao?: string | null
           updated_at?: string
