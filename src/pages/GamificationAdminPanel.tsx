@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Plus, Edit2, Trash2, Target, Trophy, Star, Users, User, Calendar, Activity, DollarSign, Clock, CheckCircle, TrendingUp, Dumbbell } from "lucide-react";
 import { toast } from "sonner";
+import { AISuggestionsPanel } from "@/components/gamification/AISuggestionsPanel";
 
 // ─────────────────────────────────────────────────────────────
 // METRIC DEFINITIONS — linked to real system data
