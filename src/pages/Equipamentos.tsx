@@ -37,6 +37,7 @@ interface Equipamento {
   observacoes_manutencao: string | null;
   status: string;
   foto_url: string | null;
+  valor: number | null;
   created_at: string;
 }
 
