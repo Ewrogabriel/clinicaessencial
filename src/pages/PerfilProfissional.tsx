@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 
 const PerfilProfissional = () => {
   const { user, profile: authProfile } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
