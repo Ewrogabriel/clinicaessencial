@@ -18,6 +18,7 @@ import {
   Mail, MessageSquare
 } from "lucide-react";
 import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
+import { LandingSiteEditor } from "@/components/marketing/LandingSiteEditor";
 
 interface Ad {
   titulo: string;
