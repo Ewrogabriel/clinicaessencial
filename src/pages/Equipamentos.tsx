@@ -140,9 +140,14 @@ export default function Equipamentos() {
           <h1 className="text-2xl font-bold text-foreground">{t("equip.title")}</h1>
           <p className="text-sm text-muted-foreground">Gerencie aparelhos, recursos e materiais de consumo</p>
         </div>
-        <Button onClick={() => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> {t("equip.add")}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => downloadEquipamentosPDF(items)} variant="outline" className="gap-2">
+            <Package className="h-4 w-4" /> Extrair Lista PDF
+          </Button>
+          <Button onClick={() => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> {t("equip.add")}
+          </Button>
+        </div>
       </div>
 
       {(reviewAlerts > 0 || lowStock > 0) && (
