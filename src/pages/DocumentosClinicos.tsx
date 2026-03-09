@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { FileText, Plus, Sparkles, Download, Pencil, Trash2 } from "lucide-react";
+import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
@@ -22,6 +23,8 @@ const tipoLabels: Record<string, string> = {
   relatorio: "Relatório",
   atestado: "Atestado",
   encaminhamento: "Encaminhamento",
+  comparecimento: "Comprovante de Comparecimento",
+  outros: "Outros",
 };
 
 const tipoColors: Record<string, string> = {
@@ -29,6 +32,8 @@ const tipoColors: Record<string, string> = {
   relatorio: "bg-emerald-100 text-emerald-700",
   atestado: "bg-amber-100 text-amber-700",
   encaminhamento: "bg-purple-100 text-purple-700",
+  comparecimento: "bg-teal-100 text-teal-700",
+  outros: "bg-gray-100 text-gray-700",
 };
 
 const DocumentosClinicos = () => {
@@ -42,6 +47,7 @@ const DocumentosClinicos = () => {
   const [conteudo, setConteudo] = useState("");
   const [pacienteId, setPacienteId] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [incluirCarimbo, setIncluirCarimbo] = useState(true);
 
   // Fetch documents
   const { data: documentos = [], isLoading } = useQuery({
@@ -79,11 +85,12 @@ const DocumentosClinicos = () => {
     mutationFn: async () => {
       const payload = {
         tipo,
-        titulo: titulo || tipoLabels[tipo],
+        titulo: titulo || tipoLabels[tipo] || tipo,
         conteudo,
         paciente_id: pacienteId,
         profissional_id: user!.id,
         clinic_id: activeClinicId || null,
+        dados_extras: { incluir_carimbo: incluirCarimbo },
       };
       if (editingDoc) {
         const { error } = await supabase.from("documentos_clinicos").update(payload).eq("id", editingDoc.id);
@@ -121,7 +128,6 @@ const DocumentosClinicos = () => {
     }
     setAiLoading(true);
     try {
-      // Fetch patient evolutions for context
       const { data: evolutions } = await supabase.from("evolutions")
         .select("descricao, conduta, data_evolucao")
         .eq("paciente_id", pacienteId)
@@ -134,17 +140,14 @@ const DocumentosClinicos = () => {
         .limit(1);
 
       const context = {
-        tipo_documento: tipoLabels[tipo],
+        tipo_documento: tipoLabels[tipo] || tipo,
         conteudo_atual: conteudo,
         evolucoes_recentes: evolutions?.map(e => `${e.data_evolucao}: ${e.descricao}${e.conduta ? ` | Conduta: ${e.conduta}` : ""}`).join("\n") || "Sem evoluções",
         avaliacao: evaluations?.[0] ? `Queixa: ${evaluations[0].queixa_principal}. Objetivos: ${evaluations[0].objetivos_tratamento || "N/A"}. Conduta: ${evaluations[0].conduta_inicial || "N/A"}` : "Sem avaliação",
       };
 
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: {
-          action: "document_suggest",
-          context,
-        },
+        body: { action: "document_suggest", context },
       });
 
       if (error) throw error;
@@ -166,6 +169,7 @@ const DocumentosClinicos = () => {
     setTitulo("");
     setConteudo("");
     setPacienteId("");
+    setIncluirCarimbo(true);
   };
 
   const openEdit = (doc: any) => {
@@ -174,6 +178,7 @@ const DocumentosClinicos = () => {
     setTitulo(doc.titulo);
     setConteudo(doc.conteudo);
     setPacienteId(doc.paciente_id);
+    setIncluirCarimbo((doc.dados_extras as any)?.incluir_carimbo !== false);
     setIsFormOpen(true);
   };
 
@@ -188,6 +193,7 @@ const DocumentosClinicos = () => {
       pacienteNome: paciente?.nome || (doc.pacientes as any)?.nome || "Paciente",
       pacienteCpf: paciente?.cpf || (doc.pacientes as any)?.cpf || undefined,
       data: format(new Date(doc.created_at), "dd/MM/yyyy"),
+      incluirCarimbo: (doc.dados_extras as any)?.incluir_carimbo !== false,
     });
   };
 
@@ -196,7 +202,7 @@ const DocumentosClinicos = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Documentos Clínicos</h1>
-          <p className="text-muted-foreground">Receituários, relatórios, atestados e encaminhamentos</p>
+          <p className="text-muted-foreground">Receituários, relatórios, atestados, encaminhamentos e mais</p>
         </div>
         <Button className="gap-2" onClick={() => { resetForm(); setIsFormOpen(true); }}>
           <Plus className="h-4 w-4" /> Novo Documento
@@ -220,9 +226,12 @@ const DocumentosClinicos = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <Badge className={tipoColors[doc.tipo] || ""}>{tipoLabels[doc.tipo]}</Badge>
-                    <CardTitle className="text-sm mt-2">{doc.titulo || tipoLabels[doc.tipo]}</CardTitle>
+                    <Badge className={tipoColors[doc.tipo] || tipoColors.outros}>{tipoLabels[doc.tipo] || doc.tipo}</Badge>
+                    <CardTitle className="text-sm mt-2">{doc.titulo || tipoLabels[doc.tipo] || doc.tipo}</CardTitle>
                   </div>
+                  {(doc.dados_extras as any)?.incluir_carimbo && (
+                    <Stamp className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -260,13 +269,15 @@ const DocumentosClinicos = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Tipo de Documento</Label>
-                <Select value={tipo} onValueChange={setTipo}>
+                <Select value={tipo} onValueChange={(v) => { setTipo(v); if (v !== "outros") setTitulo(""); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="receituario">Receituário</SelectItem>
                     <SelectItem value="relatorio">Relatório Clínico</SelectItem>
                     <SelectItem value="atestado">Atestado</SelectItem>
                     <SelectItem value="encaminhamento">Encaminhamento</SelectItem>
+                    <SelectItem value="comparecimento">Comprovante de Comparecimento</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -283,10 +294,19 @@ const DocumentosClinicos = () => {
               </div>
             </div>
 
-            <div>
-              <Label>Título (opcional)</Label>
-              <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder={tipoLabels[tipo]} />
-            </div>
+            {tipo === "outros" && (
+              <div>
+                <Label>Nome do Tipo de Documento *</Label>
+                <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex: Declaração, Laudo, etc." />
+              </div>
+            )}
+
+            {tipo !== "outros" && (
+              <div>
+                <Label>Título (opcional)</Label>
+                <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder={tipoLabels[tipo]} />
+              </div>
+            )}
 
             <div>
               <Label>Profissional</Label>
@@ -318,10 +338,23 @@ const DocumentosClinicos = () => {
               </p>
             </div>
 
+            {/* Carimbo toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="font-medium flex items-center gap-2">
+                  <Stamp className="h-4 w-4" /> Incluir Carimbo Profissional
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Adiciona carimbo com nome, registro profissional e especialidade no documento
+                </p>
+              </div>
+              <Switch checked={incluirCarimbo} onCheckedChange={setIncluirCarimbo} />
+            </div>
+
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={resetForm}>Cancelar</Button>
               <Button
-                disabled={!pacienteId || !conteudo.trim() || saveMutation.isPending}
+                disabled={!pacienteId || !conteudo.trim() || (tipo === "outros" && !titulo.trim()) || saveMutation.isPending}
                 onClick={() => saveMutation.mutate()}
               >
                 {saveMutation.isPending ? "Salvando..." : editingDoc ? "Atualizar" : "Salvar Documento"}

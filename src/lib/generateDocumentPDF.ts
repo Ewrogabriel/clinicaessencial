@@ -10,6 +10,7 @@ interface DocumentData {
   pacienteNome: string;
   pacienteCpf?: string;
   data: string;
+  incluirCarimbo?: boolean;
 }
 
 const tipoLabels: Record<string, string> = {
@@ -17,7 +18,47 @@ const tipoLabels: Record<string, string> = {
   relatorio: "RELATÓRIO CLÍNICO",
   atestado: "ATESTADO",
   encaminhamento: "ENCAMINHAMENTO",
+  comparecimento: "COMPROVANTE DE COMPARECIMENTO",
 };
+
+function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string) {
+  const w = 70;
+  const h = 28;
+  const cx = x - w / 2;
+
+  // Border
+  doc.setDrawColor(0, 90, 160);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(cx, y, w, h, 2, 2);
+
+  // Inner line
+  doc.setLineWidth(0.3);
+  doc.line(cx + 3, y + 10, cx + w - 3, y + 10);
+
+  // Name
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 60, 120);
+  doc.text(nome, x, y + 7, { align: "center" });
+
+  // Registration
+  if (registro) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 60, 120);
+    doc.text(registro, x, y + 15, { align: "center" });
+  }
+
+  // Professional label
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100);
+  doc.text("Profissional de Saúde", x, y + 22, { align: "center" });
+
+  // Reset colors
+  doc.setTextColor(0);
+  doc.setDrawColor(0);
+}
 
 export async function generateDocumentPDF(docData: DocumentData) {
   const doc = new jsPDF("p", "mm", "a4");
@@ -70,7 +111,7 @@ export async function generateDocumentPDF(docData: DocumentData) {
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0);
-  const label = tipoLabels[docData.tipo] || docData.tipo.toUpperCase();
+  const label = tipoLabels[docData.tipo] || docData.titulo?.toUpperCase() || docData.tipo.toUpperCase();
   doc.text(label, pageWidth / 2, y, { align: "center" });
   y += 10;
 
@@ -116,6 +157,7 @@ export async function generateDocumentPDF(docData: DocumentData) {
     y = 80;
   }
 
+  // Signature line
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
   const sigX = pageWidth / 2 - 40;
@@ -131,10 +173,22 @@ export async function generateDocumentPDF(docData: DocumentData) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text(docData.profissionalRegistro, pageWidth / 2, y, { align: "center" });
+    y += 5;
+  }
+
+  // Carimbo (stamp)
+  if (docData.incluirCarimbo !== false) {
+    y += 5;
+    if (y > 255) {
+      doc.addPage();
+      y = 80;
+    }
+    drawCarimbo(doc, pageWidth / 2, y, docData.profissionalNome, docData.profissionalRegistro);
   }
 
   // Watermark
   await addWatermarkToAllPages(doc);
 
-  doc.save(`${label.toLowerCase().replace(/\s+/g, "_")}_${docData.pacienteNome.split(" ")[0]}.pdf`);
+  const fileName = (tipoLabels[docData.tipo] || docData.titulo || docData.tipo).toLowerCase().replace(/\s+/g, "_");
+  doc.save(`${fileName}_${docData.pacienteNome.split(" ")[0]}.pdf`);
 }
