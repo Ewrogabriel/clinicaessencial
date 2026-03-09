@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DisponibilidadeProfissional from "./DisponibilidadeProfissional";
 import { CommissionRules } from "@/components/profissionais/CommissionRules";
+import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +20,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Pencil, Plus, Shield, UserCheck, Search, KeyRound, Eye, PenLine, Calculator } from "lucide-react";
+import { Pencil, Plus, Shield, UserCheck, Search, KeyRound, Eye, PenLine, Calculator, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
