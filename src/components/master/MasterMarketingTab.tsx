@@ -292,10 +292,16 @@ export function MasterMarketingTab() {
             </Badge>
           ))}
         </div>
-        <Button variant="outline" size="sm" className="gap-1"
-          onClick={() => copyToClipboard(`${post.legenda}\n\n${post.hashtags?.map(h => h.startsWith("#") ? h : `#${h}`).join(" ")}`)}>
-          <Copy className="h-3 w-3" /> Copiar Post
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="gap-1"
+            onClick={() => copyToClipboard(`${post.legenda}\n\n${post.hashtags?.map(h => h.startsWith("#") ? h : `#${h}`).join(" ")}`)}>
+            <Copy className="h-3 w-3" /> Copiar Post
+          </Button>
+          <MarketingImageGenerator
+            prompt={post.sugestao_visual}
+            context={post.legenda.substring(0, 200)}
+          />
+        </div>
       </CardContent>
     </Card>
   );
