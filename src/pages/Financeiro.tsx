@@ -170,9 +170,9 @@ const Financeiro = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
+        <div className="flex gap-2 flex-wrap">
           {!isPatient && <FinanceExportButton pagamentos={pagamentos} />}
           {!isPatient && (
           <Dialog open={formOpen} onOpenChange={setFormOpen}>

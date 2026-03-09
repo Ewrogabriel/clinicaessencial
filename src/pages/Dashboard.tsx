@@ -464,7 +464,7 @@ const Dashboard = () => {
         </Card>
       ) : null;
       case "stats": return (
-        <div key="stats" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div key="stats" className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {stats.map((stat) => (
             <Card key={stat.title} className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
