@@ -512,7 +512,7 @@ const SolicitacoesAlteracao = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="todas" className="gap-1 text-xs">
             Todas {totalPendentes > 0 && <Badge variant="secondary" className="ml-1 scale-75">{totalPendentes}</Badge>}
           </TabsTrigger>
@@ -530,6 +530,9 @@ const SolicitacoesAlteracao = () => {
           </TabsTrigger>
           <TabsTrigger value="reservas" className="gap-1 text-xs">
             <ShoppingBag className="h-3.5 w-3.5" /> Reservas {pendentesReservas.length > 0 && <Badge variant="secondary" className="ml-1 scale-75">{pendentesReservas.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="fichas" className="gap-1 text-xs">
+            <FileDown className="h-3.5 w-3.5" /> Fichas
           </TabsTrigger>
         </TabsList>
 
