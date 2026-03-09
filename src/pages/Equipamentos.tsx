@@ -226,6 +226,7 @@ export default function Equipamentos() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">{item.quantidade}</TableCell>
+                        <TableCell className="text-right">R$ {(Number(item.valor) || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-center">
                           {item.e_consumo ? (
                             <span className={stockLow ? "text-orange-600 font-semibold" : ""}>
