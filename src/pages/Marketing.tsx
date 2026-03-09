@@ -548,9 +548,14 @@ const Marketing = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Posts Gerados</h3>
-                <Button variant="outline" size="sm" onClick={generateSocialPosts} disabled={loading} className="gap-1">
-                  <RefreshCw className="h-3 w-3" /> Regenerar
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => saveCampaign("social_post", { posts: socialPosts })} disabled={savingCampaign} className="gap-1">
+                    <Save className="h-3 w-3" /> Salvar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={generateSocialPosts} disabled={loading} className="gap-1">
+                    <RefreshCw className="h-3 w-3" /> Regenerar
+                  </Button>
+                </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {socialPosts.map((post, i) => renderPostCard(post, i))}
