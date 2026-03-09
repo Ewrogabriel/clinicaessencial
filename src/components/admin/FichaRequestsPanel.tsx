@@ -59,7 +59,7 @@ export const FichaRequestsPanel = () => {
       }
 
       // Generate and download PDF
-      await downloadPatientCompletePDF({
+      const pdfBlob = await downloadPatientCompletePDF({
         paciente: pacRes.data,
         avaliacao: evalRes.data,
         evolucoes: evolucoes.map((e: any) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "—" })),
@@ -68,13 +68,36 @@ export const FichaRequestsPanel = () => {
         anexos: anexRes.data || [],
       });
 
-      // Mark as approved
+      // Upload PDF to storage for patient access
+      let pdfUrl: string | null = null;
+      if (pdfBlob) {
+        const fileName = `prontuarios/${pacienteId}/ficha_${request.id}.pdf`;
+        const { error: uploadError } = await supabase.storage
+          .from("clinic-uploads")
+          .upload(fileName, pdfBlob, { upsert: true, contentType: "application/pdf" });
+        
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from("clinic-uploads").getPublicUrl(fileName);
+          pdfUrl = urlData.publicUrl;
+        }
+      }
+
+      // Calculate 30 days from now
+      const pdfAvailableUntil = new Date();
+      pdfAvailableUntil.setDate(pdfAvailableUntil.getDate() + 30);
+
+      // Mark as approved with PDF URL and expiry date
       await (supabase as any)
         .from("ficha_requests")
-        .update({ status: "aprovado", reviewed_at: new Date().toISOString() })
+        .update({ 
+          status: "aprovado", 
+          reviewed_at: new Date().toISOString(),
+          pdf_url: pdfUrl,
+          pdf_available_until: pdfAvailableUntil.toISOString(),
+        })
         .eq("id", request.id);
 
-      toast.success("PDF gerado e solicitação aprovada!");
+      toast.success("PDF gerado e solicitação aprovada! O paciente poderá acessar por 30 dias.");
       queryClient.invalidateQueries({ queryKey: ["ficha-requests-admin"] });
     } catch (err) {
       console.error(err);
