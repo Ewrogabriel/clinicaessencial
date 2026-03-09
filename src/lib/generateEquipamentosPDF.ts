@@ -40,5 +40,6 @@ export const downloadEquipamentosPDF = async (items: any[]) => {
     margin: { left: 14, right: 14 },
   });
 
+  await addWatermarkToAllPages(doc);
   doc.save("relatorio_equipamentos.pdf");
 };
