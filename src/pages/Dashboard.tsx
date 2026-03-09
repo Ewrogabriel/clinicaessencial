@@ -59,6 +59,13 @@ const tipoLabels: Record<string, string> = {
   fisioterapia: "Fisioterapia",
   pilates: "Pilates",
   rpg: "RPG",
+  psicologia: "Psicologia",
+  nutricao: "Nutrição",
+  fonoaudiologia: "Fonoaudiologia",
+  estetica: "Estética",
+  acupuntura: "Acupuntura",
+  terapia_ocupacional: "Terapia Ocupacional",
+  outro: "Outro",
 };
 
 const Dashboard = () => {
