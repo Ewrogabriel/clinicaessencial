@@ -417,48 +417,58 @@ const PatientDashboard = () => {
         </TabsList>
 
         <TabsContent value="agenda" className="mt-4">
-          <PatientAgendaTab
-            agenda={agenda}
-            pastAgenda={pastAgenda}
-            solicitacoes={solicitacoes}
-            updateSessionStatus={updateSessionStatus}
-            openWhatsAppProfissional={openWhatsAppProfissional}
-            onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
-          />
+          <Suspense fallback={<div className="space-y-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div>}>
+            <PatientAgendaTab
+              agenda={agendaHook.futureAgenda}
+              pastAgenda={agendaHook.pastAgenda}
+              solicitacoes={agendaHook.solicitacoes}
+              updateSessionStatus={updateSessionStatus}
+              openWhatsAppProfissional={openWhatsAppProfissional}
+              onReschedule={(item) => { setRescheduleData(item); setIsRescheduleOpen(true); }}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="prontuario" className="mt-4">
-          {patientId && <PatientEvolutionsTab pacienteId={patientId} />}
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            {patientId && <PatientEvolutionsTab pacienteId={patientId} />}
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-4">
-          <PatientFinanceTab
-            pendencias={pendencias}
-            pagamentosMensalidade={pagamentosMensalidade}
-            pagamentosSessoes={pagamentosSessoes}
-            formasPagamento={formasPagamento}
-            configPixMap={configPixMap}
-            matriculaPayments={matriculaPayments}
-            pacienteNome={paciente?.nome || profile?.nome || ""}
-            pacienteCpf={paciente?.cpf || ""}
-          />
+          <Suspense fallback={<div className="space-y-4"><Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" /></div>}>
+            <PatientFinanceTab
+              pendencias={financeHook.pendencias}
+              pagamentosMensalidade={financeHook.pagamentosMensalidade}
+              pagamentosSessoes={financeHook.pagamentosSessoes}
+              formasPagamento={financeHook.formasPagamento}
+              configPixMap={financeHook.configPixMap}
+              matriculaPayments={financeHook.pagamentosMensalidade}
+              pacienteNome={paciente?.nome || profile?.nome || ""}
+              pacienteCpf={paciente?.cpf || ""}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="produtos" className="mt-4">
-          <PatientProdutosTab
-            produtosDisponiveis={produtosDisponiveis}
-            onReservar={(produto) => { setSelectedProduto(produto); setIsReservaDialogOpen(true); }}
-          />
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <PatientProdutosTab
+              produtosDisponiveis={produtosHook.produtosDisponiveis}
+              onReservar={(produto) => { setSelectedProduto(produto); setIsReservaDialogOpen(true); }}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="info" className="mt-4">
-          <PatientInfoTab
-            avisos={avisos}
-            feriados={feriados}
-            frequencyStats={frequencyStats}
-            clinicSettings={clinicSettings}
-            openWhatsAppClinic={openWhatsAppClinic}
-          />
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <PatientInfoTab
+              avisos={avisos}
+              feriados={feriados}
+              frequencyStats={frequencyStats}
+              clinicSettings={clinicSettings}
+              openWhatsAppClinic={openWhatsAppClinic}
+            />
+          </Suspense>
         </TabsContent>
       </Tabs>
 
