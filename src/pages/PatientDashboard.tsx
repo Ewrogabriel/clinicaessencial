@@ -21,7 +21,7 @@ import { usePatientAgenda } from "@/hooks/usePatientAgenda";
 import { usePatientFinance } from "@/hooks/usePatientFinance";
 import { usePatientProdutos } from "@/hooks/usePatientProdutos";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { FichaRequestButton } from "@/components/patient/FichaRequestButton";
 
 // Lazy load tab components
 const PatientAgendaTab = lazy(() => import("@/components/patient/PatientAgendaTab").then(m => ({ default: m.PatientAgendaTab })));

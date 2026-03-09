@@ -457,6 +457,7 @@ export default function GamificationAdminPanel() {
 
         {/* ── CHALLENGES TAB ── */}
         <TabsContent value="challenges" className="space-y-4">
+          <AISuggestionsPanel tipo="paciente" />
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Desafios ({challenges.length})</h2>
             <Button onClick={() => openChallengeDialog()}>
