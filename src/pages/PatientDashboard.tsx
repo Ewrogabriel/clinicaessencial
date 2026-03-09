@@ -81,8 +81,8 @@ export default function PatientDashboard() {
       const { count } = await supabase
         .from("planos_exercicios")
         .select("*", { count: "exact", head: true })
-        .eq("paciente_id", paciente.id)
-        .eq("ativo", true);
+        .eq("paciente_id", paciente.id as string)
+        .eq("ativo", true as any);
       return count || 0;
     },
     enabled: !!paciente?.id,
