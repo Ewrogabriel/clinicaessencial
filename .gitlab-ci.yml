@@ -12,8 +12,7 @@ cache:
 install:
   stage: install
   script:
-    - npm install -g pnpm
-    - pnpm install --no-frozen-lockfile
+    - npm install --legacy-peer-deps
   artifacts:
     paths:
       - node_modules/
@@ -21,8 +20,7 @@ install:
 build:
   stage: build
   script:
-    - npm install -g pnpm
-    - pnpm run build
+    - npm run build
   artifacts:
     paths:
       - dist/
