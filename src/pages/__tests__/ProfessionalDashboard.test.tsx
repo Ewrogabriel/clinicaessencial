@@ -123,9 +123,9 @@ describe("Professional Dashboard", () => {
 });
 
 describe("Professional Permissions", () => {
-  it("professional should have specific permissions", () => {
-    const { useAuth } = vi.mocked(require("@/hooks/useAuth"));
-    const auth = useAuth();
+  it("professional should have specific permissions", async () => {
+    const mod = await import("@/hooks/useAuth");
+    const auth = vi.mocked(mod).useAuth();
     
     expect(auth.isProfissional).toBe(true);
     expect(auth.isAdmin).toBe(false);
