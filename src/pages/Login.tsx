@@ -39,18 +39,17 @@ const Login = () => {
       }
     }
 
-    const { error } = await signIn(authEmail, loginSenha);
-
-    if (error) {
+    try {
+      await signIn(authEmail, loginSenha);
+      navigate("/selecionar-clinica");
+    } catch (error: any) {
       toast({
         title: t("common.error"),
         description: error.message === "Invalid login credentials"
           ? "E-mail ou senha incorretos"
-          : error.message,
+          : error?.message || "Erro desconhecido",
         variant: "destructive",
       });
-    } else {
-      navigate("/selecionar-clinica");
     }
 
     setLoading(false);
@@ -88,18 +87,17 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await resetPassword(resetEmail);
-
-    if (error) {
-      toast({
-        title: t("common.error"),
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await resetPassword(resetEmail);
       toast({
         title: t("common.success"),
         description: "Verifique sua caixa de entrada para redefinir sua senha.",
+      });
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error?.message || "Erro ao recuperar senha",
+        variant: "destructive",
       });
     }
     setLoading(false);
