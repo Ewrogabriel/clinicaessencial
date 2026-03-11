@@ -2,17 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { ReactNode } from "react";
 
-// Mock Supabase client
-const mockSupabaseAuth = {
-  getSession: vi.fn(),
-  onAuthStateChange: vi.fn(),
-  signInWithPassword: vi.fn(),
-  signUp: vi.fn(),
-  signOut: vi.fn(),
-  resetPasswordForEmail: vi.fn(),
-};
-
-const mockSupabaseFrom = vi.fn();
+// Must use vi.hoisted so mocks are available in vi.mock factory
+const { mockSupabaseAuth, mockSupabaseFrom } = vi.hoisted(() => ({
+  mockSupabaseAuth: {
+    getSession: vi.fn(),
+    onAuthStateChange: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
+  },
+  mockSupabaseFrom: vi.fn(),
+}));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

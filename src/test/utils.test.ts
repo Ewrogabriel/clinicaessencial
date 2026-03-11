@@ -7,7 +7,7 @@ describe("Utility Functions", () => {
       // Using standard date formatting
       const formatted = date.toLocaleDateString("pt-BR");
       expect(formatted).toContain("15");
-      expect(formatted).toContain("01") || expect(formatted).toContain("1");
+      expect(formatted.includes("01") || formatted.includes("1")).toBe(true);
     });
 
     it("should handle timezone differences", () => {
@@ -25,7 +25,7 @@ describe("Utility Functions", () => {
         currency: "BRL",
       }).format(value);
       
-      expect(formatted).toContain("1.500,50") || expect(formatted).toContain("1500,50");
+      expect(formatted.includes("1.500,50") || formatted.includes("1500,50")).toBe(true);
       expect(formatted).toContain("R$");
     });
 
@@ -36,7 +36,7 @@ describe("Utility Functions", () => {
         currency: "BRL",
       }).format(value);
       
-      expect(formatted).toContain("0,00") || expect(formatted).toContain("0");
+      expect(formatted.includes("0,00") || formatted.includes("0")).toBe(true);
     });
   });
 

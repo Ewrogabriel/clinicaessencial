@@ -22,6 +22,15 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useClinic", () => ({
+  useClinic: () => ({
+    activeClinicId: "clinic-1",
+    clinics: [{ id: "clinic-1", nome: "Clínica Teste" }],
+    setActiveClinicId: vi.fn(),
+  }),
+  ClinicProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@/hooks/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
@@ -105,20 +114,19 @@ describe("Admin Dashboard", () => {
 
   it("should render dashboard header", async () => {
     await renderDashboard();
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText(/Bom dia|Boa tarde|Boa noite/i)).toBeInTheDocument();
   });
 
   it("should show admin-specific sections", async () => {
     await renderDashboard();
-    // Dashboard should have admin sections like stats, charts, etc.
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText(/Personalizar/i)).toBeInTheDocument();
   });
 });
 
 describe("Admin Features", () => {
-  it("admin should have access to all resources", () => {
-    const { useAuth } = vi.mocked(require("@/hooks/useAuth"));
-    const auth = useAuth();
+  it("admin should have access to all resources", async () => {
+    const mod = await import("@/hooks/useAuth");
+    const auth = vi.mocked(mod).useAuth();
     
     expect(auth.isAdmin).toBe(true);
     expect(auth.hasPermission("pacientes")).toBe(true);

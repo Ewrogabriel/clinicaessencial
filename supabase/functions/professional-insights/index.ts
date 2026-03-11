@@ -59,8 +59,9 @@ Responda APENAS com um array JSON no formato:
     return new Response(JSON.stringify({ insights }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message, insights: [] }), {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: msg, insights: [] }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

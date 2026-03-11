@@ -88,12 +88,12 @@ export default function PatientDashboard() {
     queryFn: async () => {
       if (!paciente?.id) return [];
       const { data } = await supabase
-        .from("planos_exercicios")
+        .from("planos_exercicios" as never)
         .select("id, nome, descricao, ativo")
         .eq("paciente_id", paciente.id)
         .eq("ativo", true)
         .limit(5);
-      return data || [];
+      return (data as Record<string, unknown>[]) || [];
     },
     enabled: !!paciente?.id,
   });
@@ -103,12 +103,12 @@ export default function PatientDashboard() {
     queryFn: async () => {
       if (!paciente?.id) return [];
       const { data } = await supabase
-        .from("paciente_planos")
-        .select("id, plano:planos_servico(nome), sessoes_restantes, status")
+        .from("planos" as never)
+        .select("id, nome, sessoes_contratadas, sessoes_utilizadas, status")
         .eq("paciente_id", paciente.id)
         .eq("status", "ativo")
         .limit(5);
-      return data || [];
+      return (data as Record<string, unknown>[]) || [];
     },
     enabled: !!paciente?.id,
   });
@@ -134,12 +134,12 @@ export default function PatientDashboard() {
     queryFn: async () => {
       if (!paciente?.id) return [];
       const { data } = await supabase
-        .from("mensagens")
+        .from("mensagens" as never)
         .select("id, assunto, created_at, lida")
         .eq("destinatario_id", user?.id)
         .order("created_at", { ascending: false })
         .limit(5);
-      return data || [];
+      return (data as Record<string, unknown>[]) || [];
     },
     enabled: !!paciente?.id && !!user?.id,
   });
@@ -149,8 +149,8 @@ export default function PatientDashboard() {
     queryFn: async () => {
       if (!paciente?.id) return [];
       const { data } = await supabase
-        .from("contratos")
-        .select("id, titulo, status, created_at")
+        .from("contratos_digitais")
+        .select("id, titulo, created_at")
         .eq("paciente_id", paciente.id)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -164,8 +164,7 @@ export default function PatientDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("convenios")
-        .select("id, nome, desconto_percentual")
-        .eq("clinic_id", activeClinicId!)
+        .select("id, nome")
         .eq("ativo", true)
         .limit(5);
       return data || [];

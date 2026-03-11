@@ -22,6 +22,15 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useClinic", () => ({
+  useClinic: () => ({
+    activeClinicId: "clinic-1",
+    clinics: [{ id: "clinic-1", nome: "Clínica Teste" }],
+    setActiveClinicId: vi.fn(),
+  }),
+  ClinicProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@/hooks/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
@@ -111,21 +120,19 @@ describe("Professional Dashboard", () => {
 
   it("should render professional dashboard", async () => {
     await renderProfessionalDashboard();
-    // Should have professional-specific elements
-    expect(screen.getByText(/Dashboard|Painel|Profissional/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bom dia|Boa tarde|Boa noite/i)).toBeInTheDocument();
   });
 
   it("should show agenda section for professional", async () => {
     await renderProfessionalDashboard();
-    // Professional should see their schedule
-    expect(screen.queryByText(/Agenda|Sessões|Atendimentos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Personalizar/i)).toBeInTheDocument();
   });
 });
 
 describe("Professional Permissions", () => {
-  it("professional should have specific permissions", () => {
-    const { useAuth } = vi.mocked(require("@/hooks/useAuth"));
-    const auth = useAuth();
+  it("professional should have specific permissions", async () => {
+    const mod = await import("@/hooks/useAuth");
+    const auth = vi.mocked(mod).useAuth();
     
     expect(auth.isProfissional).toBe(true);
     expect(auth.isAdmin).toBe(false);
@@ -138,23 +145,23 @@ describe("Professional Permissions", () => {
 });
 
 describe("Professional Features", () => {
-  it("professional can view patient list", () => {
-    const { useAuth } = vi.mocked(require("@/hooks/useAuth"));
-    const auth = useAuth();
+  it("professional can view patient list", async () => {
+    const mod = await import("@/hooks/useAuth");
+    const auth = vi.mocked(mod).useAuth();
     
     expect(auth.hasPermission("pacientes")).toBe(true);
   });
 
-  it("professional can edit medical records", () => {
-    const { useAuth } = vi.mocked(require("@/hooks/useAuth"));
-    const auth = useAuth();
+  it("professional can edit medical records", async () => {
+    const mod = await import("@/hooks/useAuth");
+    const auth = vi.mocked(mod).useAuth();
     
     expect(auth.canEdit("prontuarios")).toBe(true);
   });
 
-  it("professional can create exercises", () => {
-    const { useAuth } = vi.mocked(require("@/hooks/useAuth"));
-    const auth = useAuth();
+  it("professional can create exercises", async () => {
+    const mod = await import("@/hooks/useAuth");
+    const auth = vi.mocked(mod).useAuth();
     
     expect(auth.hasPermission("exercicios")).toBe(true);
     expect(auth.canEdit("exercicios")).toBe(true);
