@@ -286,32 +286,34 @@ export default function PatientDashboard() {
 
         {/* Início Tab */}
         <TabsContent value="inicio" className="space-y-4 mt-4">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { label: "Minha Agenda", desc: "Sessões futuras", icon: Calendar, route: "/minha-agenda", color: "text-primary", bg: "bg-primary/10" },
-              { label: "Exercícios", desc: `${planosCount || 0} plano(s)`, icon: Dumbbell, route: "/planos-exercicios", color: "text-purple-600", bg: "bg-purple-600/10" },
-              { label: "Meus Planos", desc: "Pacotes de sessão", icon: ClipboardList, route: "/meus-planos", color: "text-amber-600", bg: "bg-amber-600/10" },
-              { label: "Pagamentos", desc: "Financeiro", icon: CreditCard, route: "/meus-pagamentos", color: "text-green-600", bg: "bg-green-600/10" },
-              { label: "Mensagens", desc: "Chat", icon: MessageSquare, route: "/mensagens", color: "text-rose-600", bg: "bg-rose-600/10" },
-              { label: "Contratos", desc: "Documentos", icon: FileText, route: "/contratos", color: "text-teal-600", bg: "bg-teal-600/10" },
-              { label: "Convênios", desc: "Parceiros", icon: Handshake, route: "/convenios", color: "text-sky-600", bg: "bg-sky-600/10" },
-              { label: "Meu Perfil", desc: "Dados pessoais", icon: User, route: "/meu-perfil", color: "text-indigo-600", bg: "bg-indigo-600/10" },
-              { label: "Conquistas", desc: `${totalPoints || 0} pts`, icon: Trophy, route: "", color: "text-amber-500", bg: "bg-amber-500/10", tab: "recompensas" },
+              { label: "Minha Agenda", desc: "Visualize suas sessões futuras e histórico de atendimentos", icon: Calendar, route: "/minha-agenda", color: "text-primary", bg: "bg-primary/10", borderColor: "hover:border-primary/50" },
+              { label: "Exercícios", desc: `${planosCount || 0} plano(s) ativo(s) - Veja seus exercícios personalizados`, icon: Dumbbell, route: "/planos-exercicios", color: "text-purple-600", bg: "bg-purple-600/10", borderColor: "hover:border-purple-600/50" },
+              { label: "Meus Planos", desc: "Gerencie seus pacotes de sessões e veja saldo disponível", icon: ClipboardList, route: "/meus-planos", color: "text-amber-600", bg: "bg-amber-600/10", borderColor: "hover:border-amber-600/50" },
+              { label: "Pagamentos", desc: "Histórico financeiro, faturas e comprovantes", icon: CreditCard, route: "/meus-pagamentos", color: "text-green-600", bg: "bg-green-600/10", borderColor: "hover:border-green-600/50" },
+              { label: "Mensagens", desc: "Converse diretamente com a clínica e profissionais", icon: MessageSquare, route: "/mensagens", color: "text-rose-600", bg: "bg-rose-600/10", borderColor: "hover:border-rose-600/50" },
+              { label: "Contratos", desc: "Acesse e assine documentos importantes", icon: FileText, route: "/contratos", color: "text-teal-600", bg: "bg-teal-600/10", borderColor: "hover:border-teal-600/50" },
+              { label: "Convênios", desc: "Parceiros e benefícios disponíveis para você", icon: Handshake, route: "/convenios", color: "text-sky-600", bg: "bg-sky-600/10", borderColor: "hover:border-sky-600/50" },
+              { label: "Meu Perfil", desc: "Atualize seus dados pessoais e informações de contato", icon: User, route: "/meu-perfil", color: "text-indigo-600", bg: "bg-indigo-600/10", borderColor: "hover:border-indigo-600/50" },
+              { label: "Conquistas", desc: `${totalPoints || 0} pontos - Troque por recompensas exclusivas`, icon: Trophy, route: "", color: "text-amber-500", bg: "bg-amber-500/10", borderColor: "hover:border-amber-500/50", tab: "recompensas" },
             ].map((item) => (
               <Card
                 key={item.label}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className={`cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-transparent ${item.borderColor} group active:scale-[0.98]`}
                 onClick={() => item.route ? navigate(item.route) : item.tab ? setActiveTab(item.tab) : null}
               >
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className={`p-2.5 ${item.bg} rounded-lg shrink-0`}>
-                    <item.icon className={`h-5 w-5 ${item.color}`} />
+                <CardContent className="p-5 flex flex-col h-full min-h-[140px]">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`p-3 ${item.bg} rounded-xl shrink-0 group-hover:scale-110 transition-transform duration-200`}>
+                      <item.icon className={`h-6 w-6 ${item.color}`} />
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform duration-200" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  <div className="flex-1">
+                    <p className="text-base font-semibold mb-1">{item.label}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
                 </CardContent>
               </Card>
             ))}
