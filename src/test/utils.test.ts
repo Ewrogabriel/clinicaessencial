@@ -7,7 +7,7 @@ describe("Utility Functions", () => {
       // Using standard date formatting
       const formatted = date.toLocaleDateString("pt-BR");
       expect(formatted).toContain("15");
-      expect(formatted).toContain("01") || expect(formatted).toContain("1");
+      expect(formatted.includes("01") || formatted.includes("1")).toBe(true);
     });
 
     it("should handle timezone differences", () => {
