@@ -97,7 +97,7 @@ export function GlobalSearch() {
 
       setResults(items);
       setLoading(false);
-    }, 300);
+    }, 500); // Debounce de 500ms para poupar o banco
 
     return () => clearTimeout(timer);
   }, [query]);

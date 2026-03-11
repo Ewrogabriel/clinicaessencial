@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag, Clock, FileDown } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { FichaRequestsPanel } from "@/components/admin/FichaRequestsPanel";
 
 const FIELD_LABELS: Record<string, string> = {

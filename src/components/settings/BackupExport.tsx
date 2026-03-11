@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, Database, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const EXPORT_TABLES = [
   { key: "pacientes", label: "Pacientes", icon: "👤" },

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import * as XLSX from "xlsx";
 
 interface PagamentoExport {

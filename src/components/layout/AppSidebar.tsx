@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { useI18n } from "@/hooks/useI18n";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useI18n } from "@/modules/shared/hooks/useI18n";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,

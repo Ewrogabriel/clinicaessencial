@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { generateClinicReportPDF } from "@/lib/generateClinicReportPDF";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 export function ClinicReportButton() {
   const [loading, setLoading] = useState(false);

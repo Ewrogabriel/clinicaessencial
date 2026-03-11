@@ -1,4 +1,4 @@
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2 } from "lucide-react";
 

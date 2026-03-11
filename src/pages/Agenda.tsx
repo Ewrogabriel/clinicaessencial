@@ -3,10 +3,10 @@ import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths } fr
 import { ptBR } from "date-fns/locale";
 import { Plus, ChevronLeft, ChevronRight, FileDown, Filter, UserPlus, CalendarCheck, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { useAgendamentos, useUpdateAgendamentoStatus, useAgendamentoCheckin, useRescheduleAgendamento } from "@/hooks/useAgendamentos";
-import { useProfissionaisBasic, buildProfColorMap } from "@/hooks/useProfissionais";
-import { usePacienteByUserId } from "@/hooks/usePacientes";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useAgendamentos, useUpdateAgendamentoStatus, useAgendamentoCheckin, useRescheduleAgendamento } from "@/modules/appointments/hooks/useAppointments";
+import { useProfissionaisBasic, buildProfColorMap } from "@/modules/professionals/hooks/useProfessionals";
+import { usePacienteByUserId } from "@/modules/patients/hooks/usePacientes";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,8 +15,8 @@ import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDialog";
 import { DailyView, WeeklyView, MonthlyView, type Agendamento } from "@/components/agenda/AgendaViews";
 import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
-import { toast } from "@/hooks/use-toast";
-import { usePersistedFilter } from "@/hooks/usePersistedFilter";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import { usePersistedFilter } from "@/modules/shared/hooks/usePersistedFilter";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 
 const VacancyCalendar = lazy(() => import("./VacancyCalendar"));

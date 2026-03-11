@@ -4,7 +4,7 @@ import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart3, Users, DollarSign, Calendar, FileDown, FileSpreadsheet, TrendingDown, UserX, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const COLORS = ["hsl(168, 65%, 38%)", "hsl(199, 89%, 48%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(142, 71%, 45%)", "hsl(280, 60%, 55%)"];
 

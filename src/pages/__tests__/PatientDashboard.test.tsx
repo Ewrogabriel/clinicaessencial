@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock patient auth
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("@/modules/auth/hooks/useAuth", () => ({
   useAuth: () => ({
     user: { id: "patient-123", email: "patient@test.com" },
     profile: { id: "profile-1", nome: "Paciente Teste", clinic_id: "clinic-1" },
@@ -23,7 +23,7 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useClinic", () => ({
+vi.mock("@/modules/clinic/hooks/useClinic", () => ({
   useClinic: () => ({
     activeClinicId: "clinic-1",
     clinics: [{ id: "clinic-1", nome: "Clínica Teste" }],
@@ -32,13 +32,13 @@ vi.mock("@/hooks/useClinic", () => ({
   ClinicProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock("@/hooks/useI18n", () => ({
+vi.mock("@/modules/shared/hooks/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@/modules/shared/hooks/use-toast", () => ({
   toast: vi.fn(),
   useToast: () => ({ toast: vi.fn() }),
 }));
@@ -89,7 +89,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 // Mock useDashboardLayout
-vi.mock("@/hooks/useDashboardLayout", () => ({
+vi.mock("@/modules/shared/hooks/useDashboardLayout", () => ({
   useDashboardLayout: () => ({
     cards: [
       { id: "sessoes", label: "Próximas Sessões", visible: true },
@@ -149,7 +149,7 @@ describe("Patient Dashboard", () => {
 
 describe("Patient Permissions", () => {
   it("patient should have limited permissions", async () => {
-    const mod = await import("@/hooks/useAuth");
+    const mod = await import("@/modules/auth/hooks/useAuth");
     const auth = vi.mocked(mod).useAuth();
     
     expect(auth.isPatient).toBe(true);

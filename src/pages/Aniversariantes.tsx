@@ -7,7 +7,7 @@ import { Cake, Mail, Send } from "lucide-react";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 export default function Aniversariantes() {
   const [sendingId, setSendingId] = useState<string | null>(null);

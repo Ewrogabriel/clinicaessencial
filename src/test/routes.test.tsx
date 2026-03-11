@@ -6,17 +6,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Mock hooks
 const mockUseAuth = vi.fn();
 
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("@/modules/auth/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-vi.mock("@/hooks/useI18n", () => ({
+vi.mock("@/modules/shared/hooks/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@/modules/shared/hooks/use-toast", () => ({
   toast: vi.fn(),
   useToast: () => ({ toast: vi.fn() }),
 }));

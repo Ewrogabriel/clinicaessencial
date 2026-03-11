@@ -6,7 +6,7 @@ import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Send,
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,11 +23,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import Despesas from "./Despesas";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { FinanceDashboard } from "@/components/reports/FinanceDashboard";
 import { lazy, Suspense } from "react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";

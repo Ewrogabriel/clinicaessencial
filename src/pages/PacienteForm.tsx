@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, User, ShieldCheck } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, maskRG, isValidCPF, unmask } from "@/lib/masks";
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import defaultAvatarImg from "@/assets/default-avatar.png";
 import defaultAvatarMale from "@/assets/default-avatar-male.png";

@@ -40,7 +40,7 @@ vi.mock("@dnd-kit/utilities", () => ({
 }));
 
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
-import type { DashboardCard } from "@/hooks/useDashboardLayout";
+import type { DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
 
 describe("DashboardCustomizer Component", () => {
   const mockCards: DashboardCard[] = [

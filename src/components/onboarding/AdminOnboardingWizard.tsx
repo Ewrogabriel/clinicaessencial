@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, Building2, Users, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const STEPS = [
   { icon: Building2, title: "Dados da Clínica", desc: "Configure o nome e contato da sua clínica" },

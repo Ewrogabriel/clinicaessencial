@@ -22,7 +22,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/modules/auth/hooks/useAuth";
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>

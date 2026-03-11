@@ -14,7 +14,7 @@ import {
   BookOpen, Sparkles, Image, Plus, Save, Trash2, ArrowUp, ArrowDown,
   FileText, Loader2, Download, Eye,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
 interface ManualSection {

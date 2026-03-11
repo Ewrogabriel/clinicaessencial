@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -14,7 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EvaluationFormProps {

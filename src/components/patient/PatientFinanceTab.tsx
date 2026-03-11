@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DollarSign, QrCode, Receipt, FileDown, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { generateReceiptPDF } from "@/lib/generateReceiptPDF";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 interface PatientFinanceTabProps {
   pendencias: any[];

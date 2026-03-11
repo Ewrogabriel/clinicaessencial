@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Grid3X3 } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from "recharts";
-import type { MonthlyTrend, OccupancyHeatmap } from "@/hooks/useProfessionalAnalytics";
+import type { MonthlyTrend, OccupancyHeatmap } from "@/modules/professionals/hooks/useProfessionalAnalytics";
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#3b82f6"];
 const DIAS = ["", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];

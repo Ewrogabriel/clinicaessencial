@@ -1,5 +1,5 @@
 import { Globe } from "lucide-react";
-import { useI18n, Locale } from "@/hooks/useI18n";
+import { useI18n, Locale } from "@/modules/shared/hooks/useI18n";
 import {
   DropdownMenu,
   DropdownMenuContent,

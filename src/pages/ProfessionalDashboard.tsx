@@ -1,29 +1,29 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
+import {
   UserPlus, Clock, Calendar, Users, ClipboardList, DollarSign,
   Calculator, MessageSquare, FileText, Handshake, Video, Tag,
   FileCheck, Stethoscope, Dumbbell, Gift, ChevronRight, Phone,
   CheckCircle2, XCircle, AlertCircle, Play, Pause, RotateCcw
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format, isSameDay, isAfter, isBefore, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
-import { useDashboardLayout, DashboardCard } from "@/hooks/useDashboardLayout";
+import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
 import { AdvancedKPIs } from "@/components/professional/AdvancedKPIs";
 import { PerformanceCharts } from "@/components/professional/PerformanceCharts";
 import { AIInsightsPanel } from "@/components/professional/AIInsightsPanel";
-import { useProfessionalAnalytics } from "@/hooks/useProfessionalAnalytics";
+import { useProfessionalAnalytics } from "@/modules/professionals/hooks/useProfessionalAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { toast } from "sonner";
 
 const PROF_DEFAULT_CARDS: DashboardCard[] = [
@@ -59,7 +59,7 @@ const ProfessionalDashboard = () => {
         .select("id, nome, data_nascimento, telefone")
         .eq("clinic_id", clinicaAtual?.id)
         .not("data_nascimento", "is", null);
-      
+
       // Filtrar aniversariantes do mês
       return (data || []).filter(p => {
         if (!p.data_nascimento) return false;
@@ -80,7 +80,7 @@ const ProfessionalDashboard = () => {
     queryFn: async () => {
       const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
       const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-      
+
       const { data } = await supabase
         .from("sessoes")
         .select("valor_sessao, status")
@@ -94,7 +94,7 @@ const ProfessionalDashboard = () => {
       const valorTotal = data?.reduce((acc, s) => acc + (Number(s.valor_sessao) || 0), 0) || 0;
       // Assumindo comissão média de 40%
       const comissaoEstimada = valorTotal * 0.4;
-      
+
       return { totalSessoes, valorTotal, comissaoEstimada };
     },
     enabled: !!user?.id && !!clinicaAtual?.id,
@@ -125,16 +125,16 @@ const ProfessionalDashboard = () => {
         .from("sessoes")
         .update(updates)
         .eq("id", sessionId);
-      
+
       if (error) throw error;
-      
+
       const messages: Record<string, string> = {
         "check-in": "Check-in realizado!",
         "realizado": "Sessão marcada como realizada!",
         "falta": "Falta registrada!",
         "cancelado": "Sessão cancelada!",
       };
-      
+
       toast.success(messages[action]);
       refetchAnalytics();
     } catch {
@@ -209,7 +209,7 @@ const ProfessionalDashboard = () => {
                       ? ((ag as Record<string, unknown>).pacientes as Record<string, string>)?.nome
                       : "Paciente";
                     const canDoActions = ["agendado", "confirmado"].includes(ag.status);
-                    
+
                     return (
                       <div key={ag.id} className="flex items-center justify-between py-3 gap-4">
                         <div className="flex-1 min-w-0">
@@ -298,7 +298,7 @@ const ProfessionalDashboard = () => {
                       new Date(hoje.getFullYear(), hoje.getMonth(), diaAniversario),
                       hoje
                     );
-                    
+
                     return (
                       <div key={p.id} className="flex items-center justify-between py-2.5">
                         <div className="flex items-center gap-3">
@@ -366,26 +366,26 @@ const ProfessionalDashboard = () => {
 
       case "tips":
         return <DailyTipsCard key="tips" tipo="profissional" />;
-      
+
       case "convenios":
         return <ConvenioCard key="convenios" />;
-      
+
       case "kpis":
         return kpisLoading ? (
           <div key="kpis" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[1,2,3,4].map(i => <Skeleton key={i} className="h-28 rounded-lg" />)}
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-lg" />)}
           </div>
         ) : kpis ? <AdvancedKPIs key="kpis" kpis={kpis} /> : null;
-      
+
       case "requests":
         return <RequestsCard key="requests" />;
-      
+
       case "ai-insights":
         return kpis ? <AIInsightsPanel key="ai-insights" kpis={kpis} trends={trends} /> : null;
-      
+
       case "charts":
         return <PerformanceCharts key="charts" trends={trends} heatmap={heatmap} statusPie={statusPie} />;
-      
+
       default:
         return null;
     }

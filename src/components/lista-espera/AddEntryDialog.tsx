@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useModalidades } from "@/hooks/useModalidades";
-import { useClinic } from "@/hooks/useClinic";
+import { useModalidades } from "@/modules/appointments/hooks/useModalidades";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -93,7 +93,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
       queryClient.invalidateQueries({ queryKey: ["lista-espera"] });
       const msg = tipo === "espera" ? "Adicionado à lista de espera!" :
         tipo === "interesse_mudanca" ? "Interesse de mudança registrado!" :
-        "Interesse de novo paciente registrado!";
+          "Interesse de novo paciente registrado!";
       toast.success(msg);
       onOpenChange(false);
       resetForm();
@@ -117,7 +117,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
 
   const title = tipo === "espera" ? "Adicionar à Lista de Espera" :
     tipo === "interesse_mudanca" ? "Registrar Interesse de Mudança" :
-    "Registrar Interesse - Novo Paciente";
+      "Registrar Interesse - Novo Paciente";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

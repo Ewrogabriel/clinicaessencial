@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Target, Plus, Pencil, Trash2, Calendar, DollarSign, Users, CheckCircle2, XCircle, Clock, Sparkles, Loader2 } from "lucide-react";

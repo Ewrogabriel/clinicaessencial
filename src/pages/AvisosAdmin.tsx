@@ -7,12 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Megaphone, Plus, Trash2, Edit, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 const AvisosAdmin = () => {
   const { user } = useAuth();

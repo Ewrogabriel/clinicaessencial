@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 interface PlanLimit {
   allowed: boolean;
@@ -28,6 +28,8 @@ export function usePlanLimit(resource: string) {
 
       return data as unknown as PlanLimit;
     },
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache "fresco"
+    gcTime: 1000 * 60 * 30, // 30 minutos em memória
     enabled: !!activeClinicId,
   });
 }

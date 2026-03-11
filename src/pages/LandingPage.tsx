@@ -7,7 +7,7 @@ import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { PlansSection } from "@/components/landing/PlansSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { ContactSection } from "@/components/landing/ContactSection";
-import { useLandingContent } from "@/hooks/useLandingContent";
+import { useLandingContent } from "@/modules/marketing/hooks/useLandingContent";
 
 const LandingPage = () => {
   const navigate = useNavigate();

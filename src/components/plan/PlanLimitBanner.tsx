@@ -1,4 +1,4 @@
-import { usePlanLimit } from "@/hooks/usePlanLimits";
+import { usePlanLimit } from "@/modules/clinic/hooks/usePlanLimits";
 import { AlertTriangle } from "lucide-react";
 
 interface PlanLimitBannerProps {

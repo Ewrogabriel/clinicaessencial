@@ -4,8 +4,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { FileText, Download, Send, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,10 +13,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateContractPDF } from "@/lib/generateContractPDF";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
-import { useClinicSettings } from "@/hooks/useClinicSettings";
+import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();

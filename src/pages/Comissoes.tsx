@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,8 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Calculator, Plus, Pencil, Trash2, Filter, Settings2, Users, ArrowLeft } from "lucide-react";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
-import { toast } from "@/hooks/use-toast";
-import { useClinic } from "@/hooks/useClinic";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 // Removed hardcoded TIPOS_ATENDIMENTO — now loaded from modalidades table
 

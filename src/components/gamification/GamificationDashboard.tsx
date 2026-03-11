@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useGamification } from "@/hooks/useGamification";
+import { useGamification } from "@/modules/patients/hooks/useGamification";
 import { Trophy, Star, Target, Medal, Flame, Crown, Zap } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -135,11 +135,10 @@ export const GamificationDashboard = ({ pacienteId }: Props) => {
               return (
                 <div
                   key={a.id}
-                  className={`flex flex-col items-center p-4 rounded-xl border text-center transition-all ${
-                    unlocked
+                  className={`flex flex-col items-center p-4 rounded-xl border text-center transition-all ${unlocked
                       ? "bg-primary/5 border-primary/30 shadow-sm"
                       : "bg-muted/30 border-muted opacity-50 grayscale"
-                  }`}
+                    }`}
                 >
                   <span className="text-3xl mb-2">{a.icone}</span>
                   <p className="font-medium text-sm">{a.nome}</p>
@@ -176,9 +175,8 @@ export const GamificationDashboard = ({ pacienteId }: Props) => {
                 return (
                   <div
                     key={r.paciente_id}
-                    className={`flex items-center gap-3 p-2 rounded-lg ${
-                      isMe ? "bg-primary/10 border border-primary/20" : ""
-                    }`}
+                    className={`flex items-center gap-3 p-2 rounded-lg ${isMe ? "bg-primary/10 border border-primary/20" : ""
+                      }`}
                   >
                     <span className="w-8 text-center font-bold text-sm">
                       {i < 3 ? medals[i] : `${i + 1}º`}

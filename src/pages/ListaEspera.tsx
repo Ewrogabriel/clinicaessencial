@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Plus, Clock, ArrowRightLeft, UserPlus } from "lucide-react";
 import WaitingListTab from "@/components/lista-espera/WaitingListTab";
 import AddEntryDialog from "@/components/lista-espera/AddEntryDialog";
 import { AIWaitingListPriority } from "@/components/lista-espera/AIWaitingListPriority";
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 const ListaEspera = () => {
   const { isAdmin, isGestor, isProfissional } = useAuth();

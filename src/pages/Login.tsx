@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, LogIn } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useI18n } from "@/hooks/useI18n";
-import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useI18n } from "@/modules/shared/hooks/useI18n";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();

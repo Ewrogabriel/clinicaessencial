@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Upload, FileText, Image, File, Trash2, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

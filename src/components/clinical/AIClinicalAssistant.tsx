@@ -18,7 +18,7 @@ import {
   Download,
   Search,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 type AIAction = "summarize" | "suggest_conduct" | "lesson_plan" | "treatment_plan" | "generate_report" | "analyze_all";
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DashboardCard } from "@/hooks/useDashboardLayout";
+import { DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {

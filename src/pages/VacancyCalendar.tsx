@@ -8,7 +8,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { CalendarPlus, ChevronLeft, ChevronRight, Users, Clock, UserPlus, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

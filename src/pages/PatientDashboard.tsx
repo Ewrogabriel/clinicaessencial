@@ -1,5 +1,5 @@
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GamificationDashboard } from "@/components/gamification/GamificationDashboard";
 import {
@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { useDashboardLayout, DashboardCard } from "@/hooks/useDashboardLayout";
+import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
 
 // Ícone do WhatsApp

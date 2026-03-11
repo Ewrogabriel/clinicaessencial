@@ -36,7 +36,7 @@ const getAgeDistribution = (pacientes: any[]) => {
   return counts.filter(c => c.value > 0);
 };
 
-import { useClinic } from "@/hooks/useClinic";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 export default function Indicadores() {
   const { activeClinicId } = useClinic();
@@ -172,7 +172,7 @@ export default function Indicadores() {
   const { data: pacientesTotal = [] } = useQuery({
     queryKey: ["pacientes-total"],
     queryFn: async () => {
-      const { data } = await (supabase.from("pacientes") as any).select("*");
+      const { data } = await supabase.from("pacientes").select("data_nascimento");
       return data || [];
     },
   });
@@ -182,17 +182,20 @@ export default function Indicadores() {
     queryFn: async () => {
       const inicioMesStr = startOfMonth(agora).toISOString().split('T')[0];
       const fimMesStr = endOfMonth(agora).toISOString().split('T')[0];
-      let qPag = (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMesStr).lte("data_pagamento", fimMesStr);
-      let qDesp = (supabase.from("expenses") as any).select("valor, status");
-      let qCom = (supabase.from("commissions") as any).select("valor");
+
+      let qPag = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", inicioMesStr).lte("data_pagamento", fimMesStr);
+      let qDesp = supabase.from("expenses").select("valor, status");
+      let qCom = supabase.from("commissions").select("valor");
+
       if (activeClinicId) {
         qPag = qPag.eq("clinic_id", activeClinicId);
         qDesp = qDesp.eq("clinic_id", activeClinicId);
         qCom = qCom.eq("clinic_id", activeClinicId);
       }
-      const { data: pagamentos } = await qPag;
-      const { data: despesas } = await qDesp;
-      const { data: comissoes } = await qCom;
+
+      const [{ data: pagamentos }, { data: despesas }, { data: comissoes }] = await Promise.all([
+        qPag, qDesp, qCom
+      ]);
 
       const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
       const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc: number, d: any) => acc + Number(d.valor), 0) || 0;
@@ -436,8 +439,8 @@ export default function Indicadores() {
                 {frequencyRanking.map((p: any, i: number) => (
                   <div key={p.id} className="flex items-center gap-4 p-3 rounded-lg border bg-muted/20">
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-700" :
-                        i === 1 ? "bg-gray-100 text-gray-600" :
-                          i === 2 ? "bg-orange-100 text-orange-700" : "bg-muted text-muted-foreground"
+                      i === 1 ? "bg-gray-100 text-gray-600" :
+                        i === 2 ? "bg-orange-100 text-orange-700" : "bg-muted text-muted-foreground"
                       }`}>
                       {i + 1}º
                     </div>

@@ -6,9 +6,9 @@ import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, CreditCard,
 import { cn } from "@/lib/utils";
 import { getMonthlyAvailability, checkAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
-import { useCrossBookingClinics } from "@/hooks/useCrossBooking";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { useCrossBookingClinics } from "@/modules/appointments/hooks/useCrossBooking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const MeusPlanos = () => {
   const { user, patientId } = useAuth();

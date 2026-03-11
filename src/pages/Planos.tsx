@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock, Pencil, CalendarPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
 import { PlanoSessoesDialog } from "@/components/planos/PlanoSessoesDialog";
 

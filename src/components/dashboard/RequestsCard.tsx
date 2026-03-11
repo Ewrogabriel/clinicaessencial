@@ -3,11 +3,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, XCircle, Clock, ArrowRight, FileEdit, CalendarClock, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 export function RequestsCard() {

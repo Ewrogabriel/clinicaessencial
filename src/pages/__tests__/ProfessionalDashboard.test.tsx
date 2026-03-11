@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock professional auth
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("@/modules/auth/hooks/useAuth", () => ({
   useAuth: () => ({
     user: { id: "prof-123", email: "profissional@test.com" },
     profile: { id: "profile-1", nome: "Dr. Profissional", clinic_id: "clinic-1" },
@@ -22,7 +22,7 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useClinic", () => ({
+vi.mock("@/modules/clinic/hooks/useClinic", () => ({
   useClinic: () => ({
     activeClinicId: "clinic-1",
     clinics: [{ id: "clinic-1", nome: "Clínica Teste" }],
@@ -31,13 +31,13 @@ vi.mock("@/hooks/useClinic", () => ({
   ClinicProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock("@/hooks/useI18n", () => ({
+vi.mock("@/modules/shared/hooks/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
   }),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@/modules/shared/hooks/use-toast", () => ({
   toast: vi.fn(),
   useToast: () => ({ toast: vi.fn() }),
 }));
@@ -131,7 +131,7 @@ describe("Professional Dashboard", () => {
 
 describe("Professional Permissions", () => {
   it("professional should have specific permissions", async () => {
-    const mod = await import("@/hooks/useAuth");
+    const mod = await import("@/modules/auth/hooks/useAuth");
     const auth = vi.mocked(mod).useAuth();
     
     expect(auth.isProfissional).toBe(true);
@@ -146,21 +146,21 @@ describe("Professional Permissions", () => {
 
 describe("Professional Features", () => {
   it("professional can view patient list", async () => {
-    const mod = await import("@/hooks/useAuth");
+    const mod = await import("@/modules/auth/hooks/useAuth");
     const auth = vi.mocked(mod).useAuth();
     
     expect(auth.hasPermission("pacientes")).toBe(true);
   });
 
   it("professional can edit medical records", async () => {
-    const mod = await import("@/hooks/useAuth");
+    const mod = await import("@/modules/auth/hooks/useAuth");
     const auth = vi.mocked(mod).useAuth();
     
     expect(auth.canEdit("prontuarios")).toBe(true);
   });
 
   it("professional can create exercises", async () => {
-    const mod = await import("@/hooks/useAuth");
+    const mod = await import("@/modules/auth/hooks/useAuth");
     const auth = vi.mocked(mod).useAuth();
     
     expect(auth.hasPermission("exercicios")).toBe(true);

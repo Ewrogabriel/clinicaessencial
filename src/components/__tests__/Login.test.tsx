@@ -7,7 +7,7 @@ import Login from "@/pages/Login";
 const mockSignIn = vi.fn();
 const mockResetPassword = vi.fn();
 
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("@/modules/auth/hooks/useAuth", () => ({
   useAuth: () => ({
     signIn: mockSignIn,
     resetPassword: mockResetPassword,
@@ -16,7 +16,7 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useI18n", () => ({
+vi.mock("@/modules/shared/hooks/useI18n", () => ({
   useI18n: () => ({
     t: (key: string) => {
       const map: Record<string, string> = {
@@ -34,7 +34,7 @@ vi.mock("@/hooks/useI18n", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@/modules/shared/hooks/use-toast", () => ({
   toast: vi.fn(),
 }));
 

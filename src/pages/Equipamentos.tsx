@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
-import { useI18n } from "@/hooks/useI18n";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { useI18n } from "@/modules/shared/hooks/useI18n";
 import { toast } from "sonner";
 import { format, isPast, addDays, isWithinInterval } from "date-fns";
 import { Plus, Wrench, Package, AlertTriangle, Edit2, Trash2, Search } from "lucide-react";
