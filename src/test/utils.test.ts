@@ -36,7 +36,7 @@ describe("Utility Functions", () => {
         currency: "BRL",
       }).format(value);
       
-      expect(formatted).toContain("0,00") || expect(formatted).toContain("0");
+      expect(formatted.includes("0,00") || formatted.includes("0")).toBe(true);
     });
   });
 

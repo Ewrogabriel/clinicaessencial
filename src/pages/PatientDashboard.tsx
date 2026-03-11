@@ -149,8 +149,8 @@ export default function PatientDashboard() {
     queryFn: async () => {
       if (!paciente?.id) return [];
       const { data } = await supabase
-        .from("contratos")
-        .select("id, titulo, status, created_at")
+        .from("contratos_digitais")
+        .select("id, titulo, created_at")
         .eq("paciente_id", paciente.id)
         .order("created_at", { ascending: false })
         .limit(5);

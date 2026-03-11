@@ -284,7 +284,7 @@ describe("Input Masks", () => {
   it("should mask currency correctly", () => {
     const result = maskCurrency(1500.50);
     expect(result).toContain("R$");
-    expect(result).toContain("1.500,50") || expect(result).toContain("1500,50");
+    expect(result.includes("1.500,50") || result.includes("1500,50")).toBe(true);
   });
 });
 
