@@ -56,14 +56,14 @@ export const appointmentService = {
     }) {
         const { professionalId, date, endDate, clinicId } = options;
         try {
-            // Se tiver professionalId, tenta gerar slots para a data inicial
-            // (Melhoria futura: gerar para o intervalo todo se necessário)
+            // Tenta gerar slots se tiver professionalId (RPC opcional)
             if (professionalId) {
+                // Ignora erro caso a RPC não exista
                 await supabase.rpc("generate_day_slots", {
                     p_professional_id: professionalId,
                     p_date: date,
                     p_clinic_id: clinicId
-                });
+                }).then(() => { }).catch(() => { });
             }
 
             let query = supabase
@@ -84,9 +84,22 @@ export const appointmentService = {
 
             const { data, error } = await query.order("date").order("start_time");
 
-            if (error) throw error;
+            // PGRST205 = tabela não encontrada no schema cache (feature não migrada ainda)
+            // Retorna array vazio silenciosamente para não bloquear a UI
+            if (error) {
+                if (error.code === "PGRST205" || error.code === "42P01") {
+                    console.warn("[Agenda] schedule_slots table not found - feature not migrated yet");
+                    return [];
+                }
+                throw error;
+            }
             return data || [];
-        } catch (error) {
+        } catch (error: any) {
+            // Silencia erro de tabela inexistente
+            if (error?.code === "PGRST205" || error?.code === "42P01") {
+                console.warn("[Agenda] schedule_slots not available, skipping.");
+                return [];
+            }
             handleError(error, "Erro ao buscar slots de agendamento.");
             return [];
         }
