@@ -164,8 +164,7 @@ export default function PatientDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("convenios")
-        .select("id, nome, desconto_percentual")
-        .eq("clinic_id", activeClinicId!)
+        .select("id, nome")
         .eq("ativo", true)
         .limit(5);
       return data || [];
