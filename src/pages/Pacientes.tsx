@@ -221,14 +221,7 @@ const Pacientes = () => {
                 <div className="w-[100px]">Status</div>
                 <div className="w-[84px] text-right">Ações</div>
               </div>
-              <List
-                height={500}
-                itemCount={filtrados.length}
-                itemSize={56}
-                width={"100%"}
-              >
-                {Row}
-              </List>
+              </div>
             </div>
           )}
         </CardContent>
@@ -246,7 +239,7 @@ const Pacientes = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 };
 

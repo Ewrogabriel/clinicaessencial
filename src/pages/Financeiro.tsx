@@ -324,9 +324,9 @@ const Financeiro = () => {
                     <div className="w-[100px] pr-4">Status</div>
                     <div className="w-[80px] text-right">Ação</div>
                   </div>
-                  <List height={400} itemCount={filteredPagamentos.length} itemSize={56} width={"100%"}>
-                    {PaymentRow}
-                  </List>
+                  <div className="w-full h-[400px] overflow-auto">
+                    {filteredPagamentos.map((_, index) => <PaymentRow key={index} index={index} style={{ height: 56 }} />)}
+                  </div>
                 </div>
               )}
             </CardContent>
