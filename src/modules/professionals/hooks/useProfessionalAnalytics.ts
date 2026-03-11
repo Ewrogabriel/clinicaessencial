@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+import { Agendamento } from "@/types/entities";
 
 export interface MonthlyTrend {
     mes: string;
@@ -18,7 +19,20 @@ export interface OccupancyHeatmap {
     count: number;
 }
 
-export function useProfessionalAnalytics() {
+interface StatusAgendamentoOnly {
+    status: string;
+}
+
+interface CommissionValueOnly {
+    valor: number | string;
+}
+
+const calculaVariacao = (atual: number, anterior: number) => {
+    if (anterior === 0) return atual > 0 ? 100 : 0;
+    return Math.round(((atual - anterior) / anterior) * 100);
+};
+
+export const useProfessionalAnalytics = () => {
     const { user } = useAuth();
     const userId = user?.id;
     const hoje = new Date();
@@ -74,34 +88,30 @@ export function useProfessionalAnalytics() {
                     .lte("data_horario", `${mesFim}T23:59:59`)
             ]);
 
-            const all = sessAtual || [];
-            const allAnt = sessAnterior || [];
+            const all = (sessAtual || []) as Partial<Agendamento>[];
+            const allAnt = (sessAnterior || []) as StatusAgendamentoOnly[];
+            const coms = (comAtual || []) as CommissionValueOnly[];
+            const comsAnt = (comAnterior || []) as CommissionValueOnly[];
+
+            const receita = coms.reduce((s, c) => s + Number(c.valor), 0);
+            const receitaAnt = comsAnt.reduce((s, c) => s + Number(c.valor), 0);
+
             const realizadas = all.filter(a => a.status === "realizado").length;
+            const realizadasAnt = allAnt.filter(a => a.status === "realizado").length;
+
             const faltas = all.filter(a => a.status === "falta").length;
             const canceladas = all.filter(a => a.status === "cancelado").length;
-            const realizadasAnt = allAnt.filter(a => a.status === "realizado").length;
             const faltasAnt = allAnt.filter(a => a.status === "falta").length;
 
-            const receitaAtual = (comAtual || []).reduce((s, c) => s + Number(c.valor), 0);
-            const receitaAnterior = (comAnterior || []).reduce((s, c) => s + Number(c.valor), 0);
-            const crescimentoReceita = receitaAnterior > 0
-                ? Math.round(((receitaAtual - receitaAnterior) / receitaAnterior) * 100)
-                : receitaAtual > 0 ? 100 : 0;
+            const totalMinutos = all.filter(a => a.status === "realizado").reduce((s, a) => s + (a.duracao_minutos || 0), 0);
+            const uniquePatients = new Set((pacUnicos || []).map(p => p.paciente_id)).size;
 
-            const horasTrabalhadas = all
-                .filter(a => a.status === "realizado")
-                .reduce((s, a) => s + (a.duracao_minutos || 50), 0) / 60;
-
-            const ticketMedio = realizadas > 0
-                ? all.filter(a => a.status === "realizado" && a.valor_sessao)
-                    .reduce((s, a) => s + Number(a.valor_sessao || 0), 0) / realizadas
-                : 0;
+            const totalValorSessoes = all.filter(a => a.status === "realizado").reduce((s, a) => s + Number(a.valor_sessao || 0), 0);
+            const ticketMedio = realizadas > 0 ? totalValorSessoes / realizadas : 0;
 
             const taxaPresenca = all.length > 0 ? Math.round((realizadas / all.length) * 100) : 0;
             const taxaFalta = all.length > 0 ? Math.round((faltas / all.length) * 100) : 0;
             const taxaFaltaAnt = allAnt.length > 0 ? Math.round((faltasAnt / allAnt.length) * 100) : 0;
-
-            const uniquePatients = new Set((pacUnicos || []).map(p => p.paciente_id)).size;
 
             return {
                 pacientesAtivos: pacientesAtivos ?? 0,
@@ -110,13 +120,11 @@ export function useProfessionalAnalytics() {
                 realizadas,
                 faltas,
                 canceladas,
-                sessoesTotalAnt: allAnt.length,
-                realizadasAnt,
-                receitaAtual,
-                receitaAnterior,
-                crescimentoReceita,
-                horasTrabalhadas: Math.round(horasTrabalhadas * 10) / 10,
-                ticketMedio: Math.round(ticketMedio * 100) / 100,
+                receita,
+                receitaVariacao: calculaVariacao(receita, receitaAnt),
+                sessoesVariacao: calculaVariacao(realizadas, realizadasAnt),
+                ocupacao: Math.min(100, (totalMinutos / (160 * 60)) * 100), // Mock 160h mês
+                ticketMedio,
                 taxaPresenca,
                 taxaFalta,
                 taxaFaltaAnt,
@@ -213,4 +221,4 @@ export function useProfessionalAnalytics() {
     });
 
     return { kpis, kpisLoading, trends, heatmap, todayAgenda };
-}
+};

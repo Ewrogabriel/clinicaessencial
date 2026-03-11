@@ -13,9 +13,18 @@ export const appointmentService = {
             let query = supabase
                 .from("agendamentos")
                 .select(`
-          *,
-          pacientes (id, nome, telefone)
-        `);
+                    id, 
+                    data_horario, 
+                    status, 
+                    tipo_atendimento,
+                    valor_sessao,
+                    checkin_paciente,
+                    checkin_profissional,
+                    paciente_id,
+                    profissional_id,
+                    clinic_id,
+                    pacientes (id, nome, telefone)
+                `);
 
             if (activeClinicId) {
                 query = query.eq("clinic_id", activeClinicId);
@@ -30,47 +39,32 @@ export const appointmentService = {
             const { data, error } = await query.order("data_horario", { ascending: true });
 
             if (error) throw error;
-            return (data || []) as Agendamento[];
+            return (data || []) as unknown as Agendamento[];
         } catch (error) {
             handleError(error, "Erro ao buscar agendamentos.");
             return [];
         }
     },
 
-    async updateStatus(id: string, status: StatusAgendamento) {
-        try {
-            const { error } = await supabase
-                .from("agendamentos")
-                .update({ status })
-                .eq("id", id);
+    async checkDoubleBooking(profissionalId: string, dataHorario: string, excludingId?: string) {
+        const { data } = await supabase
+            .from("agendamentos")
+            .select("id")
+            .eq("profissional_id", profissionalId)
+            .eq("data_horario", dataHorario)
+            .neq("status", "cancelado")
+            .maybeSingle();
 
-            if (error) throw error;
-        } catch (error) {
-            handleError(error, "Erro ao atualizar status do agendamento.");
-            throw error;
+        if (data && data.id !== excludingId) {
+            throw new Error("Este profissional já possui um agendamento neste horário.");
         }
+        return false;
     },
 
-    async checkin(id: string, type: "paciente" | "profissional") {
+    async reschedule(id: string, newDate: Date, profissionalId: string) {
         try {
-            const updateData = type === "paciente"
-                ? { checkin_paciente: true, checkin_paciente_at: new Date().toISOString() }
-                : { checkin_profissional: true, checkin_profissional_at: new Date().toISOString() };
+            await this.checkDoubleBooking(profissionalId, newDate.toISOString(), id);
 
-            const { error } = await supabase
-                .from("agendamentos")
-                .update(updateData)
-                .eq("id", id);
-
-            if (error) throw error;
-        } catch (error) {
-            handleError(error, "Erro ao realizar check-in.");
-            throw error;
-        }
-    },
-
-    async reschedule(id: string, newDate: Date) {
-        try {
             const { error } = await supabase
                 .from("agendamentos")
                 .update({ data_horario: newDate.toISOString() })
