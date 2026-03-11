@@ -172,14 +172,13 @@ export function AppSidebar() {
   ];
 
   const menuProfissionalAdmin = [
-    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
+    { title: t("nav.enrollments"), url: "/matriculas/nova", icon: Receipt },
     { title: "Check-in", url: "/check-in", icon: FileCheck },
-    { title: t("nav.inventory"), url: "/inventario", icon: Tag },
+    { title: "Registrar Venda", url: "/vendas/nova", icon: Tag },
   ];
 
   const menuProfissionalFinanceiro = [
-    { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
-    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
+    { title: "Minhas Comissões", url: "/minhas-comissoes", icon: Calculator },
   ];
 
   const menuProfissionalComunicacao = [
