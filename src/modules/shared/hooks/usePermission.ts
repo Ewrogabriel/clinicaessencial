@@ -1,4 +1,4 @@
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import type { AppRole } from "@/types/entities";
 
 export function usePermission() {

@@ -5,9 +5,9 @@ export const inventoryService = {
     async getProducts() {
         try {
             const { data, error } = await supabase
-                .from("products")
+                .from("produtos")
                 .select("*")
-                .order("name");
+                .order("nome");
 
             if (error) throw error;
             return data || [];
@@ -20,8 +20,8 @@ export const inventoryService = {
     async updateStock(id: string, newStock: number) {
         try {
             const { error } = await supabase
-                .from("products")
-                .update({ stock: newStock })
+                .from("produtos")
+                .update({ estoque_atual: newStock } as any)
                 .eq("id", id);
 
             if (error) throw error;

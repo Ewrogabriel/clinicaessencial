@@ -12,21 +12,17 @@ export const auditService = {
         clinicId?: string
     }) {
         try {
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from("audit_logs")
                 .insert([{
                     user_id: options.userId,
-                    action: options.action,
-                    resource: options.resource,
-                    resource_id: options.resourceId,
-                    details: options.details,
-                    clinic_id: options.clinicId,
-                    created_at: new Date().toISOString()
+                    acao: options.action,
+                    tabela: options.resource,
+                    registro_id: options.resourceId,
+                    dados_novos: options.details ?? null,
                 }]);
 
             if (error) {
-                // Se falhar ao registrar log, falhamos silenciosamente para o usuário 
-                // mas logamos internamente
                 console.error("Failed to log audit action:", error);
             }
         } catch (err) {

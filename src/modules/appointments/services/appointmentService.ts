@@ -24,7 +24,6 @@ export const appointmentService = {
                     paciente_id,
                     profissional_id,
                     clinic_id,
-                    slot_id,
                     pacientes (id, nome, telefone)
                 `);
 
@@ -54,61 +53,13 @@ export const appointmentService = {
         endDate?: string;
         clinicId: string | null
     }) {
-        const { professionalId, date, endDate, clinicId } = options;
-        try {
-            // Tenta gerar slots se tiver professionalId (RPC opcional)
-            if (professionalId) {
-                // Ignora erro caso a RPC não exista
-                await supabase.rpc("generate_day_slots", {
-                    p_professional_id: professionalId,
-                    p_date: date,
-                    p_clinic_id: clinicId
-                }).then(() => { }).catch(() => { });
-            }
-
-            let query = supabase
-                .from("schedule_slots")
-                .select("*")
-
-            if (endDate) {
-                query = query.gte("date", date).lte("date", endDate);
-            } else {
-                query = query.eq("date", date);
-            }
-
-            if (professionalId) {
-                query = query.eq("professional_id", professionalId);
-            } else if (clinicId) {
-                query = query.eq("clinic_id", clinicId);
-            }
-
-            const { data, error } = await query.order("date").order("start_time");
-
-            // PGRST205 = tabela não encontrada no schema cache (feature não migrada ainda)
-            // Retorna array vazio silenciosamente para não bloquear a UI
-            if (error) {
-                if (error.code === "PGRST205" || error.code === "42P01") {
-                    console.warn("[Agenda] schedule_slots table not found - feature not migrated yet");
-                    return [];
-                }
-                throw error;
-            }
-            return data || [];
-        } catch (error: any) {
-            // Silencia erro de tabela inexistente
-            if (error?.code === "PGRST205" || error?.code === "42P01") {
-                console.warn("[Agenda] schedule_slots not available, skipping.");
-                return [];
-            }
-            handleError(error, "Erro ao buscar slots de agendamento.");
-            return [];
-        }
+        // Schedule slots feature not yet migrated - return empty array
+        return [];
     },
 
     async bookAppointment(params: {
         paciente_id: string;
         profissional_id: string;
-        slot_id: string;
         data_horario: string;
         duracao_minutos: number;
         tipo_atendimento: string;
@@ -118,18 +69,24 @@ export const appointmentService = {
         clinic_id: string;
     }) {
         try {
-            const { data, error } = await supabase.rpc("book_appointment", {
-                p_paciente_id: params.paciente_id,
-                p_profissional_id: params.profissional_id,
-                p_slot_id: params.slot_id,
-                p_data_horario: params.data_horario,
-                p_duracao_minutos: params.duracao_minutos,
-                p_tipo_atendimento: params.tipo_atendimento,
-                p_tipo_sessao: params.tipo_sessao,
-                p_observacoes: params.observacoes || null,
-                p_created_by: params.created_by,
-                p_clinic_id: params.clinic_id
-            });
+            // Check for double booking first
+            await this.checkDoubleBooking(params.profissional_id, params.data_horario);
+
+            const { data, error } = await supabase
+                .from("agendamentos")
+                .insert({
+                    paciente_id: params.paciente_id,
+                    profissional_id: params.profissional_id,
+                    data_horario: params.data_horario,
+                    duracao_minutos: params.duracao_minutos,
+                    tipo_atendimento: params.tipo_atendimento,
+                    tipo_sessao: params.tipo_sessao as any,
+                    observacoes: params.observacoes || null,
+                    created_by: params.created_by,
+                    clinic_id: params.clinic_id,
+                })
+                .select()
+                .single();
 
             if (error) throw error;
             return data;

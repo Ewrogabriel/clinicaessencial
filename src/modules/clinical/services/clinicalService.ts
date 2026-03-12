@@ -5,13 +5,10 @@ export const clinicalService = {
     async getEvolucoes(patientId: string) {
         try {
             const { data, error } = await supabase
-                .from("evolucoes")
-                .select(`
-          *,
-          professional:profiles!evolucoes_profissional_id_fkey (nome)
-        `)
+                .from("evolutions")
+                .select("*")
                 .eq("paciente_id", patientId)
-                .order("data_horario", { ascending: false });
+                .order("data_evolucao", { ascending: false });
 
             if (error) throw error;
             return data || [];
@@ -25,10 +22,7 @@ export const clinicalService = {
         try {
             const { data, error } = await supabase
                 .from("evaluations")
-                .select(`
-          *,
-          professional:profiles!evaluations_professional_id_fkey (nome)
-        `)
+                .select("*")
                 .eq("paciente_id", patientId)
                 .order("created_at", { ascending: false });
 
@@ -43,7 +37,7 @@ export const clinicalService = {
     async createEvolucao(evolution: any) {
         try {
             const { data, error } = await supabase
-                .from("evolucoes")
+                .from("evolutions")
                 .insert(evolution)
                 .select()
                 .single();
