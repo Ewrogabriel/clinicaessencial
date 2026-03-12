@@ -42,9 +42,9 @@ const PROF_DEFAULT_CARDS: DashboardCard[] = [
 const ProfessionalDashboard = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
-  const { clinicaAtual } = useClinic();
+  const { activeClinic: clinicaAtual } = useClinic();
   const hoje = new Date();
-  const { kpis, kpisLoading, trends, heatmap, todayAgenda, refetch: refetchAnalytics } = useProfessionalAnalytics();
+  const { kpis, kpisLoading, trends, heatmap, todayAgenda } = useProfessionalAnalytics();
   const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("professional", PROF_DEFAULT_CARDS);
 
   const saudacao = hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
