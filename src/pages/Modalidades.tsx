@@ -53,7 +53,7 @@ const Modalidades = () => {
     if (editingId) {
       updateMutation.mutate({ id: editingId, nome, descricao, ativo }, { onSuccess: () => setDialogOpen(false) });
     } else {
-      createMutation.mutate({ nome, descricao, ativo, userId: user.id }, { onSuccess: () => setDialogOpen(false) });
+      createMutation.mutate({ nome, descricao, ativo, userId: user.id, clinicId: activeClinicId }, { onSuccess: () => setDialogOpen(false) });
     }
   };
 
