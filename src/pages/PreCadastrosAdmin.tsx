@@ -86,6 +86,14 @@ const PreCadastrosAdmin = () => {
       }).select().single();
       if (error) throw error;
 
+      // Link patient to clinic
+      if (activeClinicId && newPatient?.id) {
+        await supabase.from("clinic_pacientes").insert({
+          clinic_id: activeClinicId,
+          paciente_id: newPatient.id,
+        });
+      }
+
       await (supabase.from("pre_cadastros") as any)
         .update({ status: "aprovado", revisado_por: user.id })
         .eq("id", preCadastro.id);
