@@ -54,8 +54,8 @@ const ProfessionalDashboard = () => {
     queryKey: ["aniversariantes-prof", clinicaAtual?.id],
     queryFn: async () => {
       const mesAtual = hoje.getMonth() + 1;
-      const { data } = await supabase
-        .from("pacientes")
+      const { data } = await (supabase
+        .from("pacientes") as any)
         .select("id, nome, data_nascimento, telefone")
         .eq("clinic_id", clinicaAtual?.id)
         .not("data_nascimento", "is", null);
