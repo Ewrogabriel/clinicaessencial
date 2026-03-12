@@ -61,9 +61,6 @@ const Agenda = () => {
     date: viewMode === "semanal"
       ? format(startOfWeek(currentDate, { weekStartsOn: 1 }), "yyyy-MM-dd")
       : format(currentDate, "yyyy-MM-dd"),
-    endDate: viewMode === "semanal"
-      ? format(endOfWeek(currentDate, { weekStartsOn: 1 }), "yyyy-MM-dd")
-      : undefined,
     clinicId: activeClinicId
   });
 
