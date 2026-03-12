@@ -18,6 +18,7 @@ import { format } from "date-fns";
 
 const PreCadastrosAdmin = () => {
   const { user } = useAuth();
+  const { activeClinicId } = useClinic();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
