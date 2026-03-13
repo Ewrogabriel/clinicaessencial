@@ -24,7 +24,8 @@ const MeusPagamentos = () => {
         .eq("paciente_id", patientId)
         .order("data_vencimento", { ascending: false });
       if (error) throw error;
-      return data;
+      // Show all payments (both pago and pendente)
+      return data || [];
     },
     enabled: !!patientId,
   });

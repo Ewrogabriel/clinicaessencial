@@ -869,7 +869,16 @@ export function CommissionExtract() {
                 </div>
               </div>
 
-              {/* Compensação calculada automaticamente no extrato */}
+              {/* Observação */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Observações</Label>
+                <Textarea
+                  value={closingNotes}
+                  onChange={(e) => setClosingNotes(e.target.value)}
+                  placeholder="Observações sobre este fechamento..."
+                  rows={3}
+                />
+              </div>
 
               {/* Bonus */}
               <div className="space-y-3 border rounded-lg p-3 border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20">

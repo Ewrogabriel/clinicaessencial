@@ -228,8 +228,8 @@ const Matriculas = () => {
         .gte("data_horario", `${validFrom}T00:00:00`)
         .in("status", ["agendado", "confirmado"]);
 
-      // Generate new sessions from validFrom to next 30 days
-      const endDate = format(addMonths(new Date(validFrom), 1), "yyyy-MM-dd");
+      // Generate new sessions from validFrom to next 6 months
+      const endDate = format(addMonths(new Date(validFrom), 6), "yyyy-MM-dd");
       const groupId = crypto.randomUUID();
       const toInsert: any[] = [];
 
