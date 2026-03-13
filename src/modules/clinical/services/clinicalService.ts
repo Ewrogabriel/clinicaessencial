@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "../../shared/utils/errorHandler";
+import type { Database } from "@/integrations/supabase/types";
+
+type EvolucaoInsert = Database["public"]["Tables"]["evolutions"]["Insert"];
 
 export const clinicalService = {
     async getEvolucoes(patientId: string) {
@@ -34,7 +37,7 @@ export const clinicalService = {
         }
     },
 
-    async createEvolucao(evolution: any) {
+    async createEvolucao(evolution: EvolucaoInsert) {
         try {
             const { data, error } = await supabase
                 .from("evolutions")

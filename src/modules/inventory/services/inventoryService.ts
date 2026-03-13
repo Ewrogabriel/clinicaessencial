@@ -21,7 +21,7 @@ export const inventoryService = {
         try {
             const { error } = await supabase
                 .from("produtos")
-                .update({ estoque_atual: newStock } as any)
+                .update({ estoque: newStock })
                 .eq("id", id);
 
             if (error) throw error;

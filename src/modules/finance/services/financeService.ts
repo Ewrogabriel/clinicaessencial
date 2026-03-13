@@ -68,6 +68,12 @@ export const financeService = {
     },
 
     async getConfigPix() {
+        type ConfigPixEntry = {
+            forma_pagamento_id: string;
+            chave_pix: string | null;
+            tipo_chave: string | null;
+            nome_beneficiario: string | null;
+        };
         try {
             const { data, error } = await supabase
                 .from("config_pix")
@@ -75,7 +81,7 @@ export const financeService = {
 
             if (error) throw error;
 
-            const map: Record<string, any> = {};
+            const map: Record<string, ConfigPixEntry> = {};
             (data || []).forEach((p) => {
                 map[p.forma_pagamento_id] = p;
             });

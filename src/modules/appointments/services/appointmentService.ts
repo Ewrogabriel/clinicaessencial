@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "../../shared/utils/errorHandler";
-import type { Agendamento, StatusAgendamento } from "@/types/entities";
+import type { Agendamento, StatusAgendamento, TipoSessao } from "@/types/entities";
 
 export const appointmentService = {
     async getAppointments(options: {
@@ -63,7 +63,7 @@ export const appointmentService = {
         data_horario: string;
         duracao_minutos: number;
         tipo_atendimento: string;
-        tipo_sessao: string;
+        tipo_sessao: TipoSessao;
         observacoes?: string;
         created_by: string;
         clinic_id: string;
@@ -80,7 +80,7 @@ export const appointmentService = {
                     data_horario: params.data_horario,
                     duracao_minutos: params.duracao_minutos,
                     tipo_atendimento: params.tipo_atendimento,
-                    tipo_sessao: params.tipo_sessao as any,
+                    tipo_sessao: params.tipo_sessao,
                     observacoes: params.observacoes || null,
                     created_by: params.created_by,
                     clinic_id: params.clinic_id,
