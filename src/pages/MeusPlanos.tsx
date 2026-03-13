@@ -552,35 +552,10 @@ const MeusPlanos = () => {
               </div>
 
               {/* Step 1: Select time */}
+              {/* Step 2: Calendar with availability (shown when professional is selected) */}
               {selectedProfId && (
-              <div>
-                <Label className="mb-2 block">2. Selecione o horário</Label>
-                <div className="flex flex-wrap gap-2">
-                  {hourlyOptions.map((time) => (
-                    <Button
-                      key={time}
-                      type="button"
-                      size="sm"
-                      variant={selectedTime === time ? "default" : "outline"}
-                      onClick={() => {
-                        setSelectedTime(time);
-                        setSelectedDate(undefined);
-                        setAvailabilityResult(null);
-                      }}
-                      className="text-xs"
-                    >
-                      <Clock className="h-3 w-3 mr-1" />
-                      {time}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              )}
-
-              {/* Step 2: Calendar with availability (only after time selected) */}
-              {selectedTime && (
                 <div>
-                  <Label className="mb-2 block">3. Selecione a data (vagas para {selectedTime})</Label>
+                  <Label className="mb-2 block">2. Selecione a data</Label>
                   <Calendar
                     mode="single"
                     locale={ptBR}
@@ -600,7 +575,7 @@ const MeusPlanos = () => {
                         return (
                           <div className="relative w-full h-full flex flex-col items-center justify-center">
                             <span>{dayDate.getDate()}</span>
-                            {isCurrentMonth && !isPast && selectedPlano?.profissional_id && (
+                            {isCurrentMonth && !isPast && (
                               <span className={cn(
                                 "text-[9px] mt-0.5 px-1 rounded-full",
                                 vacancies && vacancies > 0
@@ -616,6 +591,31 @@ const MeusPlanos = () => {
                     }}
                   />
                 </div>
+              )}
+
+              {/* Step 3: Time selection (shown after date is selected) */}
+              {selectedDate && (
+              <div>
+                <Label className="mb-2 block">3. Selecione o horário</Label>
+                <div className="flex flex-wrap gap-2">
+                  {hourlyOptions.map((time) => (
+                    <Button
+                      key={time}
+                      type="button"
+                      size="sm"
+                      variant={selectedTime === time ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectedTime(time);
+                        setAvailabilityResult(null);
+                      }}
+                      className="text-xs"
+                    >
+                      <Clock className="h-3 w-3 mr-1" />
+                      {time}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               )}
 
               {/* Availability check result */}

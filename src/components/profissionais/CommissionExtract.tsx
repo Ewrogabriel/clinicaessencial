@@ -167,6 +167,59 @@ export function CommissionExtract() {
     enabled: isProfissional && !canManage,
   });
 
+  // Fetch own appointments for the selected month (professional preview)
+  const { data: meusAgendamentos = [] } = useQuery({
+    queryKey: ["my-agendamentos-comissoes", user?.id, mesRef],
+    queryFn: async () => {
+      if (!user) return [];
+      const startDate = `${mesRef}-01T00:00:00`;
+      const endMonth = new Date(parseInt(mesRef.split("-")[0]), parseInt(mesRef.split("-")[1]), 0);
+      const endDate = `${mesRef}-${String(endMonth.getDate()).padStart(2, "0")}T23:59:59`;
+      const { data } = await supabase
+        .from("agendamentos")
+        .select("*, pacientes(nome)")
+        .eq("profissional_id", user.id)
+        .in("status", ["agendado", "confirmado", "pendente", "realizado"] as any[])
+        .gte("data_horario", startDate)
+        .lte("data_horario", endDate)
+        .order("data_horario", { ascending: true });
+      return data ?? [];
+    },
+    enabled: isProfissional && !canManage,
+  });
+
+  // Fetch own commission rules (professional preview)
+  const { data: minhasRegrasComissao = [] } = useQuery({
+    queryKey: ["my-regras-comissao", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await (supabase.from("regras_comissao" as any) as any)
+        .select("*").eq("profissional_id", user.id).eq("ativo", true);
+      return data ?? [];
+    },
+    enabled: isProfissional && !canManage,
+  });
+
+  // Calculate own preview commission
+  const minhaPreviewComissao = useMemo(() => {
+    if (!user || meusAgendamentos.length === 0) return { total: 0, realizados: 0, totalValor: 0 };
+    let comissaoTotal = 0;
+    let totalValor = 0;
+    const realizados = meusAgendamentos.filter((a: any) => a.status === "realizado").length;
+    for (const a of meusAgendamentos) {
+      const valorSessao = Number(a.valor_sessao || 0);
+      totalValor += valorSessao;
+      if (minhasRegrasComissao.length > 0) {
+        const tipoRegra = minhasRegrasComissao.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
+          || minhasRegrasComissao.find((r: any) => r.tipo_atendimento === "geral");
+        if (tipoRegra) {
+          comissaoTotal += (valorSessao * Number(tipoRegra.percentual || 0) / 100) + Number(tipoRegra.valor_fixo || 0);
+        }
+      }
+    }
+    return { total: comissaoTotal, realizados, totalValor };
+  }, [user, meusAgendamentos, minhasRegrasComissao]);
+
   const isClosed = (profId: string) => fechamentos.some((f: any) => f.profissional_id === profId);
 
   // Calculate commission for a set of appointments for a professional
@@ -572,15 +625,170 @@ export function CommissionExtract() {
     setBonusDesc("");
   };
 
+  // Receipt download for a closed commission
+  const downloadReceiptPDF = async (c: any) => {
+    const doc = new jsPDF();
+    const settings = await getClinicSettings();
+    const mesLabel = format(new Date(c.mes_referencia), "MMMM 'de' yyyy", { locale: ptBR });
+    const profName = c.nome_profissional || user?.email || "Profissional";
+
+    let y = 15;
+    y = await addLogoToPDF(doc, 85, y, 40, 25);
+    y += 2;
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("RECIBO DE COMISSÃO", 105, y, { align: "center" });
+    y += 6;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(settings.nome, 105, y, { align: "center" });
+    y += 4;
+    if (settings.cnpj) { doc.text(`CNPJ: ${settings.cnpj}`, 105, y, { align: "center" }); y += 4; }
+    const addr = formatClinicAddress(settings);
+    if (addr) { doc.text(addr, 105, y, { align: "center" }); y += 4; }
+    y += 4;
+    doc.setDrawColor(180);
+    doc.line(20, y, 190, y);
+    y += 8;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Profissional: ${profName}`, 20, y); y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Referência: ${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}`, 20, y); y += 7;
+    doc.text(`Total de Atendimentos: ${c.total_atendimentos}`, 20, y); y += 7;
+    doc.text(`Comissão Base: R$ ${Number(c.total_comissao).toFixed(2)}`, 20, y); y += 7;
+
+    const comp = Number(c.compensacao_anterior || 0);
+    const bonus = Number(c.bonus_valor || 0);
+
+    if (comp !== 0) {
+      doc.text(`Compensação: R$ ${comp.toFixed(2)}`, 20, y); y += 5;
+      if (c.descricao_compensacao) {
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text(`Motivo: ${c.descricao_compensacao}`, 20, y); y += 5;
+        doc.setTextColor(0);
+        doc.setFontSize(11);
+      }
+      y += 3;
+    }
+    if (bonus !== 0) {
+      doc.text(`Bônus: R$ ${bonus.toFixed(2)}`, 20, y); y += 5;
+      if (c.bonus_descricao) {
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text(`Descrição: ${c.bonus_descricao}`, 20, y); y += 5;
+        doc.setTextColor(0);
+        doc.setFontSize(11);
+      }
+      y += 3;
+    }
+
+    doc.line(20, y, 190, y);
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(`TOTAL A RECEBER: R$ ${Number(c.valor_final).toFixed(2)}`, 20, y); y += 10;
+
+    if (c.observacoes) {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      const obs = doc.splitTextToSize(`Observações: ${c.observacoes}`, 170);
+      doc.text(obs, 20, y); y += obs.length * 5;
+      doc.setTextColor(0);
+    }
+
+    doc.save(`recibo-comissao-${mesLabel.replace(/ /g, "-")}.pdf`);
+  };
+
   // Professional-only view
   if (isProfissional && !canManage) {
+    const mesAtualIsClosed = minhasComissoes.some((c: any) => {
+      const refDate = new Date(c.mes_referencia);
+      return format(refDate, "yyyy-MM") === mesRef;
+    });
     return (
       <div className="space-y-4">
+        {/* Month selector */}
+        <div className="flex items-center gap-3">
+          <Label className="text-sm shrink-0">Mês de referência:</Label>
+          <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} className="w-44" />
+        </div>
+
+        {/* Open commission preview */}
+        {!mesAtualIsClosed && (
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-amber-600" />
+                Prévia de Comissão Aberta — {format(new Date(`${mesRef}-01`), "MMMM/yyyy", { locale: ptBR })}
+              </CardTitle>
+              <CardDescription>
+                Estimativa baseada nos atendimentos do mês. Sujeita a fechamento pelo administrador.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="rounded-lg bg-background border p-3">
+                  <p className="text-2xl font-bold">{meusAgendamentos.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Atendimentos</p>
+                  <p className="text-xs text-muted-foreground">({minhaPreviewComissao.realizados} realizados)</p>
+                </div>
+                <div className="rounded-lg bg-background border p-3">
+                  <p className="text-2xl font-bold">R$ {minhaPreviewComissao.totalValor.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Valor Total</p>
+                </div>
+                <div className="rounded-lg bg-background border p-3">
+                  <p className="text-2xl font-bold text-amber-600">R$ {minhaPreviewComissao.total.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Comissão Estimada</p>
+                </div>
+              </div>
+              {meusAgendamentos.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes dos atendimentos:</p>
+                  <div className="max-h-48 overflow-y-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Data</TableHead>
+                          <TableHead className="text-xs">Paciente</TableHead>
+                          <TableHead className="text-xs">Tipo</TableHead>
+                          <TableHead className="text-xs">Valor</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {meusAgendamentos.map((a: any) => (
+                          <TableRow key={a.id}>
+                            <TableCell className="text-xs py-1.5">{format(new Date(a.data_horario), "dd/MM HH:mm")}</TableCell>
+                            <TableCell className="text-xs py-1.5">{a.pacientes?.nome ?? "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5 capitalize">{a.tipo_atendimento}</TableCell>
+                            <TableCell className="text-xs py-1.5">R$ {Number(a.valor_sessao || 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-xs py-1.5">
+                              <Badge variant={a.status === "realizado" ? "default" : "secondary"} className="text-xs py-0">
+                                {a.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Closed commissions */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Meus Fechamentos de Comissão
+              <Lock className="h-5 w-5" />
+              Comissões Fechadas
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -592,11 +800,11 @@ export function CommissionExtract() {
                   <TableRow>
                     <TableHead>Mês</TableHead>
                     <TableHead>Atendimentos</TableHead>
-                    <TableHead>Comissão Base</TableHead>
-                    <TableHead>Compensação</TableHead>
+                    <TableHead>Comissão</TableHead>
+                    <TableHead>Comp.</TableHead>
                     <TableHead>Bônus</TableHead>
-                    <TableHead>Valor Final</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -611,27 +819,25 @@ export function CommissionExtract() {
                         {Number(c.compensacao_anterior) !== 0 ? (
                           <span className={Number(c.compensacao_anterior) > 0 ? "text-green-600" : "text-destructive"}>
                             R$ {Number(c.compensacao_anterior).toFixed(2)}
-                            {c.descricao_compensacao && (
-                              <span className="text-xs text-muted-foreground ml-1">({c.descricao_compensacao})</span>
-                            )}
                           </span>
                         ) : "—"}
                       </TableCell>
                       <TableCell>
                         {Number(c.bonus_valor) !== 0 ? (
-                          <span className="text-green-600">
-                            R$ {Number(c.bonus_valor).toFixed(2)}
-                            {c.bonus_descricao && (
-                              <span className="text-xs text-muted-foreground ml-1">({c.bonus_descricao})</span>
-                            )}
-                          </span>
+                          <span className="text-green-600">R$ {Number(c.bonus_valor).toFixed(2)}</span>
                         ) : "—"}
                       </TableCell>
                       <TableCell className="font-bold text-primary">R$ {Number(c.valor_final).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge variant="default">
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> Fechado
-                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Baixar recibo"
+                          onClick={() => downloadReceiptPDF(c)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

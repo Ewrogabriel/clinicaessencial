@@ -91,6 +91,7 @@ export function AppSidebar() {
 
   // Área Financeira
   const menuFinanceiro = [
+    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
     { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
   ];
 

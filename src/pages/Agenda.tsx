@@ -27,7 +27,7 @@ const ListaEspera = lazy(() => import("./ListaEspera"));
 type ViewMode = "diario" | "semanal" | "mensal";
 
 const Agenda = () => {
-  const { user, isPatient, isAdmin, isGestor } = useAuth();
+  const { user, isPatient, isAdmin, isGestor, isProfissional } = useAuth();
   const { activeClinicId } = useClinic();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = usePersistedFilter<ViewMode>("agenda-view", "semanal");
@@ -42,9 +42,10 @@ const Agenda = () => {
   const [filterStatus, setFilterStatus] = usePersistedFilter("agenda-status", "all");
 
   const isStaff = isAdmin || isGestor;
+  const canSeeAllProfessionals = isStaff || isProfissional;
 
   // Fetch professionals
-  const { data: profissionais = [] } = useProfissionaisBasic({ enabled: isStaff });
+  const { data: profissionais = [] } = useProfissionaisBasic({ enabled: canSeeAllProfessionals });
   const profColors = buildProfColorMap(profissionais);
 
   // Fetch patient data if current user is a patient
@@ -122,7 +123,7 @@ const Agenda = () => {
 
   const handleAppointmentClick = (ag: Agendamento) => { setDetailAg(ag); setDetailOpen(true); };
   const handleReschedule = (ag: Agendamento) => { setRescheduleAg(ag); setRescheduleOpen(true); };
-  const handleSlotClick = (date: Date) => { if (!isPatient || isAdmin || isGestor) { setSelectedDate(date); setFormOpen(true); } };
+  const handleSlotClick = (date: Date) => { if (!isPatient || isAdmin || isGestor || isProfissional) { setSelectedDate(date); setFormOpen(true); } };
   const handleNewAgendamento = () => { setSelectedDate(new Date()); setFormOpen(true); };
 
   const handleExportPDF = () => {
@@ -176,7 +177,7 @@ const Agenda = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Minha Agenda" : "Agenda"}</h1>
-        {(!isPatient || isGestor || isAdmin) && (
+        {(!isPatient || isGestor || isAdmin || isProfissional) && (
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={handleExportPDF}>
               <FileDown className="h-4 w-4 mr-1" />
@@ -229,7 +230,7 @@ const Agenda = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {isStaff && (
+              {canSeeAllProfessionals && (
                 <Select value={filterProfId} onValueChange={setFilterProfId}>
                   <SelectTrigger className="w-full sm:w-[180px] text-sm">
                     <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
@@ -244,7 +245,7 @@ const Agenda = () => {
                 </Select>
               )}
 
-              {isStaff && (
+              {canSeeAllProfessionals && (
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger className="w-full sm:w-[140px] text-sm">
                     <SelectValue placeholder="Status" />

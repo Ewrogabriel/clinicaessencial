@@ -47,11 +47,21 @@ interface ViewProps {
 }
 
 const statusColors: Record<string, string> = {
-  agendado: "bg-info text-info-foreground",
-  confirmado: "bg-primary text-primary-foreground",
-  realizado: "bg-success text-success-foreground",
-  cancelado: "bg-destructive text-destructive-foreground",
-  falta: "bg-warning text-warning-foreground",
+  agendado: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200",
+  confirmado: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200",
+  realizado: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200",
+  cancelado: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200",
+  falta: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200",
+  pendente: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200",
+};
+
+const statusBorderColors: Record<string, string> = {
+  agendado: "#3b82f6",
+  confirmado: "#22c55e",
+  realizado: "#10b981",
+  cancelado: "#ef4444",
+  falta: "#f97316",
+  pendente: "#eab308",
 };
 
 function AppointmentCard({
@@ -76,7 +86,7 @@ function AppointmentCard({
   const pacienteNome = ag.pacientes?.nome ?? "Paciente";
   const checkedIn = isPatient ? ag.checkin_paciente : ag.checkin_profissional;
   const canCheckin = ag.status !== "cancelado" && ag.status !== "falta";
-  const color = profColor || "#3b82f6";
+  const color = profColor || statusBorderColors[ag.status] || "#3b82f6";
 
   return (
     <div
@@ -92,9 +102,9 @@ function AppointmentCard({
         onAppointmentClick?.(ag);
       }}
     >
-      {/* Subtle colored background tint */}
+      {/* Colored background tint based on status */}
       <div
-        className="absolute inset-0 opacity-[0.06] pointer-events-none"
+        className="absolute inset-0 opacity-[0.08] pointer-events-none"
         style={{ backgroundColor: color }}
       />
       <div className="relative z-10">
