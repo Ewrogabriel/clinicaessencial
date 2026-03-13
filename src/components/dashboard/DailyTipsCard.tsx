@@ -43,14 +43,19 @@ export function DailyTipsCard({ tipo }: DailyTipsCardProps) {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["dicas-diarias-dashboard", tipo, retryCount],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("generate-daily-tips", {
-        body: { tipo },
-      });
-      if (error) throw error;
-      return data as { dicas: { titulo: string; conteudo: string; categoria: string }[]; date: string };
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-daily-tips", {
+          body: { tipo },
+        });
+        if (error) throw error;
+        return data as { dicas: { titulo: string; conteudo: string; categoria: string }[]; date: string };
+      } catch (e) {
+        console.warn("[DailyTipsCard] Erro ao gerar dicas:", e);
+        return { dicas: [], date: new Date().toISOString().split("T")[0] };
+      }
     },
     staleTime: 1000 * 60 * 60,
-    retry: 1,
+    retry: 0,
   });
 
   const dicas = data?.dicas || [];
