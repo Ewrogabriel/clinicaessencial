@@ -121,7 +121,6 @@ export function AppSidebar() {
 
   const menuMaster = [
     { title: t("nav.master_panel"), url: "/master", icon: Crown },
-    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
   ];
 
   const menuPatient = [
