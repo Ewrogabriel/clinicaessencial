@@ -27,7 +27,6 @@ import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { toast } from "sonner";
 
 const PROF_DEFAULT_CARDS: DashboardCard[] = [
-  { id: "quick-actions", label: "Ações Rápidas", visible: true },
   { id: "today-agenda", label: "Agenda de Hoje", visible: true },
   { id: "birthdays", label: "Aniversariantes", visible: true },
   { id: "kpis", label: "Indicadores (KPIs)", visible: true },
