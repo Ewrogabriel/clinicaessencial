@@ -412,6 +412,9 @@ export default function PatientDashboard() {
       {/* Cards Grandes - Coluna única */}
       <div className="space-y-4">
 
+        {/* Dica do Dia */}
+        {isCardVisible("tips") && <DailyTipsCard tipo="paciente" />}
+
         {/* Próximas Sessões */}
         {isCardVisible("sessoes") && (
           <Card>
