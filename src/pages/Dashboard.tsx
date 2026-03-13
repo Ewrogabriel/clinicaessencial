@@ -433,8 +433,6 @@ const Dashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("admin", ADMIN_DEFAULT_CARDS);
-
   const isCardVisible = (id: string) => visibleCards.some(c => c.id === id);
 
   // Build ordered sections map
