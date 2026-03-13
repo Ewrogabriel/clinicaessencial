@@ -61,7 +61,7 @@ const PacienteDetalhes = () => {
                 .from("pacientes")
                 .select("*")
                 .eq("id", id)
-                .single();
+                .maybeSingle();
             if (error) throw error;
             return data;
         },
@@ -77,8 +77,8 @@ const PacienteDetalhes = () => {
                 .eq("paciente_id", id)
                 .order("data_avaliacao", { ascending: false })
                 .limit(1)
-                .single();
-            if (error && error.code !== "PGRST116") throw error; // PGRST116 is "No rows found"
+                .maybeSingle();
+            if (error) throw error;
             return data;
         },
         enabled: !!id,

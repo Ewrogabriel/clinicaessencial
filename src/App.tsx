@@ -57,6 +57,7 @@ const PreCadastrosAdmin = lazy(() => import("./pages/PreCadastrosAdmin"));
 const GestaoClinicas = lazy(() => import("./pages/GestaoClinicas"));
 const SelecionarClinica = lazy(() => import("./pages/SelecionarClinica"));
 const MasterPanel = lazy(() => import("./pages/MasterPanel"));
+const Comissoes = lazy(() => import("./pages/Comissoes"));
 const ImportacaoMassa = lazy(() => import("./pages/ImportacaoMassa"));
 const MetasGamificacao = lazy(() => import("./pages/MetasGamificacao"));
 const GamificationAdminPanel = lazy(() => import("./pages/GamificationAdminPanel"));
@@ -135,7 +136,7 @@ const App = () => (
                         <Route path="/avisos" element={<AvisosAdmin />} />
                         <Route path="/disponibilidade" element={<Profissionais />} />
                         <Route path="/contratos" element={<Contratos />} />
-                        <Route path="/comissoes" element={<Financeiro />} />
+                        <Route path="/comissoes" element={<Comissoes />} />
                         <Route path="/perfil-profissional" element={<PerfilProfissional />} />
                         <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
                         <Route path="/clinica" element={<ClinicSettings />} />

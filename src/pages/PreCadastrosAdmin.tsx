@@ -83,6 +83,7 @@ const PreCadastrosAdmin = () => {
         profissional_id: user.id,
         codigo_acesso: code,
         clinic_id: activeClinicId,
+        status: "ativo",
       }).select().single();
       if (error) throw error;
 
