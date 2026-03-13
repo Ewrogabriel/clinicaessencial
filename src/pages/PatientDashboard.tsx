@@ -1,6 +1,8 @@
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
+import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { GamificationDashboard } from "@/components/gamification/GamificationDashboard";
 import {
   AlertCircle, Calendar, CreditCard, Trophy, Dumbbell,
@@ -30,6 +32,7 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
 );
 
 const DEFAULT_CARDS: DashboardCard[] = [
+  { id: "tips", label: "Dica do Dia", visible: true },
   { id: "sessoes", label: "Próximas Sessões", visible: true },
   { id: "exercicios", label: "Exercícios", visible: true },
   { id: "planos", label: "Meus Planos", visible: true },
@@ -409,6 +412,9 @@ export default function PatientDashboard() {
       {/* Cards Grandes - Coluna única */}
       <div className="space-y-4">
 
+        {/* Dica do Dia */}
+        {isCardVisible("tips") && <DailyTipsCard tipo="paciente" />}
+
         {/* Próximas Sessões */}
         {isCardVisible("sessoes") && (
           <Card>
@@ -685,50 +691,8 @@ export default function PatientDashboard() {
           </Card>
         )}
 
-        {/* Parceiros/Convênios */}
-        {isCardVisible("parceiros") && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Handshake className="h-5 w-5 text-sky-600" />
-                Parceiros e Convênios
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/convenios")} className="text-xs text-primary gap-1 h-7">
-                Ver tudo <ArrowRight className="h-3 w-3" />
-              </Button>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {convenios.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <Handshake className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhum convênio disponível</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {convenios.map((conv: any, idx) => (
-                    <div key={conv.id}>
-                      <button onClick={() => navigate("/convenios")} className="w-full text-left group">
-                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center justify-center w-10 h-10 bg-sky-50 rounded-lg shrink-0">
-                            <Handshake className="h-5 w-5 text-sky-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground">{conv.nome}</p>
-                          </div>
-                          {conv.desconto_percentual && (
-                            <Badge variant="secondary" className="text-xs shrink-0 bg-green-100 text-green-700">{conv.desconto_percentual}% OFF</Badge>
-                          )}
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-                        </div>
-                      </button>
-                      {idx < convenios.length - 1 && <Separator />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {/* Parceiros/Convênios - rotating */}
+        {isCardVisible("parceiros") && <ConvenioCard />}
 
         {/* Feriados */}
         {isCardVisible("feriados") && feriados.length > 0 && (

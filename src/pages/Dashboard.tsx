@@ -77,13 +77,12 @@ const Dashboard = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("admin", ADMIN_DEFAULT_CARDS);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Loading check moved after all hooks (below)
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes", activeClinicId],
@@ -434,8 +433,6 @@ const Dashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("admin", ADMIN_DEFAULT_CARDS);
-
   const isCardVisible = (id: string) => visibleCards.some(c => c.id === id);
 
   // Build ordered sections map
@@ -527,21 +524,22 @@ const Dashboard = () => {
                       </p>
                       <p className="text-xs text-muted-foreground capitalize">{item.tipo_atendimento} • {item.status}</p>
                     </div>
-                    <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1">
                       {item.status === "agendado" && (
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary" onClick={() => updateStatus.mutate({ id: item.id, status: "confirmado" })}><CheckCircle2 className="h-4 w-4" /></Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary" onClick={() => updateStatus.mutate({ id: item.id, status: "confirmado" })} title="Confirmar"><CheckCircle2 className="h-4 w-4" /></Button>
                       )}
                       {(item.status === "agendado" || item.status === "confirmado") && (
                         <>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => updateStatus.mutate({ id: item.id, status: "realizado" })}><CheckCircle2 className="h-4 w-4" /></Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => updateStatus.mutate({ id: item.id, status: "falta" })}><XCircle className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => updateStatus.mutate({ id: item.id, status: "realizado" })} title="Realizado"><CheckCircle2 className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-amber-600" onClick={() => updateStatus.mutate({ id: item.id, status: "falta" })} title="Falta"><XCircle className="h-4 w-4" /></Button>
                         </>
                       )}
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => {
                         const cleanPhone = item.pacientes?.telefone?.replace(/\D/g, "");
                         if (cleanPhone) window.open(`https://wa.me/${cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`}`, "_blank");
                       }}><MessageCircle className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => updateStatus.mutate({ id: item.id, status: "cancelado" })}><XCircle className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => updateStatus.mutate({ id: item.id, status: "cancelado" })} title="Cancelar"><XCircle className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => navigate("/agenda")} title="Reagendar"><RefreshCw className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 ))}
@@ -564,9 +562,18 @@ const Dashboard = () => {
                       <p className="font-medium text-sm">{format(new Date(item.data_horario), "HH:mm")} - {item.pacientes?.nome}</p>
                       <Badge variant={item.status === "realizado" ? "default" : item.status === "falta" ? "destructive" : "outline"} className="text-[10px] h-4 px-1">{item.status}</Badge>
                     </div>
-                    {item.status === "falta" && (
-                      <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => navigate(`/pacientes/${item.paciente_id}/detalhes`)}><RefreshCw className="h-3 w-3 mr-1" /> Reagendar</Button>
-                    )}
+                    <div className="flex gap-1">
+                      {item.status !== "realizado" && item.status !== "falta" && item.status !== "cancelado" && (
+                        <>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => updateStatus.mutate({ id: item.id, status: "realizado" })} title="Realizado"><CheckCircle2 className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-amber-600" onClick={() => updateStatus.mutate({ id: item.id, status: "falta" })} title="Falta"><XCircle className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => updateStatus.mutate({ id: item.id, status: "cancelado" })} title="Cancelar"><XCircle className="h-4 w-4" /></Button>
+                        </>
+                      )}
+                      {item.status === "falta" && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => navigate(`/pacientes/${item.paciente_id}/detalhes`)}><RefreshCw className="h-3 w-3 mr-1" /> Reagendar</Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

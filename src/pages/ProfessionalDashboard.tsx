@@ -27,7 +27,6 @@ import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { toast } from "sonner";
 
 const PROF_DEFAULT_CARDS: DashboardCard[] = [
-  { id: "quick-actions", label: "Ações Rápidas", visible: true },
   { id: "today-agenda", label: "Agenda de Hoje", visible: true },
   { id: "birthdays", label: "Aniversariantes", visible: true },
   { id: "kpis", label: "Indicadores (KPIs)", visible: true },
@@ -161,30 +160,6 @@ const ProfessionalDashboard = () => {
 
   const renderSection = (cardId: string) => {
     switch (cardId) {
-      case "quick-actions":
-        return (
-          <Card key="quick-actions">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Acesso Rápido</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {quickActions.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => navigate(item.route)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-lg border hover:shadow-md transition-all hover:scale-105 active:scale-95"
-                  >
-                    <div className={`p-2.5 ${item.bg} rounded-lg`}>
-                      <item.icon className={`h-5 w-5 ${item.color}`} />
-                    </div>
-                    <span className="text-xs font-medium text-center">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
 
       case "today-agenda":
         return (

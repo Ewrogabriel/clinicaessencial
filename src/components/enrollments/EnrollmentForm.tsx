@@ -205,31 +205,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 </Select>
             </div>
 
-            {/* Plano */}
-            <div>
-                <Label>Plano / Tabela de Preços</Label>
-                <Select
-                    value={formData.preco_plano_id || "manual"}
-                    onValueChange={handlePlanoChange}
-                >
-                    <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Selecione um plano ou defina manualmente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="manual">Definir valor manualmente</SelectItem>
-                        {precosPlanos.map((plano: any) => (
-                            <SelectItem key={plano.id} value={plano.id}>
-                                {plano.nome} — R$ {Number(plano.valor).toFixed(2)} ({plano.frequencia_semanal}x/sem • {plano.modalidade})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                {formData.preco_plano_id && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                        ✅ Plano selecionado. O valor e modalidade foram preenchidos automaticamente.
-                    </p>
-                )}
-            </div>
+            {/* Plano selector removed - manual values only */}
 
             {/* Tipo + Due Day */}
             <div className="grid grid-cols-2 gap-4">

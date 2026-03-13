@@ -398,7 +398,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={isLoadingSlots ? "Carregando..." : (availableSlots?.length ? "Selecione o horário" : "Sem vagas para este dia")} />
+                            <SelectValue placeholder={isLoadingSlots ? "Carregando..." : "Selecione o horário"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>

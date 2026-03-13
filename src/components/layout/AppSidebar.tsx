@@ -72,7 +72,6 @@ export function AppSidebar() {
   
   // Área Clínica
   const menuClinico = [
-    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
@@ -92,7 +91,6 @@ export function AppSidebar() {
 
   // Área Financeira
   const menuFinanceiro = [
-    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
     { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
   ];
 
@@ -123,7 +121,6 @@ export function AppSidebar() {
 
   const menuMaster = [
     { title: t("nav.master_panel"), url: "/master", icon: Crown },
-    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
   ];
 
   const menuPatient = [
@@ -172,13 +169,13 @@ export function AppSidebar() {
   ];
 
   const menuProfissionalAdmin = [
-    { title: t("nav.enrollments"), url: "/matriculas/nova", icon: Receipt },
+    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
     { title: "Check-in", url: "/check-in", icon: FileCheck },
-    { title: "Registrar Venda", url: "/vendas/nova", icon: Tag },
+    { title: t("nav.products"), url: "/inventario", icon: Tag },
   ];
 
   const menuProfissionalFinanceiro = [
-    { title: "Minhas Comissões", url: "/minhas-comissoes", icon: Calculator },
+    { title: "Minhas Comissões", url: "/comissoes", icon: Calculator },
   ];
 
   const menuProfissionalComunicacao = [
@@ -228,6 +225,7 @@ export function AppSidebar() {
         {isMaster && renderGroup(t("group.master"), menuMaster)}
         {(isAdmin || isGestor) ? (
           <>
+            {renderGroup("Início", [{ title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard }])}
             {renderGroup("Clínico", menuClinico)}
             {renderGroup("Administrativo", menuAdministrativo)}
             {renderGroup("Financeiro", menuFinanceiro)}

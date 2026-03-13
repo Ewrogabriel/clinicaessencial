@@ -43,11 +43,14 @@ export function ConvenioCard() {
     },
   });
 
-  // Rotate on each page load / component mount
+  // Auto-rotate every 8 seconds
   useEffect(() => {
-    if (convenios.length > 0) {
-      setCurrentIndex(Math.floor(Math.random() * convenios.length));
-    }
+    if (convenios.length <= 1) return;
+    setCurrentIndex(Math.floor(Math.random() * convenios.length));
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % convenios.length);
+    }, 8000);
+    return () => clearInterval(interval);
   }, [convenios.length]);
 
   if (convenios.length === 0) return null;
