@@ -89,10 +89,14 @@ const PreCadastrosAdmin = () => {
 
       // Link patient to clinic
       if (activeClinicId && newPatient?.id) {
-        await supabase.from("clinic_pacientes").insert({
+        const { error: linkError } = await supabase.from("clinic_pacientes").insert({
           clinic_id: activeClinicId,
           paciente_id: newPatient.id,
         });
+        if (linkError) {
+          const err = new Error(`Erro ao vincular paciente à clínica: ${linkError.message}`);
+          throw err;
+        }
       }
 
       await (supabase.from("pre_cadastros") as any)
@@ -100,7 +104,7 @@ const PreCadastrosAdmin = () => {
         .eq("id", preCadastro.id);
 
       queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
-      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+      queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
       setDetailOpen(false);
       toast({ title: "Paciente cadastrado com sucesso!", description: `Código de acesso: ${code}` });
     } catch (err: any) {
