@@ -83,6 +83,8 @@ export interface Agendamento {
   checkin_profissional_at?: string | null;
   created_at: string;
   created_by: string;
+  clinic_id?: string | null;
+  clinic_group_id?: string | null;
   // Relations
   pacientes?: PacienteBasic | null;
   profiles?: { nome: string } | null;
@@ -171,6 +173,35 @@ export interface ClinicSettings {
   email?: string | null;
   instagram?: string | null;
   logo_url?: string | null;
+}
+
+export interface ClinicGroup {
+  id: string;
+  nome: string;
+  descricao?: string | null;
+  ativo?: boolean | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClinicGroupMember {
+  id: string;
+  group_id: string;
+  clinic_id: string;
+  cross_booking_enabled: boolean;
+  created_at: string;
+}
+
+export interface ClinicWithGroup {
+  id: string;
+  nome: string;
+  cnpj?: string | null;
+  logo_url?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  ativo: boolean;
+  clinic_group_id?: string | null;
 }
 
 export interface Despesa {
