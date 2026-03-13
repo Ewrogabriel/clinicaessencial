@@ -77,13 +77,12 @@ const Dashboard = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("admin", ADMIN_DEFAULT_CARDS);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Loading check moved after all hooks (below)
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes", activeClinicId],
