@@ -71,7 +71,7 @@ const SolicitacoesAlteracao = () => {
       (agendamentos || []).forEach((a: any) => { agendMap[a.id] = a; });
 
       const profIds = [...new Set((agendamentos || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, string> = {};
+      const profMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
         (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
@@ -109,7 +109,7 @@ const SolicitacoesAlteracao = () => {
       const pacMap: Record<string, any> = {};
       (pacientes || []).forEach((p: any) => { pacMap[p.id] = p; });
 
-      let profMap: Record<string, string> = {};
+      const profMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
         (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });

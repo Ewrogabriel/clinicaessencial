@@ -41,31 +41,20 @@ const PacienteDetalhes = () => {
     const [evaluationOpen, setEvaluationOpen] = useState(false);
     const [contractOpen, setContractOpen] = useState(false);
 
-    // Block patient access
-    if (!isAdmin && !isProfissional) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted-foreground">
-                <p className="text-lg font-medium">Acesso restrito</p>
-                <p className="text-sm">Apenas profissionais e administradores podem acessar detalhes do paciente.</p>
-                <Button variant="outline" onClick={() => navigate(-1)}>Voltar</Button>
-            </div>
-        );
-    }
-
-
+    const canAccess = isAdmin || isProfissional;
 
     const { data: paciente, isLoading: loadingPaciente } = useQuery({
         queryKey: ["paciente", id],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("pacientes")
-                .select("*")
+                .select("id, nome, email, telefone, cpf, data_nascimento, status, tipo_atendimento, profissional_id, user_id, observacoes, foto_url, created_at, updated_at")
                 .eq("id", id)
                 .maybeSingle();
             if (error) throw error;
             return data;
         },
-        enabled: !!id,
+        enabled: !!id && canAccess,
     });
 
     const { data: avaliacao, isLoading: loadingAvaliacao } = useQuery({
@@ -81,7 +70,7 @@ const PacienteDetalhes = () => {
             if (error) throw error;
             return data;
         },
-        enabled: !!id,
+        enabled: !!id && canAccess,
     });
 
     const { data: evolucoes = [], isLoading: loadingEvolucoes } = useQuery({
@@ -96,20 +85,31 @@ const PacienteDetalhes = () => {
             
             // Fetch profissional names
             const profIds = [...new Set((data || []).map((e) => e.profissional_id))] as string[];
-            let profMap: Record<string, string> = {};
+            const profMap: Record<string, string> = {};
             if (profIds.length > 0) {
               const { data: profs } = await supabase
                 .from("profiles")
                 .select("user_id, nome")
                 .in("user_id", profIds);
               if (profs) {
-                profMap = Object.fromEntries(profs.map((p) => [p.user_id, p.nome]));
+                profs.forEach((p) => { profMap[p.user_id] = p.nome; });
               }
             }
             return (data || []).map((e) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "—" }));
         },
-        enabled: !!id,
+        enabled: !!id && canAccess,
     });
+
+    // Block patient access - placed after hooks to preserve hooks order
+    if (!canAccess) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted-foreground">
+                <p className="text-lg font-medium">Acesso restrito</p>
+                <p className="text-sm">Apenas profissionais e administradores podem acessar detalhes do paciente.</p>
+                <Button variant="outline" onClick={() => navigate(-1)}>Voltar</Button>
+            </div>
+        );
+    }
 
     if (loadingPaciente) {
         return <div className="p-8 text-center animate-pulse">Carregando dados do paciente...</div>;

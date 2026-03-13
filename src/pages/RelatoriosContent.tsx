@@ -190,14 +190,14 @@ const Relatorios = () => {
       a.status,
       `R$ ${Number(a.valor_sessao || 0).toFixed(2)}`,
     ]);
-    type === "pdf" ? exportPDF(title, headers, rows) : exportExcel(title, headers, rows);
+    if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
   const exportProfissionais = (type: "pdf" | "xlsx") => {
     const title = "Relatório por Profissional";
     const headers = ["Profissional", "Realizados", "Faltas", "Cancelados", "Total", "Taxa Presença", "Valor Total"];
     const rows = profStats.map(p => [p.nome, String(p.realizados), String(p.faltas), String(p.cancelados), String(p.total), `${p.taxaPresenca}%`, `R$ ${p.valor.toFixed(2)}`]);
-    type === "pdf" ? exportPDF(title, headers, rows) : exportExcel(title, headers, rows);
+    if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
   const exportFinanceiro = (type: "pdf" | "xlsx") => {
@@ -212,14 +212,14 @@ const Relatorios = () => {
       p.forma_pagamento || "—",
       p.data_vencimento || "—",
     ]);
-    type === "pdf" ? exportPDF(title, headers, rows) : exportExcel(title, headers, rows);
+    if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
   const exportPacientes = (type: "pdf" | "xlsx") => {
     const title = "Lista de Pacientes";
     const headers = ["Nome", "Telefone", "Status", "Tipo Atendimento"];
     const rows = (pacientes as any[]).map(p => [p.nome, p.telefone, p.status, p.tipo_atendimento]);
-    type === "pdf" ? exportPDF(title, headers, rows) : exportExcel(title, headers, rows);
+    if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
   return (

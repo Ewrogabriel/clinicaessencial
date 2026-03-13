@@ -407,7 +407,9 @@ const Profissionais = () => {
       if (data.erro) return;
       setEndereco(data.logradouro || ""); setBairro(data.bairro || "");
       setCidade(data.localidade || ""); setEstado(data.uf || "");
-    } catch {}
+    } catch {
+      // Ignore CEP lookup errors
+    }
   };
 
   // Render permission row with view/edit toggle

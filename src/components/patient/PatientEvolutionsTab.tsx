@@ -20,7 +20,7 @@ export function PatientEvolutionsTab({ pacienteId }: { pacienteId: string }) {
       if (error) throw error;
 
       const profIds = [...new Set((data || []).map((e) => e.profissional_id))] as string[];
-      let profMap: Record<string, string> = {};
+      const profMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
         (profs || []).forEach((p) => { profMap[p.user_id] = p.nome; });

@@ -6,7 +6,8 @@ describe("cn (classnames merge)", () => {
     expect(cn("foo", "bar")).toBe("foo bar");
   });
   it("should handle conditional classes", () => {
-    expect(cn("base", false && "hidden", "visible")).toBe("base visible");
+    const condition = false;
+    expect(cn("base", condition && "hidden", "visible")).toBe("base visible");
   });
   it("should merge conflicting tailwind classes", () => {
     expect(cn("p-4", "p-2")).toBe("p-2");

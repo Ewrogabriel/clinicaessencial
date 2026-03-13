@@ -8,7 +8,7 @@ export const auditService = {
         action: AuditAction,
         resource: string,
         resourceId: string,
-        details?: any,
+        details?: Record<string, unknown>,
         clinicId?: string
     }) {
         try {

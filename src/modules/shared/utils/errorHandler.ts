@@ -4,27 +4,29 @@ export class AppError extends Error {
     constructor(
         public message: string,
         public code?: string,
-        public originalError?: any
+        public originalError?: unknown
     ) {
         super(message);
         this.name = "AppError";
     }
 }
 
-export const handleError = (error: any, customMessage?: string) => {
+export const handleError = (error: unknown, customMessage?: string) => {
     console.error("App Error:", error);
 
     let message = customMessage || "Ocorreu um erro inesperado.";
 
     if (error instanceof AppError) {
         message = error.message;
-    } else if (error?.message) {
+    } else if (error instanceof Error) {
         message = error.message;
     }
 
+    const code = (error as { code?: string })?.code;
+
     toast.error(message, {
-        description: error?.code ? `Código: ${error.code}` : undefined,
+        description: code ? `Código: ${code}` : undefined,
     });
 
-    return new AppError(message, error?.code, error);
+    return new AppError(message, code, error);
 };

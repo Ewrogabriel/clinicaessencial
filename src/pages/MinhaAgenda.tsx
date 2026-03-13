@@ -35,10 +35,10 @@ const MinhaAgenda = () => {
       if (error) throw error;
       // Fetch professional names
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, string> = {};
+      const profMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
-        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+        (profs || []).forEach((p: { user_id: string; nome: string }) => { profMap[p.user_id] = p.nome; });
       }
       return (data || []).map((a: any) => ({
         ...a,

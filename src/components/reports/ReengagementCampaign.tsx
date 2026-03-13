@@ -46,7 +46,7 @@ export const ReengagementCampaign = () => {
     queryKey: ["inactive-patients", activeClinicId, diasInativo],
     queryFn: async () => {
       // Get active patients
-      let pQuery = supabase.from("pacientes").select("id, nome, telefone, email").eq("status", "ativo");
+      const pQuery = supabase.from("pacientes").select("id, nome, telefone, email").eq("status", "ativo");
       const { data: patients } = await pQuery;
       if (!patients?.length) return [];
 

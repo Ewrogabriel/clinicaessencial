@@ -36,7 +36,7 @@ const Inteligencia = () => {
 
       // Prediction
       const values = historicalRevenue.map(d => d.valor);
-      let predictedNext = values.length >= 2 ? values[values.length - 1] + (values[values.length - 1] - values[values.length - 2]) * 0.5 : values[0] || 0;
+      const predictedNext = values.length >= 2 ? values[values.length - 1] + (values[values.length - 1] - values[values.length - 2]) * 0.5 : values[0] || 0;
 
       const predictions = [
         { name: "Projeção 1", valor: predictedNext, isPrediction: true },

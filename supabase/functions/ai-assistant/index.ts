@@ -253,7 +253,7 @@ ${context.evolucoes_recentes}
 Melhore o texto acima mantendo o sentido original, enriquecendo com dados clínicos relevantes e usando linguagem técnica apropriada.`;
         break;
 
-      case "document_generate":
+      case "document_generate": {
         // Generate initial document text based on type
         const templates: Record<string, string> = {
           comparecimento: `Gere um Comprovante de Comparecimento para uso clínico. Deve conter:
@@ -310,6 +310,7 @@ Avaliação: ${context.avaliacao || "Não informada"}
 
 Gere o documento completo e profissional.`;
         break;
+      }
 
       default:
         throw new Error(`Unknown action: ${action}`);

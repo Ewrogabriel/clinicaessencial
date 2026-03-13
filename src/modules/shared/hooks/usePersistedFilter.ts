@@ -14,7 +14,9 @@ export function usePersistedFilter<T extends string>(key: string, defaultValue: 
     setValue(v);
     try {
       localStorage.setItem(`filter:${key}`, v);
-    } catch {}
+    } catch {
+      // Ignore localStorage write errors (e.g. private browsing mode)
+    }
   }, [key]);
 
   return [value, set];

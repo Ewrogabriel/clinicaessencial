@@ -19,7 +19,7 @@ export function usePatientAgenda(patientId: string | null, enabled: boolean = tr
       
       // Fetch professional names
       const profIds = [...new Set((data || []).map((a) => a.profissional_id))];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
+      const profMap: Record<string, { nome: string; telefone: string }> = {};
       
       if (profIds.length > 0) {
         const { data: profs } = await supabase
@@ -56,7 +56,7 @@ export function usePatientAgenda(patientId: string | null, enabled: boolean = tr
       if (error) throw error;
       
       const profIds = [...new Set((data || []).map((a) => a.profissional_id))];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
+      const profMap: Record<string, { nome: string; telefone: string }> = {};
       
       if (profIds.length > 0) {
         const { data: profs } = await supabase

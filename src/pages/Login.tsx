@@ -71,7 +71,7 @@ const Login = () => {
       return;
     }
 
-    let resetEmail = loginEmail.trim();
+    const resetEmail = loginEmail.trim();
 
     if (!resetEmail.includes("@")) {
       const cleanCpf = resetEmail.replace(/\D/g, "");
