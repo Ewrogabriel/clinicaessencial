@@ -72,7 +72,6 @@ export function AppSidebar() {
   
   // Área Clínica
   const menuClinico = [
-    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
@@ -92,7 +91,6 @@ export function AppSidebar() {
 
   // Área Financeira
   const menuFinanceiro = [
-    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
     { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
   ];
 
