@@ -412,7 +412,7 @@ export function WeeklyView({
                 {format(day, "dd")}
               </div>
               {dayAgs.length > 0 && (
-                <div className="text-[9px] text-muted-foreground">{dayAgs.length} apmt</div>
+                <div className="text-[9px] text-muted-foreground">{dayAgs.length} appt</div>
               )}
             </div>
             <div className="space-y-1 flex-1 overflow-y-auto">
