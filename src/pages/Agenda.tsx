@@ -275,7 +275,7 @@ const Agenda = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs">
+          <div className="rounded-lg border bg-muted/20 px-3 py-2">
             <CalendarLegend profissionais={profissionais} />
           </div>
 
