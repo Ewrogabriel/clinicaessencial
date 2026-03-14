@@ -225,3 +225,119 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.generate_day_slots(UUID, DATE, UUID) TO authenticated;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 4. Partial index on available slots (requires is_blocked added above)
+--    This index was originally intended for 20260314090000_scheduling_engine_fixes.sql
+--    but could not be created there because is_blocked did not yet exist at that
+--    migration's execution point, which caused the entire 090000 migration to fail.
+--    We create it here, after the column has been guaranteed to exist.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_schedule_slots_available
+    ON public.schedule_slots(date, professional_id)
+    WHERE is_blocked = FALSE AND current_capacity < max_capacity;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 5. cancel_appointment RPC
+--    Idempotent (CREATE OR REPLACE).  This is also defined in
+--    20260314090000_scheduling_engine_fixes.sql, but that migration can fail
+--    before this function is committed when it runs against a database whose
+--    schedule_slots table still lacks is_blocked.  We repeat it here so that
+--    the function is always installed after this schema-fix migration succeeds.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.cancel_appointment(
+    p_agendamento_id UUID
+)
+RETURNS VOID AS $$
+DECLARE
+    v_slot_id UUID;
+    v_status  TEXT;
+BEGIN
+    SELECT slot_id, status INTO v_slot_id, v_status
+    FROM public.agendamentos
+    WHERE id = p_agendamento_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Agendamento não encontrado: %', p_agendamento_id;
+    END IF;
+
+    -- Already cancelled — nothing to do
+    IF v_status = 'cancelado' THEN
+        RETURN;
+    END IF;
+
+    UPDATE public.agendamentos
+    SET status = 'cancelado'
+    WHERE id = p_agendamento_id;
+
+    -- Release the slot if applicable
+    IF v_slot_id IS NOT NULL THEN
+        UPDATE public.schedule_slots
+        SET current_capacity = GREATEST(current_capacity - 1, 0),
+            updated_at        = NOW()
+        WHERE id = v_slot_id;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.cancel_appointment(UUID) TO authenticated;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 6. sync_slot_capacity trigger — ensure DELETE handling is present
+--    Same reasoning as cancel_appointment above.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.sync_slot_capacity()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' AND NEW.slot_id IS NOT NULL THEN
+        UPDATE public.schedule_slots
+        SET current_capacity = current_capacity + 1,
+            updated_at        = NOW()
+        WHERE id = NEW.slot_id;
+
+    ELSIF TG_OP = 'UPDATE' AND NEW.slot_id IS NOT NULL
+        AND OLD.status != 'cancelado' AND NEW.status = 'cancelado' THEN
+        UPDATE public.schedule_slots
+        SET current_capacity = GREATEST(current_capacity - 1, 0),
+            updated_at        = NOW()
+        WHERE id = NEW.slot_id;
+
+    ELSIF TG_OP = 'UPDATE' AND NEW.slot_id IS NOT NULL
+        AND OLD.status = 'cancelado' AND NEW.status != 'cancelado' THEN
+        UPDATE public.schedule_slots
+        SET current_capacity = current_capacity + 1,
+            updated_at        = NOW()
+        WHERE id = NEW.slot_id;
+
+    ELSIF TG_OP = 'DELETE' AND OLD.slot_id IS NOT NULL
+        AND OLD.status != 'cancelado' THEN
+        UPDATE public.schedule_slots
+        SET current_capacity = GREATEST(current_capacity - 1, 0),
+            updated_at        = NOW()
+        WHERE id = OLD.slot_id;
+    END IF;
+
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Re-attach trigger to include DELETE events
+DROP TRIGGER IF EXISTS trg_agendamentos_sync_slot_capacity ON public.agendamentos;
+CREATE TRIGGER trg_agendamentos_sync_slot_capacity
+    AFTER INSERT OR UPDATE OF status OR DELETE ON public.agendamentos
+    FOR EACH ROW EXECUTE FUNCTION public.sync_slot_capacity();
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 7. Remaining scheduling indexes (idempotent, IF NOT EXISTS)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_schedule_slots_clinic_date
+    ON public.schedule_slots(clinic_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_agendamentos_slot_id
+    ON public.agendamentos(slot_id)
+    WHERE slot_id IS NOT NULL;
