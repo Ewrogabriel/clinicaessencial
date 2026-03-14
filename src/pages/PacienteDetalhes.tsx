@@ -325,38 +325,38 @@ const PacienteDetalhes = () => {
                             </div>
 
                             {/* Legal Guardian Section */}
-                            {paciente.tem_responsavel_legal && (
+                            {(paciente as any).tem_responsavel_legal && (
                                 <div className="mt-6 pt-4 border-t">
                                     <h4 className="font-semibold text-sm mb-3">Responsável Legal</h4>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <p className="text-muted-foreground">Nome</p>
-                                            <p className="font-medium">{paciente.responsavel_nome || "—"}</p>
+                                            <p className="font-medium">{(paciente as any).responsavel_nome || "—"}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground">Parentesco</p>
-                                            <p className="font-medium capitalize">{paciente.responsavel_parentesco || "—"}</p>
+                                            <p className="font-medium capitalize">{(paciente as any).responsavel_parentesco || "—"}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground">CPF</p>
-                                            <p className="font-medium">{paciente.responsavel_cpf || "—"}</p>
+                                            <p className="font-medium">{(paciente as any).responsavel_cpf || "—"}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground">Telefone</p>
-                                            <p className="font-medium">{paciente.responsavel_telefone || "—"}</p>
+                                            <p className="font-medium">{(paciente as any).responsavel_telefone || "—"}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground">E-mail</p>
-                                            <p className="font-medium">{paciente.responsavel_email || "—"}</p>
+                                            <p className="font-medium">{(paciente as any).responsavel_email || "—"}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground">RG</p>
-                                            <p className="font-medium">{paciente.responsavel_rg || "—"}</p>
+                                            <p className="font-medium">{(paciente as any).responsavel_rg || "—"}</p>
                                         </div>
-                                        {paciente.responsavel_endereco && (
+                                        {(paciente as any).responsavel_endereco && (
                                             <div className="col-span-2">
                                                 <p className="text-muted-foreground">Endereço</p>
-                                                <p className="font-medium">{paciente.responsavel_endereco}</p>
+                                                <p className="font-medium">{(paciente as any).responsavel_endereco}</p>
                                             </div>
                                         )}
                                     </div>
