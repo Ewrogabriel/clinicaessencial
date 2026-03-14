@@ -115,10 +115,12 @@ CREATE TRIGGER trg_agendamentos_sync_slot_capacity
 CREATE INDEX IF NOT EXISTS idx_schedule_slots_clinic_date
     ON public.schedule_slots(clinic_id, date);
 
--- Partial index: fast lookup of available (non-blocked, not full) slots
-CREATE INDEX IF NOT EXISTS idx_schedule_slots_available
-    ON public.schedule_slots(date, professional_id)
-    WHERE is_blocked = FALSE AND current_capacity < max_capacity;
+-- NOTE: idx_schedule_slots_available is a partial index that references the
+-- is_blocked column.  That column is added by the migration that runs after
+-- this file (20260314110000_fix_schedule_table_schema.sql), so creating the
+-- index here would cause this entire migration to fail.
+-- The index is instead created at the end of 20260314110000 once the column
+-- is guaranteed to exist.
 
 -- Index on agendamentos.slot_id for trigger and join performance
 CREATE INDEX IF NOT EXISTS idx_agendamentos_slot_id
