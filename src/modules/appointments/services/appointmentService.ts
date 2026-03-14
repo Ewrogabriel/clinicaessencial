@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "../../shared/utils/errorHandler";
 import type { Agendamento, StatusAgendamento, TipoSessao } from "@/types/entities";
+import type { ScheduleSlot } from "../types/appointment";
+
+const SCHEDULE_SLOT_COLUMNS =
+    "id, professional_id, clinic_id, availability_slot_id, date, start_time, end_time, duration_min, max_capacity, current_capacity, is_available, is_blocked, notes, created_at, updated_at";
 
 export const appointmentService = {
     async getAppointments(options: {
@@ -52,9 +56,46 @@ export const appointmentService = {
         date: string;
         endDate?: string;
         clinicId: string | null
-    }) {
-        // Schedule slots feature not yet migrated - return empty array
-        return [];
+    }): Promise<ScheduleSlot[]> {
+        try {
+            let query = supabase
+                .from("schedule_slots")
+                .select(SCHEDULE_SLOT_COLUMNS)
+                .eq("date", options.date)
+                .eq("is_blocked", false);
+
+            if (options.professionalId) {
+                query = query.eq("professional_id", options.professionalId);
+            }
+            if (options.clinicId) {
+                query = query.eq("clinic_id", options.clinicId);
+            }
+
+            const { data, error } = await query.order("start_time", { ascending: true });
+            if (error) throw error;
+            return (data || []) as unknown as ScheduleSlot[];
+        } catch (error) {
+            handleError(error, "Erro ao buscar horários disponíveis.");
+            return [];
+        }
+    },
+
+    async generateDaySlots(options: {
+        professionalId: string;
+        date: string;
+        clinicId: string;
+    }): Promise<void> {
+        try {
+            const { error } = await supabase.rpc("generate_day_slots", {
+                p_professional_id: options.professionalId,
+                p_date: options.date,
+                p_clinic_id: options.clinicId,
+            });
+            if (error) throw error;
+        } catch (error) {
+            handleError(error, "Erro ao gerar horários do dia.");
+            throw error;
+        }
     },
 
     async bookAppointment(params: {
@@ -67,9 +108,31 @@ export const appointmentService = {
         observacoes?: string;
         created_by: string;
         clinic_id: string;
+        slot_id?: string;
     }) {
         try {
-            // Check for double booking first
+            // When a slot_id is provided, use the atomic book_appointment RPC which
+            // locks the slot row (FOR UPDATE) and validates capacity in one transaction.
+            // This is the only safe path for group sessions and concurrent bookings.
+            if (params.slot_id) {
+                const { data, error } = await supabase.rpc("book_appointment", {
+                    p_paciente_id: params.paciente_id,
+                    p_profissional_id: params.profissional_id,
+                    p_slot_id: params.slot_id,
+                    p_data_horario: params.data_horario,
+                    p_duracao_minutos: params.duracao_minutos,
+                    p_tipo_atendimento: params.tipo_atendimento,
+                    p_tipo_sessao: params.tipo_sessao,
+                    p_observacoes: params.observacoes || null,
+                    p_created_by: params.created_by,
+                    p_clinic_id: params.clinic_id,
+                });
+                if (error) throw error;
+                return { id: data } as { id: string };
+            }
+
+            // Legacy path (no slot_id): client-side double-booking guard + insert.
+            // Only used for individual sessions without a pre-generated schedule slot.
             await this.checkDoubleBooking(params.profissional_id, params.data_horario);
 
             const { data, error } = await supabase
@@ -92,6 +155,18 @@ export const appointmentService = {
             return data;
         } catch (error) {
             handleError(error, "Erro ao realizar agendamento.");
+            throw error;
+        }
+    },
+
+    async cancelAppointment(appointmentId: string): Promise<void> {
+        try {
+            const { error } = await supabase.rpc("cancel_appointment", {
+                p_agendamento_id: appointmentId,
+            });
+            if (error) throw error;
+        } catch (error) {
+            handleError(error, "Erro ao cancelar agendamento.");
             throw error;
         }
     },

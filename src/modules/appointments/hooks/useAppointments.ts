@@ -23,7 +23,7 @@ export function useAgendamentos(options: UseAgendamentosOptions = {}) {
             return data as Agendamento[];
         },
         enabled: options.enabled ?? true,
-        staleTime: 1000 * 60 * 5, // 5 minutos de cache
+        staleTime: 1000 * 60 * 5,
     });
 }
 
@@ -68,9 +68,10 @@ export function useRescheduleAgendamento() {
 
 export function useScheduleSlots(options: { professionalId?: string; date: string; clinicId: string | null }) {
     return useQuery({
-        queryKey: ["schedule_slots", options.professionalId, options.date, options.clinicId],
+        queryKey: queryKeys.appointments.slots(options.professionalId, options.date, options.clinicId),
         queryFn: () => appointmentService.getScheduleSlots(options),
         enabled: !!options.date,
+        staleTime: 1000 * 60 * 2, // 2 minutos — slots change as bookings arrive
     });
 }
 
@@ -80,13 +81,48 @@ export function useBookAppointment() {
     return useMutation({
         mutationFn: (params: Parameters<typeof appointmentService.bookAppointment>[0]) =>
             appointmentService.bookAppointment(params),
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all });
-            queryClient.invalidateQueries({ queryKey: ["schedule_slots"] });
+            if (variables.slot_id) {
+                queryClient.invalidateQueries({ queryKey: ["schedule_slots"] });
+            }
             toast.success("Agendamento realizado com sucesso! 📅");
         },
         onError: (error: Error) => {
             toast.error(error.message || "Erro ao realizar agendamento");
+        },
+    });
+}
+
+export function useCancelAppointment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (appointmentId: string) =>
+            appointmentService.cancelAppointment(appointmentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all });
+            queryClient.invalidateQueries({ queryKey: ["schedule_slots"] });
+            toast.success("Agendamento cancelado.");
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || "Erro ao cancelar agendamento");
+        },
+    });
+}
+
+export function useGenerateDaySlots() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (options: Parameters<typeof appointmentService.generateDaySlots>[0]) =>
+            appointmentService.generateDaySlots(options),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["schedule_slots"] });
+            toast.success("Horários gerados com sucesso!");
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || "Erro ao gerar horários");
         },
     });
 }

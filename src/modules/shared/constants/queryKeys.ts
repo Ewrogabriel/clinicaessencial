@@ -32,6 +32,8 @@ export const queryKeys = {
       ["agendamentos", "today", clinicId] as const,
     byProfessional: (profId: string, clinicId: string | null) =>
       ["agendamentos", "professional", profId, clinicId] as const,
+    slots: (profId: string | undefined, date: string, clinicId: string | null) =>
+      ["schedule_slots", profId, date, clinicId] as const,
   },
 
   // ── Professionals ─────────────────────────────────────────────────────────

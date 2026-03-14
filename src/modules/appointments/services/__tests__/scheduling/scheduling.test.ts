@@ -36,7 +36,7 @@ function chain(terminal: { data: unknown; error: unknown }) {
 }
 
 vi.mock("@/integrations/supabase/client", () => ({
-    supabase: { from: vi.fn() },
+    supabase: { from: vi.fn(), rpc: vi.fn() },
 }));
 
 const getSupabase = async () =>
@@ -247,24 +247,203 @@ describe("Scheduling — slot capacity & conflict rules", () => {
         });
     });
 
-    // ── getScheduleSlots returns empty (feature not migrated) ─────────────────
+    // ── getScheduleSlots ──────────────────────────────────────────────────────
 
     describe("getScheduleSlots", () => {
-        it("returns an empty array regardless of input (placeholder)", async () => {
+        it("returns slots from database for a given date and professional", async () => {
+            const mockSlots = [
+                {
+                    id: "slot-1",
+                    professional_id: PROF_A,
+                    clinic_id: CLINIC_ID,
+                    date: "2026-07-01",
+                    start_time: "09:00",
+                    end_time: "10:00",
+                    max_capacity: 3,
+                    current_capacity: 1,
+                    is_available: true,
+                    is_blocked: false,
+                },
+            ];
+            supabase.from.mockReturnValueOnce(chain({ data: mockSlots, error: null }));
+
             const result = await appointmentService.getScheduleSlots({
                 professionalId: PROF_A,
                 date: "2026-07-01",
                 clinicId: CLINIC_ID,
             });
-            expect(result).toEqual([]);
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe("slot-1");
+            expect(result[0].is_available).toBe(true);
         });
 
-        it("returns empty array when no professionalId is given", async () => {
+        it("returns empty array when no slots exist for the date", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: [], error: null }));
+
             const result = await appointmentService.getScheduleSlots({
                 date: "2026-07-01",
                 clinicId: null,
             });
             expect(result).toEqual([]);
+        });
+
+        it("returns empty array and does not throw on database error", async () => {
+            supabase.from.mockReturnValueOnce(
+                chain({ data: null, error: { message: "DB error" } })
+            );
+
+            const result = await appointmentService.getScheduleSlots({
+                date: "2026-07-01",
+                clinicId: CLINIC_ID,
+            });
+            expect(result).toEqual([]);
+        });
+    });
+
+    // ── bookAppointment via slot_id (atomic RPC path) ─────────────────────────
+
+    describe("bookAppointment with slot_id — uses atomic RPC", () => {
+        const SLOT_ID = "slot-uuid-001";
+
+        it("calls book_appointment RPC when slot_id is provided", async () => {
+            supabase.rpc.mockReturnValueOnce(chain({ data: "new-apt-id", error: null }));
+
+            const result = await appointmentService.bookAppointment({
+                paciente_id: PAT_1,
+                profissional_id: PROF_A,
+                slot_id: SLOT_ID,
+                data_horario: SLOT_09H,
+                duracao_minutos: 50,
+                tipo_atendimento: "pilates",
+                tipo_sessao: "grupo",
+                created_by: "admin",
+                clinic_id: CLINIC_ID,
+            });
+
+            expect(supabase.rpc).toHaveBeenCalledWith(
+                "book_appointment",
+                expect.objectContaining({ p_slot_id: SLOT_ID, p_paciente_id: PAT_1 })
+            );
+            expect(result).toEqual({ id: "new-apt-id" });
+        });
+
+        it("throws when RPC returns an error (e.g. slot full)", async () => {
+            supabase.rpc.mockReturnValueOnce(
+                chain({ data: null, error: { message: "Este horário está sem vagas disponíveis." } })
+            );
+
+            await expect(
+                appointmentService.bookAppointment({
+                    paciente_id: PAT_2,
+                    profissional_id: PROF_A,
+                    slot_id: SLOT_ID,
+                    data_horario: SLOT_09H,
+                    duracao_minutos: 50,
+                    tipo_atendimento: "pilates",
+                    tipo_sessao: "grupo",
+                    created_by: "admin",
+                    clinic_id: CLINIC_ID,
+                })
+            ).rejects.toThrow();
+        });
+
+        it("allows two patients to book same slot via RPC (group session)", async () => {
+            supabase.rpc
+                .mockReturnValueOnce(chain({ data: "apt-pat1", error: null }))
+                .mockReturnValueOnce(chain({ data: "apt-pat2", error: null }));
+
+            const r1 = await appointmentService.bookAppointment({
+                paciente_id: PAT_1,
+                profissional_id: PROF_A,
+                slot_id: SLOT_ID,
+                data_horario: SLOT_09H,
+                duracao_minutos: 50,
+                tipo_atendimento: "pilates",
+                tipo_sessao: "grupo",
+                created_by: "admin",
+                clinic_id: CLINIC_ID,
+            });
+
+            const r2 = await appointmentService.bookAppointment({
+                paciente_id: PAT_2,
+                profissional_id: PROF_A,
+                slot_id: SLOT_ID,
+                data_horario: SLOT_09H,
+                duracao_minutos: 50,
+                tipo_atendimento: "pilates",
+                tipo_sessao: "grupo",
+                created_by: "admin",
+                clinic_id: CLINIC_ID,
+            });
+
+            expect(r1).toEqual({ id: "apt-pat1" });
+            expect(r2).toEqual({ id: "apt-pat2" });
+        });
+    });
+
+    // ── cancelAppointment ─────────────────────────────────────────────────────
+
+    describe("cancelAppointment", () => {
+        it("calls cancel_appointment RPC and resolves", async () => {
+            supabase.rpc.mockReturnValueOnce(chain({ data: null, error: null }));
+
+            await expect(
+                appointmentService.cancelAppointment(APT_ID)
+            ).resolves.not.toThrow();
+
+            expect(supabase.rpc).toHaveBeenCalledWith(
+                "cancel_appointment",
+                { p_agendamento_id: APT_ID }
+            );
+        });
+
+        it("throws when RPC returns an error", async () => {
+            supabase.rpc.mockReturnValueOnce(
+                chain({ data: null, error: { message: "Agendamento não encontrado." } })
+            );
+
+            await expect(
+                appointmentService.cancelAppointment("non-existent-id")
+            ).rejects.toThrow();
+        });
+    });
+
+    // ── generateDaySlots ──────────────────────────────────────────────────────
+
+    describe("generateDaySlots", () => {
+        it("calls generate_day_slots RPC with correct params", async () => {
+            supabase.rpc.mockReturnValueOnce(chain({ data: null, error: null }));
+
+            await expect(
+                appointmentService.generateDaySlots({
+                    professionalId: PROF_A,
+                    date: "2026-07-01",
+                    clinicId: CLINIC_ID,
+                })
+            ).resolves.not.toThrow();
+
+            expect(supabase.rpc).toHaveBeenCalledWith(
+                "generate_day_slots",
+                expect.objectContaining({
+                    p_professional_id: PROF_A,
+                    p_date: "2026-07-01",
+                    p_clinic_id: CLINIC_ID,
+                })
+            );
+        });
+
+        it("throws when RPC returns an error", async () => {
+            supabase.rpc.mockReturnValueOnce(
+                chain({ data: null, error: { message: "RPC error" } })
+            );
+
+            await expect(
+                appointmentService.generateDaySlots({
+                    professionalId: PROF_A,
+                    date: "2026-07-01",
+                    clinicId: CLINIC_ID,
+                })
+            ).rejects.toThrow();
         });
     });
 });

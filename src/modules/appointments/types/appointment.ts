@@ -1,3 +1,21 @@
+export interface ScheduleSlot {
+    id: string;
+    professional_id: string;
+    clinic_id: string;
+    availability_slot_id?: string | null;
+    date: string;
+    start_time: string;
+    end_time: string;
+    duration_min: number;
+    max_capacity: number;
+    current_capacity: number;
+    is_available: boolean;
+    is_blocked: boolean;
+    notes?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Agendamento {
     id: string;
     paciente_id: string;

@@ -71,6 +71,24 @@ describe("queryKeys", () => {
                 "clinic-1",
             ]);
         });
+
+        it("slots key includes professionalId, date, and clinicId", () => {
+            expect(queryKeys.appointments.slots("prof-1", "2026-07-01", "clinic-1")).toEqual([
+                "schedule_slots",
+                "prof-1",
+                "2026-07-01",
+                "clinic-1",
+            ]);
+        });
+
+        it("slots key works with undefined professionalId", () => {
+            expect(queryKeys.appointments.slots(undefined, "2026-07-01", null)).toEqual([
+                "schedule_slots",
+                undefined,
+                "2026-07-01",
+                null,
+            ]);
+        });
     });
 
     // ── Professionals ─────────────────────────────────────────────────────────
