@@ -70,9 +70,66 @@ export function useRescheduleAgendamento() {
 export function useScheduleSlots(options: { professionalId?: string; date: string; clinicId: string | null }) {
     return useQuery({
         queryKey: queryKeys.appointments.slots(options.professionalId, options.date, options.clinicId),
-        queryFn: () => appointmentService.getScheduleSlots(options),
-        enabled: !!options.date,
-        staleTime: 1000 * 60 * 2, // 2 minutos — slots change as bookings arrive
+        queryFn: async () => {
+            if (!options.date || !options.professionalId) return [];
+
+            const selectedDate = new Date(options.date + "T12:00:00");
+            const dayOfWeek = selectedDate.getDay();
+
+            // Fetch availability slots for this professional on this day of week
+            let availQuery = supabase
+                .from("disponibilidade_profissional")
+                .select("id, hora_inicio, hora_fim, max_pacientes, dia_semana")
+                .eq("profissional_id", options.professionalId)
+                .eq("dia_semana", dayOfWeek)
+                .eq("ativo", true)
+                .order("hora_inicio");
+
+            if (options.clinicId) {
+                availQuery = availQuery.eq("clinic_id", options.clinicId);
+            }
+
+            const { data: slots, error: slotsError } = await availQuery;
+            if (slotsError || !slots || slots.length === 0) return [];
+
+            // Fetch existing appointments for this professional on this date
+            const dateStart = new Date(selectedDate);
+            dateStart.setHours(0, 0, 0, 0);
+            const dateEnd = new Date(selectedDate);
+            dateEnd.setHours(23, 59, 59, 999);
+
+            const { data: appointments } = await supabase
+                .from("agendamentos")
+                .select("id, data_horario, tipo_sessao")
+                .eq("profissional_id", options.professionalId)
+                .gte("data_horario", dateStart.toISOString())
+                .lte("data_horario", dateEnd.toISOString())
+                .not("status", "in", '("cancelado","falta")');
+
+            // Map slots with capacity info
+            return slots.map((slot: any) => {
+                const slotAppts = (appointments ?? []).filter((a: any) => {
+                    const aTime = new Date(a.data_horario);
+                    const aTimeStr = `${String(aTime.getHours()).padStart(2, "0")}:${String(aTime.getMinutes()).padStart(2, "0")}:00`;
+                    return aTimeStr >= slot.hora_inicio && aTimeStr < slot.hora_fim;
+                });
+
+                const currentCount = slotAppts.length;
+                const isFull = currentCount >= slot.max_pacientes;
+
+                return {
+                    id: slot.id,
+                    start_time: slot.hora_inicio,
+                    end_time: slot.hora_fim,
+                    max_capacity: slot.max_pacientes,
+                    current_capacity: currentCount,
+                    is_available: !isFull,
+                    status: isFull ? "full" : "available",
+                };
+            });
+        },
+        enabled: !!options.date && !!options.professionalId,
+        staleTime: 1000 * 60 * 2,
     });
 }
 
