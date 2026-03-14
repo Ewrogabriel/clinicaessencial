@@ -56,7 +56,7 @@ const statusColors: Record<string, string> = {
   pendente:  "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200",
 };
 
-// Status border / accent colors
+// Status top-accent colors (used as 2-px top border on cards)
 const statusBorderColors: Record<string, string> = {
   agendado:  "#3b82f6",
   confirmado:"#10b981",
@@ -66,12 +66,32 @@ const statusBorderColors: Record<string, string> = {
   pendente:  "#eab308",
 };
 
-// Session-type badge colors
-const sessionTypeConfig: Record<string, { label: string; className: string }> = {
-  individual: { label: "Individual", className: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700" },
-  dupla:      { label: "Dupla",      className: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-200 dark:border-violet-700" },
-  trio:       { label: "Trio",       className: "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700" },
-  grupo:      { label: "Grupo",      className: "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700" },
+// Session-type config: badge label/class + background tint color (card) + swatch color (legend)
+const sessionTypeConfig: Record<string, { label: string; className: string; bgColor: string; swatchColor: string }> = {
+  individual: {
+    label: "Individual",
+    className: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700",
+    bgColor: "rgba(59,130,246,0.08)",
+    swatchColor: "rgba(59,130,246,0.30)",
+  },
+  dupla: {
+    label: "Dupla",
+    className: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-200 dark:border-violet-700",
+    bgColor: "rgba(139,92,246,0.08)",
+    swatchColor: "rgba(139,92,246,0.30)",
+  },
+  trio: {
+    label: "Trio",
+    className: "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700",
+    bgColor: "rgba(249,115,22,0.08)",
+    swatchColor: "rgba(249,115,22,0.30)",
+  },
+  grupo: {
+    label: "Grupo",
+    className: "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700",
+    bgColor: "rgba(6,182,212,0.08)",
+    swatchColor: "rgba(6,182,212,0.30)",
+  },
 };
 
 // Attendance-type dot colors (small indicator)
@@ -105,15 +125,23 @@ function AppointmentCard({
   const pacienteNome = ag.pacientes?.nome ?? "Paciente";
   const checkedIn = isPatient ? ag.checkin_paciente : ag.checkin_profissional;
   const canCheckin = ag.status !== "cancelado" && ag.status !== "falta";
-  // Border color: prefer professional color, fall back to status color
-  const borderColor = profColor || statusBorderColors[ag.status] || "#3b82f6";
+  const isCancelled = ag.status === "cancelado" || ag.status === "falta";
+
+  // Visual layer 1 – left border: identifies the professional
+  const profBorderColor = profColor || "#64748b";
+  // Visual layer 2 – top accent: identifies appointment status
+  const statusAccentColor = statusBorderColors[ag.status] || "#3b82f6";
+  // Visual layer 3 – background tint: identifies session type (individual/group)
   const sessTypeInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.individual;
   const attendColor = attendanceTypeColors[ag.tipo_atendimento] || "#64748b";
 
   return (
     <div
-      className="rounded-md bg-card p-2 text-xs shadow-sm relative group cursor-pointer hover:shadow-md transition-all border-l-4 overflow-hidden"
-      style={{ borderLeftColor: borderColor }}
+      className={cn(
+        "rounded-md bg-card p-2 text-xs shadow-sm relative group cursor-pointer hover:shadow-md transition-all border-l-4 overflow-hidden",
+        isCancelled && "opacity-60"
+      )}
+      style={{ borderLeftColor: profBorderColor }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("agendamento-id", ag.id);
@@ -124,10 +152,15 @@ function AppointmentCard({
         onAppointmentClick?.(ag);
       }}
     >
-      {/* Subtle background tint */}
+      {/* Layer 2: status top-accent (2 px) */}
       <div
-        className="absolute inset-0 opacity-[0.06] pointer-events-none"
-        style={{ backgroundColor: borderColor }}
+        className="absolute inset-x-0 top-0 h-[2px] pointer-events-none"
+        style={{ backgroundColor: statusAccentColor }}
+      />
+      {/* Layer 3: session-type background tint */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ backgroundColor: sessTypeInfo.bgColor }}
       />
       <div className="relative z-10">
         {/* Patient name + check-in indicators */}
@@ -164,7 +197,7 @@ function AppointmentCard({
 
         {/* Professional name */}
         {ag.profiles?.nome && (
-          <div className="text-[10px] mt-0.5 font-medium truncate" style={{ color: borderColor }}>
+          <div className="text-[10px] mt-0.5 font-medium truncate" style={{ color: profBorderColor }}>
             {ag.profiles.nome}
           </div>
         )}
@@ -232,35 +265,54 @@ export function CalendarLegend({
   const profsWithColor = profissionais.filter((p) => p.cor_agenda);
 
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground px-1">
-      <span className="font-medium text-foreground mr-1">Status:</span>
-      {Object.entries(statusBorderColors).map(([key, color]) => (
-        <span key={key} className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm border-l-2 inline-block bg-muted/30" style={{ borderLeftColor: color }} />
-          {key.charAt(0).toUpperCase() + key.slice(1)}
-        </span>
-      ))}
-      <span className="font-medium text-foreground mx-1">·</span>
-      <span className="font-medium text-foreground mr-1">Tipo:</span>
-      {Object.entries(sessionTypeConfig).map(([key, cfg]) => (
-        <span key={key} className={cn("flex items-center rounded-full px-1.5 py-0 gap-1", cfg.className)}>
-          {cfg.label}
-        </span>
-      ))}
+    <div className="flex flex-col gap-2 text-[10px] text-muted-foreground px-1 w-full">
+      {/* Row 1: Status (top accent) */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-semibold text-foreground">Status</span>
+        {Object.entries(statusBorderColors).map(([key, color]) => (
+          <span key={key} className="flex items-center gap-1">
+            <span
+              className="inline-flex flex-col w-5 h-3.5 rounded-sm overflow-hidden border border-border/40"
+              title={`Status: ${key}`}
+            >
+              <span className="h-[3px] w-full" style={{ backgroundColor: color }} />
+              <span className="flex-1 bg-muted/30" />
+            </span>
+            {key.charAt(0).toUpperCase() + key.slice(1)}
+          </span>
+        ))}
+      </div>
+
+      {/* Row 2: Session type (background tint) */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-semibold text-foreground">Tipo de sessão</span>
+        {Object.entries(sessionTypeConfig).map(([key, cfg]) => (
+          <span key={key} className="flex items-center gap-1">
+            <span
+              className="inline-block w-5 h-3.5 rounded-sm border border-border/40"
+              style={{ backgroundColor: cfg.swatchColor }}
+              title={`Tipo: ${cfg.label}`}
+            />
+            {cfg.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Row 3: Professional (left border) – only when professionals have assigned colors */}
       {profsWithColor.length > 0 && (
-        <>
-          <span className="font-medium text-foreground mx-1">·</span>
-          <span className="font-medium text-foreground mr-1">Profissional:</span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="font-semibold text-foreground">Profissional</span>
           {profsWithColor.map((p) => (
             <span key={p.user_id} className="flex items-center gap-1">
               <span
-                className="w-2.5 h-2.5 rounded-sm border-l-2 inline-block bg-muted/30"
-                style={{ borderLeftColor: p.cor_agenda ?? "#3b82f6" }}
+                className="inline-block w-5 h-3.5 rounded-sm border-l-4 border-y border-r border-border/40 bg-muted/30"
+                style={{ borderLeftColor: p.cor_agenda ?? "#64748b" }}
+                title={`Profissional: ${p.nome}`}
               />
               {p.nome.split(" ")[0] || p.nome}
             </span>
           ))}
-        </>
+        </div>
       )}
     </div>
   );
@@ -453,8 +505,8 @@ export function WeeklyView({
                 <div className="text-[9px] text-muted-foreground">{dayAgs.length} appt</div>
               )}
             </div>
-            <div className="space-y-1 flex-1 overflow-y-auto">
-              {dayAgs.slice(0, 5).map((ag) => (
+            <div className="space-y-1 flex-1 overflow-y-auto max-h-[320px]">
+              {dayAgs.map((ag) => (
                 <AppointmentCard
                   key={ag.id}
                   ag={ag}
@@ -466,11 +518,6 @@ export function WeeklyView({
                   profColor={profColors[ag.profissional_id]}
                 />
               ))}
-              {dayAgs.length > 5 && (
-                <div className="text-[10px] text-muted-foreground text-center py-0.5">
-                  +{dayAgs.length - 5} mais
-                </div>
-              )}
             </div>
           </div>
         );
@@ -538,21 +585,30 @@ export function MonthlyView({
               >
                 {format(day, "dd")}
               </div>
-              {dayAgs.slice(0, 3).map((ag) => {
+              {dayAgs.slice(0, 4).map((ag) => {
                 const borderColor = profColors[ag.profissional_id] || statusBorderColors[ag.status] || "#3b82f6";
+                const sessInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.individual;
                 return (
                   <div
                     key={ag.id}
-                    className="truncate rounded px-1 py-0.5 mb-0.5 text-[10px] border-l-2"
+                    className={cn(
+                      "truncate rounded px-1 py-0.5 mb-0.5 text-[10px] border-l-2 relative overflow-hidden",
+                      (ag.status === "cancelado" || ag.status === "falta") && "opacity-60"
+                    )}
                     style={{
                       borderLeftColor: borderColor,
-                      backgroundColor: borderColor + "15",
+                      backgroundColor: sessInfo.bgColor,
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onAppointmentClick?.(ag);
                     }}
                   >
+                    {/* Status top accent */}
+                    <span
+                      className="absolute inset-x-0 top-0 h-[2px]"
+                      style={{ backgroundColor: statusBorderColors[ag.status] || "#3b82f6" }}
+                    />
                     <span className="truncate font-medium">
                       {format(new Date(ag.data_horario), "HH:mm")}{" "}
                       {ag.pacientes?.nome?.split(" ")[0]}
@@ -571,9 +627,9 @@ export function MonthlyView({
                   </div>
                 );
               })}
-              {dayAgs.length > 3 && (
-                <div className="text-[10px] text-muted-foreground">
-                  +{dayAgs.length - 3}
+              {dayAgs.length > 4 && (
+                <div className="text-[10px] font-medium text-primary hover:underline cursor-pointer text-center py-0.5">
+                  +{dayAgs.length - 4} mais
                 </div>
               )}
             </div>
