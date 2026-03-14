@@ -357,12 +357,13 @@ const Matriculas = () => {
       if (finalValue > 0) {
         await supabase.from("pagamentos").insert({
           paciente_id: formData.paciente_id,
-          plano_id: mat.id,
+          matricula_id: mat.id,
           profissional_id: user.id,
           valor: finalValue,
           data_vencimento: format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-dd"),
           status: "pendente",
           descricao: `Matrícula Mensal - ${formData.tipo_atendimento}`,
+          origem_tipo: "matricula",
           created_by: user.id,
           clinic_id: activeClinicId,
         });

@@ -97,6 +97,7 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
           data_vencimento: formData.data_vencimento || null,
           status: "pendente",
           descricao: `Plano ${formData.tipo_atendimento} - ${formData.total_sessoes} sessões`,
+          origem_tipo: "plano",
           created_by: userId,
           clinic_id: activeClinicId,
         });

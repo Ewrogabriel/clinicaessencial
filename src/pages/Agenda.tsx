@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDialog";
-import { DailyView, WeeklyView, MonthlyView, type Agendamento } from "@/components/agenda/AgendaViews";
+import { DailyView, WeeklyView, MonthlyView, CalendarLegend, type Agendamento } from "@/components/agenda/AgendaViews";
 import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePersistedFilter } from "@/modules/shared/hooks/usePersistedFilter";
@@ -276,21 +276,7 @@ const Agenda = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground font-medium">Status:</span>
-              {[
-                { key: "agendado", label: "Agendado", color: "hsl(199 89% 48%)" },
-                { key: "confirmado", label: "Confirmado", color: "hsl(168 65% 38%)" },
-                { key: "realizado", label: "Realizado", color: "hsl(142 71% 45%)" },
-                { key: "cancelado", label: "Cancelado", color: "hsl(0 72% 51%)" },
-                { key: "falta", label: "Falta", color: "hsl(38 92% 50%)" },
-              ].map(s => (
-                <div key={s.key} className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                  <span>{s.label}</span>
-                </div>
-              ))}
-            </div>
+            <CalendarLegend />
           </div>
 
           <div className="mt-4">

@@ -170,4 +170,40 @@ describe("financeService", () => {
             expect(result).toEqual({});
         });
     });
+
+    // ── createSessaoAvulsaPayment ─────────────────────────────────────────────
+
+    describe("createSessaoAvulsaPayment", () => {
+        const params = {
+            pacienteId: "patient-001",
+            profissionalId: "prof-001",
+            agendamentoId: "appt-001",
+            valor: 120,
+            tipoAtendimento: "pilates",
+            dataHorario: "2026-06-20T09:00:00.000Z",
+            clinicId: "clinic-001",
+            createdBy: "prof-001",
+        };
+
+        it("inserts a sessao_avulsa payment record", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: [{ id: "pay-001" }], error: null }));
+
+            await expect(financeService.createSessaoAvulsaPayment(params)).resolves.toBeUndefined();
+            expect(supabase.from).toHaveBeenCalledWith("pagamentos");
+        });
+
+        it("throws when insert fails", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: { message: "insert failed" } }));
+
+            await expect(financeService.createSessaoAvulsaPayment(params)).rejects.toBeDefined();
+        });
+
+        it("accepts null clinicId without error", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: [], error: null }));
+
+            await expect(
+                financeService.createSessaoAvulsaPayment({ ...params, clinicId: null })
+            ).resolves.toBeUndefined();
+        });
+    });
 });

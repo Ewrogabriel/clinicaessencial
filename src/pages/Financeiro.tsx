@@ -59,8 +59,18 @@ interface PagamentoRow {
   paciente_id: string;
   profissional_id: string;
   plano_id: string | null;
+  matricula_id: string | null;
+  agendamento_id: string | null;
+  origem_tipo: "matricula" | "plano" | "sessao_avulsa" | "manual" | null;
   pacientes: { nome: string } | null;
 }
+
+const origemConfig: Record<string, { label: string; className: string }> = {
+  matricula: { label: "Matrícula", className: "bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200" },
+  plano: { label: "Plano", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200" },
+  sessao_avulsa: { label: "Sess. Avulsa", className: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" },
+  manual: { label: "Manual", className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
+};
 
 const Financeiro = () => {
   const { user, isPatient } = useAuth();
@@ -69,6 +79,7 @@ const Financeiro = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [filterMes, setFilterMes] = useState("");
   const [filterForma, setFilterForma] = useState("all");
+  const [filterOrigem, setFilterOrigem] = useState("all");
   const [formData, setFormData] = useState({
     paciente_id: "",
     plano_id: "",
@@ -88,8 +99,9 @@ const Financeiro = () => {
       const { data, error } = await supabase
         .from("pagamentos")
         .select(`
-          id, valor, data_pagamento, data_vencimento, status, forma_pagamento, 
-          descricao, created_at, paciente_id, pacientes (nome)
+          id, valor, data_pagamento, data_vencimento, status, forma_pagamento,
+          descricao, created_at, paciente_id, plano_id, matricula_id,
+          agendamento_id, origem_tipo, pacientes (nome)
         `)
         .eq("clinic_id", activeClinicId)
         .order("data_pagamento", { ascending: false });
@@ -181,15 +193,25 @@ const Financeiro = () => {
     if (filterForma && filterForma !== "all") {
       filtered = filtered.filter((p) => p.forma_pagamento === filterForma);
     }
+    if (filterOrigem && filterOrigem !== "all") {
+      filtered = filtered.filter((p) => (p.origem_tipo ?? "manual") === filterOrigem);
+    }
     return filtered;
-  }, [pagamentos, filterMes, filterForma]);
+  }, [pagamentos, filterMes, filterForma, filterOrigem]);
 
   const PaymentRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const pagamento = filteredPagamentos[index];
+    const origem = pagamento.origem_tipo ?? "manual";
+    const origemInfo = origemConfig[origem] ?? origemConfig.manual;
     return (
       <div style={style} className="border-b border-border/50 flex items-center px-4 hover:bg-muted/50 transition-colors">
         {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.pacientes?.nome ?? "—"}</div>}
-        <div className="w-[180px] text-sm truncate pr-4">{pagamento.descricao || "—"}</div>
+        <div className="w-[90px] pr-2">
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
+            {origemInfo.label}
+          </span>
+        </div>
+        <div className="w-[160px] text-sm truncate pr-4">{pagamento.descricao || "—"}</div>
         <div className="w-[100px] text-sm font-semibold pr-4">R$ {Number(pagamento.valor).toFixed(2)}</div>
         <div className="w-[120px] text-sm truncate pr-4">{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</div>
         <div className="w-[100px] text-xs pr-4">{pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "dd/MM/yyyy") : "—"}</div>
@@ -297,8 +319,18 @@ const Financeiro = () => {
                   {Object.entries(formaLabel).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {(filterMes || filterForma !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(""); setFilterForma("all"); }}>Limpar filtros</Button>
+              <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Todos os tipos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="matricula">Matrícula</SelectItem>
+                  <SelectItem value="plano">Plano</SelectItem>
+                  <SelectItem value="sessao_avulsa">Sessão Avulsa</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+              {(filterMes || filterForma !== "all" || filterOrigem !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(""); setFilterForma("all"); setFilterOrigem("all"); }}>Limpar filtros</Button>
               )}
             </div>
           )}
@@ -316,7 +348,8 @@ const Financeiro = () => {
                 <div className="w-full">
                   <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
-                    <div className="w-[180px] pr-4">Descrição</div>
+                    <div className="w-[90px] pr-2">Tipo</div>
+                    <div className="w-[160px] pr-4">Descrição</div>
                     <div className="w-[100px] pr-4">Valor</div>
                     <div className="w-[120px] pr-4">Forma</div>
                     <div className="w-[100px] pr-4">Venc.</div>
