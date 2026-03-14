@@ -344,5 +344,10 @@
   "portal.my_history": "Histórico de Sessões",
   "portal.my_payments": "Meus Pagamentos",
   "portal.my_records": "Prontuário",
-  "portal.my_contract": "Meu Contrato"
+  "portal.my_contract": "Meu Contrato",
+  "nav.session_plans": "Planos de Sessões",
+  "profile.session_plans": "Planos de Sessões",
+  "profile.session_plans_description": "Crie e gerencie os planos de sessões dos seus pacientes, controle o saldo de sessões e acompanhe os vencimentos.",
+  "profile.new_plan": "Novo Plano",
+  "profile.manage_plans": "Administrar Planos"
 }
