@@ -6,6 +6,7 @@ import {
   Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
   Clock, Settings2,
 } from "lucide-react";
+import { memo } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -53,7 +54,7 @@ const RESOURCE_I18N_KEYS: Record<string, string> = {
   precos_planos: "nav.prices", produtos: "nav.products",
 };
 
-export function AppSidebar() {
+export const AppSidebar = memo(function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -269,4 +270,4 @@ export function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
-}
+});

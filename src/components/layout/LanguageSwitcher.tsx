@@ -1,4 +1,5 @@
 import { Globe } from "lucide-react";
+import { memo } from "react";
 import { useI18n, Locale } from "@/modules/shared/hooks/useI18n";
 import {
   DropdownMenu,
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 const flags: Record<Locale, string> = { pt: "🇧🇷", es: "🇪🇸", en: "🇺🇸" };
 
-export function LanguageSwitcher() {
+export const LanguageSwitcher = memo(function LanguageSwitcher() {
   const { locale, setLocale, t } = useI18n();
 
   return (
@@ -34,4 +35,4 @@ export function LanguageSwitcher() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+});

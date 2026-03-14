@@ -7,7 +7,7 @@ export function usePatientProdutos(patientId: string | null, enabled: boolean = 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("*")
+        .select("id, nome, descricao, preco, estoque, ativo, categoria")
         .gt("estoque", 0)
         .eq("ativo", true)
         .order("nome");

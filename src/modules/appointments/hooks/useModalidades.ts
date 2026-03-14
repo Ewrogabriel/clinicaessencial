@@ -21,7 +21,7 @@ export function useModalidades(options: UseModalidadesOptions = {}) {
         queryFn: async () => {
             let query = supabase
                 .from("modalidades")
-                .select("*")
+                .select("id, nome, descricao, ativo, created_by, clinic_id")
                 .order("nome");
 
             if (ativo !== undefined) {
@@ -37,6 +37,7 @@ export function useModalidades(options: UseModalidadesOptions = {}) {
             return (data || []) as Modalidade[];
         },
         enabled,
+        staleTime: 15 * 60 * 1000, // 15 min — modalities rarely change
     });
 }
 

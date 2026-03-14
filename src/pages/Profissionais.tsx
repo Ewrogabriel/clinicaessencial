@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import DisponibilidadeProfissional from "./DisponibilidadeProfissional";
 import { CommissionRules } from "@/components/profissionais/CommissionRules";
 import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
@@ -156,7 +156,7 @@ const Profissionais = () => {
 
       const { data: permsData } = await supabase
         .from("user_permissions")
-        .select("*")
+        .select("user_id, resource, access_level")
         .in("user_id", userIds)
         .eq("enabled", true);
 
@@ -173,14 +173,14 @@ const Profissionais = () => {
     },
   });
 
-  const filtered = users.filter(u => {
+  const filtered = useMemo(() => users.filter(u => {
     const matchSearch = u.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchRole = filterRole === "all" || u.role === filterRole;
     return matchSearch && matchRole;
-  });
+  }), [users, searchTerm, filterRole]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setEditingId(null);
     setIsCreating(false);
     setNome(""); setEmail(""); setTelefone("");
@@ -192,7 +192,8 @@ const Profissionais = () => {
     setTipoContratacao(null); setCnpj(""); setCpf(""); setRg("");
     setDataNascimento(""); setEstadoCivil(null);
     setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openCreate = () => {
     resetForm();

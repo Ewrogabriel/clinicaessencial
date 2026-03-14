@@ -22,7 +22,7 @@ export const useGamification = (pacienteId: string | null, enabled = true) => {
         queryFn: async () => {
             const { data } = await supabase
                 .from("patient_points")
-                .select("*")
+                .select("id, pontos, descricao, created_at, tipo")
                 .eq("paciente_id", pacienteId!)
                 .order("created_at", { ascending: false })
                 .limit(20);
@@ -50,7 +50,7 @@ export const useGamification = (pacienteId: string | null, enabled = true) => {
         queryFn: async () => {
             const { data } = await supabase
                 .from("achievements")
-                .select("*")
+                .select("id, titulo, descricao, pontos, ativo, badge_icon, condicao_tipo, condicao_valor")
                 .eq("ativo", true)
                 .order("pontos", { ascending: true });
             return data || [];
@@ -65,7 +65,7 @@ export const useGamification = (pacienteId: string | null, enabled = true) => {
             const today = new Date().toISOString().split("T")[0];
             const { data: challenges } = await supabase
                 .from("challenges")
-                .select("*")
+                .select("id, titulo, descricao, pontos_recompensa, ativo, data_inicio, data_fim, tipo, meta_valor, badge_icon")
                 .eq("ativo", true)
                 .lte("data_inicio", today)
                 .gte("data_fim", today);
@@ -74,7 +74,7 @@ export const useGamification = (pacienteId: string | null, enabled = true) => {
 
             const { data: progress } = await supabase
                 .from("patient_challenges")
-                .select("*")
+                .select("id, challenge_id, paciente_id, progresso_atual, concluido, concluido_em")
                 .eq("paciente_id", pacienteId!)
                 .in("challenge_id", challenges.map((c) => c.id));
 

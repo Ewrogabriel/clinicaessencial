@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { AdminOnboardingWizard } from "@/components/onboarding/AdminOnboardingWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,12 +93,12 @@ const Dashboard = () => {
         const ids = (cp || []).map((c) => c.paciente_id);
         if (!ids.length) return [];
         const { data, error } = await supabase.from("pacientes")
-          .select("*").in("id", ids).order("created_at", { ascending: false });
+          .select("id, nome, telefone, status, tipo_atendimento, data_nascimento, created_at").in("id", ids).order("created_at", { ascending: false });
         if (error) throw error;
         return data;
       }
       const { data, error } = await supabase.from("pacientes")
-        .select("*").order("created_at", { ascending: false });
+        .select("id, nome, telefone, status, tipo_atendimento, data_nascimento, created_at").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -390,10 +390,10 @@ const Dashboard = () => {
   const saudacao =
     hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
 
-  const ativos = (pacientes || []).filter((p: any) => p.status === "ativo");
-  const recentes = (pacientes || []).slice(0, 5);
+  const ativos = useMemo(() => (pacientes || []).filter((p: any) => p.status === "ativo"), [pacientes]);
+  const recentes = useMemo(() => (pacientes || []).slice(0, 5), [pacientes]);
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       title: "Pacientes Ativos",
       value: String(ativos.length),
@@ -429,7 +429,7 @@ const Dashboard = () => {
       description: alertCount === 0 ? "Nenhum atraso" : `${alertCount} pagamento(s) em atraso`,
       color: alertCount > 0 ? "text-red-600 bg-red-50" : "text-amber-600 bg-amber-50",
     },
-  ];
+  ], [ativos, pacientes, todayStats, occupancyRate, financeData, alertCount]);
 
   if (loading) {
     return <DashboardSkeleton />;

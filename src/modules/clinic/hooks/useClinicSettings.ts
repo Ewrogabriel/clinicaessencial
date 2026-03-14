@@ -24,7 +24,7 @@ export function useClinicSettings() {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("clinic_settings")
-        .select("*")
+        .select("id, nome, cnpj, endereco, numero, bairro, cidade, estado, cep, telefone, whatsapp, email, instagram, logo_url")
         .limit(1)
         .maybeSingle() as any);
       if (error) throw error;
