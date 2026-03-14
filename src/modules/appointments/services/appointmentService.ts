@@ -86,7 +86,7 @@ export const appointmentService = {
         clinicId: string;
     }): Promise<void> {
         try {
-            const { error } = await supabase.rpc("generate_day_slots", {
+            const { error } = await (supabase as any).rpc("generate_day_slots", {
                 p_professional_id: options.professionalId,
                 p_date: options.date,
                 p_clinic_id: options.clinicId,
