@@ -315,6 +315,7 @@ const Profissionais = () => {
           estado: estado || null, cep: cep || null,
           role: selectedRole,
           permissions: selectedRole === "admin" ? [] : selectedPermissions,
+          clinic_id: activeClinicId || null,
         },
       });
 

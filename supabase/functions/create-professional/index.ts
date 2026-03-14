@@ -41,7 +41,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { email, password, nome, telefone, especialidade, commission_rate, commission_fixed, cor_agenda, registro_profissional, tipo_contratacao, cnpj, cpf, rg, data_nascimento, estado_civil, endereco, numero, bairro, cidade, estado, cep, role, permissions } = body;
+    const { email, password, nome, telefone, especialidade, commission_rate, commission_fixed, cor_agenda, registro_profissional, tipo_contratacao, cnpj, cpf, rg, data_nascimento, estado_civil, endereco, numero, bairro, cidade, estado, cep, role, permissions, clinic_id } = body;
 
     if (!email || !password || !nome) {
       return new Response(JSON.stringify({ error: "Email, senha e nome são obrigatórios" }), {
@@ -107,6 +107,15 @@ serve(async (req) => {
         enabled: true,
       }));
       await adminClient.from("user_permissions").insert(permRows);
+    }
+
+    // Add the new user to clinic_users so they can access clinic patients via RLS
+    if (clinic_id) {
+      await adminClient.from("clinic_users").upsert({
+        clinic_id,
+        user_id: newUserId,
+        role: targetRole,
+      }, { onConflict: "clinic_id,user_id" });
     }
 
     return new Response(JSON.stringify({ success: true, user_id: newUserId }), {
