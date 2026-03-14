@@ -49,11 +49,14 @@ const Login = () => {
       await signIn(authEmail, loginSenha);
       navigate("/selecionar-clinica");
     } catch (error: any) {
+      const rawMsg: string = error?.message ?? "";
+      const description =
+        rawMsg === "Invalid login credentials"
+          ? "E-mail ou senha incorretos"
+          : rawMsg || "Erro desconhecido";
       toast({
         title: t("common.error"),
-        description: error.message === "Invalid login credentials"
-          ? "E-mail ou senha incorretos"
-          : error?.message || "Erro desconhecido",
+        description,
         variant: "destructive",
       });
     }
@@ -135,8 +138,8 @@ const Login = () => {
                 <Label htmlFor="login-email">{t("auth.email")}</Label>
                 <Input
                   id="login-email"
-                  type="email"
-                  placeholder="seu@email.com"
+                  type="text"
+                  placeholder="seu@email.com ou CPF"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   required

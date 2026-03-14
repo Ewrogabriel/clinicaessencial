@@ -100,8 +100,7 @@ export const authService = {
             });
             if (error) throw error;
         } catch (error) {
-            handleError(error, "Erro ao fazer login.");
-            throw error;
+            throw handleError(error, "Erro ao fazer login.");
         }
     },
 
@@ -112,8 +111,7 @@ export const authService = {
             });
             if (error) throw error;
         } catch (error) {
-            handleError(error, "Erro ao solicitar recuperação de senha.");
-            throw error;
+            throw handleError(error, "Erro ao solicitar recuperação de senha.");
         }
     }
 };

@@ -5,6 +5,11 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Project reference derived from supabase/config.toml — used as URL fallback
+// so that missing env vars produce an auth error (wrong key) instead of a
+// network error (DNS failure on a non-existent hostname).
+const PROJECT_REF = "oxxsdjznkydvxumkeqef";
+
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error(
     "[Supabase] Environment variables VITE_SUPABASE_URL and/or VITE_SUPABASE_PUBLISHABLE_KEY are not configured. " +
@@ -16,7 +21,7 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(
-  SUPABASE_URL ?? "https://placeholder.supabase.co",
+  SUPABASE_URL ?? `https://${PROJECT_REF}.supabase.co`,
   SUPABASE_PUBLISHABLE_KEY ?? "placeholder-anon-key",
   {
     auth: {

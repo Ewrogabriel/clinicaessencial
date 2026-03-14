@@ -29,7 +29,11 @@ export const handleError = (error: unknown, customMessage?: string) => {
     if (error instanceof AppError) {
         message = error.message;
     } else if (error instanceof Error) {
-        message = error.message;
+        if (error.message === "Failed to fetch" || error.message === "NetworkError when attempting to fetch resource.") {
+            message = "Erro de conexão com o servidor. Verifique sua conexão com a internet e tente novamente.";
+        } else {
+            message = error.message;
+        }
     }
 
     const code = isErrorWithCode(error) ? error.code : undefined;

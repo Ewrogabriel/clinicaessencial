@@ -129,4 +129,22 @@ describe("handleError", () => {
         expect(spy).toHaveBeenCalledTimes(1);
         spy.mockRestore();
     });
+
+    it("translates 'Failed to fetch' network error to Portuguese", () => {
+        const result = handleError(new Error("Failed to fetch"));
+        expect(result.message).toBe(
+            "Erro de conexão com o servidor. Verifique sua conexão com a internet e tente novamente."
+        );
+        expect(toast.error).toHaveBeenCalledWith(
+            "Erro de conexão com o servidor. Verifique sua conexão com a internet e tente novamente.",
+            expect.any(Object)
+        );
+    });
+
+    it("translates Firefox 'NetworkError when attempting to fetch resource.' to Portuguese", () => {
+        const result = handleError(new Error("NetworkError when attempting to fetch resource."));
+        expect(result.message).toBe(
+            "Erro de conexão com o servidor. Verifique sua conexão com a internet e tente novamente."
+        );
+    });
 });
