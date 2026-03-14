@@ -267,7 +267,8 @@ export function CalendarLegend({
 }
 
 // ─── Daily View ──────────────────────────────────────────────
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 6);
+const DEFAULT_START_HOUR = 6;
+const DEFAULT_END_HOUR = 19;
 
 export function DailyView({
   agendamentos,
@@ -285,6 +286,22 @@ export function DailyView({
   const dayAgendamentos = agendamentos.filter((ag) =>
     isSameDay(new Date(ag.data_horario), currentDate)
   );
+
+  // Compute hour range dynamically so sessions at any time of day are visible.
+  const hours = useMemo(() => {
+    let start = DEFAULT_START_HOUR;
+    let end = DEFAULT_END_HOUR;
+    dayAgendamentos.forEach((ag) => {
+      const h = new Date(ag.data_horario).getHours();
+      if (h < start) start = h;
+      // Extend the end hour to cover the last hour the appointment occupies.
+      const endH = ag.duracao_minutos
+        ? Math.min(23, h + Math.ceil(ag.duracao_minutos / 60))
+        : h;
+      if (endH > end) end = endH;
+    });
+    return Array.from({ length: end - start + 1 }, (_, i) => i + start);
+  }, [dayAgendamentos]);
 
   const handleDrop = (e: React.DragEvent, hour: number) => {
     e.preventDefault();
@@ -305,7 +322,7 @@ export function DailyView({
         <span className="text-xs text-muted-foreground">{dayAgendamentos.length} agendamento{dayAgendamentos.length !== 1 ? "s" : ""}</span>
       </div>
       <div className="divide-y">
-        {HOURS.map((hour, idx) => {
+        {hours.map((hour, idx) => {
           const hourAgs = dayAgendamentos.filter(
             (ag) => new Date(ag.data_horario).getHours() === hour
           );

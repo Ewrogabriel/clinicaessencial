@@ -23,6 +23,8 @@ export const appointmentService = {
                     tipo_atendimento,
                     tipo_sessao,
                     valor_sessao,
+                    duracao_minutos,
+                    observacoes,
                     checkin_paciente,
                     checkin_profissional,
                     paciente_id,
