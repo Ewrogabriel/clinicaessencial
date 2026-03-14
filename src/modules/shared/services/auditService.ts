@@ -19,8 +19,7 @@ export const auditService = {
                     acao: options.action,
                     tabela: options.resource,
                     registro_id: options.resourceId,
-                    dados_novos: options.details ?? null,
-                    clinic_id: options.clinicId ?? null,
+                    dados_novos: (options.details ?? null) as any,
                 }]);
 
             if (error) {

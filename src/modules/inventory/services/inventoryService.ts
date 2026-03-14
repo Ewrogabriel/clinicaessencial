@@ -3,7 +3,7 @@ import { handleError } from "../../shared/utils/errorHandler";
 
 /** Column list for product queries (avoids SELECT *). */
 const PRODUCT_COLUMNS =
-    "id, nome, descricao, preco, estoque, categoria, ativo, created_at" as const;
+    "id, nome, descricao, preco, estoque, ativo, created_at" as const;
 
 export const inventoryService = {
     async getProducts() {

@@ -54,7 +54,7 @@ export const clinicGroupService = {
      */
     async getClinicsInGroup(clinicGroupId: string): Promise<ClinicWithGroup[]> {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from("clinicas")
                 .select("id, nome, cnpj, logo_url, cidade, estado, ativo, clinic_group_id")
                 .eq("clinic_group_id", clinicGroupId)

@@ -161,7 +161,7 @@ export const appointmentService = {
 
     async cancelAppointment(appointmentId: string): Promise<void> {
         try {
-            const { error } = await supabase.rpc("cancel_appointment", {
+            const { error } = await (supabase as any).rpc("cancel_appointment", {
                 p_agendamento_id: appointmentId,
             });
             if (error) throw error;

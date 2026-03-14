@@ -72,7 +72,7 @@ export const useGamification = (pacienteId: string | null, enabled = true) => {
 
             if (!challenges?.length) return [];
 
-            const { data: progress } = await supabase
+            const { data: progress } = await (supabase as any)
                 .from("patient_challenges")
                 .select("id, challenge_id, paciente_id, progresso_atual, concluido, concluido_em")
                 .eq("paciente_id", pacienteId!)

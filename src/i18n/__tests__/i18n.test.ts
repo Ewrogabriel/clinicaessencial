@@ -65,49 +65,44 @@ describe("locale JSON files", () => {
 
 describe("i18next instance", () => {
     const originalLang = i18n.language;
+    const t = i18n.t.bind(i18n) as (key: string, opts?: Record<string, unknown>) => string;
 
     afterEach(async () => {
-        // Reset to original language after each test
         await i18n.changeLanguage(originalLang);
     });
 
     it("resolves Portuguese translations", async () => {
         await i18n.changeLanguage("pt");
-        expect(i18n.t("common.save", { ns: "common" })).toBe("Salvar");
-        expect(i18n.t("nav.patients", { ns: "common" })).toBe("Pacientes");
+        expect(t("common.save", { ns: "common" })).toBe("Salvar");
+        expect(t("nav.patients", { ns: "common" })).toBe("Pacientes");
     });
 
     it("resolves English translations", async () => {
         await i18n.changeLanguage("en");
-        expect(i18n.t("common.save", { ns: "common" })).toBe("Save");
-        expect(i18n.t("nav.patients", { ns: "common" })).toBe("Patients");
+        expect(t("common.save", { ns: "common" })).toBe("Save");
+        expect(t("nav.patients", { ns: "common" })).toBe("Patients");
     });
 
     it("resolves Spanish translations", async () => {
         await i18n.changeLanguage("es");
-        expect(i18n.t("common.save", { ns: "common" })).toBe("Guardar");
-        expect(i18n.t("nav.patients", { ns: "common" })).toBe("Pacientes");
+        expect(t("common.save", { ns: "common" })).toBe("Guardar");
+        expect(t("nav.patients", { ns: "common" })).toBe("Pacientes");
     });
 
     it("falls back to Portuguese for a key missing in en", async () => {
-        // We deliberately look up a key that only exists in pt.
-        // i18next should fall back to pt.
         await i18n.changeLanguage("en");
-        // Find a key that's in pt but not in en
         const ptKeys = Object.keys(ptCommon) as Array<keyof typeof ptCommon>;
         const enKeys = new Set(Object.keys(enCommon));
         const ptOnlyKey = ptKeys.find((k) => !enKeys.has(k));
         if (ptOnlyKey) {
-            const result = i18n.t(ptOnlyKey, { ns: "common" });
-            // Should return the pt value, not the raw key
+            const result = t(ptOnlyKey, { ns: "common" });
             expect(result).toBe(ptCommon[ptOnlyKey]);
         }
-        // If there's no such key, the test is vacuously true (parity is complete)
     });
 
     it("returns the key itself when completely unknown", async () => {
         await i18n.changeLanguage("pt");
         const unknownKey = "__test_unknown_key__";
-        expect(i18n.t(unknownKey, { ns: "common" })).toBe(unknownKey);
+        expect(t(unknownKey, { ns: "common" })).toBe(unknownKey);
     });
 });

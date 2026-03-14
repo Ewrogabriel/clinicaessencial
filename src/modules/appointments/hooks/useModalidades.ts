@@ -19,9 +19,9 @@ export function useModalidades(options: UseModalidadesOptions = {}) {
     return useQuery({
         queryKey: ["modalidades", ativo, activeClinicId],
         queryFn: async () => {
-            let query = supabase
+            let query = (supabase as any)
                 .from("modalidades")
-                .select("id, nome, descricao, ativo, created_by, clinic_id")
+                .select("id, nome, descricao, ativo, created_by, clinic_id, created_at")
                 .order("nome");
 
             if (ativo !== undefined) {
