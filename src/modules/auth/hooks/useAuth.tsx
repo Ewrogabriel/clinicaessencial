@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isPatient = roles.includes("paciente");
     const isProfissional = roles.includes("profissional");
     const isSecretario = roles.includes("secretario");
-    const clinicId = profile ? (profile as any).clinic_id as string | null ?? null : null;
+    const clinicId: string | null = null;
 
     const hasPermission = (resource: string) => {
         if (isAdmin) return true;

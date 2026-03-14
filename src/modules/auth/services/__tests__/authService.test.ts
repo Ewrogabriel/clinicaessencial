@@ -42,6 +42,25 @@ describe("AuthService", () => {
             const result = await authService.getProfile("user-123");
             expect(result).toBeNull();
         });
+
+        it("should query foto_url instead of the non-existent avatar_url (fix for 42703)", async () => {
+            mockSingle.mockResolvedValue({ data: null, error: null });
+
+            await authService.getProfile("user-123");
+
+            const selectedColumns: string = mockSelect.mock.calls[0][0];
+            expect(selectedColumns).toContain("foto_url");
+            expect(selectedColumns).not.toContain("avatar_url");
+        });
+
+        it("should not query clinic_id which does not exist on profiles (fix for 42703)", async () => {
+            mockSingle.mockResolvedValue({ data: null, error: null });
+
+            await authService.getProfile("user-123");
+
+            const selectedColumns: string = mockSelect.mock.calls[0][0];
+            expect(selectedColumns).not.toContain("clinic_id");
+        });
     });
 
     describe("getRoles", () => {

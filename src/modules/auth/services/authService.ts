@@ -11,7 +11,7 @@ export interface PermissionEntry {
 
 /** Column list for profile queries (avoids SELECT *). */
 const PROFILE_COLUMNS =
-    "id, user_id, nome, email, telefone, clinic_id, avatar_url, created_at, updated_at" as const;
+    "id, user_id, nome, email, telefone, foto_url, created_at, updated_at" as const;
 
 export const authService = {
     async getProfile(userId: string) {
