@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, subMonths } from "date-fns";
+import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Send, Filter } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Send, Filter, CalendarClock, Clock } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,7 +188,10 @@ const Financeiro = () => {
   const filteredPagamentos = useMemo(() => {
     let filtered = pagamentos || [];
     if (filterMes && filterMes !== "all") {
-      filtered = filtered.filter((p) => p.data_pagamento?.startsWith(filterMes));
+      filtered = filtered.filter((p) =>
+        p.data_pagamento?.startsWith(filterMes) ||
+        (p.status !== "pago" && p.data_vencimento?.startsWith(filterMes))
+      );
     }
     if (filterForma && filterForma !== "all") {
       filtered = filtered.filter((p) => p.forma_pagamento === filterForma);
@@ -198,6 +201,52 @@ const Financeiro = () => {
     }
     return filtered;
   }, [pagamentos, filterMes, filterForma, filterOrigem]);
+
+  const previsaoPagamentos = useMemo(() => {
+    return (pagamentos || [])
+      .filter((p) => p.status === "pendente")
+      .sort((a, b) => {
+        const dateA = a.data_vencimento ? new Date(a.data_vencimento).getTime() : Infinity;
+        const dateB = b.data_vencimento ? new Date(b.data_vencimento).getTime() : Infinity;
+        return dateA - dateB;
+      });
+  }, [pagamentos]);
+
+  const previsaoKpis = useMemo(() => {
+    const today = startOfDay(new Date());
+    const in30Days = addDays(today, 30);
+    const totalPrevisto = previsaoPagamentos.reduce((sum, p) => sum + Number(p.valor), 0);
+    const vencidos = previsaoPagamentos.filter(
+      (p) => p.data_vencimento && isBefore(startOfDay(new Date(p.data_vencimento)), today)
+    );
+    const aVencer30 = previsaoPagamentos.filter((p) => {
+      if (!p.data_vencimento) return false;
+      const d = startOfDay(new Date(p.data_vencimento));
+      return !isBefore(d, today) && !isAfter(d, in30Days);
+    });
+    return {
+      totalPrevisto,
+      countVencidos: vencidos.length,
+      valorVencidos: vencidos.reduce((sum, p) => sum + Number(p.valor), 0),
+      countAVencer30: aVencer30.length,
+      valorAVencer30: aVencer30.reduce((sum, p) => sum + Number(p.valor), 0),
+    };
+  }, [previsaoPagamentos]);
+
+  const confirmPayment = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("pagamentos")
+        .update({ status: "pago", data_pagamento: format(new Date(), "yyyy-MM-dd") })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      toast({ title: "Pagamento confirmado!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
 
   const PaymentRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const pagamento = filteredPagamentos[index];
@@ -289,6 +338,7 @@ const Financeiro = () => {
           <TabsList className="flex flex-wrap w-full max-w-4xl gap-1 h-auto p-1">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="fluxo">Pagamentos</TabsTrigger>
+            <TabsTrigger value="previsao">Previsão</TabsTrigger>
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
             <TabsTrigger value="comissoes">Comissões</TabsTrigger>
             <TabsTrigger value="notas-fiscais">Notas Fiscais</TabsTrigger>
@@ -359,6 +409,113 @@ const Financeiro = () => {
                   </div>
                   <div className="w-full h-[400px] overflow-auto">
                     {filteredPagamentos.map((_, index) => <PaymentRow key={index} index={index} style={{ height: 56 }} />)}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="previsao" className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Previsto</CardTitle>
+                <CalendarClock className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">R$ {previsaoKpis.totalPrevisto.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{previsaoPagamentos.length} pagamento(s) pendente(s)</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Vencidos</CardTitle>
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-destructive">R$ {previsaoKpis.valorVencidos.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{previsaoKpis.countVencidos} pagamento(s) em atraso</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">A Vencer (30 dias)</CardTitle>
+                <Clock className="h-4 w-4 text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-yellow-600">R$ {previsaoKpis.valorAVencer30.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{previsaoKpis.countAVencer30} pagamento(s) nos próximos 30 dias</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
+              ) : previsaoPagamentos.length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 mb-4 opacity-40" />
+                  <p className="text-lg font-medium">Nenhum pagamento pendente</p>
+                </div>
+              ) : (
+                <div className="w-full">
+                  <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
+                    <div className="w-[90px] pr-2">Tipo</div>
+                    <div className="w-[160px] pr-4">Descrição</div>
+                    <div className="w-[100px] pr-4">Valor</div>
+                    <div className="w-[120px] pr-4">Forma</div>
+                    <div className="w-[110px] pr-4">Vencimento</div>
+                    <div className="w-[110px] pr-4">Situação</div>
+                    <div className="w-[100px] text-right">Ação</div>
+                  </div>
+                  <div className="w-full h-[400px] overflow-auto">
+                    {previsaoPagamentos.map((pagamento) => {
+                      const origem = pagamento.origem_tipo ?? "manual";
+                      const origemInfo = origemConfig[origem] ?? origemConfig.manual;
+                      const today = startOfDay(new Date());
+                      const isOverdue = pagamento.data_vencimento
+                        ? isBefore(startOfDay(new Date(pagamento.data_vencimento)), today)
+                        : false;
+                      return (
+                        <div key={pagamento.id} className={`border-b border-border/50 flex items-center px-4 hover:bg-muted/50 transition-colors ${isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""}`} style={{ height: 56 }}>
+                          {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.pacientes?.nome ?? "—"}</div>}
+                          <div className="w-[90px] pr-2">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
+                              {origemInfo.label}
+                            </span>
+                          </div>
+                          <div className="w-[160px] text-sm truncate pr-4">{pagamento.descricao || "—"}</div>
+                          <div className="w-[100px] text-sm font-semibold pr-4">R$ {Number(pagamento.valor).toFixed(2)}</div>
+                          <div className="w-[120px] text-sm truncate pr-4">{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</div>
+                          <div className={`w-[110px] text-xs pr-4 ${isOverdue ? "text-destructive font-semibold" : ""}`}>
+                            {pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "dd/MM/yyyy") : "—"}
+                          </div>
+                          <div className="w-[110px] pr-4">
+                            {isOverdue ? (
+                              <Badge variant="destructive" className="text-[10px] py-0">Vencido</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px] py-0">A vencer</Badge>
+                            )}
+                          </div>
+                          <div className="w-[100px] text-right">
+                            {!isPatient && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                disabled={confirmPayment.isPending}
+                                onClick={() => confirmPayment.mutate(pagamento.id)}
+                              >
+                                Confirmar
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
