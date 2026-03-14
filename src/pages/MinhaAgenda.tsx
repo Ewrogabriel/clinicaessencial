@@ -80,6 +80,7 @@ const MinhaAgenda = () => {
   };
 
   const canAct = (status: string) => status !== "cancelado" && status !== "realizado" && status !== "falta";
+  const canRequestReschedule = (status: string) => status === "cancelado" || status === "falta";
 
   return (
     <div className="space-y-6">
@@ -137,6 +138,17 @@ const MinhaAgenda = () => {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+                    )}
+                    {canRequestReschedule(item.status) && (
+                      <Button
+                        variant="outline" size="sm"
+                        className="h-8 text-xs gap-1 text-amber-700 border-amber-300 hover:bg-amber-50"
+                        onClick={() => setRescheduleDialog(item)}
+                        title="Solicitar reagendamento"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reagendar
+                      </Button>
                     )}
                   </div>
                 </div>

@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { GamificationDashboard } from "@/components/gamification/GamificationDashboard";
 import {
   AlertCircle, Calendar, CreditCard, Trophy, Dumbbell,
@@ -54,6 +58,8 @@ export default function PatientDashboard() {
   const hoje = new Date();
   const saudacao =
     hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
+
+  const [feriadosDialogOpen, setFeriadosDialogOpen] = useState(false);
 
   const { data: paciente } = useQuery({
     queryKey: ["paciente-by-user", user?.id],
@@ -219,14 +225,29 @@ export default function PatientDashboard() {
     queryKey: ["feriados-proximos"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
+      const in30Days = new Date();
+      in30Days.setDate(in30Days.getDate() + 30);
+      const in30DaysStr = in30Days.toISOString().split("T")[0];
       const { data } = await supabase
         .from("feriados")
         .select("*")
         .gte("data", today)
-        .order("data")
-        .limit(5);
+        .lte("data", in30DaysStr)
+        .order("data");
       return data || [];
     },
+  });
+
+  const { data: todosOsFeriados = [] } = useQuery({
+    queryKey: ["feriados-todos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("feriados")
+        .select("*")
+        .order("data");
+      return data || [];
+    },
+    enabled: feriadosDialogOpen,
   });
 
   const { data: totalPoints } = useQuery({
@@ -323,16 +344,16 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* Botão WhatsApp fixo */}
+      {/* Botão flutuante Fale com a Clínica */}
       {clinicSettings?.whatsapp && (
-        <Button
+        <button
           onClick={openWhatsApp}
-          className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
-          size="lg"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
+          aria-label="Fale com a clínica via WhatsApp"
         >
           <WhatsAppIcon className="h-5 w-5" />
-          Falar com a clínica via WhatsApp
-        </Button>
+          <span className="hidden sm:inline">Fale com a clínica</span>
+        </button>
       )}
 
       {/* Alerta de pagamentos pendentes */}
@@ -698,10 +719,20 @@ export default function PatientDashboard() {
         {isCardVisible("feriados") && feriados.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-orange-600" />
-                Próximos Feriados
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-orange-600" />
+                  Feriados — próximos 30 dias
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 px-2 text-muted-foreground"
+                  onClick={() => setFeriadosDialogOpen(true)}
+                >
+                  Ver todos →
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-1">
@@ -723,6 +754,40 @@ export default function PatientDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Feriados list dialog */}
+        <Dialog open={feriadosDialogOpen} onOpenChange={setFeriadosDialogOpen}>
+          <DialogContent className="sm:max-w-[420px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-orange-600" />
+                Todos os Feriados
+              </DialogTitle>
+            </DialogHeader>
+            {todosOsFeriados.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">Nenhum feriado cadastrado.</p>
+            ) : (
+              <div className="space-y-1">
+                {todosOsFeriados.map((f: any, idx) => (
+                  <div key={f.id}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg">
+                      <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-lg shrink-0">
+                        <CalendarDays className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{f.descricao}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(f.data), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                    {idx < todosOsFeriados.length - 1 && <Separator />}
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Conquistas */}
         {isCardVisible("conquistas") && (

@@ -29,7 +29,7 @@ describe("AuthService", () => {
     describe("getProfile", () => {
         it("should return profile data when successful", async () => {
             const mockProfile = { id: "1", nome: "Test User" };
-            mockSingle.mockResolvedValue({ data: mockProfile, error: null });
+            mockMaybeSingle.mockResolvedValue({ data: mockProfile, error: null });
 
             const result = await authService.getProfile("user-123");
             expect(result).toEqual(mockProfile);
@@ -37,14 +37,14 @@ describe("AuthService", () => {
         });
 
         it("should return null and handle error on failure", async () => {
-            mockSingle.mockResolvedValue({ data: null, error: { message: "Error" } });
+            mockMaybeSingle.mockResolvedValue({ data: null, error: { message: "Error" } });
 
             const result = await authService.getProfile("user-123");
             expect(result).toBeNull();
         });
 
         it("should query foto_url instead of the non-existent avatar_url (fix for 42703)", async () => {
-            mockSingle.mockResolvedValue({ data: null, error: null });
+            mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
             await authService.getProfile("user-123");
 
@@ -54,7 +54,7 @@ describe("AuthService", () => {
         });
 
         it("should not query clinic_id which does not exist on profiles (fix for 42703)", async () => {
-            mockSingle.mockResolvedValue({ data: null, error: null });
+            mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
             await authService.getProfile("user-123");
 

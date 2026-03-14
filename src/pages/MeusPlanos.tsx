@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle2, CreditCard, FileText, CalendarPlus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,15 +10,12 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { useCrossBookingClinics } from "@/modules/appointments/hooks/useCrossBooking";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -280,112 +277,16 @@ const MeusPlanos = () => {
         <p className="text-muted-foreground">Acompanhe seus planos de sessões e matrículas ativas</p>
       </div>
 
-      {/* Active plan highlight */}
-      {planoAtivo && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Plano Ativo</p>
-                  <p className="text-2xl font-bold capitalize">{planoAtivo.tipo_atendimento}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-4xl font-bold text-primary">
-                    {Math.max(0, creditosReais)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Sessões disponíveis</p>
-                  {sessoesAtivas.length > 0 && (
-                    <p className="text-xs text-muted-foreground">{sessoesAtivas.length} agendadas</p>
-                  )}
-                </div>
-              </div>
-              <Progress
-                value={((planoAtivo.sessoes_utilizadas + sessoesAtivas.length) / planoAtivo.total_sessoes) * 100}
-                className="h-3"
-              />
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                <div>
-                  <p className="text-xs text-muted-foreground">Profissional</p>
-                  <p className="font-medium">{planoAtivo.profiles?.nome || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Vencimento</p>
-                  <p className="font-medium">
-                    {planoAtivo.data_vencimento
-                      ? format(new Date(planoAtivo.data_vencimento), "dd/MM/yyyy")
-                      : "Sem data"}
-                  </p>
-                </div>
-              </div>
-              {creditosReais > 0 && (
-                <Button className="w-full gap-2" onClick={() => openAgendar(planoAtivo)}>
-                  <CalendarPlus className="h-4 w-4" />
-                  Agendar Consulta
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Active matrícula highlight */}
-      {matriculaAtiva && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Matrícula Ativa</p>
-                <p className="text-xl font-bold capitalize">{matriculaAtiva.tipo_atendimento}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {matriculaAtiva.tipo === "mensal" ? "Mensal" : matriculaAtiva.tipo} • 
-                  Profissional: {(profMap as Record<string,string>)[matriculaAtiva.profissional_id] || "N/A"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-primary">
-                  R$ {Number(matriculaAtiva.valor_mensal).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground">/mês</p>
-                {matriculaAtiva.desconto > 0 && (
-                  <Badge variant="secondary" className="mt-1 text-xs">
-                    {matriculaAtiva.desconto}% desconto
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 pt-3 mt-3 border-t text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Início</p>
-                <p className="font-medium">{format(new Date(matriculaAtiva.data_inicio), "dd/MM/yyyy")}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Vencimento</p>
-                <p className="font-medium">
-                  {matriculaAtiva.data_vencimento
-                    ? format(new Date(matriculaAtiva.data_vencimento), "dd/MM/yyyy")
-                    : "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Dia pgto</p>
-                <p className="font-medium">Todo dia {matriculaAtiva.due_day}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!planoAtivo && !matriculaAtiva && (
+      {planos.length === 0 && matriculas.length === 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Você não possui plano ou matrícula ativa. Entre em contato com a clínica.
+            Você não possui plano ou matrícula. Entre em contato com a clínica.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Tabs for history */}
+      {/* Tabs: all plans and enrollments without duplication */}
       <Tabs defaultValue="planos">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="planos" className="gap-2">
@@ -397,118 +298,131 @@ const MeusPlanos = () => {
         </TabsList>
 
         <TabsContent value="planos" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Histórico de Planos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {planos.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">Nenhum plano encontrado</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Profissional</TableHead>
-                        <TableHead>Sessões</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Período</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {planos.map((plano: any) => {
-                        const st = statusPlano[plano.status] || statusPlano.ativo;
-                        const restante = plano.total_sessoes - plano.sessoes_utilizadas;
-                        return (
-                          <TableRow key={plano.id}>
-                            <TableCell className="capitalize font-medium">{plano.tipo_atendimento}</TableCell>
-                            <TableCell>{plano.profiles?.nome || "N/A"}</TableCell>
-                            <TableCell>
-                              {plano.sessoes_utilizadas}/{plano.total_sessoes}
-                              <span className="text-xs text-muted-foreground ml-1">({restante} rest.)</span>
-                            </TableCell>
-                            <TableCell>R$ {Number(plano.valor).toFixed(2)}</TableCell>
-                            <TableCell className="text-sm">
-                              {format(new Date(plano.data_inicio), "dd/MM/yy")}
-                              {plano.data_vencimento && ` — ${format(new Date(plano.data_vencimento), "dd/MM/yy")}`}
-                            </TableCell>
-                            <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
-                            <TableCell className="text-right">
-                              {plano.status === "ativo" && restante > 0 && (
-                                <Button size="sm" variant="outline" onClick={() => openAgendar(plano)}>
-                                  <CalendarPlus className="h-4 w-4 mr-1" /> Agendar
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="space-y-3">
+            {planos.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">Nenhum plano encontrado</CardContent>
+              </Card>
+            ) : (
+              planos.map((plano: any) => {
+                const st = statusPlano[plano.status] || statusPlano.ativo;
+                const isAtivo = plano.status === "ativo";
+                const sessAtivas = isAtivo && plano.id === planoAtivo?.id ? sessoesAtivas.length : 0;
+                const restante = plano.total_sessoes - plano.sessoes_utilizadas - sessAtivas;
+                return (
+                  <Card key={plano.id} className={isAtivo ? "border-primary/40 bg-primary/5" : ""}>
+                    <CardContent className="pt-5 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold capitalize text-base">{plano.tipo_atendimento}</p>
+                          <p className="text-sm text-muted-foreground">{plano.profiles?.nome || "N/A"}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge variant={st.variant}>{st.label}</Badge>
+                          {isAtivo && (
+                            <p className="text-2xl font-bold text-primary mt-1">{Math.max(0, restante)}</p>
+                          )}
+                          {isAtivo && <p className="text-xs text-muted-foreground">sess. disponíveis</p>}
+                          {isAtivo && sessAtivas > 0 && (
+                            <p className="text-xs text-muted-foreground">{sessAtivas} agendadas</p>
+                          )}
+                        </div>
+                      </div>
+                      {isAtivo && (
+                        <Progress
+                          value={((plano.sessoes_utilizadas + sessAtivas) / plano.total_sessoes) * 100}
+                          className="h-2"
+                        />
+                      )}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Sessões</p>
+                          <p>{plano.sessoes_utilizadas}/{plano.total_sessoes}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Valor</p>
+                          <p>R$ {Number(plano.valor).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Início</p>
+                          <p>{format(new Date(plano.data_inicio), "dd/MM/yyyy")}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Vencimento</p>
+                          <p>{plano.data_vencimento ? format(new Date(plano.data_vencimento), "dd/MM/yyyy") : "—"}</p>
+                        </div>
+                      </div>
+                      {isAtivo && restante > 0 && (
+                        <Button className="w-full gap-2" size="sm" onClick={() => openAgendar(plano)}>
+                          <CalendarPlus className="h-4 w-4" /> Agendar Consulta
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="matriculas" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Minhas Matrículas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {matriculas.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">Nenhuma matrícula encontrada</p>
-              ) : (
-                <div className="space-y-3">
-                  {matriculas.map((m: any) => {
-                    const st = statusMatricula[m.status] || statusMatricula.ativa;
-                    return (
-                      <div key={m.id} className="p-4 rounded-lg border space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium capitalize">{m.tipo_atendimento}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {m.tipo === "mensal" ? "Mensal" : m.tipo} • 
-                              Prof.: {(profMap as Record<string,string>)[m.profissional_id] || "N/A"}
-                            </p>
-                          </div>
-                          <Badge variant={st.variant}>{st.label}</Badge>
+          <div className="space-y-3">
+            {matriculas.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">Nenhuma matrícula encontrada</CardContent>
+              </Card>
+            ) : (
+              matriculas.map((m: any) => {
+                const st = statusMatricula[m.status] || statusMatricula.ativa;
+                const isAtiva = m.status === "ativa";
+                return (
+                  <Card key={m.id} className={isAtiva ? "border-primary/40 bg-primary/5" : ""}>
+                    <CardContent className="pt-5 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold capitalize text-base">{m.tipo_atendimento}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {m.tipo === "mensal" ? "Mensal" : m.tipo} •{" "}
+                            Prof.: {(profMap as Record<string, string>)[m.profissional_id] || "N/A"}
+                          </p>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Valor</p>
-                            <p className="font-medium">R$ {Number(m.valor_mensal).toFixed(2)}/mês</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Início</p>
-                            <p>{format(new Date(m.data_inicio), "dd/MM/yyyy")}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Vencimento</p>
-                            <p>{m.data_vencimento ? format(new Date(m.data_vencimento), "dd/MM/yyyy") : "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Dia pgto</p>
-                            <p>Todo dia {m.due_day}</p>
-                          </div>
+                        <div className="text-right shrink-0">
+                          <Badge variant={st.variant}>{st.label}</Badge>
+                          <p className="text-xl font-bold text-primary mt-1">
+                            R$ {Number(m.valor_mensal).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">/mês</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm border-t pt-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Início</p>
+                          <p>{format(new Date(m.data_inicio), "dd/MM/yyyy")}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Vencimento</p>
+                          <p>{m.data_vencimento ? format(new Date(m.data_vencimento), "dd/MM/yyyy") : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Dia pgto</p>
+                          <p>Todo dia {m.due_day}</p>
                         </div>
                         {m.desconto > 0 && (
-                          <p className="text-xs text-green-600">Desconto: {m.desconto}%</p>
-                        )}
-                        {m.observacoes && (
-                          <p className="text-xs text-muted-foreground">{m.observacoes}</p>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Desconto</p>
+                            <p className="text-green-600 font-medium">{m.desconto}%</p>
+                          </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      {m.observacoes && (
+                        <p className="text-xs text-muted-foreground">{m.observacoes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

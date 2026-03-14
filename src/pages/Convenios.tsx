@@ -67,14 +67,14 @@ const Convenios = () => {
   const [filterCategoria, setFilterCategoria] = useState("todas");
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [detailConvenio, setDetailConvenio] = useState<Convenio | null>(null);
 
   const { data: convenios = [], isLoading } = useQuery<Convenio[]>({
     queryKey: ["convenios"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("convenios")
-        .select("*")
-        .order("nome");
+      const query = supabase.from("convenios").select("*").order("nome");
+      // Patients only see active partners
+      const { data, error } = isPatient ? await query.eq("ativo", true) : await query;
       if (error) throw error;
       return (data || []) as Convenio[];
     },
@@ -277,6 +277,54 @@ const Convenios = () => {
         </div>
       )}
 
+      {/* Patient card grid view */}
+      {isPatient ? (
+        <div>
+          {isLoading ? (
+            <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
+          ) : filteredConvenios.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-muted-foreground">
+              <Globe className="h-12 w-12 mb-4 opacity-40" />
+              <p className="text-lg font-medium">Nenhum parceiro disponível</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredConvenios.map((c) => (
+                <button
+                  key={c.id}
+                  className="text-left rounded-xl border bg-card hover:shadow-md hover:border-primary/40 transition-all overflow-hidden"
+                  onClick={() => setDetailConvenio(c)}
+                >
+                  {c.imagem_card_url ? (
+                    <img src={c.imagem_card_url} alt={c.nome} className="w-full h-36 object-cover" />
+                  ) : (
+                    <div className="w-full h-36 bg-muted flex items-center justify-center">
+                      <Globe className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <div className="p-4 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold truncate">{c.nome}</p>
+                      {(c as any).categoria && (
+                        <Badge variant="secondary" className="shrink-0 text-xs">{(c as any).categoria}</Badge>
+                      )}
+                    </div>
+                    {c.descricao && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{c.descricao}</p>
+                    )}
+                    <div className="flex items-center gap-3 pt-1 text-muted-foreground">
+                      {c.whatsapp && <Phone className="h-3.5 w-3.5" />}
+                      {c.email && <Mail className="h-3.5 w-3.5" />}
+                      {c.instagram && <Instagram className="h-3.5 w-3.5" />}
+                      {c.site && <Globe className="h-3.5 w-3.5" />}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -376,6 +424,95 @@ const Convenios = () => {
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Patient partner detail dialog */}
+      <Dialog open={!!detailConvenio} onOpenChange={(open) => !open && setDetailConvenio(null)}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          {detailConvenio && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {detailConvenio.imagem_card_url ? (
+                    <img src={detailConvenio.imagem_card_url} alt={detailConvenio.nome} className="h-8 w-8 rounded-md object-cover" />
+                  ) : (
+                    <Globe className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  {detailConvenio.nome}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {detailConvenio.imagem_descricao_url && (
+                  <img
+                    src={detailConvenio.imagem_descricao_url}
+                    alt={detailConvenio.nome}
+                    className="w-full rounded-lg object-cover max-h-48"
+                  />
+                )}
+                {(detailConvenio as any).categoria && (
+                  <Badge variant="secondary">{(detailConvenio as any).categoria}</Badge>
+                )}
+                {detailConvenio.descricao && (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{detailConvenio.descricao}</p>
+                )}
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  {detailConvenio.whatsapp && (
+                    <a
+                      href={`https://wa.me/${detailConvenio.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-green-700 hover:underline"
+                    >
+                      <Phone className="h-4 w-4" />
+                      {detailConvenio.whatsapp}
+                    </a>
+                  )}
+                  {detailConvenio.telefone && !detailConvenio.whatsapp && (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      {detailConvenio.telefone}
+                    </span>
+                  )}
+                  {detailConvenio.email && (
+                    <a href={`mailto:${detailConvenio.email}`} className="flex items-center gap-2 text-primary hover:underline">
+                      <Mail className="h-4 w-4" />
+                      {detailConvenio.email}
+                    </a>
+                  )}
+                  {detailConvenio.instagram && (
+                    <a
+                      href={`https://instagram.com/${detailConvenio.instagram.replace("@", "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-pink-600 hover:underline"
+                    >
+                      <Instagram className="h-4 w-4" />
+                      {detailConvenio.instagram}
+                    </a>
+                  )}
+                  {detailConvenio.site && (
+                    <a
+                      href={detailConvenio.site.startsWith("http") ? detailConvenio.site : `https://${detailConvenio.site}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-blue-600 hover:underline"
+                    >
+                      <Globe className="h-4 w-4" />
+                      {detailConvenio.site}
+                    </a>
+                  )}
+                  {detailConvenio.endereco && (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      {detailConvenio.endereco}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

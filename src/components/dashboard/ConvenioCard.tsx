@@ -27,6 +27,7 @@ interface Convenio {
 export function ConvenioCard() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedConvenio, setSelectedConvenio] = useState<Convenio | null>(null);
   const navigate = useNavigate();
   const { data: clinicSettings } = useClinicSettings();
 
@@ -43,34 +44,39 @@ export function ConvenioCard() {
     },
   });
 
-  // Auto-rotate every 8 seconds
+  // Auto-rotate every 8 seconds – pauses while detail dialog is open
   useEffect(() => {
-    if (convenios.length <= 1) return;
+    if (convenios.length <= 1 || detailOpen) return;
     setCurrentIndex(Math.floor(Math.random() * convenios.length));
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % convenios.length);
     }, 8000);
     return () => clearInterval(interval);
-  }, [convenios.length]);
+  }, [convenios.length, detailOpen]);
 
   if (convenios.length === 0) return null;
 
   const convenio = convenios[currentIndex];
   if (!convenio) return null;
 
-  const clinicName = clinicSettings?.nome || "nossa clínica";
-  const whatsappMessage = encodeURIComponent(
-    `Olá! 😊 Sou cliente da *${clinicName}* e vim através da parceria. Gostaria de saber mais sobre os serviços oferecidos. Poderia me ajudar?`
-  );
-  const whatsappUrl = convenio.whatsapp
-    ? `https://wa.me/${convenio.whatsapp.replace(/\D/g, "")}?text=${whatsappMessage}`
-    : null;
+  const getWhatsappUrl = (c: Convenio) => {
+    const clinicName = clinicSettings?.nome || "nossa clínica";
+    const whatsappMessage = encodeURIComponent(
+      `Olá! 😊 Sou cliente da *${clinicName}* e vim através da parceria. Gostaria de saber mais sobre os serviços oferecidos. Poderia me ajudar?`
+    );
+    return c.whatsapp
+      ? `https://wa.me/${c.whatsapp.replace(/\D/g, "")}?text=${whatsappMessage}`
+      : null;
+  };
+
+  const whatsappUrl = getWhatsappUrl(convenio);
+  const detailWhatsappUrl = selectedConvenio ? getWhatsappUrl(selectedConvenio) : null;
 
   return (
     <>
       <Card
         className="cursor-pointer hover:shadow-md transition-shadow border-primary/20 overflow-hidden"
-        onClick={() => setDetailOpen(true)}
+        onClick={() => { setSelectedConvenio(convenio); setDetailOpen(true); }}
       >
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -135,84 +141,88 @@ export function ConvenioCard() {
       </Card>
 
       {/* Detail Dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+      <Dialog open={detailOpen} onOpenChange={(open) => { setDetailOpen(open); if (!open) setSelectedConvenio(null); }}>
         <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
+          {selectedConvenio && (
+          <>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-primary" />
-              {convenio.nome}
+              {selectedConvenio.nome}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {convenio.imagem_descricao_url && (
+            {selectedConvenio.imagem_descricao_url && (
               <img
-                src={convenio.imagem_descricao_url}
-                alt={convenio.nome}
+                src={selectedConvenio.imagem_descricao_url}
+                alt={selectedConvenio.nome}
                 className="w-full rounded-lg object-cover max-h-56"
               />
             )}
-            {!convenio.imagem_descricao_url && convenio.imagem_card_url && (
+            {!selectedConvenio.imagem_descricao_url && selectedConvenio.imagem_card_url && (
               <img
-                src={convenio.imagem_card_url}
-                alt={convenio.nome}
+                src={selectedConvenio.imagem_card_url}
+                alt={selectedConvenio.nome}
                 className="w-full rounded-lg object-cover max-h-56"
               />
             )}
 
-            {convenio.descricao && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{convenio.descricao}</p>
+            {selectedConvenio.descricao && (
+              <p className="text-sm text-muted-foreground leading-relaxed">{selectedConvenio.descricao}</p>
             )}
 
             <div className="space-y-2 text-sm">
-              {convenio.endereco && (
+              {selectedConvenio.endereco && (
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground">📍</span>
-                  <span>{convenio.endereco}</span>
+                  <span>{selectedConvenio.endereco}</span>
                 </div>
               )}
-              {convenio.telefone && (
+              {selectedConvenio.telefone && (
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground">📞</span>
-                  <span>{convenio.telefone}</span>
+                  <span>{selectedConvenio.telefone}</span>
                 </div>
               )}
-              {convenio.email && (
+              {selectedConvenio.email && (
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground">✉️</span>
-                  <a href={`mailto:${convenio.email}`} className="text-primary hover:underline">{convenio.email}</a>
+                  <a href={`mailto:${selectedConvenio.email}`} className="text-primary hover:underline">{selectedConvenio.email}</a>
                 </div>
               )}
-              {convenio.site && (
+              {selectedConvenio.site && (
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground">🌐</span>
-                  <a href={convenio.site} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{convenio.site}</a>
+                  <a href={selectedConvenio.site} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selectedConvenio.site}</a>
                 </div>
               )}
-              {convenio.instagram && (
+              {selectedConvenio.instagram && (
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground">📸</span>
                   <a
-                    href={`https://instagram.com/${convenio.instagram.replace("@", "")}`}
+                    href={`https://instagram.com/${selectedConvenio.instagram.replace("@", "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    {convenio.instagram}
+                    {selectedConvenio.instagram}
                   </a>
                 </div>
               )}
             </div>
 
-            {whatsappUrl && (
+            {detailWhatsappUrl && (
               <Button
                 className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => window.open(whatsappUrl, "_blank")}
+                onClick={() => window.open(detailWhatsappUrl, "_blank")}
               >
                 <MessageCircle className="h-4 w-4" />
                 Enviar WhatsApp
               </Button>
             )}
           </div>
+          </>
+          )}
         </DialogContent>
       </Dialog>
     </>

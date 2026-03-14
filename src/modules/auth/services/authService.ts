@@ -20,10 +20,10 @@ export const authService = {
                 .from("profiles")
                 .select(PROFILE_COLUMNS)
                 .eq("user_id", userId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
-            return data;
+            return data ?? null;
         } catch (error) {
             handleError(error, "Erro ao buscar perfil do usuário.");
             return null;
