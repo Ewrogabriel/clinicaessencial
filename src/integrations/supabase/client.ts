@@ -8,7 +8,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Project reference derived from supabase/config.toml — used as URL fallback
 // so that missing env vars produce an auth error (wrong key) instead of a
 // network error (DNS failure on a non-existent hostname).
-const PROJECT_REF = "pzfrcknnqjkqhmupprsi";
+const PROJECT_REF = "oxxsdjznkydvxumkeqef";
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error(
