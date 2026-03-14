@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { authService, AppRole, PermissionEntry } from "../services/authService";
@@ -38,6 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [permissions, setPermissions] = useState<PermissionEntry[]>([]);
     const [patientId, setPatientId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    // Ref keeps the safety timer in sync with the current loading state without
+    // needing to add `loading` to the effect dependency array (which would cause
+    // the effect to re-run on every loading change and re-subscribe to auth events).
+    const loadingRef = useRef(true);
 
     const loadUserData = async (userId: string) => {
         try {
@@ -91,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.error("[Auth] Fatal initialization error:", err);
             } finally {
                 if (mounted) {
+                    loadingRef.current = false;
                     setLoading(false);
                     console.log("[Auth] Initial logic finished, loading set to false");
                 }
@@ -110,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (session?.user) {
                         await loadUserData(session.user.id);
                     }
+                    loadingRef.current = false;
                     setLoading(false);
                 } else if (event === "SIGNED_OUT") {
                     setSession(null);
@@ -118,15 +124,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setRoles([]);
                     setPermissions([]);
                     setPatientId(null);
+                    loadingRef.current = false;
                     setLoading(false);
                 }
             }
         );
 
-        // Safety timeout to ensure app unblocks even if getSession/onAuthStateChange fail
+        // Safety timeout to ensure app unblocks even if getSession/onAuthStateChange fail.
+        // Uses a ref instead of the `loading` state variable to avoid a stale closure
+        // (the closure would always capture the initial value `true` of `loading`).
         const safetyTimer = setTimeout(() => {
-            if (mounted && loading) {
+            if (mounted && loadingRef.current) {
                 console.warn("[Auth] Safety timeout triggered - forcing loading: false");
+                loadingRef.current = false;
                 setLoading(false);
             }
         }, 8000);

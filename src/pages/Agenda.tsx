@@ -145,7 +145,11 @@ const Agenda = () => {
   };
 
   const handleDragDrop = async (agId: string, newDate: Date) => {
-    rescheduleMutation.mutate({ id: agId, newDate, profissionalId: user?.id || "" }, {
+    // Use the appointment's own profissional_id for the double-booking check,
+    // not the currently logged-in user's ID (which may be an admin, not the professional).
+    const ag = agendamentos.find((a) => a.id === agId);
+    const profissionalId = ag?.profissional_id || user?.id || "";
+    rescheduleMutation.mutate({ id: agId, newDate, profissionalId }, {
       onSuccess: () => { toast({ title: "Sessão reagendada! 📅", description: format(newDate, "dd/MM/yyyy 'às' HH:mm") }); refetchAgendamentos(); },
     });
   };

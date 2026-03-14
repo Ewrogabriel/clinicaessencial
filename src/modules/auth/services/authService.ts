@@ -9,12 +9,16 @@ export interface PermissionEntry {
     access_level: "view" | "edit";
 }
 
+/** Column list for profile queries (avoids SELECT *). */
+const PROFILE_COLUMNS =
+    "id, user_id, nome, email, telefone, clinic_id, avatar_url, created_at, updated_at" as const;
+
 export const authService = {
     async getProfile(userId: string) {
         try {
             const { data, error } = await supabase
                 .from("profiles")
-                .select("*")
+                .select(PROFILE_COLUMNS)
                 .eq("user_id", userId)
                 .single();
 

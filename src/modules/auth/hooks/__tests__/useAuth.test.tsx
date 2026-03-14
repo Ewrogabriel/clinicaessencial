@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { ReactNode } from "react";
 
 // Must use vi.hoisted so mocks are available in vi.mock factory
@@ -344,6 +344,62 @@ describe("useAuth Hook", () => {
 
       expect(result.current.hasPermission("any_resource")).toBe(true);
       expect(result.current.canEdit("any_resource")).toBe(true);
+    });
+  });
+
+  describe("Safety Timer (stale-closure fix)", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should force loading=false after 8 s when getSession never resolves", async () => {
+      vi.useFakeTimers();
+
+      // getSession hangs forever (never resolves)
+      mockSupabaseAuth.getSession.mockReturnValue(new Promise(() => {}));
+      mockSupabaseAuth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      // loading is still true while getSession is pending
+      expect(result.current.loading).toBe(true);
+
+      // Advance past the 8-second safety timeout
+      await act(async () => {
+        vi.advanceTimersByTime(8001);
+      });
+
+      expect(result.current.loading).toBe(false);
+    });
+
+    it("should NOT re-trigger loading when getSession resolves before the safety timer fires", async () => {
+      vi.useFakeTimers();
+
+      // getSession resolves immediately (no session)
+      mockSupabaseAuth.getSession.mockResolvedValue({ data: { session: null } });
+      mockSupabaseAuth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      // Let async microtasks (getSession.then) finish
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve(); // flush multiple microtask ticks
+      });
+
+      expect(result.current.loading).toBe(false);
+
+      // Advance past safety timeout — should not throw or cause additional state updates
+      await act(async () => {
+        vi.advanceTimersByTime(8001);
+      });
+
+      // Loading remains false and was not toggled
+      expect(result.current.loading).toBe(false);
     });
   });
 });

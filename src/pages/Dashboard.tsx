@@ -203,23 +203,25 @@ const Dashboard = () => {
           end: end.toISOString().split("T")[0],
         });
       }
-      const results = [];
-      for (const m of months) {
-        let q = supabase.from("agendamentos")
-          .select("status")
-          .gte("data_horario", `${m.start}T00:00:00`)
-          .lte("data_horario", `${m.end}T23:59:59`);
-        if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
-        const { data } = await q;
-        const all = data || [];
-        results.push({
-          mes: m.label,
-          realizadas: all.filter((a) => a.status === "realizado").length,
-          faltas: all.filter((a) => a.status === "falta").length,
-          canceladas: all.filter((a) => a.status === "cancelado").length,
-        });
-      }
-      return results;
+      // Run all 6 month queries in parallel instead of sequentially
+      const rows = await Promise.all(
+        months.map(async (m) => {
+          let q = supabase.from("agendamentos")
+            .select("status")
+            .gte("data_horario", `${m.start}T00:00:00`)
+            .lte("data_horario", `${m.end}T23:59:59`);
+          if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+          const { data } = await q;
+          const all = data || [];
+          return {
+            mes: m.label,
+            realizadas: all.filter((a) => a.status === "realizado").length,
+            faltas: all.filter((a) => a.status === "falta").length,
+            canceladas: all.filter((a) => a.status === "cancelado").length,
+          };
+        })
+      );
+      return rows;
     },
   });
   // Ranking de frequência - pacientes que menos cancelam

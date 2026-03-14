@@ -282,6 +282,10 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
   const onSubmit = async (values: FormData) => {
     if (!user) return;
+    if (!activeClinicId) {
+      toast.error("Selecione uma clínica antes de criar um agendamento.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -305,7 +309,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             tipo_sessao: values.tipo_sessao,
             observacoes: values.observacoes,
             created_by: user.id,
-            clinic_id: activeClinicId
+            clinic_id: activeClinicId,
           });
         }
       }

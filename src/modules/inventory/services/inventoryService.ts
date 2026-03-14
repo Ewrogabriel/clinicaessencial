@@ -1,12 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "../../shared/utils/errorHandler";
 
+/** Column list for product queries (avoids SELECT *). */
+const PRODUCT_COLUMNS =
+    "id, nome, descricao, preco, estoque, categoria, ativo, created_at" as const;
+
 export const inventoryService = {
     async getProducts() {
         try {
             const { data, error } = await supabase
                 .from("produtos")
-                .select("*")
+                .select(PRODUCT_COLUMNS)
                 .order("nome");
 
             if (error) throw error;
