@@ -168,6 +168,7 @@ export const AppSidebar = memo(function AppSidebar() {
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
     { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
+    { title: t("nav.session_plans"), url: "/planos", icon: ClipboardList },
     { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
     { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
   ];

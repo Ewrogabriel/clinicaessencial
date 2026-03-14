@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useI18n } from "@/modules/shared/hooks/useI18n";
@@ -12,15 +13,18 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Upload, FileText, Trash2, Camera, Video, Home } from "lucide-react";
+import { User, Upload, FileText, Trash2, Camera, Video, Home, ClipboardList, ArrowRight, Plus } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
+import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
 
 const PerfilProfissional = () => {
   const { user, profile: authProfile } = useAuth();
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const [planoFormOpen, setPlanoFormOpen] = useState(false);
 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -77,6 +81,22 @@ const PerfilProfissional = () => {
       return data ?? [];
     },
     enabled: !!user,
+  });
+
+  const { data: pacientes = [] } = useQuery({
+    queryKey: ["pacientes-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: modalidades = [] } = useQuery({
+    queryKey: ["modalidades-ativas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
   });
 
   const saveMutation = useMutation({
@@ -295,6 +315,26 @@ const PerfilProfissional = () => {
         </Button>
       </div>
 
+      {/* Planos de Sessões */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" /> {t("profile.session_plans")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            {t("profile.session_plans_description")}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => setPlanoFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> {t("profile.new_plan")}
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/planos")}>
+              <ArrowRight className="h-4 w-4 mr-2" /> {t("profile.manage_plans")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Documents */}
       <Card>
         <CardHeader>
@@ -329,6 +369,15 @@ const PerfilProfissional = () => {
           )}
         </CardContent>
       </Card>
+
+      <PlanoFormDialog
+        open={planoFormOpen}
+        onOpenChange={setPlanoFormOpen}
+        editPlano={null}
+        pacientes={pacientes}
+        modalidades={modalidades}
+        userId={user?.id || ""}
+      />
     </div>
   );
 };

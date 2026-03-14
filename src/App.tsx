@@ -68,6 +68,7 @@ const Marketing = lazy(() => import("./pages/Marketing"));
 const Teleconsulta = lazy(() => import("./pages/Teleconsulta"));
 const TeleconsultaHub = lazy(() => import("./pages/TeleconsultaHub"));
 const PlanosExercicios = lazy(() => import("./pages/PlanosExercicios"));
+const Planos = lazy(() => import("./pages/Planos"));
 const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
 
 
@@ -161,6 +162,7 @@ const App = () => (
                         <Route path="/teleconsulta" element={<Teleconsulta />} />
                         <Route path="/teleconsulta-hub" element={<TeleconsultaHub />} />
                         <Route path="/planos-exercicios" element={<PlanosExercicios />} />
+                        <Route path="/planos" element={<Planos />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>

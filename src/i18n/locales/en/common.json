@@ -324,5 +324,10 @@
   "portal.my_history": "Session History",
   "portal.my_payments": "My Payments",
   "portal.my_records": "Medical Records",
-  "portal.my_contract": "My Contract"
+  "portal.my_contract": "My Contract",
+  "nav.session_plans": "Session Plans",
+  "profile.session_plans": "Session Plans",
+  "profile.session_plans_description": "Create and manage your patients' session plans, track session balance and monitor expiration dates.",
+  "profile.new_plan": "New Plan",
+  "profile.manage_plans": "Manage Plans"
 }
