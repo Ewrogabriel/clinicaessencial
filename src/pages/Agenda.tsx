@@ -42,6 +42,7 @@ const Agenda = () => {
   const [filterStatus, setFilterStatus] = usePersistedFilter("agenda-status", "all");
 
   const isStaff = isAdmin || isGestor;
+  const canSeeAllTabs = isStaff || isProfissional;
   const canSeeAllProfessionals = isStaff || isProfissional;
 
   // Fetch professionals
@@ -202,7 +203,7 @@ const Agenda = () => {
         )}
       </div>
 
-      {isStaff && (
+      {canSeeAllTabs && (
         <Tabs value={mainTab} onValueChange={setMainTab}>
           <TabsList>
             <TabsTrigger value="agenda" className="gap-1.5">Agenda</TabsTrigger>
@@ -223,7 +224,7 @@ const Agenda = () => {
         </Tabs>
       )}
 
-      {(mainTab === "agenda" || !isStaff) && (
+      {(mainTab === "agenda" || !canSeeAllTabs) && (
         <>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 flex-wrap">
