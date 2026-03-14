@@ -3,6 +3,7 @@ import { FixedSizeList, type ListChildComponentProps } from "react-window";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -102,6 +103,7 @@ const Pacientes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeClinicId } = useClinic();
+  const { user, isProfissional } = useAuth();
   const { isAtLimit: pacienteLimitReached } = usePlanLimitCheck("pacientes");
   const [busca, setBusca] = useState("");
   const deferredBusca = useDeferredValue(busca);
@@ -158,10 +160,12 @@ const Pacientes = () => {
         p.email?.toLowerCase().includes(deferredBusca.toLowerCase());
       const matchTipo = filtroTipo === "todos" || p.tipo_atendimento === filtroTipo;
       const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
-      const matchProf = filtroProfissional === "todos" || p.profissional_id === filtroProfissional;
+      const matchProf = isProfissional
+        ? p.profissional_id === user?.id
+        : filtroProfissional === "todos" || p.profissional_id === filtroProfissional;
       return matchBusca && matchTipo && matchStatus && matchProf;
     });
-  }, [pacientes, deferredBusca, filtroTipo, filtroStatus, filtroProfissional]);
+  }, [pacientes, deferredBusca, filtroTipo, filtroStatus, filtroProfissional, isProfissional, user?.id]);
 
   const handleInativar = async () => {
     if (!deleteId) return;
@@ -207,9 +211,11 @@ const Pacientes = () => {
           <p className="text-sm text-muted-foreground">Gerencie os pacientes da clínica</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Paciente
-          </Button>
+          {!isProfissional && (
+            <Button size="sm" onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
+              <Plus className="h-4 w-4 mr-1" /> Novo Paciente
+            </Button>
+          )}
         </div>
       </div>
 

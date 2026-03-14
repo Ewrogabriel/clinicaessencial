@@ -50,8 +50,9 @@ const emptyForm = {
 
 export default function Equipamentos() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, isAdmin, isGestor, isMaster } = useAuth();
   const { activeClinicId } = useClinic();
+  const canEdit = isAdmin || isGestor || isMaster;
   const [items, setItems] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -146,9 +147,11 @@ export default function Equipamentos() {
           <Button onClick={() => downloadEquipamentosPDF(items)} variant="outline" className="gap-2">
             <Package className="h-4 w-4" /> Extrair Lista PDF
           </Button>
-          <Button onClick={() => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> {t("equip.add")}
-          </Button>
+          {canEdit && (
+            <Button onClick={() => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" /> {t("equip.add")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -250,8 +253,12 @@ export default function Equipamentos() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)}><Edit2 className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            {canEdit && (
+                              <>
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(item)}><Edit2 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -264,7 +271,7 @@ export default function Equipamentos() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={canEdit && dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? t("common.edit") : t("equip.add")}</DialogTitle>

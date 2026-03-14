@@ -183,7 +183,6 @@ export const AppSidebar = memo(function AppSidebar() {
   ];
 
   const menuProfissionalConfig = [
-    { title: t("nav.partners"), url: "/convenios", icon: Handshake },
     { title: t("nav.contracts"), url: "/contratos", icon: FileText },
     { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
     { title: t("nav.notices"), url: "/avisos", icon: Megaphone },

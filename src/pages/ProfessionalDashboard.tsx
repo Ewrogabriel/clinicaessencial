@@ -377,6 +377,12 @@ const ProfessionalDashboard = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button size="sm" className="gap-2" onClick={() => navigate("/agenda")}>
+            <Calendar className="h-4 w-4" /> Novo Agendamento
+          </Button>
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate("/matriculas")}>
+            <UserPlus className="h-4 w-4" /> Nova Matrícula
+          </Button>
           <Button size="sm" variant="outline" className="gap-2" onClick={() => {
             const link = `${window.location.origin}/pre-cadastro`;
             const msg = `Olá! Para agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição.`;
