@@ -58,7 +58,7 @@ export const appointmentService = {
         clinicId: string | null
     }): Promise<ScheduleSlot[]> {
         try {
-            let query = supabase
+            let query = (supabase as any)
                 .from("schedule_slots")
                 .select(SCHEDULE_SLOT_COLUMNS)
                 .eq("date", options.date)
