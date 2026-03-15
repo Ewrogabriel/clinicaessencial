@@ -60,9 +60,12 @@ const MeusPagamentos = () => {
     enabled: !!patientId,
   });
 
-  const statusMap: Record<string, { label: string; variant: "default" | "destructive" }> = {
+  const statusMap: Record<string, { label: string; variant: "default" | "destructive" | "secondary" | "outline" }> = {
     pago: { label: "Pago", variant: "default" },
     pendente: { label: "Pendente", variant: "destructive" },
+    cancelado: { label: "Cancelado", variant: "outline" },
+    reembolsado: { label: "Reembolsado", variant: "secondary" },
+    vencido: { label: "Vencido", variant: "destructive" },
   };
 
   const totalPago = pagamentos
@@ -70,7 +73,7 @@ const MeusPagamentos = () => {
     .reduce((acc: number, p: any) => acc + Number(p.valor), 0);
 
   const totalPendente = pagamentos
-    .filter((p: any) => p.status === 'pendente')
+    .filter((p: any) => p.status === 'pendente' || p.status === 'vencido')
     .reduce((acc: number, p: any) => acc + Number(p.valor), 0);
 
   const handleDownloadReceipt = async (pagamento: any) => {

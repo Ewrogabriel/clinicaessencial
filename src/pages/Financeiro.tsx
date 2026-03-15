@@ -27,6 +27,7 @@ import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { FinanceDashboard } from "@/components/reports/FinanceDashboard";
 import { lazy, Suspense } from "react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+import { financeService } from "@/modules/finance/services/financeService";
 
 const NotasFiscais = lazy(() => import("./NotasFiscais"));
 const Comissoes = lazy(() => import("./Comissoes"));
@@ -37,6 +38,8 @@ const statusBadge: Record<string, { label: string; variant: "default" | "seconda
   cancelado: { label: "Cancelado", variant: "outline" },
   aberto: { label: "Aberto", variant: "destructive" },
   anulado: { label: "Anulado", variant: "outline" },
+  reembolsado: { label: "Reembolsado", variant: "secondary" },
+  vencido: { label: "Vencido", variant: "destructive" },
 };
 
 const formaLabel: Record<string, string> = {
@@ -269,12 +272,20 @@ const Financeiro = () => {
   const kpis = useMemo(() => {
     const paid = allPayments.filter((p) => p.status === "pago");
     const pending = allPayments.filter((p) => p.status === "pendente" || p.status === "aberto");
+    const overdue = allPayments.filter((p) => p.status === "vencido");
+    const refunded = allPayments.filter((p) => p.status === "reembolsado");
     const totalRecebido = paid.reduce((sum, p) => sum + p.valor, 0);
     const totalPendente = pending.reduce((sum, p) => sum + p.valor, 0);
     const totalDespesas = (despesasForDre || []).filter((d) => d.status === "pago").reduce((sum, d) => sum + Number(d.valor), 0);
     const totalComissoes = (comissoesForDre || []).reduce((sum, c) => sum + Number(c.valor), 0);
-    const lucroLiquido = totalRecebido - totalDespesas - totalComissoes;
-    return { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos: paid.length, countPendentes: pending.length, lucroLiquido };
+    const lucroLiquido = totalRecebido - refunded.reduce((sum, p) => sum + p.valor, 0) - totalDespesas - totalComissoes;
+    return {
+      totalRecebido, totalPendente, totalDespesas, totalComissoes,
+      countPagos: paid.length, countPendentes: pending.length,
+      countVencidos: overdue.length, valorVencidos: overdue.reduce((sum, p) => sum + p.valor, 0),
+      countReembolsados: refunded.length, valorReembolsados: refunded.reduce((sum, p) => sum + p.valor, 0),
+      lucroLiquido,
+    };
   }, [allPayments, despesasForDre, comissoesForDre]);
 
   const { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido } = kpis;
@@ -303,7 +314,7 @@ const Financeiro = () => {
 
   const previsaoPagamentos = useMemo(() => {
     return allPayments
-      .filter((p) => p.status === "pendente" || p.status === "aberto")
+      .filter((p) => p.status === "pendente" || p.status === "aberto" || p.status === "vencido")
       .sort((a, b) => {
         const dateA = a.data_vencimento ? new Date(a.data_vencimento).getTime() : (a.data_pagamento ? new Date(a.data_pagamento).getTime() : Infinity);
         const dateB = b.data_vencimento ? new Date(b.data_vencimento).getTime() : (b.data_pagamento ? new Date(b.data_pagamento).getTime() : Infinity);
@@ -350,6 +361,13 @@ const Financeiro = () => {
   const confirmPayment = useMutation({
     mutationFn: async ({ id, source, data_pagamento, forma_pagamento_id }: { id: string; source: string; data_pagamento: string; forma_pagamento_id: string }) => {
       const table = source as "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
+
+      // Guard: prevent confirming a payment that is already in a terminal state
+      const existing = allPayments.find((p) => p.id === id);
+      if (existing && (existing.status === "pago" || existing.status === "cancelado" || existing.status === "reembolsado")) {
+        throw new Error("Este pagamento já está em um estado final e não pode ser confirmado novamente.");
+      }
+
       if (table === "pagamentos") {
         const tipo = formasPagamentoList.find(f => f.id === forma_pagamento_id)?.tipo ?? "pix";
         const formaEnum = TIPO_TO_FORMA_ENUM[tipo] ?? "pix";
@@ -367,6 +385,17 @@ const Financeiro = () => {
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setConfirmDialog(null);
       toast({ title: "Pagamento confirmado!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const refundPayment = useMutation({
+    mutationFn: async (id: string) => {
+      await financeService.refundPayment(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      toast({ title: "Pagamento reembolsado!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
@@ -522,7 +551,18 @@ const Financeiro = () => {
                                   <Download className="h-4 w-4" />
                                 </Button>
                               )}
-                              {!isPaid && !isPatient && (
+                              {isPaid && pagamento.source_table === "pagamentos" && !isPatient && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-destructive hover:text-destructive"
+                                  disabled={refundPayment.isPending}
+                                  onClick={() => refundPayment.mutate(pagamento.id)}
+                                >
+                                  Reembolsar
+                                </Button>
+                              )}
+                              {!isPaid && pagamento.status !== "cancelado" && pagamento.status !== "reembolsado" && !isPatient && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -625,7 +665,7 @@ const Financeiro = () => {
                               {formatDate(pagamento.data_vencimento)}
                             </div>
                             <div className="w-[110px] pr-4">
-                              {isOverdue ? (
+                              {pagamento.status === "vencido" || isOverdue ? (
                                 <Badge variant="destructive" className="text-[10px] py-0">Vencido</Badge>
                               ) : (
                                 <Badge variant="secondary" className="text-[10px] py-0">A vencer</Badge>
@@ -666,6 +706,12 @@ const Financeiro = () => {
                   <span className="font-medium text-green-600">(+) Receita Operacional</span>
                   <span className="font-bold text-green-600">R$ {totalRecebido.toFixed(2)}</span>
                 </div>
+                {kpis.valorReembolsados > 0 && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium text-orange-600">(-) Reembolsos</span>
+                    <span className="font-bold text-orange-600">R$ {kpis.valorReembolsados.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="font-medium text-red-600">(-) Despesas Operacionais</span>
                   <span className="font-bold text-red-600">R$ {totalDespesas.toFixed(2)}</span>

@@ -106,6 +106,82 @@ export const financeService = {
         }
     },
 
+    /**
+     * Refund a confirmed payment by setting its status to 'reembolsado'.
+     * Only 'pago' payments can be refunded. Throws if the payment is not
+     * in the 'pago' state to prevent invalid state transitions.
+     */
+    async refundPayment(id: string): Promise<void> {
+        try {
+            // Guard: only allow refund of paid payments
+            const { data: current, error: fetchError } = await supabase
+                .from("pagamentos")
+                .select("id, status")
+                .eq("id", id)
+                .single();
+            if (fetchError) throw fetchError;
+            if (!current || current.status !== "pago") {
+                throw new Error("Apenas pagamentos com status 'pago' podem ser reembolsados.");
+            }
+
+            const { error } = await supabase
+                .from("pagamentos")
+                .update({ status: "reembolsado" } as any)
+                .eq("id", id);
+            if (error) throw error;
+        } catch (error) {
+            handleError(error, "Erro ao reembolsar pagamento.");
+            throw error;
+        }
+    },
+
+    /**
+     * Mark a single pending payment as overdue ('vencido').
+     * Only 'pendente' payments with an expired data_vencimento are affected.
+     */
+    async markPaymentOverdue(id: string): Promise<void> {
+        try {
+            const today = new Date().toISOString().split("T")[0];
+            const { data: current, error: fetchError } = await supabase
+                .from("pagamentos")
+                .select("id, status, data_vencimento")
+                .eq("id", id)
+                .single();
+            if (fetchError) throw fetchError;
+            if (!current || current.status !== "pendente") {
+                throw new Error("Apenas pagamentos pendentes podem ser marcados como vencidos.");
+            }
+            if (!current.data_vencimento || current.data_vencimento > today) {
+                throw new Error("O pagamento ainda não está vencido.");
+            }
+
+            const { error } = await supabase
+                .from("pagamentos")
+                .update({ status: "vencido" } as any)
+                .eq("id", id);
+            if (error) throw error;
+        } catch (error) {
+            handleError(error, "Erro ao marcar pagamento como vencido.");
+            throw error;
+        }
+    },
+
+    /**
+     * Calls the DB function mark_overdue_pagamentos() which bulk-updates all
+     * 'pendente' payments with expired data_vencimento to 'vencido'.
+     * Returns the number of payments updated.
+     */
+    async syncOverduePagamentos(): Promise<number> {
+        try {
+            const { data, error } = await supabase.rpc("mark_overdue_pagamentos");
+            if (error) throw error;
+            return (data as number) ?? 0;
+        } catch (error) {
+            handleError(error, "Erro ao sincronizar pagamentos vencidos.");
+            return 0;
+        }
+    },
+
     /** Manually create a sessão avulsa payment linked to an appointment.
      *  Called from the frontend as a fallback when the DB trigger cannot run
      *  (e.g. the appointment was already 'realizado' before the trigger was added).

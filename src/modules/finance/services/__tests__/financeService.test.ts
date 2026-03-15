@@ -206,4 +206,109 @@ describe("financeService", () => {
             ).resolves.toBeUndefined();
         });
     });
+
+    // ── refundPayment ─────────────────────────────────────────────────────────
+
+    describe("refundPayment", () => {
+        it("refunds a pago payment successfully", async () => {
+            // First call: fetch current status
+            supabase.from.mockReturnValueOnce(chain({ data: { id: "pay-001", status: "pago" }, error: null }));
+            // Second call: update status
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: null }));
+
+            await expect(financeService.refundPayment("pay-001")).resolves.toBeUndefined();
+        });
+
+        it("throws when payment is not pago", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: { id: "pay-001", status: "pendente" }, error: null }));
+
+            await expect(financeService.refundPayment("pay-001")).rejects.toThrow(
+                /apenas pagamentos com status 'pago'/i
+            );
+        });
+
+        it("throws when fetch fails", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: { message: "fetch failed" } }));
+
+            await expect(financeService.refundPayment("pay-001")).rejects.toBeDefined();
+        });
+
+        it("throws when update fails", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: { id: "pay-001", status: "pago" }, error: null }));
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: { message: "update failed" } }));
+
+            await expect(financeService.refundPayment("pay-001")).rejects.toBeDefined();
+        });
+    });
+
+    // ── markPaymentOverdue ────────────────────────────────────────────────────
+
+    describe("markPaymentOverdue", () => {
+        it("marks a past-due pending payment as vencido", async () => {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+            supabase.from.mockReturnValueOnce(
+                chain({ data: { id: "pay-002", status: "pendente", data_vencimento: yesterday }, error: null })
+            );
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: null }));
+
+            await expect(financeService.markPaymentOverdue("pay-002")).resolves.toBeUndefined();
+        });
+
+        it("throws when payment is not pendente", async () => {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+            supabase.from.mockReturnValueOnce(
+                chain({ data: { id: "pay-002", status: "pago", data_vencimento: yesterday }, error: null })
+            );
+
+            await expect(financeService.markPaymentOverdue("pay-002")).rejects.toThrow(
+                /apenas pagamentos pendentes/i
+            );
+        });
+
+        it("succeeds when data_vencimento is today", async () => {
+            const today = new Date().toISOString().split("T")[0];
+            supabase.from.mockReturnValueOnce(
+                chain({ data: { id: "pay-002", status: "pendente", data_vencimento: today }, error: null })
+            );
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: null }));
+
+            await expect(financeService.markPaymentOverdue("pay-002")).resolves.toBeUndefined();
+        });
+
+        it("throws when data_vencimento is in the future", async () => {
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+            supabase.from.mockReturnValueOnce(
+                chain({ data: { id: "pay-002", status: "pendente", data_vencimento: tomorrow }, error: null })
+            );
+
+            await expect(financeService.markPaymentOverdue("pay-002")).rejects.toThrow(
+                /ainda não está vencido/i
+            );
+        });
+
+        it("throws when fetch fails", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: null, error: { message: "fetch failed" } }));
+
+            await expect(financeService.markPaymentOverdue("pay-002")).rejects.toBeDefined();
+        });
+    });
+
+    // ── syncOverduePagamentos ─────────────────────────────────────────────────
+
+    describe("syncOverduePagamentos", () => {
+        it("returns count of updated rows from RPC", async () => {
+            supabase.rpc = vi.fn().mockReturnValueOnce(chain({ data: 5, error: null }));
+
+            const result = await financeService.syncOverduePagamentos();
+            expect(result).toBe(5);
+            expect(supabase.rpc).toHaveBeenCalledWith("mark_overdue_pagamentos");
+        });
+
+        it("returns 0 on error", async () => {
+            supabase.rpc = vi.fn().mockReturnValueOnce(chain({ data: null, error: { message: "rpc error" } }));
+
+            const result = await financeService.syncOverduePagamentos();
+            expect(result).toBe(0);
+        });
+    });
 });

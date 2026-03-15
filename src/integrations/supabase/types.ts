@@ -4168,7 +4168,7 @@ export type Database = {
         | "reagendado"
         | "pendente"
       status_paciente: "ativo" | "inativo"
-      status_pagamento: "pendente" | "pago" | "cancelado"
+      status_pagamento: "pendente" | "pago" | "cancelado" | "reembolsado" | "vencido"
       status_plano:
         | "ativo"
         | "vencido"
@@ -4330,7 +4330,7 @@ export const Constants = {
         "pendente",
       ],
       status_paciente: ["ativo", "inativo"],
-      status_pagamento: ["pendente", "pago", "cancelado"],
+      status_pagamento: ["pendente", "pago", "cancelado", "reembolsado", "vencido"],
       status_plano: ["ativo", "vencido", "cancelado", "finalizado", "suspenso"],
       tipo_atendimento: ["fisioterapia", "pilates", "rpg"],
       tipo_sessao: ["individual", "grupo"],
