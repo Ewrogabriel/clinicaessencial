@@ -11,7 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useModalidades } from "@/modules/appointments/hooks/useModalidades";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { useWeekdaySlots } from "@/modules/appointments/hooks/useAppointments";
+
+const ALL_HOURS: string[] = Array.from({ length: 17 }, (_, i) => {
+  const h = 6 + i;
+  return `${String(h).padStart(2, "0")}:00`;
+});
 
 const WEEKDAYS = [
   { value: 0, label: "Domingo" },
@@ -53,15 +57,6 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
   const [newWeekday, setNewWeekday] = useState("");
   const [newProfessional, setNewProfessional] = useState("");
   const [newTime, setNewTime] = useState("");
-
-  const weekdayNum = newWeekday !== "" ? Number(newWeekday) : undefined;
-
-  const { data: weekdaySlots = [], isLoading: isLoadingSlots } = useWeekdaySlots({
-    professionalId: newProfessional || undefined,
-    weekday: weekdayNum,
-    clinicId: activeClinicId,
-    durationMin: 60,
-  });
 
   useEffect(() => {
     setNewTime("");
@@ -272,25 +267,20 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
                 <Select
                   value={newTime}
                   onValueChange={setNewTime}
-                  disabled={isLoadingSlots || !newProfessional || newWeekday === ""}
+                  disabled={!newProfessional || newWeekday === ""}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder={
-                      isLoadingSlots ? "Carregando..." :
                       (!newProfessional || newWeekday === "") ? "Selecione o dia e o profissional" :
-                      weekdaySlots.length === 0 ? "Sem horários disponíveis" :
                       "Selecione o horário"
                     } />
                   </SelectTrigger>
                   <SelectContent>
-                    {weekdaySlots.map((slot) => (
-                      <SelectItem key={slot.time} value={slot.time}>
+                    {ALL_HOURS.map((time) => (
+                      <SelectItem key={time} value={time} aria-label={`Horário ${time}`}>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{slot.time}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-200">
-                            até {slot.max_capacity} pacientes
-                          </span>
+                          <Clock className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                          <span className="font-medium">{time}</span>
                         </div>
                       </SelectItem>
                     ))}
