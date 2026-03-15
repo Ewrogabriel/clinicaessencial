@@ -436,8 +436,8 @@ const Financeiro = () => {
                   <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
-              {(filterMes || filterOrigem !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(""); setFilterOrigem("all"); }}>Limpar filtros</Button>
+              {(filterMes !== format(new Date(), "yyyy-MM") || filterOrigem !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(format(new Date(), "yyyy-MM")); setFilterOrigem("all"); }}>Limpar filtros</Button>
               )}
             </div>
           )}
