@@ -150,17 +150,40 @@ const Planos = () => {
     mutationFn: async ({ planoId, data_pagamento, forma_pagamento_id }: { planoId: string; data_pagamento: string; forma_pagamento_id: string }) => {
       const tipo = formasPagamentoList.find((f: { id: string; tipo: string }) => f.id === forma_pagamento_id)?.tipo ?? "pix";
       const formaEnum = TIPO_TO_FORMA_ENUM[tipo] ?? "pix";
-      const { error } = await supabase
+      
+      const { data: updated, error: updateError } = await supabase
         .from("pagamentos")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update({ status: "pago" as any, data_pagamento, forma_pagamento: formaEnum } as any)
         .eq("plano_id", planoId)
-        .eq("status", "pendente");
-      if (error) throw error;
+        .eq("status", "pendente")
+        .select();
+
+      if (updateError) throw updateError;
+
+      // Se não atualizou nada, significa que é um plano antigo sem cobrança pendente. Vamos criar uma PAGA direto.
+      if (!updated || updated.length === 0) {
+         const planoToUpdate = planos.find(p => p.id === planoId);
+         if (planoToUpdate) {
+            const { error: insertError } = await supabase.from("pagamentos").insert({
+              paciente_id: planoToUpdate.paciente_id,
+              profissional_id: planoToUpdate.profissional_id,
+              plano_id: planoId,
+              origem_tipo: "plano",
+              valor: planoToUpdate.valor,
+              data_pagamento: data_pagamento,
+              forma_pagamento: formaEnum as any,
+              status: "pago",
+              descricao: `Plano - Baixa manual retrospectiva`
+            });
+            if (insertError) throw insertError;
+         }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["planos"] });
       queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setConfirmDialog(null);
       toast({ title: "Pagamento confirmado!" });
     },
