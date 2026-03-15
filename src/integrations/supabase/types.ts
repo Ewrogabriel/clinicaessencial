@@ -1728,6 +1728,7 @@ export type Database = {
           dia_semana: number[] | null
           hora_preferida_fim: string | null
           hora_preferida_inicio: string | null
+          horarios_preferidos: Json | null
           id: string
           matricula_id: string | null
           notificado_em: string | null
@@ -1745,6 +1746,7 @@ export type Database = {
           dia_semana?: number[] | null
           hora_preferida_fim?: string | null
           hora_preferida_inicio?: string | null
+          horarios_preferidos?: Json | null
           id?: string
           matricula_id?: string | null
           notificado_em?: string | null
@@ -1762,6 +1764,7 @@ export type Database = {
           dia_semana?: number[] | null
           hora_preferida_fim?: string | null
           hora_preferida_inicio?: string | null
+          horarios_preferidos?: Json | null
           id?: string
           matricula_id?: string | null
           notificado_em?: string | null
