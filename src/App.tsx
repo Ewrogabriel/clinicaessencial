@@ -81,6 +81,12 @@ const DashboardToggle = () => {
   return <PatientDashboard />;
 };
 
+const MeuPerfilToggle = () => {
+  const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
+  if (isAdmin || isGestor || isSecretario || isProfissional || isMaster) return <PerfilProfissional />;
+  return <MeuPerfil />;
+};
+
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 const App = () => (
@@ -124,7 +130,7 @@ const App = () => (
                         <Route path="/check-in" element={<CheckInProfissional />} />
                         <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
                         <Route path="/meus-planos" element={<MeusPlanos />} />
-                        <Route path="/meu-perfil" element={<MeuPerfil />} />
+                        <Route path="/meu-perfil" element={<MeuPerfilToggle />} />
                         <Route path="/meu-historico" element={<HistoricoSessoes />} />
                         <Route path="/matriculas" element={<Matriculas />} />
                         <Route path="/inventario" element={<Inventario />} />
