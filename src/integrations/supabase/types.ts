@@ -2332,6 +2332,7 @@ export type Database = {
       }
       pagamentos: {
         Row: {
+          agendamento_id: string | null
           clinic_id: string | null
           created_at: string
           created_by: string
@@ -2340,7 +2341,9 @@ export type Database = {
           descricao: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
           id: string
+          matricula_id: string | null
           observacoes: string | null
+          origem_tipo: string | null
           paciente_id: string
           plano_id: string | null
           profissional_id: string
@@ -2349,6 +2352,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          agendamento_id?: string | null
           clinic_id?: string | null
           created_at?: string
           created_by: string
@@ -2359,7 +2363,9 @@ export type Database = {
             | Database["public"]["Enums"]["forma_pagamento"]
             | null
           id?: string
+          matricula_id?: string | null
           observacoes?: string | null
+          origem_tipo?: string | null
           paciente_id: string
           plano_id?: string | null
           profissional_id: string
@@ -2368,6 +2374,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          agendamento_id?: string | null
           clinic_id?: string | null
           created_at?: string
           created_by?: string
@@ -2378,7 +2385,9 @@ export type Database = {
             | Database["public"]["Enums"]["forma_pagamento"]
             | null
           id?: string
+          matricula_id?: string | null
           observacoes?: string | null
+          origem_tipo?: string | null
           paciente_id?: string
           plano_id?: string | null
           profissional_id?: string
@@ -2387,6 +2396,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "pagamentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pagamentos_clinic_id_fkey"
             columns: ["clinic_id"]

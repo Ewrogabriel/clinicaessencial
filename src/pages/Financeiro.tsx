@@ -325,11 +325,28 @@ const Financeiro = () => {
     };
   }, [previsaoPagamentos]);
 
+  // Maps formas_pagamento.tipo (free-text) to the pagamentos.forma_pagamento enum values.
+  // Note: 'cartao' is the legacy tipo used in formas_pagamento seed data and maps to the
+  // most common card type ('cartao_credito'). 'cheque' is not in the pagamentos enum,
+  // so it falls back to 'transferencia' as the closest equivalent.
+  const TIPO_TO_FORMA_ENUM: Record<string, string> = {
+    pix: "pix",
+    dinheiro: "dinheiro",
+    boleto: "boleto",
+    transferencia: "transferencia",
+    cartao: "cartao_credito",
+    cartao_credito: "cartao_credito",
+    cartao_debito: "cartao_debito",
+    cheque: "transferencia",
+  };
+
   const confirmPayment = useMutation({
     mutationFn: async ({ id, source, data_pagamento, forma_pagamento_id }: { id: string; source: string; data_pagamento: string; forma_pagamento_id: string }) => {
       const table = source as "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
       if (table === "pagamentos") {
-        const { error } = await supabase.from("pagamentos").update({ status: "pago" as any, data_pagamento, forma_pagamento: formasPagamentoList.find(f => f.id === forma_pagamento_id)?.tipo || "pix" } as any).eq("id", id);
+        const tipo = formasPagamentoList.find(f => f.id === forma_pagamento_id)?.tipo ?? "pix";
+        const formaEnum = TIPO_TO_FORMA_ENUM[tipo] ?? "pix";
+        const { error } = await supabase.from("pagamentos").update({ status: "pago" as any, data_pagamento, forma_pagamento: formaEnum } as any).eq("id", id);
         if (error) throw error;
       } else if (table === "pagamentos_mensalidade") {
         const { error } = await supabase.from("pagamentos_mensalidade").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", id);
