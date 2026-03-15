@@ -70,11 +70,13 @@ const Produtos = () => {
   const { data: vendas = [] } = useQuery({
     queryKey: ["vendas-produtos", mesRef],
     queryFn: async () => {
+      const [yearStr, monthStr] = mesRef.split("-");
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10); // 1-indexed
       const start = `${mesRef}-01`;
-      const endDate = new Date(start);
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(0);
-      const end = format(endDate, "yyyy-MM-dd");
+      // Use local-time Date constructor to avoid UTC-midnight parse shifting
+      // the date to the previous day in negative-UTC timezones (e.g. Brazil UTC-3).
+      const end = format(new Date(year, month, 0), "yyyy-MM-dd");
       const { data, error } = await supabase.from("vendas_produtos")
         .select("*, produtos(nome), pacientes(nome)")
         .gte("data_venda", start)
