@@ -721,6 +721,44 @@ const Financeiro = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Payment Dialog */}
+      <Dialog open={!!confirmDialog?.open} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader><DialogTitle>Confirmar Pagamento</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Data do Pagamento</Label>
+              <Input type="date" value={confirmData.data_pagamento} onChange={(e) => setConfirmData(p => ({ ...p, data_pagamento: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Forma de Pagamento</Label>
+              <Select value={confirmData.forma_pagamento_id} onValueChange={(v) => setConfirmData(p => ({ ...p, forma_pagamento_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a forma de pagamento" /></SelectTrigger>
+                <SelectContent>
+                  {formasPagamentoList.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setConfirmDialog(null)}>Cancelar</Button>
+              <Button
+                disabled={!confirmData.data_pagamento || !confirmData.forma_pagamento_id || confirmPayment.isPending}
+                onClick={() => confirmDialog && confirmPayment.mutate({
+                  id: confirmDialog.id,
+                  source: confirmDialog.source,
+                  data_pagamento: confirmData.data_pagamento,
+                  forma_pagamento_id: confirmData.forma_pagamento_id,
+                })}
+              >
+                {confirmPayment.isPending ? "Confirmando..." : "Confirmar Pagamento"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
