@@ -103,7 +103,7 @@ const Pacientes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeClinicId } = useClinic();
-  const { user, isProfissional } = useAuth();
+  const { isProfissional } = useAuth();
   const { isAtLimit: pacienteLimitReached } = usePlanLimitCheck("pacientes");
   const [busca, setBusca] = useState("");
   const deferredBusca = useDeferredValue(busca);
@@ -160,12 +160,10 @@ const Pacientes = () => {
         p.email?.toLowerCase().includes(deferredBusca.toLowerCase());
       const matchTipo = filtroTipo === "todos" || p.tipo_atendimento === filtroTipo;
       const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
-      const matchProf = isProfissional
-        ? p.profissional_id === user?.id
-        : filtroProfissional === "todos" || p.profissional_id === filtroProfissional;
+      const matchProf = filtroProfissional === "todos" || p.profissional_id === filtroProfissional;
       return matchBusca && matchTipo && matchStatus && matchProf;
     });
-  }, [pacientes, deferredBusca, filtroTipo, filtroStatus, filtroProfissional, isProfissional, user?.id]);
+  }, [pacientes, deferredBusca, filtroTipo, filtroStatus, filtroProfissional]);
 
   const handleInativar = async () => {
     if (!deleteId) return;
