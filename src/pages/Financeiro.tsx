@@ -114,15 +114,22 @@ const Financeiro = () => {
     queryFn: async () => {
       const results: UnifiedPayment[] = [];
 
-      // 1. pagamentos (manual / plano)
+      // 1. pagamentos (manual / plano / sessao_avulsa / matricula)
       let q1 = supabase
         .from("pagamentos")
-        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, pacientes(nome)")
+        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, origem_tipo, pacientes(nome)")
         .order("created_at", { ascending: false });
       if (activeClinicId) q1 = q1.eq("clinic_id", activeClinicId);
       const { data: pgtos } = await q1;
 
       (pgtos || []).forEach((p: any) => {
+        let origemTipo: UnifiedPayment["origem_tipo"];
+        if (p.origem_tipo === "plano") origemTipo = "plano";
+        else if (p.origem_tipo === "matricula") origemTipo = "mensalidade";
+        else if (p.origem_tipo === "sessao_avulsa") origemTipo = "sessao";
+        else if (p.origem_tipo === "manual") origemTipo = "manual";
+        else origemTipo = p.plano_id ? "plano" : "manual";
+
         results.push({
           id: p.id,
           valor: Number(p.valor),
@@ -133,7 +140,7 @@ const Financeiro = () => {
           descricao: p.descricao,
           created_at: p.created_at,
           paciente_nome: p.pacientes?.nome ?? "—",
-          origem_tipo: p.plano_id ? "plano" : "manual",
+          origem_tipo: origemTipo,
           source_table: "pagamentos",
         });
       });
@@ -151,8 +158,8 @@ const Financeiro = () => {
           id: m.id,
           valor: Number(m.valor),
           data_pagamento: m.data_pagamento,
-          data_vencimento: null,
-          status: m.status ?? "pendente",
+          data_vencimento: m.mes_referencia ?? null,
+          status: m.status ?? "aberto",
           forma_pagamento: m.forma_pagamento_id ? (formasPagamentoMap[m.forma_pagamento_id] || null) : null,
           descricao: `Mensalidade - ${m.mes_referencia}`,
           created_at: m.created_at ?? "",
@@ -176,7 +183,7 @@ const Financeiro = () => {
           valor: Number(s.valor),
           data_pagamento: s.data_pagamento,
           data_vencimento: null,
-          status: s.status ?? "pendente",
+          status: s.status ?? "aberto",
           forma_pagamento: s.forma_pagamento_id ? (formasPagamentoMap[s.forma_pagamento_id] || null) : null,
           descricao: s.observacoes || "Sessão avulsa",
           created_at: s.created_at ?? "",

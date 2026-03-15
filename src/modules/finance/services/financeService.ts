@@ -9,7 +9,7 @@ const FORMA_PAGAMENTO_COLUMNS =
     "id, nome, tipo, ativo, ordem" as const;
 
 const MENSALIDADE_COLUMNS =
-    "id, paciente_id, valor, status, mes_referencia, data_vencimento, data_pagamento" as const;
+    "id, paciente_id, valor, status, mes_referencia, data_pagamento" as const;
 
 const SESSAO_PAGAMENTO_COLUMNS =
     "id, paciente_id, agendamento_id, valor, status, data_pagamento, created_at" as const;
