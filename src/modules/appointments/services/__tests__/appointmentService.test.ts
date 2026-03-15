@@ -122,6 +122,18 @@ describe("appointmentService", () => {
             const result = await appointmentService.getAppointments({ activeClinicId: null });
             expect(result).toEqual([]);
         });
+
+        it("returns appointments filtered by date range", async () => {
+            supabase.from.mockReturnValueOnce(chain({ data: [BASE_APT], error: null }));
+
+            const result = await appointmentService.getAppointments({
+                activeClinicId: CLINIC_ID,
+                dateStart: "2026-06-20T00:00:00.000Z",
+                dateEnd: "2026-06-20T23:59:59.999Z",
+            });
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe(APT_ID);
+        });
     });
 
     // ── getScheduleSlots ──────────────────────────────────────────────────────

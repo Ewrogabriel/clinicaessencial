@@ -10,16 +10,24 @@ import type { Agendamento } from "@/modules/appointments/types/appointment";
 interface UseAgendamentosOptions {
     pacienteId?: string;
     enabled?: boolean;
+    dateStart?: string;
+    dateEnd?: string;
 }
 
 export function useAgendamentos(options: UseAgendamentosOptions = {}) {
     const { activeClinicId } = useClinic();
     return useQuery({
-        queryKey: queryKeys.appointments.list(activeClinicId, options.pacienteId),
+        queryKey: [
+            ...queryKeys.appointments.list(activeClinicId, options.pacienteId),
+            options.dateStart,
+            options.dateEnd,
+        ],
         queryFn: async () => {
             const data = await appointmentService.getAppointments({
                 activeClinicId,
                 pacienteId: options.pacienteId,
+                dateStart: options.dateStart,
+                dateEnd: options.dateEnd,
             });
             return data as Agendamento[];
         },

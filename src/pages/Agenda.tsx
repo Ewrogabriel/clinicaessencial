@@ -1,5 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from "react";
-import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths, startOfWeek, endOfWeek } from "date-fns";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { format, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, ChevronLeft, ChevronRight, FileDown, Filter, UserPlus, CalendarCheck, ListChecks } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -52,10 +52,37 @@ const Agenda = () => {
   // Fetch patient data if current user is a patient
   const { data: patientData } = usePacienteByUserId(isPatient ? user?.id : undefined);
 
+  // Compute date range for the current view so the query is scoped to the
+  // visible period and Supabase's default row limit never hides sessions.
+  const { dateStart, dateEnd } = useMemo(() => {
+    if (viewMode === "diario") {
+      const start = new Date(currentDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(currentDate);
+      end.setHours(23, 59, 59, 999);
+      return { dateStart: start.toISOString(), dateEnd: end.toISOString() };
+    }
+    if (viewMode === "semanal") {
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      start.setHours(0, 0, 0, 0);
+      const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+      end.setHours(23, 59, 59, 999);
+      return { dateStart: start.toISOString(), dateEnd: end.toISOString() };
+    }
+    // mensal: include the extra days shown at the edges of the month grid
+    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
+    start.setHours(0, 0, 0, 0);
+    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 });
+    end.setHours(23, 59, 59, 999);
+    return { dateStart: start.toISOString(), dateEnd: end.toISOString() };
+  }, [viewMode, currentDate]);
+
   // Fetch agendamentos
   const { data: agendamentosData = [], refetch: refetchAgendamentos } = useAgendamentos({
     pacienteId: isPatient ? patientData?.id : undefined,
     enabled: !isPatient || !!patientData?.id,
+    dateStart,
+    dateEnd,
   });
 
   // Fetch slots for capacity display

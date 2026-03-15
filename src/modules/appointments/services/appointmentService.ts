@@ -10,9 +10,11 @@ export const appointmentService = {
     async getAppointments(options: {
         pacienteId?: string;
         profissionalId?: string;
-        activeClinicId: string | null
+        activeClinicId: string | null;
+        dateStart?: string;
+        dateEnd?: string;
     }) {
-        const { pacienteId, profissionalId, activeClinicId } = options;
+        const { pacienteId, profissionalId, activeClinicId, dateStart, dateEnd } = options;
         try {
             let query = supabase
                 .from("agendamentos")
@@ -41,6 +43,12 @@ export const appointmentService = {
             }
             if (profissionalId) {
                 query = query.eq("profissional_id", profissionalId);
+            }
+            if (dateStart) {
+                query = query.gte("data_horario", dateStart);
+            }
+            if (dateEnd) {
+                query = query.lte("data_horario", dateEnd);
             }
 
             const { data, error } = await query.order("data_horario", { ascending: true });
