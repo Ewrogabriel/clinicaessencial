@@ -107,32 +107,8 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       });
       if (error) throw error;
 
-      // Sync confirmed payment to pagamentos so it appears in Financeiro
-      if (formData.status === "pago") {
-        const descricao = buildMensalidadeDescricao(mesRef);
-        const dataPagamento = toDateString(formData.data_pagamento);
-        const { data: existing } = await supabase
-          .from("pagamentos")
-          .select("id")
-          .eq("matricula_id", matriculaId)
-          .eq("data_vencimento", mesRef)
-          .maybeSingle();
-        if (!existing) {
-          await supabase.from("pagamentos").insert({
-            paciente_id: pacienteId,
-            profissional_id: user.id,
-            matricula_id: matriculaId,
-            valor: valorFinal,
-            status: "pago",
-            data_pagamento: dataPagamento,
-            data_vencimento: mesRef,
-            descricao,
-            origem_tipo: "matricula",
-            clinic_id: activeClinicId,
-            created_by: user.id,
-          });
-        }
-      }
+      // Mensalidade payments are now queried directly from pagamentos_mensalidade
+      // No need to sync to pagamentos table
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
@@ -152,41 +128,8 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       const { error } = await (supabase.from("pagamentos_mensalidade") as any).update(updates).eq("id", id);
       if (error) throw error;
 
-      // Sync confirmed payment to pagamentos so it appears in Financeiro
-      if (status === "pago" && user) {
-        const pm = pagamentos.find((p: any) => p.id === id);
-        if (pm) {
-          const mesRef: string = pm.mes_referencia;
-          const descricao = buildMensalidadeDescricao(mesRef);
-          const dataPagamento = toDateString(data_pagamento);
-          const { data: existing } = await supabase
-            .from("pagamentos")
-            .select("id")
-            .eq("matricula_id", matriculaId)
-            .eq("data_vencimento", mesRef)
-            .maybeSingle();
-          if (existing) {
-            await supabase
-              .from("pagamentos")
-              .update({ status: "pago", data_pagamento: dataPagamento })
-              .eq("id", existing.id);
-          } else {
-            await supabase.from("pagamentos").insert({
-              paciente_id: pacienteId,
-              profissional_id: user.id,
-              matricula_id: matriculaId,
-              valor: pm.valor,
-              status: "pago",
-              data_pagamento: dataPagamento,
-              data_vencimento: mesRef,
-              descricao,
-              origem_tipo: "matricula",
-              clinic_id: activeClinicId,
-              created_by: user.id,
-            });
-          }
-        }
-      }
+      // Mensalidade payments are now queried directly from pagamentos_mensalidade
+      // No need to sync to pagamentos table
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });

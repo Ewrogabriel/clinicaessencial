@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Send, Filter, CalendarClock, Clock } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -35,6 +35,8 @@ const statusBadge: Record<string, { label: string; variant: "default" | "seconda
   pago: { label: "Pago", variant: "default" },
   pendente: { label: "Pendente", variant: "destructive" },
   cancelado: { label: "Cancelado", variant: "outline" },
+  aberto: { label: "Aberto", variant: "destructive" },
+  anulado: { label: "Anulado", variant: "outline" },
 };
 
 const formaLabel: Record<string, string> = {
@@ -46,29 +48,25 @@ const formaLabel: Record<string, string> = {
   transferencia: "Transferência",
 };
 
-interface PagamentoRow {
+/** Unified payment row for display */
+interface UnifiedPayment {
   id: string;
   valor: number;
-  data_pagamento: string;
+  data_pagamento: string | null;
   data_vencimento: string | null;
   status: string;
   forma_pagamento: string | null;
   descricao: string | null;
-  observacoes: string | null;
   created_at: string;
-  paciente_id: string;
-  profissional_id: string;
-  plano_id: string | null;
-  matricula_id: string | null;
-  agendamento_id: string | null;
-  origem_tipo: "matricula" | "plano" | "sessao_avulsa" | "manual" | null;
-  pacientes: { nome: string } | null;
+  paciente_nome: string;
+  origem_tipo: "plano" | "mensalidade" | "sessao" | "manual";
+  source_table: "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
 }
 
 const origemConfig: Record<string, { label: string; className: string }> = {
-  matricula: { label: "Matrícula", className: "bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200" },
+  mensalidade: { label: "Mensalidade", className: "bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200" },
   plano: { label: "Plano", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200" },
-  sessao_avulsa: { label: "Sess. Avulsa", className: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" },
+  sessao: { label: "Sessão", className: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" },
   manual: { label: "Manual", className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
 };
 
@@ -92,21 +90,108 @@ const Financeiro = () => {
     observacoes: "",
   });
 
-  const { data: pagamentos = [], isLoading } = useQuery<PagamentoRow[]>({
-    queryKey: ["pagamentos", activeClinicId],
+  // ── Formas de pagamento lookup (for mensalidade/sessoes that use FK) ──
+  const { data: formasPagamentoList = [] } = useQuery({
+    queryKey: ["formas-pagamento-lookup"],
     queryFn: async () => {
-      if (!activeClinicId) return [];
-      const { data, error } = await supabase
+      const { data } = await supabase.from("formas_pagamento").select("id, nome, tipo").eq("ativo", true);
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const formasPagamentoMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    formasPagamentoList.forEach((f) => { map[f.id] = f.nome; });
+    return map;
+  }, [formasPagamentoList]);
+
+  // ── Fetch all 3 payment tables in parallel ──
+  const { data: allPayments = [], isLoading } = useQuery<UnifiedPayment[]>({
+    queryKey: ["all-payments-unified", activeClinicId],
+    queryFn: async () => {
+      const results: UnifiedPayment[] = [];
+
+      // 1. pagamentos (manual / plano)
+      let q1 = supabase
         .from("pagamentos")
-        .select(`
-          id, valor, data_pagamento, data_vencimento, status, forma_pagamento,
-          descricao, created_at, paciente_id, plano_id, matricula_id,
-          agendamento_id, origem_tipo, pacientes (nome)
-        `)
-        .eq("clinic_id", activeClinicId)
-        .order("data_pagamento", { ascending: false });
-      if (error) throw error;
-      return data as any;
+        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, pacientes(nome)")
+        .order("created_at", { ascending: false });
+      if (activeClinicId) q1 = q1.eq("clinic_id", activeClinicId);
+      const { data: pgtos } = await q1;
+
+      (pgtos || []).forEach((p: any) => {
+        results.push({
+          id: p.id,
+          valor: Number(p.valor),
+          data_pagamento: p.data_pagamento,
+          data_vencimento: p.data_vencimento,
+          status: p.status,
+          forma_pagamento: p.forma_pagamento ? (formaLabel[p.forma_pagamento] || p.forma_pagamento) : null,
+          descricao: p.descricao,
+          created_at: p.created_at,
+          paciente_nome: p.pacientes?.nome ?? "—",
+          origem_tipo: p.plano_id ? "plano" : "manual",
+          source_table: "pagamentos",
+        });
+      });
+
+      // 2. pagamentos_mensalidade
+      let q2 = supabase
+        .from("pagamentos_mensalidade")
+        .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome)")
+        .order("created_at", { ascending: false });
+      if (activeClinicId) q2 = q2.eq("clinic_id", activeClinicId);
+      const { data: mensalidades } = await q2;
+
+      (mensalidades || []).forEach((m: any) => {
+        results.push({
+          id: m.id,
+          valor: Number(m.valor),
+          data_pagamento: m.data_pagamento,
+          data_vencimento: null,
+          status: m.status ?? "pendente",
+          forma_pagamento: m.forma_pagamento_id ? (formasPagamentoMap[m.forma_pagamento_id] || null) : null,
+          descricao: `Mensalidade - ${m.mes_referencia}`,
+          created_at: m.created_at ?? "",
+          paciente_nome: m.pacientes?.nome ?? "—",
+          origem_tipo: "mensalidade",
+          source_table: "pagamentos_mensalidade",
+        });
+      });
+
+      // 3. pagamentos_sessoes
+      let q3 = supabase
+        .from("pagamentos_sessoes")
+        .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome)")
+        .order("created_at", { ascending: false });
+      if (activeClinicId) q3 = q3.eq("clinic_id", activeClinicId);
+      const { data: sessoes } = await q3;
+
+      (sessoes || []).forEach((s: any) => {
+        results.push({
+          id: s.id,
+          valor: Number(s.valor),
+          data_pagamento: s.data_pagamento,
+          data_vencimento: null,
+          status: s.status ?? "pendente",
+          forma_pagamento: s.forma_pagamento_id ? (formasPagamentoMap[s.forma_pagamento_id] || null) : null,
+          descricao: s.observacoes || "Sessão avulsa",
+          created_at: s.created_at ?? "",
+          paciente_nome: s.pacientes?.nome ?? "—",
+          origem_tipo: "sessao",
+          source_table: "pagamentos_sessoes",
+        });
+      });
+
+      // Sort by date desc
+      results.sort((a, b) => {
+        const da = a.data_pagamento || a.created_at || "";
+        const db = b.data_pagamento || b.created_at || "";
+        return db.localeCompare(da);
+      });
+
+      return results;
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -164,7 +249,7 @@ const Financeiro = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setFormOpen(false);
       setFormData({ paciente_id: "", plano_id: "", valor: "", data_pagamento: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", forma_pagamento: "", status: "pendente", descricao: "", observacoes: "" });
       toast({ title: "Pagamento registrado!" });
@@ -173,49 +258,54 @@ const Financeiro = () => {
   });
 
   const kpis = useMemo(() => {
-    const totalRecebido = pagamentos.filter((p) => p.status === "pago").reduce((sum, p) => sum + Number(p.valor), 0);
-    const totalPendente = pagamentos.filter((p) => p.status === "pendente").reduce((sum, p) => sum + Number(p.valor), 0);
+    const paid = allPayments.filter((p) => p.status === "pago");
+    const pending = allPayments.filter((p) => p.status === "pendente" || p.status === "aberto");
+    const totalRecebido = paid.reduce((sum, p) => sum + p.valor, 0);
+    const totalPendente = pending.reduce((sum, p) => sum + p.valor, 0);
     const totalDespesas = (despesasForDre || []).filter((d) => d.status === "pago").reduce((sum, d) => sum + Number(d.valor), 0);
     const totalComissoes = (comissoesForDre || []).reduce((sum, c) => sum + Number(c.valor), 0);
-    const countPagos = pagamentos.filter((p) => p.status === 'pago').length;
-    const countPendentes = pagamentos.filter((p) => p.status === 'pendente').length;
     const lucroLiquido = totalRecebido - totalDespesas - totalComissoes;
-    return { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido };
-  }, [pagamentos, despesasForDre, comissoesForDre]);
+    return { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos: paid.length, countPendentes: pending.length, lucroLiquido };
+  }, [allPayments, despesasForDre, comissoesForDre]);
 
   const { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido } = kpis;
 
   const filteredPagamentos = useMemo(() => {
-    let filtered = pagamentos || [];
+    let filtered = allPayments;
     if (filterMes && filterMes !== "all") {
-      filtered = filtered.filter((p) =>
-        p.data_pagamento?.startsWith(filterMes) ||
-        (p.status !== "pago" && p.data_vencimento?.startsWith(filterMes))
-      );
+      filtered = filtered.filter((p) => {
+        const datePago = p.data_pagamento?.substring(0, 7);
+        const dateVenc = p.data_vencimento?.substring(0, 7);
+        const dateCreated = p.created_at?.substring(0, 7);
+        return datePago === filterMes || dateVenc === filterMes || dateCreated === filterMes;
+      });
     }
     if (filterForma && filterForma !== "all") {
-      filtered = filtered.filter((p) => p.forma_pagamento === filterForma);
+      filtered = filtered.filter((p) => {
+        const fp = p.forma_pagamento?.toLowerCase() ?? "";
+        return fp.includes(filterForma);
+      });
     }
     if (filterOrigem && filterOrigem !== "all") {
-      filtered = filtered.filter((p) => (p.origem_tipo ?? "manual") === filterOrigem);
+      filtered = filtered.filter((p) => p.origem_tipo === filterOrigem);
     }
     return filtered;
-  }, [pagamentos, filterMes, filterForma, filterOrigem]);
+  }, [allPayments, filterMes, filterForma, filterOrigem]);
 
   const previsaoPagamentos = useMemo(() => {
-    return (pagamentos || [])
-      .filter((p) => p.status === "pendente")
+    return allPayments
+      .filter((p) => p.status === "pendente" || p.status === "aberto")
       .sort((a, b) => {
-        const dateA = a.data_vencimento ? new Date(a.data_vencimento).getTime() : Infinity;
-        const dateB = b.data_vencimento ? new Date(b.data_vencimento).getTime() : Infinity;
+        const dateA = a.data_vencimento ? new Date(a.data_vencimento).getTime() : (a.data_pagamento ? new Date(a.data_pagamento).getTime() : Infinity);
+        const dateB = b.data_vencimento ? new Date(b.data_vencimento).getTime() : (b.data_pagamento ? new Date(b.data_pagamento).getTime() : Infinity);
         return dateA - dateB;
       });
-  }, [pagamentos]);
+  }, [allPayments]);
 
   const previsaoKpis = useMemo(() => {
     const today = startOfDay(new Date());
     const in30Days = addDays(today, 30);
-    const totalPrevisto = previsaoPagamentos.reduce((sum, p) => sum + Number(p.valor), 0);
+    const totalPrevisto = previsaoPagamentos.reduce((sum, p) => sum + p.valor, 0);
     const vencidos = previsaoPagamentos.filter(
       (p) => p.data_vencimento && isBefore(startOfDay(new Date(p.data_vencimento)), today)
     );
@@ -227,65 +317,36 @@ const Financeiro = () => {
     return {
       totalPrevisto,
       countVencidos: vencidos.length,
-      valorVencidos: vencidos.reduce((sum, p) => sum + Number(p.valor), 0),
+      valorVencidos: vencidos.reduce((sum, p) => sum + p.valor, 0),
       countAVencer30: aVencer30.length,
-      valorAVencer30: aVencer30.reduce((sum, p) => sum + Number(p.valor), 0),
+      valorAVencer30: aVencer30.reduce((sum, p) => sum + p.valor, 0),
     };
   }, [previsaoPagamentos]);
 
   const confirmPayment = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("pagamentos")
-        .update({ status: "pago", data_pagamento: format(new Date(), "yyyy-MM-dd") })
-        .eq("id", id);
-      if (error) throw error;
+    mutationFn: async ({ id, source }: { id: string; source: string }) => {
+      const table = source as "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
+      if (table === "pagamentos") {
+        const { error } = await supabase.from("pagamentos").update({ status: "pago" as any, data_pagamento: format(new Date(), "yyyy-MM-dd") }).eq("id", id);
+        if (error) throw error;
+      } else if (table === "pagamentos_mensalidade") {
+        const { error } = await supabase.from("pagamentos_mensalidade").update({ status: "pago", data_pagamento: format(new Date(), "yyyy-MM-dd") }).eq("id", id);
+        if (error) throw error;
+      } else if (table === "pagamentos_sessoes") {
+        const { error } = await supabase.from("pagamentos_sessoes").update({ status: "pago", data_pagamento: format(new Date(), "yyyy-MM-dd") }).eq("id", id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       toast({ title: "Pagamento confirmado!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const PaymentRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const pagamento = filteredPagamentos[index];
-    const origem = pagamento.origem_tipo ?? "manual";
-    const origemInfo = origemConfig[origem] ?? origemConfig.manual;
-    return (
-      <div style={style} className="border-b border-border/50 flex items-center px-4 hover:bg-muted/50 transition-colors">
-        {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.pacientes?.nome ?? "—"}</div>}
-        <div className="w-[90px] pr-2">
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
-            {origemInfo.label}
-          </span>
-        </div>
-        <div className="w-[160px] text-sm truncate pr-4">{pagamento.descricao || "—"}</div>
-        <div className="w-[100px] text-sm font-semibold pr-4">R$ {Number(pagamento.valor).toFixed(2)}</div>
-        <div className="w-[120px] text-sm truncate pr-4">{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</div>
-        <div className="w-[100px] text-xs pr-4">{pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "dd/MM/yyyy") : "—"}</div>
-        <div className="w-[100px] text-xs pr-4">{pagamento.status === 'pago' ? format(new Date(pagamento.data_pagamento), "dd/MM/yyyy") : "—"}</div>
-        <div className="w-[100px] pr-4">
-          <Badge variant={pagamento.status === 'pago' ? 'default' : 'destructive'} className="text-[10px] py-0">
-            {statusBadge[pagamento.status]?.label || pagamento.status}
-          </Badge>
-        </div>
-        <div className="w-[80px] text-right">
-          {pagamento.status === "pago" && (
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={async () => {
-              const numero = getReceiptNumber(pagamento.id, pagamento.created_at);
-              const dataPgto = format(new Date(pagamento.data_pagamento), "dd/MM/yyyy");
-              const ref = pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "MMMM/yyyy", { locale: ptBR }) : pagamento.descricao || "Serviço";
-              const pdf = await generateReceiptPDF({ numero, pacienteNome: pagamento.pacientes?.nome || "—", cpf: "", descricao: pagamento.descricao || "Serviço de Pilates/Fisioterapia", valor: Number(pagamento.valor), formaPagamento: pagamento.forma_pagamento || "", dataPagamento: dataPgto, referencia: ref.charAt(0).toUpperCase() + ref.slice(1) });
-              pdf.save(`Recibo_${numero}.pdf`);
-              toast({ title: "Recibo gerado!" });
-            }}>
-              <Download className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-    );
+  const formatDate = (d: string | null) => {
+    if (!d) return "—";
+    try { return format(new Date(d), "dd/MM/yyyy"); } catch { return "—"; }
   };
 
   return (
@@ -293,7 +354,7 @@ const Financeiro = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
         <div className="flex gap-2 flex-wrap">
-          {!isPatient && <FinanceExportButton pagamentos={pagamentos} />}
+          {!isPatient && <FinanceExportButton pagamentos={allPayments as any} />}
           {!isPatient && (
             <Button onClick={() => setFormOpen(true)}><Plus className="mr-2 h-4 w-4" /> Novo Pagamento</Button>
           )}
@@ -362,25 +423,18 @@ const Financeiro = () => {
                   })}
                 </SelectContent>
               </Select>
-              <Select value={filterForma} onValueChange={setFilterForma}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Todas as formas" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as formas</SelectItem>
-                  {Object.entries(formaLabel).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}
-                </SelectContent>
-              </Select>
               <Select value={filterOrigem} onValueChange={setFilterOrigem}>
                 <SelectTrigger className="w-[160px]"><SelectValue placeholder="Todos os tipos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="matricula">Matrícula</SelectItem>
+                  <SelectItem value="mensalidade">Mensalidade</SelectItem>
                   <SelectItem value="plano">Plano</SelectItem>
-                  <SelectItem value="sessao_avulsa">Sessão Avulsa</SelectItem>
+                  <SelectItem value="sessao">Sessão</SelectItem>
                   <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
-              {(filterMes || filterForma !== "all" || filterOrigem !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(""); setFilterForma("all"); setFilterOrigem("all"); }}>Limpar filtros</Button>
+              {(filterMes || filterOrigem !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(""); setFilterOrigem("all"); }}>Limpar filtros</Button>
               )}
             </div>
           )}
@@ -395,20 +449,68 @@ const Financeiro = () => {
                   <p className="text-lg font-medium">Nenhum pagamento encontrado</p>
                 </div>
               ) : (
-                <div className="w-full">
-                  <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
-                    <div className="w-[90px] pr-2">Tipo</div>
-                    <div className="w-[160px] pr-4">Descrição</div>
-                    <div className="w-[100px] pr-4">Valor</div>
-                    <div className="w-[120px] pr-4">Forma</div>
-                    <div className="w-[100px] pr-4">Venc.</div>
-                    <div className="w-[100px] pr-4">Pagamento</div>
-                    <div className="w-[100px] pr-4">Status</div>
-                    <div className="w-[80px] text-right">Ação</div>
-                  </div>
-                  <div className="w-full h-[400px] overflow-auto">
-                    {filteredPagamentos.map((_, index) => <PaymentRow key={index} index={index} style={{ height: 56 }} />)}
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-[800px]">
+                    <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
+                      <div className="w-[100px] pr-2">Tipo</div>
+                      <div className="w-[180px] pr-4">Descrição</div>
+                      <div className="w-[100px] pr-4">Valor</div>
+                      <div className="w-[120px] pr-4">Forma Pgto</div>
+                      <div className="w-[100px] pr-4">Data</div>
+                      <div className="w-[90px] pr-4">Status</div>
+                      <div className="w-[80px] text-right">Ação</div>
+                    </div>
+                    <div className="max-h-[500px] overflow-y-auto">
+                      {filteredPagamentos.map((pagamento) => {
+                        const origemInfo = origemConfig[pagamento.origem_tipo] ?? origemConfig.manual;
+                        const isPaid = pagamento.status === "pago";
+                        return (
+                          <div key={`${pagamento.source_table}-${pagamento.id}`} className="border-b border-border/50 flex items-center px-4 py-3 hover:bg-muted/50 transition-colors">
+                            {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.paciente_nome}</div>}
+                            <div className="w-[100px] pr-2">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
+                                {origemInfo.label}
+                              </span>
+                            </div>
+                            <div className="w-[180px] text-sm truncate pr-4" title={pagamento.descricao || ""}>{pagamento.descricao || "—"}</div>
+                            <div className="w-[100px] text-sm font-semibold pr-4">R$ {pagamento.valor.toFixed(2)}</div>
+                            <div className="w-[120px] text-sm truncate pr-4">{pagamento.forma_pagamento || "—"}</div>
+                            <div className="w-[100px] text-xs pr-4">{formatDate(isPaid ? pagamento.data_pagamento : pagamento.data_vencimento ?? pagamento.data_pagamento)}</div>
+                            <div className="w-[90px] pr-4">
+                              <Badge variant={statusBadge[pagamento.status]?.variant ?? "secondary"} className="text-[10px] py-0">
+                                {statusBadge[pagamento.status]?.label || pagamento.status}
+                              </Badge>
+                            </div>
+                            <div className="w-[80px] text-right flex justify-end gap-1">
+                              {isPaid && pagamento.source_table === "pagamentos" && (
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={async () => {
+                                  const numero = getReceiptNumber(pagamento.id, pagamento.created_at);
+                                  const dataPgto = formatDate(pagamento.data_pagamento);
+                                  const ref = pagamento.descricao || "Serviço";
+                                  const pdf = await generateReceiptPDF({ numero, pacienteNome: pagamento.paciente_nome, cpf: "", descricao: pagamento.descricao || "Serviço", valor: pagamento.valor, formaPagamento: pagamento.forma_pagamento || "", dataPagamento: dataPgto, referencia: ref });
+                                  pdf.save(`Recibo_${numero}.pdf`);
+                                  toast({ title: "Recibo gerado!" });
+                                }}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {!isPaid && !isPatient && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  disabled={confirmPayment.isPending}
+                                  onClick={() => confirmPayment.mutate({ id: pagamento.id, source: pagamento.source_table })}
+                                >
+                                  Confirmar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -460,62 +562,63 @@ const Financeiro = () => {
                   <p className="text-lg font-medium">Nenhum pagamento pendente</p>
                 </div>
               ) : (
-                <div className="w-full">
-                  <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
-                    <div className="w-[90px] pr-2">Tipo</div>
-                    <div className="w-[160px] pr-4">Descrição</div>
-                    <div className="w-[100px] pr-4">Valor</div>
-                    <div className="w-[120px] pr-4">Forma</div>
-                    <div className="w-[110px] pr-4">Vencimento</div>
-                    <div className="w-[110px] pr-4">Situação</div>
-                    <div className="w-[100px] text-right">Ação</div>
-                  </div>
-                  <div className="w-full h-[400px] overflow-auto">
-                    {previsaoPagamentos.map((pagamento) => {
-                      const origem = pagamento.origem_tipo ?? "manual";
-                      const origemInfo = origemConfig[origem] ?? origemConfig.manual;
-                      const today = startOfDay(new Date());
-                      const isOverdue = pagamento.data_vencimento
-                        ? isBefore(startOfDay(new Date(pagamento.data_vencimento)), today)
-                        : false;
-                      return (
-                        <div key={pagamento.id} className={`border-b border-border/50 flex items-center px-4 hover:bg-muted/50 transition-colors ${isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""}`} style={{ height: 56 }}>
-                          {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.pacientes?.nome ?? "—"}</div>}
-                          <div className="w-[90px] pr-2">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
-                              {origemInfo.label}
-                            </span>
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-[800px]">
+                    <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
+                      <div className="w-[100px] pr-2">Tipo</div>
+                      <div className="w-[180px] pr-4">Descrição</div>
+                      <div className="w-[100px] pr-4">Valor</div>
+                      <div className="w-[120px] pr-4">Forma Pgto</div>
+                      <div className="w-[110px] pr-4">Vencimento</div>
+                      <div className="w-[110px] pr-4">Situação</div>
+                      <div className="w-[100px] text-right">Ação</div>
+                    </div>
+                    <div className="max-h-[500px] overflow-y-auto">
+                      {previsaoPagamentos.map((pagamento) => {
+                        const origemInfo = origemConfig[pagamento.origem_tipo] ?? origemConfig.manual;
+                        const today = startOfDay(new Date());
+                        const isOverdue = pagamento.data_vencimento
+                          ? isBefore(startOfDay(new Date(pagamento.data_vencimento)), today)
+                          : false;
+                        return (
+                          <div key={`${pagamento.source_table}-${pagamento.id}`} className={`border-b border-border/50 flex items-center px-4 py-3 hover:bg-muted/50 transition-colors ${isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""}`}>
+                            {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.paciente_nome}</div>}
+                            <div className="w-[100px] pr-2">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
+                                {origemInfo.label}
+                              </span>
+                            </div>
+                            <div className="w-[180px] text-sm truncate pr-4">{pagamento.descricao || "—"}</div>
+                            <div className="w-[100px] text-sm font-semibold pr-4">R$ {pagamento.valor.toFixed(2)}</div>
+                            <div className="w-[120px] text-sm truncate pr-4">{pagamento.forma_pagamento || "—"}</div>
+                            <div className={`w-[110px] text-xs pr-4 ${isOverdue ? "text-destructive font-semibold" : ""}`}>
+                              {formatDate(pagamento.data_vencimento)}
+                            </div>
+                            <div className="w-[110px] pr-4">
+                              {isOverdue ? (
+                                <Badge variant="destructive" className="text-[10px] py-0">Vencido</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-[10px] py-0">A vencer</Badge>
+                              )}
+                            </div>
+                            <div className="w-[100px] text-right">
+                              {!isPatient && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  disabled={confirmPayment.isPending}
+                                  onClick={() => confirmPayment.mutate({ id: pagamento.id, source: pagamento.source_table })}
+                                >
+                                  Confirmar
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          <div className="w-[160px] text-sm truncate pr-4">{pagamento.descricao || "—"}</div>
-                          <div className="w-[100px] text-sm font-semibold pr-4">R$ {Number(pagamento.valor).toFixed(2)}</div>
-                          <div className="w-[120px] text-sm truncate pr-4">{pagamento.forma_pagamento ? formaLabel[pagamento.forma_pagamento] || pagamento.forma_pagamento : "—"}</div>
-                          <div className={`w-[110px] text-xs pr-4 ${isOverdue ? "text-destructive font-semibold" : ""}`}>
-                            {pagamento.data_vencimento ? format(new Date(pagamento.data_vencimento), "dd/MM/yyyy") : "—"}
-                          </div>
-                          <div className="w-[110px] pr-4">
-                            {isOverdue ? (
-                              <Badge variant="destructive" className="text-[10px] py-0">Vencido</Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-[10px] py-0">A vencer</Badge>
-                            )}
-                          </div>
-                          <div className="w-[100px] text-right">
-                            {!isPatient && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs"
-                                disabled={confirmPayment.isPending}
-                                onClick={() => confirmPayment.mutate(pagamento.id)}
-                              >
-                                Confirmar
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
