@@ -613,8 +613,10 @@ const Financeiro = () => {
                                   size="sm"
                                   variant="outline"
                                   className="h-7 text-xs"
-                                  disabled={confirmPayment.isPending}
-                                  onClick={() => confirmPayment.mutate({ id: pagamento.id, source: pagamento.source_table })}
+                                  onClick={() => {
+                                    setConfirmData({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
+                                    setConfirmDialog({ id: pagamento.id, source: pagamento.source_table, open: true });
+                                  }}
                                 >
                                   Confirmar
                                 </Button>
