@@ -284,6 +284,17 @@ const Matriculas = () => {
       const descValue = formData.desconto_tipo === "percentual" ? (monthly * desc) / 100 : desc;
       const finalValue = monthly - descValue;
 
+      // Calculate data_vencimento from due_day: use the due_day of the next month
+      const dueDayNum = Math.min(parseInt(formData.due_day) || 10, 31);
+      // Use noon (T12:00:00) to construct a local-time Date and avoid UTC-shift on date-only strings
+      const startDateObj = new Date(formData.start_date + "T12:00:00");
+      const nextMonthDate = addMonths(startDateObj, 1);
+      const nmYear = nextMonthDate.getFullYear();
+      const nmMonth = nextMonthDate.getMonth();
+      const lastDayOfNextMonth = new Date(nmYear, nmMonth + 1, 0).getDate();
+      const actualDueDay = Math.min(dueDayNum, lastDayOfNextMonth);
+      const dueDate = format(new Date(nmYear, nmMonth, actualDueDay), "yyyy-MM-dd");
+
       // Create enrollment
       const { data: mat, error } = await supabase
         .from("matriculas")
@@ -291,10 +302,11 @@ const Matriculas = () => {
           paciente_id: formData.paciente_id,
           profissional_id: user.id,
           tipo: "mensal",
+          tipo_atendimento: formData.tipo_atendimento,
           valor_mensal: finalValue,
           data_inicio: formData.start_date,
-          data_vencimento: format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-dd"),
-          due_day: parseInt(formData.due_day) || 10,
+          data_vencimento: dueDate,
+          due_day: dueDayNum,
           auto_renew: formData.auto_renew,
           observacoes: formData.observacoes || null,
           desconto: descValue,
