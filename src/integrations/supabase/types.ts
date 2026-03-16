@@ -1728,7 +1728,6 @@ export type Database = {
           dia_semana: number[] | null
           hora_preferida_fim: string | null
           hora_preferida_inicio: string | null
-          horarios_preferidos: Json | null
           id: string
           matricula_id: string | null
           notificado_em: string | null
@@ -1746,7 +1745,6 @@ export type Database = {
           dia_semana?: number[] | null
           hora_preferida_fim?: string | null
           hora_preferida_inicio?: string | null
-          horarios_preferidos?: Json | null
           id?: string
           matricula_id?: string | null
           notificado_em?: string | null
@@ -1764,7 +1762,6 @@ export type Database = {
           dia_semana?: number[] | null
           hora_preferida_fim?: string | null
           hora_preferida_inicio?: string | null
-          horarios_preferidos?: Json | null
           id?: string
           matricula_id?: string | null
           notificado_em?: string | null
@@ -2335,7 +2332,6 @@ export type Database = {
       }
       pagamentos: {
         Row: {
-          agendamento_id: string | null
           clinic_id: string | null
           created_at: string
           created_by: string
@@ -2344,9 +2340,7 @@ export type Database = {
           descricao: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
           id: string
-          matricula_id: string | null
           observacoes: string | null
-          origem_tipo: string | null
           paciente_id: string
           plano_id: string | null
           profissional_id: string
@@ -2355,7 +2349,6 @@ export type Database = {
           valor: number
         }
         Insert: {
-          agendamento_id?: string | null
           clinic_id?: string | null
           created_at?: string
           created_by: string
@@ -2366,9 +2359,7 @@ export type Database = {
             | Database["public"]["Enums"]["forma_pagamento"]
             | null
           id?: string
-          matricula_id?: string | null
           observacoes?: string | null
-          origem_tipo?: string | null
           paciente_id: string
           plano_id?: string | null
           profissional_id: string
@@ -2377,7 +2368,6 @@ export type Database = {
           valor?: number
         }
         Update: {
-          agendamento_id?: string | null
           clinic_id?: string | null
           created_at?: string
           created_by?: string
@@ -2388,9 +2378,7 @@ export type Database = {
             | Database["public"]["Enums"]["forma_pagamento"]
             | null
           id?: string
-          matricula_id?: string | null
           observacoes?: string | null
-          origem_tipo?: string | null
           paciente_id?: string
           plano_id?: string | null
           profissional_id?: string
@@ -2399,13 +2387,6 @@ export type Database = {
           valor?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "pagamentos_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: false
-            referencedRelation: "agendamentos"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "pagamentos_clinic_id_fkey"
             columns: ["clinic_id"]
@@ -4168,7 +4149,7 @@ export type Database = {
         | "reagendado"
         | "pendente"
       status_paciente: "ativo" | "inativo"
-      status_pagamento: "pendente" | "pago" | "cancelado" | "reembolsado" | "vencido"
+      status_pagamento: "pendente" | "pago" | "cancelado"
       status_plano:
         | "ativo"
         | "vencido"
@@ -4330,7 +4311,7 @@ export const Constants = {
         "pendente",
       ],
       status_paciente: ["ativo", "inativo"],
-      status_pagamento: ["pendente", "pago", "cancelado", "reembolsado", "vencido"],
+      status_pagamento: ["pendente", "pago", "cancelado"],
       status_plano: ["ativo", "vencido", "cancelado", "finalizado", "suspenso"],
       tipo_atendimento: ["fisioterapia", "pilates", "rpg"],
       tipo_sessao: ["individual", "grupo"],
