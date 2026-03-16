@@ -205,4 +205,5 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
         </div>
       </DialogContent>
     </Dialog>
-;
+  );
+};

@@ -129,18 +129,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       if (mensalidadePgto) {
         const descricaoMensalidade = `Mensalidade Pilates - ${format(new Date(mesRef + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}`;
         
-        await supabase.from("pagamentos").insert({
-          paciente_id: pacienteId,
-          valor: valorFinal,
-          data_vencimento: mesRef,
-          data_pagamento: formData.data_pagamento || null,
-          status: formData.status === "pago" ? "pago" : "pendente",
-          descricao: descricaoMensalidade,
-          origem_tipo: "matricula",
-          origem_id: mensalidadePgto.id,
-          created_by: user.id,
-          clinic_id: activeClinicId
-        });
+        // Payment is tracked in pagamentos_mensalidade, no need to duplicate in pagamentos
       }
     },
     onSuccess: () => {
@@ -167,16 +156,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       const { error } = await supabase.from("pagamentos_mensalidade").update(updates).eq("id", id);
       if (error) throw error;
 
-      // Atualiza também no caixa principal (tabela pagamentos) para bater o DRE
-      if (status === "pago" && data_pagamento) {
-         await supabase.from("pagamentos")
-          .update({ 
-            status: "pago", 
-            data_pagamento: data_pagamento 
-          })
-          .eq("origem_id", id)
-          .eq("origem_tipo", "matricula");
-      }
+      // Payment status is tracked in pagamentos_mensalidade; financeiro reads from all sources
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
