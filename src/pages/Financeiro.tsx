@@ -180,7 +180,7 @@ const Financeiro = () => {
           id: s.id,
           valor: Number(s.valor),
           data_pagamento: s.data_pagamento,
-          data_vencimento: null,
+          data_vencimento: s.status === "pago" ? null : s.data_pagamento,
           status: s.status ?? "aberto",
           forma_pagamento: s.forma_pagamento_id ? (formasPagamentoMap[s.forma_pagamento_id] || null) : null,
           descricao: s.observacoes || "Sessão avulsa",
