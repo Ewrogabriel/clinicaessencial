@@ -198,11 +198,55 @@ export const appointmentService = {
 
     async updateStatus(id: string, status: StatusAgendamento) {
         try {
+            const { data: agendamentoAtual, error: agendamentoError } = await supabase
+                .from("agendamentos")
+                .select("id, paciente_id, clinic_id, enrollment_id, observacoes, valor_sessao, data_horario")
+                .eq("id", id)
+                .single();
+            if (agendamentoError) throw agendamentoError;
+
             const { error } = await supabase
                 .from("agendamentos")
                 .update({ status })
                 .eq("id", id);
             if (error) throw error;
+
+            const isPlanoSessao = (agendamentoAtual.observacoes || "").toLowerCase().includes("plano:");
+            const isMatriculaSessao = !!agendamentoAtual.enrollment_id;
+            const valorSessao = Number(agendamentoAtual.valor_sessao || 0);
+
+            // Sessão avulsa realizada gera cobrança pendente automaticamente no Financeiro
+            if (status === "realizado" && !isPlanoSessao && !isMatriculaSessao && valorSessao > 0) {
+                const { data: existing, error: existingError } = await supabase
+                    .from("pagamentos_sessoes")
+                    .select("id")
+                    .eq("agendamento_id", id)
+                    .maybeSingle();
+                if (existingError) throw existingError;
+
+                if (!existing) {
+                    const { error: insertError } = await supabase.from("pagamentos_sessoes").insert({
+                        paciente_id: agendamentoAtual.paciente_id,
+                        agendamento_id: agendamentoAtual.id,
+                        valor: valorSessao,
+                        status: "pendente",
+                        data_pagamento: agendamentoAtual.data_horario,
+                        observacoes: "Sessão avulsa - pendente",
+                        clinic_id: agendamentoAtual.clinic_id,
+                    });
+                    if (insertError) throw insertError;
+                }
+            }
+
+            // Se a sessão foi cancelada/falta, a cobrança avulsa pendente é cancelada
+            if ((status === "cancelado" || status === "falta") && !isPlanoSessao && !isMatriculaSessao) {
+                const { error: cancelPaymentError } = await supabase
+                    .from("pagamentos_sessoes")
+                    .update({ status: "cancelado" })
+                    .eq("agendamento_id", id)
+                    .in("status", ["pendente", "aberto", "vencido"]);
+                if (cancelPaymentError) throw cancelPaymentError;
+            }
         } catch (error) {
             handleError(error, "Erro ao atualizar status.");
             throw error;

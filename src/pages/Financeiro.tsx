@@ -81,6 +81,7 @@ const Financeiro = () => {
   const [filterMes, setFilterMes] = useState(format(new Date(), "yyyy-MM"));
   const [filterForma, setFilterForma] = useState("all");
   const [filterOrigem, setFilterOrigem] = useState("all");
+  
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; source: string; open: boolean } | null>(null);
   const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
   const [formData, setFormData] = useState({
@@ -180,7 +181,7 @@ const Financeiro = () => {
           id: s.id,
           valor: Number(s.valor),
           data_pagamento: s.data_pagamento,
-          data_vencimento: null,
+          data_vencimento: s.status === "pago" ? null : s.data_pagamento,
           status: s.status ?? "aberto",
           forma_pagamento: s.forma_pagamento_id ? (formasPagamentoMap[s.forma_pagamento_id] || null) : null,
           descricao: s.observacoes || "Sessão avulsa",
