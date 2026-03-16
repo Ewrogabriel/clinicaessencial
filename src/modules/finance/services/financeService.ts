@@ -199,18 +199,14 @@ export const financeService = {
         try {
             const descricao = `Sessão Avulsa - ${params.tipoAtendimento} - ${new Date(params.dataHorario).toLocaleDateString("pt-BR")} ${new Date(params.dataHorario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 
-            const { error } = await supabase.from("pagamentos").insert({
+            const { error } = await supabase.from("pagamentos_sessoes").insert({
                 paciente_id: params.pacienteId,
-                profissional_id: params.profissionalId,
                 agendamento_id: params.agendamentoId,
                 valor: params.valor,
                 status: "pendente",
-                data_pagamento: new Date().toISOString().split("T")[0],
-                data_vencimento: new Date().toISOString().split("T")[0],
-                descricao,
-                origem_tipo: "sessao_avulsa",
+                data_pagamento: new Date(params.dataHorario).toISOString(),
+                observacoes: descricao,
                 clinic_id: params.clinicId,
-                created_by: params.createdBy,
             });
 
             if (error) throw error;

@@ -353,20 +353,21 @@ const Matriculas = () => {
         }
       }
 
-      // Create initial payment record
+      // Create initial monthly receivable for Financeiro (single source: pagamentos_mensalidade)
       if (finalValue > 0) {
-        await supabase.from("pagamentos").insert({
+        const mesReferencia = format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-01");
+
+        const { error: mensalidadeError } = await supabase.from("pagamentos_mensalidade").insert({
           paciente_id: formData.paciente_id,
           matricula_id: mat.id,
-          profissional_id: user.id,
+          mes_referencia: mesReferencia,
           valor: finalValue,
-          data_vencimento: format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-dd"),
-          status: "pendente",
-          descricao: `Matrícula Mensal - ${formData.tipo_atendimento}`,
-          origem_tipo: "matricula",
-          created_by: user.id,
+          status: "aberto",
+          observacoes: `Mensalidade ${formData.tipo_atendimento}`,
           clinic_id: activeClinicId,
         });
+
+        if (mensalidadeError) throw mensalidadeError;
       }
 
       return mat;
