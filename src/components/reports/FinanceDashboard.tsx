@@ -46,7 +46,7 @@ export const FinanceDashboard = () => {
         };
       });
 
-      const results = [];
+      
       // Fetch all data in parallel for all months
       const allQueries = months.map(async (m) => {
         const [{ data: pgtos }, { data: mens }, { data: sess }, { data: despesas }] = await Promise.all([
