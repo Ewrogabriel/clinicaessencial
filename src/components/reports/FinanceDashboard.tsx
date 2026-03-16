@@ -90,7 +90,7 @@ export const FinanceDashboard = () => {
       });
 
       return Promise.all(allQueries);
-      return results;
+
     },
   });
 
