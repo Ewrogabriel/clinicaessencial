@@ -166,17 +166,17 @@ const Planos = () => {
          const planoToUpdate = planos.find(p => p.id === planoId);
          if (planoToUpdate) {
             const { error: insertError } = await supabase.from("pagamentos").insert({
-              paciente_id: planoToUpdate.paciente_id,
-              profissional_id: planoToUpdate.profissional_id,
-              plano_id: planoId,
-              origem_tipo: "plano",
-              valor: planoToUpdate.valor,
-              data_pagamento: data_pagamento,
-              forma_pagamento: formaEnum as any,
-              status: "pago",
-              descricao: `Plano - Baixa manual retrospectiva`
-            });
-            if (insertError) throw insertError;
+               paciente_id: planoToUpdate.paciente_id,
+               profissional_id: planoToUpdate.profissional_id,
+               plano_id: planoId,
+               valor: planoToUpdate.valor,
+               data_pagamento: data_pagamento,
+               forma_pagamento: formaEnum as any,
+               status: "pago",
+               descricao: `Plano - Baixa manual retrospectiva`,
+               created_by: user!.id,
+             });
+             if (insertError) throw insertError;
          }
       }
     },

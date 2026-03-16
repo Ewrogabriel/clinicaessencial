@@ -173,9 +173,9 @@ export const financeService = {
      */
     async syncOverduePagamentos(): Promise<number> {
         try {
-            const { data, error } = await supabase.rpc("mark_overdue_pagamentos");
+            const { data, error } = await supabase.rpc("mark_overdue_pagamentos" as any);
             if (error) throw error;
-            return (data as number) ?? 0;
+            return (data as unknown as number) ?? 0;
         } catch (error) {
             handleError(error, "Erro ao sincronizar pagamentos vencidos.");
             return 0;

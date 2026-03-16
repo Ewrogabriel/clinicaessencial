@@ -156,16 +156,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       const { error } = await supabase.from("pagamentos_mensalidade").update(updates).eq("id", id);
       if (error) throw error;
 
-      // Atualiza também no caixa principal (tabela pagamentos) para bater o DRE
-      if (status === "pago" && data_pagamento) {
-         await supabase.from("pagamentos")
-          .update({ 
-            status: "pago", 
-            data_pagamento: data_pagamento 
-          })
-          .eq("origem_id", id)
-          .eq("origem_tipo", "matricula");
-      }
+      // Payment status is tracked in pagamentos_mensalidade; financeiro reads from all sources
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
