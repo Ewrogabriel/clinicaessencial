@@ -47,26 +47,30 @@ export const FinanceDashboard = () => {
       });
 
       const results = [];
-      for (const m of months) {
-        // pagamentos
-        let q1 = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", m.start).lte("data_pagamento", m.end);
-        if (activeClinicId) q1 = q1.eq("clinic_id", activeClinicId);
-        const { data: pgtos } = await q1;
-
-        // pagamentos_mensalidade
-        let q2 = supabase.from("pagamentos_mensalidade").select("valor, status").gte("data_pagamento", m.start).lte("data_pagamento", m.end);
-        if (activeClinicId) q2 = q2.eq("clinic_id", activeClinicId);
-        const { data: mens } = await q2;
-
-        // pagamentos_sessoes
-        let q3 = supabase.from("pagamentos_sessoes").select("valor, status").gte("data_pagamento", m.start).lte("data_pagamento", m.end);
-        if (activeClinicId) q3 = q3.eq("clinic_id", activeClinicId);
-        const { data: sess } = await q3;
-
-        // expenses
-        let eQuery = supabase.from("expenses").select("valor, status").gte("created_at", m.start).lte("created_at", m.end);
-        if (activeClinicId) eQuery = eQuery.eq("clinic_id", activeClinicId);
-        const { data: despesas } = await eQuery;
+      // Fetch all data in parallel for all months
+      const allQueries = months.map(async (m) => {
+        const [{ data: pgtos }, { data: mens }, { data: sess }, { data: despesas }] = await Promise.all([
+          (() => {
+            let q = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", m.start).lte("data_pagamento", m.end);
+            if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+            return q;
+          })(),
+          (() => {
+            let q = supabase.from("pagamentos_mensalidade").select("valor, status").gte("data_pagamento", m.start).lte("data_pagamento", m.end);
+            if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+            return q;
+          })(),
+          (() => {
+            let q = supabase.from("pagamentos_sessoes").select("valor, status").gte("data_pagamento", m.start).lte("data_pagamento", m.end);
+            if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+            return q;
+          })(),
+          (() => {
+            let q = supabase.from("expenses").select("valor, status").gte("created_at", m.start).lte("created_at", m.end);
+            if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+            return q;
+          })(),
+        ]);
 
         const allPagos = [
           ...(pgtos || []).filter(p => p.status === "pago"),
@@ -76,14 +80,16 @@ export const FinanceDashboard = () => {
         const receita = allPagos.reduce((s, p) => s + Number(p.valor), 0);
         const despesa = (despesas || []).filter(d => d.status === "pago").reduce((s, d) => s + Number(d.valor), 0);
 
-        results.push({
+        return {
           mes: m.label,
           receita: Math.round(receita),
           despesa: Math.round(despesa),
           lucro: Math.round(receita - despesa),
           ticketMedio: allPagos.length > 0 ? Math.round(receita / allPagos.length) : 0,
-        });
-      }
+        };
+      });
+
+      return Promise.all(allQueries);
       return results;
     },
   });
