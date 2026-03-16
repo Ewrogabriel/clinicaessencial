@@ -129,18 +129,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       if (mensalidadePgto) {
         const descricaoMensalidade = `Mensalidade Pilates - ${format(new Date(mesRef + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}`;
         
-        await supabase.from("pagamentos").insert({
-          paciente_id: pacienteId,
-          valor: valorFinal,
-          data_vencimento: mesRef,
-          data_pagamento: formData.data_pagamento || null,
-          status: formData.status === "pago" ? "pago" : "pendente",
-          descricao: descricaoMensalidade,
-          origem_tipo: "matricula",
-          origem_id: mensalidadePgto.id,
-          created_by: user.id,
-          clinic_id: activeClinicId
-        });
+        // Payment is tracked in pagamentos_mensalidade, no need to duplicate in pagamentos
       }
     },
     onSuccess: () => {
