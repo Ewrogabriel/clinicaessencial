@@ -83,6 +83,7 @@ const Financeiro = () => {
   const [filterOrigem, setFilterOrigem] = useState("all");
   const [previsaoMes, setPrevisaoMes] = useState(format(new Date(), "yyyy-MM"));
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; source: string; open: boolean } | null>(null);
+  const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
   const [formData, setFormData] = useState({
     paciente_id: "",
     plano_id: "",
