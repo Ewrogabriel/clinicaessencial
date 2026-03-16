@@ -117,21 +117,16 @@ const Financeiro = () => {
     queryFn: async () => {
       const results: UnifiedPayment[] = [];
 
-      // 1. pagamentos (manual / plano / sessao_avulsa / matricula)
+      // 1. pagamentos (manual / plano)
       let q1 = supabase
         .from("pagamentos")
-        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, origem_tipo, pacientes(nome)")
+        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, pacientes(nome)")
         .order("created_at", { ascending: false });
       if (activeClinicId) q1 = q1.eq("clinic_id", activeClinicId);
       const { data: pgtos } = await q1;
 
       (pgtos || []).forEach((p: any) => {
-        let origemTipo: UnifiedPayment["origem_tipo"];
-        if (p.origem_tipo === "plano") origemTipo = "plano";
-        else if (p.origem_tipo === "matricula") origemTipo = "mensalidade";
-        else if (p.origem_tipo === "sessao_avulsa") origemTipo = "sessao";
-        else if (p.origem_tipo === "manual") origemTipo = "manual";
-        else origemTipo = p.plano_id ? "plano" : "manual";
+        const origemTipo: UnifiedPayment["origem_tipo"] = p.plano_id ? "plano" : "manual";
 
         results.push({
           id: p.id,

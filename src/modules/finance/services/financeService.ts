@@ -3,7 +3,7 @@ import { handleError } from "../../shared/utils/errorHandler";
 
 /** Column lists (avoids SELECT *). */
 const PAGAMENTO_COLUMNS =
-    "id, paciente_id, profissional_id, plano_id, matricula_id, agendamento_id, origem_tipo, valor, status, data_vencimento, data_pagamento, descricao, observacoes, forma_pagamento, clinic_id, created_at" as const;
+    "id, paciente_id, profissional_id, plano_id, valor, status, data_vencimento, data_pagamento, descricao, observacoes, forma_pagamento, clinic_id, created_at" as const;
 
 const FORMA_PAGAMENTO_COLUMNS =
     "id, nome, tipo, ativo, ordem" as const;
