@@ -3270,6 +3270,7 @@ export type Database = {
         Row: {
           aceita_domiciliar: boolean | null
           aceita_teleconsulta: boolean | null
+          assinatura_url: string | null
           bairro: string | null
           bio: string | null
           cep: string | null
@@ -3298,6 +3299,7 @@ export type Database = {
           numero: string | null
           registro_profissional: string | null
           rg: string | null
+          rubrica_url: string | null
           teleconsulta_link: string | null
           teleconsulta_plataforma: string | null
           telefone: string | null
@@ -3308,6 +3310,7 @@ export type Database = {
         Insert: {
           aceita_domiciliar?: boolean | null
           aceita_teleconsulta?: boolean | null
+          assinatura_url?: string | null
           bairro?: string | null
           bio?: string | null
           cep?: string | null
@@ -3336,6 +3339,7 @@ export type Database = {
           numero?: string | null
           registro_profissional?: string | null
           rg?: string | null
+          rubrica_url?: string | null
           teleconsulta_link?: string | null
           teleconsulta_plataforma?: string | null
           telefone?: string | null
@@ -3346,6 +3350,7 @@ export type Database = {
         Update: {
           aceita_domiciliar?: boolean | null
           aceita_teleconsulta?: boolean | null
+          assinatura_url?: string | null
           bairro?: string | null
           bio?: string | null
           cep?: string | null
@@ -3374,6 +3379,7 @@ export type Database = {
           numero?: string | null
           registro_profissional?: string | null
           rg?: string | null
+          rubrica_url?: string | null
           teleconsulta_link?: string | null
           teleconsulta_plataforma?: string | null
           telefone?: string | null
@@ -3424,6 +3430,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      recesso_clinica: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string
+          data_fim: string
+          data_inicio: string
+          id: string
+          motivo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by: string
+          data_fim: string
+          data_inicio: string
+          id?: string
+          motivo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          motivo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recesso_clinica_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       regras_comissao: {
         Row: {
@@ -4100,6 +4147,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_appointment: {
+        Args: {
+          p_clinic_id?: string
+          p_created_by?: string
+          p_data_horario: string
+          p_duracao_minutos: number
+          p_observacoes?: string
+          p_paciente_id: string
+          p_profissional_id: string
+          p_slot_id: string
+          p_tipo_atendimento: string
+          p_tipo_sessao: Database["public"]["Enums"]["tipo_sessao"]
+        }
+        Returns: string
+      }
+      cancel_appointment: {
+        Args: { p_agendamento_id: string }
+        Returns: undefined
+      }
       check_plan_limit: {
         Args: { _clinic_id: string; _resource: string }
         Returns: Json
