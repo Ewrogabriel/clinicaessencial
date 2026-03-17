@@ -1,5 +1,8 @@
 import { useState, useDeferredValue, useMemo, useCallback, memo } from "react";
-import { FixedSizeList, type ListChildComponentProps } from "react-window";
+// @ts-ignore
+import { FixedSizeList } from "react-window";
+// @ts-ignore
+import type { ListChildComponentProps } from "react-window";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useNavigate } from "react-router-dom";
@@ -163,6 +166,13 @@ const Pacientes = () => {
     const cleanPhone = phone.replace(/\D/g, "");
     window.open(`https://wa.me/${cleanPhone.startsWith("55") ? cleanPhone : "55" + cleanPhone}`, "_blank");
   }, []);
+
+  const handleInativar = useCallback(() => {
+    if (deleteId) {
+      updateStatus.mutate({ id: deleteId, status: "inativo" });
+      setDeleteId(null);
+    }
+  }, [deleteId, updateStatus]);
 
   const rowData = useMemo<RowItemData>(() => ({
     items: filtrados,

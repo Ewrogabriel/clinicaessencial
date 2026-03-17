@@ -106,7 +106,7 @@ export function CommissionExtract() {
         .select("*").order("created_at", { ascending: false });
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   const { data: planosData = [] } = useQuery({
@@ -115,7 +115,7 @@ export function CommissionExtract() {
       const { data } = await (supabase.from("planos") as any).select("id, valor, total_sessoes");
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   const { data: fechamentos = [] } = useQuery({
@@ -127,7 +127,7 @@ export function CommissionExtract() {
         .eq("mes_referencia", mesDate);
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   // Previous month fechamentos for auto-compensation
@@ -146,7 +146,7 @@ export function CommissionExtract() {
         .eq("mes_referencia", mesDate);
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   // Previous month agendamentos to calculate auto-compensation
@@ -163,7 +163,7 @@ export function CommissionExtract() {
         .lte("data_horario", endDate);
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   const { data: minhasComissoes = [] } = useQuery({
@@ -210,6 +210,17 @@ export function CommissionExtract() {
     enabled: isProfissional && !canManage,
   });
 
+  // Per-session commission detail calculator
+  const getSessionCommission = (profId: string, atendimento: any) => {
+    const prof = profissionais.find((p: any) => p.user_id === profId);
+    const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
+    
+    const valorSessao = calculateSessionValue(atendimento, matriculas, agendamentos, planosData);
+    const { percentual, fixo, commission } = calculateSessionCommission(valorSessao, atendimento.tipo_atendimento, prof, profRegras);
+    
+    return { valorSessao, percentual, fixo, comissao: commission };
+  };
+
   // Calculate own preview commission
   const minhaPreviewComissao = useMemo(() => {
     if (!user || meusAgendamentos.length === 0) return { total: 0, realizados: 0, totalValor: 0 };
@@ -223,7 +234,7 @@ export function CommissionExtract() {
       comissaoTotal += sc.comissao;
     }
     return { total: comissaoTotal, realizados, totalValor };
-  }, [user, meusAgendamentos, minhasRegrasComissao, getSessionCommission]);
+  }, [user, meusAgendamentos, minhasRegrasComissao]);
 
   const isClosed = (profId: string) => fechamentos.some((f: any) => f.profissional_id === profId);
 
@@ -234,46 +245,9 @@ export function CommissionExtract() {
     const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
     let comissaoTotal = 0;
 
-    // Enrollment session price pre-calculation map
-    const enrollmentPrices: Record<string, number> = {};
-    
     for (const a of atendimentos) {
-      if (a.enrollment_id && !enrollmentPrices[a.enrollment_id]) {
-        const mat = matriculas.find((m: any) => m.id === a.enrollment_id);
-        if (mat) {
-          const totalSessionsInMonth = agendamentos.filter((ag: any) => ag.enrollment_id === a.enrollment_id).length;
-          enrollmentPrices[a.enrollment_id] = totalSessionsInMonth > 0 ? Number(mat.valor_mensal) / totalSessionsInMonth : 0;
-        }
-      }
-
-      let valorSessao = Number(a.valor_sessao || 0);
-      
-      // Override with enrollment calculation if applicable
-      if (a.enrollment_id && enrollmentPrices[a.enrollment_id]) {
-        valorSessao = enrollmentPrices[a.enrollment_id];
-      } else if (valorSessao === 0 && a.observacoes?.startsWith("plano:")) {
-        const planoId = a.observacoes.replace("plano:", "").trim();
-        const plano = planosData.find((pl: any) => pl.id === planoId);
-        if (plano && plano.total_sessoes > 0) {
-          valorSessao = Number(plano.valor) / plano.total_sessoes;
-        }
-      }
-
-      const statusFalta = a.status === 'falta' || a.status === 'cancelado';
-      // By core rule: professional earns commission even on lack/cancel, 
-      // EXCEPT if another professional attended (which is already filtered by profId in this loop)
-      
-      if (profRegras.length > 0) {
-        const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
-          || profRegras.find((r: any) => r.tipo_atendimento === "geral");
-        if (tipoRegra) {
-          comissaoTotal += (valorSessao * Number(tipoRegra.percentual || 0) / 100) + Number(tipoRegra.valor_fixo || 0);
-        }
-      } else if (prof) {
-        const rate = Number(prof.commission_rate || 0);
-        const fixed = Number(prof.commission_fixed || 0);
-        comissaoTotal += (valorSessao * rate / 100) + fixed;
-      }
+      const sc = getSessionCommission(profId, a);
+      comissaoTotal += sc.comissao;
     }
 
     return comissaoTotal;
@@ -286,7 +260,7 @@ export function CommissionExtract() {
 
     // Recalculate prev month commission with current agenda state (cancellations/changes after closing)
     const prevAtendimentos = agendamentosPrev.filter((a: any) =>
-      a.profissional_id === profId && ["agendado", "confirmado", "pendente", "realizado"].includes(a.status)
+      a.profissional_id === profId && ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"].includes(a.status)
     );
     const currentComissao = calcCommissionForAppointments(profId, prevAtendimentos);
     const closedComissao = Number(prevFechamento.total_comissao);
@@ -305,9 +279,6 @@ export function CommissionExtract() {
     const summaryMap: Record<string, ProfSummary> = {};
     const profsToCalc = filterProf === "todos" ? profissionais : profissionais.filter((p: any) => p.user_id === filterProf);
 
-    // Enrollment session price pre-calculation map (global for this summary)
-    const enrollmentPrices: Record<string, number> = {};
-
     profsToCalc.forEach((p: any) => {
       const profRegras = regrasComissao.filter((r: any) => r.profissional_id === p.user_id && r.ativo);
       // Filter sessions for this professional
@@ -322,11 +293,9 @@ export function CommissionExtract() {
       const modalidadesMap: Record<string, number> = {};
 
       for (const a of atendimentos) {
-        const valorSessao = calculateSessionValue(a, matriculas, agendamentos, planosData);
+        const { valorSessao, comissao } = getSessionCommission(p.user_id, a);
         totalValor += valorSessao;
-
-        const { commission } = calculateSessionCommission(valorSessao, a.tipo_atendimento, p, profRegras);
-        comissaoTotal += commission;
+        comissaoTotal += comissao;
 
         const tipo = a.tipo_atendimento || "outro";
         modalidadesMap[tipo] = (modalidadesMap[tipo] || 0) + 1;
@@ -351,17 +320,6 @@ export function CommissionExtract() {
 
   const summary = calcSummary();
   const totalComissoes = summary.reduce((s, item) => s + item.comissao, 0);
-
-  // Per-session commission detail calculator
-  const getSessionCommission = (profId: string, atendimento: any) => {
-    const prof = profissionais.find((p: any) => p.user_id === profId);
-    const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
-    
-    const valorSessao = calculateSessionValue(atendimento, matriculas, agendamentos, planosData);
-    const { percentual, fixo, commission } = calculateSessionCommission(valorSessao, atendimento.tipo_atendimento, prof, profRegras);
-    
-    return { valorSessao, percentual, fixo, comissao: commission };
-  };
 
 
   const closeMutation = useMutation({
