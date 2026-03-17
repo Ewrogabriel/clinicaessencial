@@ -361,6 +361,8 @@ const Profissionais = () => {
           endereco: endereco || null, numero: numero || null,
           bairro: bairro || null, cidade: cidade || null,
           estado: estado || null, cep: cep || null,
+          assinatura_url: assinaturaUrl || null,
+          rubrica_url: rubricaUrl || null,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
