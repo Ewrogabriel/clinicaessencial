@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Download, Send, Users } from "lucide-react";
+import { FileText, Download, Send, Users, Signature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
@@ -17,8 +17,10 @@ import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateContractPDF } from "@/lib/generateContractPDF";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
+import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
 
 const Contratos = () => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
   const { activeClinicId } = useClinic();
   const { data: clinicSettings } = useClinicSettings();
@@ -70,10 +72,19 @@ const Contratos = () => {
       const { data: roleData } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
       const userIds = roleData?.map(r => r.user_id) ?? [];
       if (userIds.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("*").in("user_id", userIds).order("nome");
+      const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").in("user_id", userIds).order("nome");
       return (data as any[]) ?? [];
     },
     enabled: canManage,
+  });
+
+  const { data: currentUserProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url").eq("id", user?.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   const { data: matriculas = [] } = useQuery({
@@ -125,6 +136,8 @@ const Contratos = () => {
     planoValor: matricula?.valor_mensal || plano?.valor || 0,
     desconto: desconto?.percentual_desconto || 0,
     dataContrato: format(new Date(), "dd/MM/yyyy"),
+    profissionalSignature: currentUserProfile?.assinatura_url || undefined,
+    profissionalNome: currentUserProfile?.nome || clinicNome,
   });
 
   const valorFinal = (matricula?.valor_mensal || (plano ? plano.valor : 0)) * (1 - (desconto?.percentual_desconto || 0) / 100);
@@ -255,10 +268,26 @@ const Contratos = () => {
                     )}
                   </div>
                 )}
-                <div className="flex flex-col gap-2 pt-2">
-                  <Button onClick={handleDownload} disabled={!paciente} className="w-full"><Download className="h-4 w-4 mr-2" /> Baixar PDF</Button>
-                  {!isPatient && <Button variant="outline" onClick={handleWhatsAppSend} disabled={!paciente} className="w-full"><Send className="h-4 w-4 mr-2" /> Enviar via WhatsApp</Button>}
-                </div>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button onClick={handleDownload} disabled={!paciente} className="w-full">
+                      <Download className="h-4 w-4 mr-2" /> Baixar PDF
+                    </Button>
+                    {!isPatient && (
+                      <Button variant="secondary" onClick={() => setIsDialogOpen(true)} disabled={!paciente} className="w-full bg-green-50 text-green-700 hover:bg-green-100 border-green-200">
+                        <Signature className="h-4 w-4 mr-2" /> Assinatura Digital
+                      </Button>
+                    )}
+                    {!isPatient && (
+                      <DigitalContractDialog 
+                        pacienteId={paciente?.id || ""} 
+                        pacienteNome={paciente?.nome || ""} 
+                        pacienteCpf={paciente?.cpf}
+                        open={isDialogOpen}
+                        onOpenChange={setIsDialogOpen}
+                      />
+                    )}
+                    {!isPatient && <Button variant="outline" onClick={handleWhatsAppSend} disabled={!paciente} className="w-full"><Send className="h-4 w-4 mr-2" /> Enviar via WhatsApp</Button>}
+                  </div>
               </CardContent>
             </Card>
 

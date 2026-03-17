@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -15,64 +16,7 @@ import { SignaturePad } from "@/components/clinical/SignaturePad";
 import { FileCheck, PenLine } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 
-const CONTRACT_TEMPLATES = [
-  {
-    id: "servico",
-    label: "Prestação de Serviço",
-    content: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
-
-Pelo presente instrumento particular, de um lado {CLINICA_NOME}, inscrita no CNPJ {CLINICA_CNPJ}, com sede em {CLINICA_ENDERECO}, doravante denominada CONTRATADA, e de outro lado {PACIENTE_NOME}, portador(a) do CPF {PACIENTE_CPF}, doravante denominado(a) CONTRATANTE, têm entre si justo e contratado o seguinte:
-
-CLÁUSULA 1ª - DO OBJETO
-O presente contrato tem por objeto a prestação de serviços de {MODALIDADE} pela CONTRATADA ao CONTRATANTE.
-
-CLÁUSULA 2ª - DO VALOR E PAGAMENTO
-O CONTRATANTE pagará à CONTRATADA o valor mensal de R$ {VALOR}, com vencimento todo dia {DIA_VENCIMENTO} de cada mês.
-
-CLÁUSULA 3ª - DA VIGÊNCIA
-O presente contrato tem início em {DATA_INICIO} e vigência por prazo indeterminado, podendo ser rescindido por qualquer das partes mediante aviso prévio de 30 dias.
-
-CLÁUSULA 4ª - DAS FALTAS
-Em caso de falta sem aviso prévio de 24 horas, a sessão será considerada realizada para fins de cobrança.
-
-CLÁUSULA 5ª - DO FORO
-Fica eleito o foro da comarca de {CIDADE} para dirimir eventuais litígios decorrentes deste contrato.
-
-{CIDADE}, {DATA_CONTRATO}
-
-_______________________________
-CONTRATADA
-
-_______________________________
-CONTRATANTE`,
-  },
-  {
-    id: "plano_sessoes",
-    label: "Plano de Sessões",
-    content: `CONTRATO DE PLANO DE SESSÕES
-
-CONTRATADA: {CLINICA_NOME} - CNPJ: {CLINICA_CNPJ}
-CONTRATANTE: {PACIENTE_NOME} - CPF: {PACIENTE_CPF}
-
-CLÁUSULA 1ª - O CONTRATANTE adquire um plano de {TOTAL_SESSOES} sessões de {MODALIDADE}.
-
-CLÁUSULA 2ª - O valor total do plano é de R$ {VALOR}, podendo ser pago em até {PARCELAS}x.
-
-CLÁUSULA 3ª - As sessões devem ser utilizadas no prazo de {VALIDADE_MESES} meses a partir da data de início.
-
-CLÁUSULA 4ª - Sessões não utilizadas no prazo não serão reembolsadas.
-
-CLÁUSULA 5ª - O cancelamento antes do término resulta na cobrança proporcional das sessões utilizadas pelo valor unitário de R$ {VALOR_UNITARIO}.
-
-{CIDADE}, {DATA_CONTRATO}
-
-_______________________________
-CONTRATADA
-
-_______________________________
-CONTRATANTE`,
-  },
-];
+// Templates will be loaded from the database
 
 interface DigitalContractDialogProps {
   open: boolean;
@@ -93,17 +37,47 @@ export function DigitalContractDialog({
   const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
 
-  const [templateId, setTemplateId] = useState("servico");
+  const { data: templates = [] } = useQuery({
+    queryKey: ["contract-templates", activeClinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contrato_templates")
+        .select("*")
+        .eq("ativo", true)
+        .eq("clinic_id", activeClinicId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!activeClinicId,
+  });
+
+  const { data: professional } = useQuery({
+    queryKey: ["professional-profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("assinatura_url, rubrica_url, nome")
+        .eq("id", user?.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const [templateId, setTemplateId] = useState("");
   const [contractText, setContractText] = useState("");
   const [signatureUrl, setSignatureUrl] = useState("");
   const [title, setTitle] = useState("Contrato de Prestação de Serviço");
+  const [useProfSignature, setUseProfSignature] = useState(false);
+  const [useProfRubrica, setUseProfRubrica] = useState(false);
 
   const applyTemplate = (id: string) => {
-    const tpl = CONTRACT_TEMPLATES.find((t) => t.id === id);
+    const tpl = templates.find((t) => t.id === id);
     if (tpl) {
       setTemplateId(id);
-      setTitle(tpl.label);
-      let text = tpl.content;
+      setTitle(tpl.nome);
+      let text = tpl.conteudo;
       text = text.replace(/{PACIENTE_NOME}/g, pacienteNome);
       text = text.replace(/{PACIENTE_CPF}/g, pacienteCpf || "_______________");
       text = text.replace(/{DATA_CONTRATO}/g, new Date().toLocaleDateString("pt-BR"));
@@ -124,6 +98,10 @@ export function DigitalContractDialog({
         assinatura_url: signatureUrl,
         assinado_em: new Date().toISOString(),
         created_by: user.id,
+        profissional_assinatura_id: useProfSignature ? user.id : null,
+        profissional_rubrica_id: useProfRubrica ? user.id : null,
+        usa_assinatura_profissional: useProfSignature,
+        usa_rubrica_profissional: useProfRubrica,
       });
       if (error) throw error;
     },
@@ -152,14 +130,14 @@ export function DigitalContractDialog({
           <div>
             <Label>Modelo de Contrato</Label>
             <div className="flex flex-wrap gap-2 mt-1">
-              {CONTRACT_TEMPLATES.map((t) => (
+              {templates.map((t) => (
                 <Badge
                   key={t.id}
                   variant={templateId === t.id ? "default" : "outline"}
                   className="cursor-pointer"
                   onClick={() => applyTemplate(t.id)}
                 >
-                  {t.label}
+                  {t.nome}
                 </Badge>
               ))}
             </div>
@@ -195,12 +173,57 @@ export function DigitalContractDialog({
           </Card>
 
           {/* Signature */}
-          <div>
-            <Label className="mb-2 block">Assinatura do Paciente</Label>
-            <SignaturePad onSave={setSignatureUrl} />
-            {signatureUrl && (
-              <p className="text-xs text-green-600 font-medium mt-1">✓ Assinatura capturada</p>
-            )}
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <Label className="mb-2 block font-semibold flex items-center gap-2">
+                <PenLine className="h-4 w-4" />
+                Assinatura do Profissional
+              </Label>
+              <div className="space-y-2">
+                {professional?.assinatura_url ? (
+                  <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors border border-transparent hover:border-border">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={useProfSignature}
+                      onChange={(e) => setUseProfSignature(e.target.checked)}
+                    />
+                    <span className="text-sm">Inserir minha assinatura profissional</span>
+                  </label>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Assinatura não cadastrada no perfil.
+                  </p>
+                )}
+                
+                {professional?.rubrica_url ? (
+                  <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors border border-transparent hover:border-border">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={useProfRubrica}
+                      onChange={(e) => setUseProfRubrica(e.target.checked)}
+                    />
+                    <span className="text-sm">Inserir minha rubrica no carimbo</span>
+                  </label>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Rubrica não cadastrada no perfil.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <Label className="mb-2 block font-semibold flex items-center gap-2">
+                <PenLine className="h-4 w-4" />
+                Assinatura do Paciente (Obrigatória)
+              </Label>
+              <SignaturePad onSave={setSignatureUrl} />
+              {signatureUrl && (
+                <p className="text-xs text-green-600 font-medium mt-1">✓ Assinatura capturada</p>
+              )}
+            </div>
           </div>
         </div>
 

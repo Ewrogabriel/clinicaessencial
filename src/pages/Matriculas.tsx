@@ -351,9 +351,8 @@ const Matriculas = () => {
               recorrencia_fim: endDate,
               enrollment_id: mat.id,
               valor_sessao: finalValue > 0 && formData.weekly_schedules.length > 0
-                ? parseFloat((finalValue / Math.round(formData.weekly_schedules.length * 4.33)).toFixed(2))
+                ? parseFloat((finalValue / (toInsert.length / formData.weekly_schedules.length)).toFixed(2))
                 : 0,
-              created_by: user.id,
               clinic_id: activeClinicId,
             });
           }
@@ -369,15 +368,16 @@ const Matriculas = () => {
       if (finalValue > 0) {
         const mesReferencia = format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-01");
 
-        const { error: mensalidadeError } = await supabase.from("pagamentos_mensalidade").insert({
+        const { error: mensalidadeError } = await (supabase.from("pagamentos_mensalidade").upsert({
           paciente_id: formData.paciente_id,
           matricula_id: mat.id,
           mes_referencia: mesReferencia,
+          data_vencimento: dueDate, // Novo campo salvo no banco
           valor: finalValue,
           status: "aberto",
           observacoes: `Mensalidade ${formData.tipo_atendimento}`,
           clinic_id: activeClinicId,
-        });
+        }, { onConflict: 'paciente_id,mes_referencia' }) as any);
 
         if (mensalidadeError) throw mensalidadeError;
       }

@@ -11,6 +11,9 @@ interface ContractData {
   planoValor: number;
   desconto: number;
   dataContrato: string;
+  pacienteSignature?: string;
+  profissionalSignature?: string;
+  profissionalNome?: string;
 }
 
 export async function generateContractPDF(data: ContractData) {
@@ -143,20 +146,40 @@ export async function generateContractPDF(data: ContractData) {
   // Signatures
   checkPage();
   addText(`Data: ${data.dataContrato}`, 10);
-  y += 12;
+  y += 5;
 
+  // Profissional Signature
+  if (data.profissionalSignature) {
+    try {
+      doc.addImage(data.profissionalSignature, "PNG", margin, y, 50, 20);
+      y += 22;
+    } catch { y += 12; }
+  } else {
+    y += 12;
+  }
   doc.setFontSize(10);
   doc.line(margin, y, margin + 70, y);
   y += 5;
   addText("CONTRATADA", 9);
-  addText(settings.nome, 9);
-  y += 8;
+  addText(data.profissionalNome || settings.nome, 9);
+  y += 10;
 
+  // Patient Signature
+  checkPage();
+  if (data.pacienteSignature) {
+    try {
+      doc.addImage(data.pacienteSignature, "PNG", margin, y, 50, 20);
+      y += 22;
+    } catch { y += 12; }
+  } else {
+    y += 12;
+  }
   doc.line(margin, y, margin + 70, y);
   y += 5;
   addText("CONTRATANTE", 9);
   addText(data.pacienteNome, 9);
 
+  // Aumentar marca d'água chamando a função com parâmetros se disponíveis (opcional aqui)
   await addWatermarkToAllPages(doc);
   return doc;
 }

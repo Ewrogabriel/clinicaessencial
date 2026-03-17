@@ -40,15 +40,18 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
         mutationFn: async () => {
             if (!user) throw new Error("Usuário não autenticado");
 
-            const { error } = await supabase.from("evaluations").insert({
-                clinic_id: activeClinicId,
-                paciente_id: pacienteId,
-                profissional_id: user.id,
-                ...formData,
-                data_avaliacao: new Date().toISOString(),
-            });
-
             if (error) throw error;
+
+            // 2. Atualizar status e última avaliação do paciente
+            const { error: patientErr } = await supabase
+                .from("pacientes")
+                .update({ 
+                    status_clinico: "Avaliado",
+                    ultima_avaliacao_data: new Date().toISOString().split("T")[0]
+                })
+                .eq("id", pacienteId);
+            
+            if (patientErr) console.error("Erro ao atualizar status do paciente:", patientErr);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["avaliacao", pacienteId] });

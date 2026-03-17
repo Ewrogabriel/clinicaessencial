@@ -51,6 +51,8 @@ const DocumentosClinicos = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [incluirCarimbo, setIncluirCarimbo] = useState(true);
+  const [incluirAssinatura, setIncluirAssinatura] = useState(false);
+  const [incluirRubrica, setIncluirRubrica] = useState(false);
 
   // Fetch documents
   const { data: documentos = [], isLoading } = useQuery({
@@ -93,7 +95,11 @@ const DocumentosClinicos = () => {
         paciente_id: pacienteId,
         profissional_id: user!.id,
         clinic_id: activeClinicId || null,
-        dados_extras: { incluir_carimbo: incluirCarimbo },
+        dados_extras: { 
+          incluir_carimbo: incluirCarimbo,
+          incluir_assinatura: incluirAssinatura,
+          incluir_rubrica: incluirRubrica
+        },
       };
       if (editingDoc) {
         const { error } = await supabase.from("documentos_clinicos").update(payload).eq("id", editingDoc.id);
@@ -220,6 +226,8 @@ const DocumentosClinicos = () => {
     setConteudo("");
     setPacienteId("");
     setIncluirCarimbo(true);
+    setIncluirAssinatura(false);
+    setIncluirRubrica(false);
   };
 
   const openEdit = (doc: any) => {
@@ -229,6 +237,8 @@ const DocumentosClinicos = () => {
     setConteudo(doc.conteudo);
     setPacienteId(doc.paciente_id);
     setIncluirCarimbo((doc.dados_extras as any)?.incluir_carimbo !== false);
+    setIncluirAssinatura((doc.dados_extras as any)?.incluir_assinatura === true);
+    setIncluirRubrica((doc.dados_extras as any)?.incluir_rubrica === true);
     setIsFormOpen(true);
   };
 
@@ -244,6 +254,8 @@ const DocumentosClinicos = () => {
       pacienteCpf: paciente?.cpf || (doc.pacientes as any)?.cpf || undefined,
       data: format(new Date(doc.created_at), "dd/MM/yyyy"),
       incluirCarimbo: (doc.dados_extras as any)?.incluir_carimbo !== false,
+      profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profile?.assinatura_url : undefined,
+      profissionalRubrica: (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
     });
   };
 
@@ -401,16 +413,48 @@ const DocumentosClinicos = () => {
             </div>
 
             {/* Carimbo toggle */}
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label className="font-medium flex items-center gap-2">
-                  <Stamp className="h-4 w-4" /> {t("docs.stamp")}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {t("docs.stamp_desc")}
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label className="font-medium flex items-center gap-2">
+                    <Stamp className="h-4 w-4" /> {t("docs.stamp")}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t("docs.stamp_desc")}
+                  </p>
+                </div>
+                <Switch checked={incluirCarimbo} onCheckedChange={setIncluirCarimbo} />
               </div>
-              <Switch checked={incluirCarimbo} onCheckedChange={setIncluirCarimbo} />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Assinatura</Label>
+                    <p className="text-[10px] text-muted-foreground">Inserir imagem da assinatura</p>
+                  </div>
+                  <Switch 
+                    checked={incluirAssinatura} 
+                    onCheckedChange={setIncluirAssinatura} 
+                    disabled={!profile?.assinatura_url}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Rubrica</Label>
+                    <p className="text-[10px] text-muted-foreground">Em todas as páginas</p>
+                  </div>
+                  <Switch 
+                    checked={incluirRubrica} 
+                    onCheckedChange={setIncluirRubrica}
+                    disabled={!profile?.rubrica_url}
+                  />
+                </div>
+              </div>
+              {!profile?.assinatura_url && !profile?.rubrica_url && (
+                <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-100 italic">
+                  Atenção: Cadastre sua assinatura e rubrica no seu perfil para habilitar estas opções.
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end pt-2">

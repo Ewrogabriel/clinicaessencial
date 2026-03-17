@@ -11,6 +11,8 @@ interface DocumentData {
   pacienteCpf?: string;
   data: string;
   incluirCarimbo?: boolean;
+  profissionalSignature?: string;
+  profissionalRubrica?: string;
 }
 
 const tipoLabels: Record<string, string> = {
@@ -157,6 +159,13 @@ export async function generateDocumentPDF(docData: DocumentData) {
     y = 80;
   }
 
+  // Real Signature Image if available
+  if (docData.profissionalSignature) {
+    try {
+      doc.addImage(docData.profissionalSignature, "PNG", pageWidth / 2 - 25, y - 22, 50, 20);
+    } catch (e) {}
+  }
+
   // Signature line
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
@@ -186,8 +195,8 @@ export async function generateDocumentPDF(docData: DocumentData) {
     drawCarimbo(doc, pageWidth / 2, y, docData.profissionalNome, docData.profissionalRegistro);
   }
 
-  // Watermark
-  await addWatermarkToAllPages(doc);
+  // Watermark with professional profile for automatic rubrica
+  await addWatermarkToAllPages(doc, { rubrica_url: docData.profissionalRubrica });
 
   const fileName = (tipoLabels[docData.tipo] || docData.titulo || docData.tipo).toLowerCase().replace(/\s+/g, "_");
   doc.save(`${fileName}_${docData.pacienteNome.split(" ")[0]}.pdf`);

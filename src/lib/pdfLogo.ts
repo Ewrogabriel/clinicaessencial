@@ -71,10 +71,13 @@ async function loadLogoBase64(logoUrl: string): Promise<{ base64: string; format
  * Adds a full-page watermark with clinic logo and contact info to every page.
  * Call AFTER all content has been added to the document.
  */
-export async function addWatermarkToAllPages(doc: any): Promise<void> {
+export async function addWatermarkToAllPages(doc: any, profissionalProfile?: any): Promise<void> {
   const settings = await getClinicSettings();
   const pageCount = doc.getNumberOfPages();
   
+  // Use professional Profile for rubrica
+  const profile = profissionalProfile;
+
   let logoData: { base64: string; format: string } | null = null;
   if (settings.logo_url) {
     logoData = await loadLogoBase64(settings.logo_url);
@@ -96,19 +99,20 @@ export async function addWatermarkToAllPages(doc: any): Promise<void> {
         await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
         // Size: ~60% of page width, maintain aspect ratio
-        const maxW = pageWidth * 0.7;
+        // Size: ~80% of page width instead of 70%
+        const maxW = pageWidth * 0.8;
         let w = maxW;
         let h = (img.height / img.width) * w;
-        if (h > pageHeight * 0.4) {
-          h = pageHeight * 0.4;
+        if (h > pageHeight * 0.5) {
+          h = pageHeight * 0.5;
           w = (img.width / img.height) * h;
         }
 
         const x = (pageWidth - w) / 2;
         const y = (pageHeight - h) / 2 - 15;
 
-        // Set very low opacity for watermark
-        doc.setGState(new doc.GState({ opacity: 0.06 }));
+        // Opacity increased from 0.06 to 0.1 for visibility
+        doc.setGState(new doc.GState({ opacity: 0.1 }));
         doc.addImage(logoData.base64, logoData.format, x, y, w, h);
       } catch (err) {
         console.error("Watermark logo error:", err);
@@ -140,6 +144,17 @@ export async function addWatermarkToAllPages(doc: any): Promise<void> {
     if (addrLine) doc.text(addrLine, pageWidth / 2, bottomY - 4, { align: "center" });
     if (contactLine2) doc.text(contactLine2, pageWidth / 2, bottomY, { align: "center" });
 
+    // 3. Rubrica no canto inferior direito (se existir e for solicitada - aqui colocamos padrão)
+    if (profile?.rubrica_url) {
+      try {
+        const rubricaData = await loadLogoBase64(profile.rubrica_url);
+        if (rubricaData) {
+          doc.setGState(new doc.GState({ opacity: 0.8 })); // Rubrica mais visível
+          doc.addImage(rubricaData.base64, rubricaData.format, pageWidth - 35, pageHeight - 25, 20, 10);
+        }
+      } catch (e) {}
+    }
+
     // Restore state
     doc.restoreGraphicsState();
     doc.setTextColor(0, 0, 0);
@@ -150,8 +165,8 @@ export async function addLogoToPDF(
   doc: any, 
   x: number, 
   y: number, 
-  maxWidth: number = 45,
-  maxHeight: number = 30,
+  maxWidth: number = 60, // Increased from 45
+  maxHeight: number = 40, // Increased from 30
   centered: boolean = true
 ): Promise<number> {
   const settings = await getClinicSettings();
