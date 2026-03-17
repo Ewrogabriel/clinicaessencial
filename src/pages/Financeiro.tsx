@@ -490,8 +490,25 @@ const Financeiro = () => {
                   <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
-              {(filterMes !== format(new Date(), "yyyy-MM") || filterOrigem !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(format(new Date(), "yyyy-MM")); setFilterOrigem("all"); }}>Limpar filtros</Button>
+              <Select value={filterForma} onValueChange={setFilterForma}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Forma pgto" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas formas</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="cartao">Cartão</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Filtrar por paciente..."
+                value={filterPaciente}
+                onChange={(e) => setFilterPaciente(e.target.value)}
+                className="w-[200px]"
+              />
+              {(filterMes !== format(new Date(), "yyyy-MM") || filterOrigem !== "all" || filterForma !== "all" || filterPaciente) && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(format(new Date(), "yyyy-MM")); setFilterOrigem("all"); setFilterForma("all"); setFilterPaciente(""); }}>Limpar filtros</Button>
               )}
             </div>
           )}
