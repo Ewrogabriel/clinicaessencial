@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { toast } from "@/modules/shared/hooks/use-toast";
+import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { maskPhone, maskCPF, maskRG, maskCEP, isValidCPF, unmask } from "@/lib/masks";
 import { ALL_RESOURCES, DEFAULT_PERMISSIONS } from "@/lib/resources";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
+import { cleanSignatureImage } from "@/lib/imageUtils";
+import { Loader2, Sparkles } from "lucide-react";
 
 interface PermissionEntry {
   resource: string;
@@ -129,52 +132,10 @@ const Profissionais = () => {
   const [loading, setLoading] = useState(false);
   const [assinaturaUrl, setAssinaturaUrl] = useState("");
   const [rubricaUrl, setRubricaUrl] = useState("");
+  const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
+  const [cleaningRubrica, setCleaningRubrica] = useState(false);
+  const { profissionais: users, isLoading } = useProfissionais();
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["staff-users", activeClinicId],
-    queryFn: async () => {
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
-
-      const staffRoles = roleData?.filter(r => r.role !== "paciente") ?? [];
-      let userIds = [...new Set(staffRoles.map(r => r.user_id))];
-      if (userIds.length === 0) return [];
-
-      // Filter by active clinic
-      if (activeClinicId) {
-        const { data: clinicUsers } = await supabase.from("clinic_users")
-          .select("user_id")
-          .eq("clinic_id", activeClinicId);
-        const clinicUserIds = new Set(clinicUsers?.map((cu) => cu.user_id) ?? []);
-        userIds = userIds.filter(id => clinicUserIds.has(id));
-        if (userIds.length === 0) return [];
-      }
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("user_id", userIds)
-        .order("nome");
-
-      const { data: permsData } = await supabase
-        .from("user_permissions")
-        .select("user_id, resource, access_level")
-        .in("user_id", userIds)
-        .eq("enabled", true);
-
-      return (profiles ?? []).map(p => ({
-        ...p,
-        role: staffRoles.find(r => r.user_id === p.user_id)?.role || "profissional",
-        permissions: (permsData ?? [])
-          .filter((perm) => perm.user_id === p.user_id)
-          .map((perm) => ({
-            resource: perm.resource,
-            access_level: (perm.access_level || "edit") as "view" | "edit",
-          })),
-      })) as UserRecord[];
-    },
-  });
 
   const filtered = useMemo(() => users.filter(u => {
     const matchSearch = u.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -779,7 +740,33 @@ const Profissionais = () => {
                           onChange={setAssinaturaUrl}
                           folder="assinaturas"
                         />
-                        <p className="text-xs text-muted-foreground">Envie a imagem da assinatura.</p>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-muted-foreground">Envie a imagem da assinatura.</p>
+                          {assinaturaUrl && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px] gap-1 w-fit"
+                              disabled={cleaningAssinatura}
+                              onClick={async () => {
+                                setCleaningAssinatura(true);
+                                try {
+                                  const cleaned = await cleanSignatureImage(assinaturaUrl);
+                                  setAssinaturaUrl(cleaned);
+                                  toast({ title: "Assinatura otimizada!" });
+                                } catch (e) {
+                                  toast({ title: "Erro ao limpar", variant: "destructive" });
+                                } finally {
+                                  setCleaningAssinatura(false);
+                                }
+                              }}
+                            >
+                              {cleaningAssinatura ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                              Otimizar Assinatura (Fundo Transparente)
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Imagem da Rubrica</Label>
@@ -788,7 +775,33 @@ const Profissionais = () => {
                           onChange={setRubricaUrl}
                           folder="rubricas"
                         />
-                        <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional.</p>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional.</p>
+                          {rubricaUrl && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px] gap-1 w-fit"
+                              disabled={cleaningRubrica}
+                              onClick={async () => {
+                                setCleaningRubrica(true);
+                                try {
+                                  const cleaned = await cleanSignatureImage(rubricaUrl);
+                                  setRubricaUrl(cleaned);
+                                  toast({ title: "Rubrica otimizada!" });
+                                } catch (e) {
+                                  toast({ title: "Erro ao limpar", variant: "destructive" });
+                                } finally {
+                                  setCleaningRubrica(false);
+                                }
+                              }}
+                            >
+                              {cleaningRubrica ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                              Otimizar Rubrica (Fundo Transparente)
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

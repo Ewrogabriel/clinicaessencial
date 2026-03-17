@@ -41,6 +41,8 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { ClinicReportButton } from "@/components/reports/ClinicReportButton";
 import { AIKpiInsights } from "@/components/reports/AIKpiInsights";
+import { usePacientes } from "@/modules/shared/hooks/usePacientes";
+import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
 
 const ADMIN_DEFAULT_CARDS: DashboardCard[] = [
   { id: "tips", label: "Dicas do Dia", visible: true },
@@ -84,25 +86,7 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes", activeClinicId],
-    queryFn: async () => {
-      if (activeClinicId) {
-        const { data: cp } = await supabase.from("clinic_pacientes")
-          .select("paciente_id").eq("clinic_id", activeClinicId);
-        const ids = (cp || []).map((c) => c.paciente_id);
-        if (!ids.length) return [];
-        const { data, error } = await supabase.from("pacientes")
-          .select("id, nome, telefone, status, tipo_atendimento, data_nascimento, created_at").in("id", ids).order("created_at", { ascending: false });
-        if (error) throw error;
-        return data;
-      }
-      const { data, error } = await supabase.from("pacientes")
-        .select("id, nome, telefone, status, tipo_atendimento, data_nascimento, created_at").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { pacientes, isLoading: isLoadingPacientes } = usePacientes();
 
   const hoje = new Date();
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
@@ -322,34 +306,7 @@ const Dashboard = () => {
   });
 
   // Professionals for the re-assignment dialog
-  const { data: profissionais = [] } = useQuery({
-    queryKey: ["profissionais-dashboard", activeClinicId],
-    queryFn: async () => {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["profissional", "admin", "gestor"]);
-
-      let userIds = roles?.map(r => r.user_id) || [];
-      if (userIds.length === 0) return [];
-
-      if (activeClinicId) {
-        const { data: cu } = await supabase.from("clinic_users")
-          .select("user_id").eq("clinic_id", activeClinicId);
-        const clinicUserIds = new Set((cu || []).map((c) => c.user_id));
-        userIds = userIds.filter(id => clinicUserIds.has(id));
-        if (!userIds.length) return [];
-      }
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, nome, telefone")
-        .in("user_id", userIds);
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { profissionais, isLoading: isLoadingProfissionais } = useProfissionais();
 
   // Quick Action Mutations
   const updateStatus = useMutation({

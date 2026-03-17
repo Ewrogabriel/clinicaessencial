@@ -19,7 +19,6 @@ import { EvaluationForm } from "@/components/clinical/EvaluationForm";
 import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
-import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
 import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -31,7 +30,6 @@ const PacienteDetalhes = () => {
     const [activeTab, setActiveTab] = useState("prontuario");
     const [evolutionOpen, setEvolutionOpen] = useState(false);
     const [evaluationOpen, setEvaluationOpen] = useState(false);
-    const [contractOpen, setContractOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
 
     const canAccess = isAdmin || isProfissional;
@@ -270,21 +268,6 @@ const PacienteDetalhes = () => {
 
                     <PatientAttachments pacienteId={id!} />
                     <AIClinicalAssistant pacienteId={id!} modalidade={paciente?.tipo_atendimento} />
-
-                    <Card>
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <FileCheck className="h-5 w-5 text-primary" />
-                                <div>
-                                    <p className="font-medium text-sm">Contrato Digital</p>
-                                    <p className="text-xs text-muted-foreground">Gere e assine contratos digitalmente</p>
-                                </div>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={() => setContractOpen(true)}>
-                                Gerar Contrato
-                            </Button>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
 
                 <TabsContent value="evolucoes" className="space-y-4">
@@ -396,13 +379,6 @@ const PacienteDetalhes = () => {
 
             <EvolutionForm open={evolutionOpen} onOpenChange={setEvolutionOpen} pacienteId={id!} />
             <EvaluationForm open={evaluationOpen} onOpenChange={setEvaluationOpen} pacienteId={id!} />
-            <DigitalContractDialog
-                open={contractOpen}
-                onOpenChange={setContractOpen}
-                pacienteId={id!}
-                pacienteNome={paciente?.nome || ""}
-                pacienteCpf={paciente?.cpf}
-            />
         </div>
     );
 };

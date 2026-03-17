@@ -134,15 +134,11 @@ const App = () => (
                         <Route path="/meu-historico" element={<HistoricoSessoes />} />
                         <Route path="/matriculas" element={<Matriculas />} />
                         <Route path="/inventario" element={<Inventario />} />
-                        <Route path="/produtos" element={<Inventario />} />
-                        <Route path="/equipamentos" element={<Inventario />} />
                         <Route path="/financeiro" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><Financeiro /></RequireRole>} />
                         <Route path="/relatorios" element={<RequireRole roles={["admin", "gestor", "master"]}><Relatorios /></RequireRole>} />
-                        <Route path="/aniversariantes" element={<Dashboard />} />
                         <Route path="/modalidades" element={<Modalidades />} />
                         <Route path="/profissionais" element={<RequireRole roles={["admin", "gestor", "master"]}><Profissionais /></RequireRole>} />
                         <Route path="/automacoes" element={<RequireRole roles={["admin", "gestor", "master"]}><Automacoes /></RequireRole>} />
-                        <Route path="/dicas-diarias" element={<Dashboard />} />
                         <Route path="/avisos" element={<AvisosAdmin />} />
                         <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
                         <Route path="/contratos" element={<Contratos />} />
@@ -152,12 +148,8 @@ const App = () => (
                         <Route path="/clinica" element={<RequireRole roles={["admin", "gestor", "master"]}><ClinicSettings /></RequireRole>} />
                         <Route path="/mensagens" element={<MensagensInternas />} />
                         <Route path="/solicitacoes-alteracao" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><SolicitacoesAlteracao /></RequireRole>} />
-                        <Route path="/formas-pagamento" element={<RequireRole roles={["admin", "gestor", "master"]}><ClinicSettings /></RequireRole>} />
-                        <Route path="/lista-espera" element={<Agenda />} />
                         <Route path="/convenios" element={<Convenios />} />
-                        <Route path="/vagas" element={<Agenda />} />
                         <Route path="/pre-cadastros" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><PreCadastrosAdmin /></RequireRole>} />
-                        <Route path="/notas-fiscais" element={<RequireRole roles={["admin", "gestor", "master"]}><Financeiro /></RequireRole>} />
                         <Route path="/gestao-clinicas" element={<RequireRole roles={["admin", "master"]}><GestaoClinicas /></RequireRole>} />
                         <Route path="/master" element={<RequireRole roles={["master"]}><MasterPanel /></RequireRole>} />
                         <Route path="/importacao" element={<RequireRole roles={["admin", "gestor", "master"]}><ImportacaoMassa /></RequireRole>} />

@@ -40,7 +40,23 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
         mutationFn: async () => {
             if (!user) throw new Error("Usuário não autenticado");
 
-            if (error) throw error;
+            const { data: evaluation, error: evalError } = await supabase
+                .from("evaluations")
+                .insert({
+                    paciente_id: pacienteId,
+                    profissional_id: user.id,
+                     clinic_id: activeClinicId,
+                    queixa_principal: formData.queixa_principal,
+                    historico_doenca: formData.historico_doenca,
+                    antecedentes_pessoais: formData.antecedentes_pessoais,
+                    objetivos_tratamento: formData.objetivos_tratamento,
+                    conduta_inicial: formData.conduta_inicial,
+                    data_avaliacao: new Date().toISOString().split("T")[0]
+                })
+                .select()
+                .single();
+
+            if (evalError) throw evalError;
 
             // 2. Atualizar status e última avaliação do paciente
             const { error: patientErr } = await supabase
@@ -52,11 +68,22 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                 .eq("id", pacienteId);
             
             if (patientErr) console.error("Erro ao atualizar status do paciente:", patientErr);
+            
+            return evaluation;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["avaliacao", pacienteId] });
+            queryClient.invalidateQueries({ queryKey: ["prontuarios-list"] });
+            queryClient.invalidateQueries({ queryKey: ["paciente-detalhes", pacienteId] });
+            queryClient.invalidateQueries({ queryKey: ["evaluations", pacienteId] });
             toast({ title: "Avaliação registrada com sucesso!" });
             onOpenChange(false);
+            setFormData({
+                queixa_principal: "",
+                historico_doenca: "",
+                antecedentes_pessoais: "",
+                objetivos_tratamento: "",
+                conduta_inicial: "",
+            });
         },
         onError: (error: any) => {
             toast({

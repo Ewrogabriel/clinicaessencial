@@ -53,6 +53,7 @@ const DocumentosClinicos = () => {
   const [incluirCarimbo, setIncluirCarimbo] = useState(true);
   const [incluirAssinatura, setIncluirAssinatura] = useState(false);
   const [incluirRubrica, setIncluirRubrica] = useState(false);
+  const [rubricaNoCarimbo, setRubricaNoCarimbo] = useState(false);
 
   // Fetch documents
   const { data: documentos = [], isLoading } = useQuery({
@@ -98,7 +99,8 @@ const DocumentosClinicos = () => {
         dados_extras: { 
           incluir_carimbo: incluirCarimbo,
           incluir_assinatura: incluirAssinatura,
-          incluir_rubrica: incluirRubrica
+          incluir_rubrica: incluirRubrica,
+          rubrica_no_carimbo: rubricaNoCarimbo
         },
       };
       if (editingDoc) {
@@ -228,6 +230,7 @@ const DocumentosClinicos = () => {
     setIncluirCarimbo(true);
     setIncluirAssinatura(false);
     setIncluirRubrica(false);
+    setRubricaNoCarimbo(false);
   };
 
   const openEdit = (doc: any) => {
@@ -239,6 +242,7 @@ const DocumentosClinicos = () => {
     setIncluirCarimbo((doc.dados_extras as any)?.incluir_carimbo !== false);
     setIncluirAssinatura((doc.dados_extras as any)?.incluir_assinatura === true);
     setIncluirRubrica((doc.dados_extras as any)?.incluir_rubrica === true);
+    setRubricaNoCarimbo((doc.dados_extras as any)?.rubrica_no_carimbo === true);
     setIsFormOpen(true);
   };
 
@@ -255,7 +259,8 @@ const DocumentosClinicos = () => {
       data: format(new Date(doc.created_at), "dd/MM/yyyy"),
       incluirCarimbo: (doc.dados_extras as any)?.incluir_carimbo !== false,
       profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profile?.assinatura_url : undefined,
-      profissionalRubrica: (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
+      profissionalRubrica: (doc.dados_extras as any)?.rubrica_no_carimbo || (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
+      rubricaNoCarimbo: (doc.dados_extras as any)?.rubrica_no_carimbo === true,
     });
   };
 
@@ -425,6 +430,19 @@ const DocumentosClinicos = () => {
                 </div>
                 <Switch checked={incluirCarimbo} onCheckedChange={setIncluirCarimbo} />
               </div>
+
+              {incluirCarimbo && profile?.rubrica_url && (
+                <div className="flex items-center justify-between rounded-lg border p-3 bg-blue-50/30 border-blue-100 ml-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Incluir Rubrica no Carimbo</Label>
+                    <p className="text-[10px] text-muted-foreground">Exibir rubrica dentro do quadro do carimbo</p>
+                  </div>
+                  <Switch 
+                    checked={rubricaNoCarimbo} 
+                    onCheckedChange={setRubricaNoCarimbo}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">

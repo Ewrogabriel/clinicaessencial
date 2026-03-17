@@ -33,10 +33,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   EnrollmentForm, EnrollmentFormData, WeeklyScheduleEntry
-} from "@/components/enrollments/EnrollmentForm";
-import { EnrollmentDetails } from "@/components/enrollments/EnrollmentDetails";
-import { EnrollmentAdminPanel } from "@/components/enrollments/EnrollmentAdminPanel";
-import { CancellationPolicies } from "@/components/enrollments/CancellationPolicies";
+} from "@/components/matriculas/EnrollmentForm";
+import { EnrollmentDetails } from "@/components/matriculas/EnrollmentDetails";
+import { EnrollmentAdminPanel } from "@/components/matriculas/EnrollmentAdminPanel";
+import { CancellationPolicies } from "@/components/matriculas/CancellationPolicies";
 import Planos from "./Planos";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -236,6 +236,13 @@ const Matriculas = () => {
       for (const s of editData.weekly_schedules) {
         const dates = getDatesForWeekday(validFrom, endDate, s.weekday);
         for (const dt of dates) {
+          const monthRef = dt.substring(0, 7);
+          const sessionsInMonth = getDatesForWeekday(
+            `${monthRef}-01`, 
+            format(new Date(new Date(monthRef + "-01").getFullYear(), new Date(monthRef + "-01").getMonth() + 1, 0), "yyyy-MM-dd"),
+            s.weekday
+          ).length;
+
           toInsert.push({
             paciente_id: editData.paciente_id,
             profissional_id: s.professional_id,
@@ -247,8 +254,8 @@ const Matriculas = () => {
             recorrencia_grupo_id: groupId,
             recorrencia_fim: endDate,
             enrollment_id: editingId,
-            valor_sessao: finalValue > 0 && editData.weekly_schedules.length > 0
-              ? parseFloat((finalValue / Math.round(editData.weekly_schedules.length * 4.33)).toFixed(2))
+            valor_sessao: finalValue > 0 && sessionsInMonth > 0
+              ? parseFloat((finalValue / sessionsInMonth).toFixed(2))
               : 0,
             created_by: user.id,
             clinic_id: activeClinicId,
@@ -339,6 +346,13 @@ const Matriculas = () => {
         for (const s of formData.weekly_schedules) {
           const dates = getDatesForWeekday(formData.start_date, endDate, s.weekday);
           for (const dt of dates) {
+            const monthRef = dt.substring(0, 7);
+            const sessionsInMonth = getDatesForWeekday(
+              `${monthRef}-01`, 
+              format(new Date(new Date(monthRef + "-01").getFullYear(), new Date(monthRef + "-01").getMonth() + 1, 0), "yyyy-MM-dd"),
+              s.weekday
+            ).length;
+
             toInsert.push({
               paciente_id: formData.paciente_id,
               profissional_id: s.professional_id,
@@ -350,8 +364,8 @@ const Matriculas = () => {
               recorrencia_grupo_id: groupId,
               recorrencia_fim: endDate,
               enrollment_id: mat.id,
-              valor_sessao: finalValue > 0 && formData.weekly_schedules.length > 0
-                ? parseFloat((finalValue / (toInsert.length / formData.weekly_schedules.length)).toFixed(2))
+              valor_sessao: finalValue > 0 && sessionsInMonth > 0
+                ? parseFloat((finalValue / sessionsInMonth).toFixed(2))
                 : 0,
               clinic_id: activeClinicId,
             });
@@ -832,3 +846,4 @@ const Matriculas = () => {
 };
 
 export default Matriculas;
+

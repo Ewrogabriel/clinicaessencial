@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { calculateSessionValue, calculateSessionCommission } from "@/lib/calculations";
 
 export function CommissionReport() {
     const [month, setMonth] = useState(new Date());

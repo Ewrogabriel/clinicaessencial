@@ -30,8 +30,9 @@ import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { PlanLimitBanner, usePlanLimitCheck } from "@/components/plan/PlanLimitBanner";
+import { PlanLimitBanner, usePlanLimitCheck } from "@/components/planos/PlanLimitBanner";
 import { toast } from "@/modules/shared/hooks/use-toast";
+import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -112,24 +113,7 @@ const Pacientes = () => {
   const [filtroProfissional, setFiltroProfissional] = useState("todos");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: pacientes = [], isLoading } = useQuery({
-    queryKey: ["pacientes", activeClinicId],
-    queryFn: async () => {
-      if (!activeClinicId) return [];
-      const { data, error } = await supabase
-        .from("clinic_pacientes")
-        .select(`
-          paciente_id,
-          pacientes (
-            id, nome, telefone, cpf, email, status, tipo_atendimento, profissional_id
-          )
-        `)
-        .eq("clinic_id", activeClinicId);
-
-      if (error) throw error;
-      return (data || []).map((item: any) => item.pacientes).filter(Boolean) as Paciente[];
-    },
-  });
+  const { pacientes, isLoading, updateStatus } = usePacientes();
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-filter"],
@@ -164,18 +148,6 @@ const Pacientes = () => {
       return matchBusca && matchTipo && matchStatus && matchProf;
     });
   }, [pacientes, deferredBusca, filtroTipo, filtroStatus, filtroProfissional]);
-
-  const handleInativar = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from("pacientes").update({ status: "inativo" }).eq("id", deleteId);
-    if (error) {
-      toast({ title: "Erro ao inativar", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Paciente inativado com sucesso." });
-      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
-    }
-    setDeleteId(null);
-  };
 
   const handleNavigate = useCallback((id: string) => navigate(`/pacientes/${id}/detalhes`), [navigate]);
   const handleInactivate = useCallback((id: string) => setDeleteId(id), []);
@@ -291,3 +263,4 @@ const Pacientes = () => {
 };
 
 export default Pacientes;
+

@@ -32,9 +32,9 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
       if (error) throw error;
       return (data || []).map((d: any) => ({
         id: d.id,
-        nome: d.descricao,
+        nome: d.motivo,
         data: d.data_inicio,
-        tipo: d.tipo || "feriado"
+        tipo: "feriado" // assuming fixed for now or add a column if needed
       }));
     },
     enabled: !!clinicId,
@@ -44,10 +44,10 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
     mutationFn: async (h: any) => {
       const { error } = await supabase.from("recesso_clinica").insert({
         clinic_id: clinicId,
-        descricao: h.nome,
+        motivo: h.nome,
         data_inicio: h.data,
         data_fim: h.data,
-        tipo: h.tipo
+        created_by: (await supabase.auth.getUser()).data.user?.id || ""
       });
       if (error) throw error;
     },
@@ -70,30 +70,53 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   });
 
   const fetchHolidaysAI = async () => {
-    toast({ title: "🤖 Buscando feriados nacionais com IA..." });
+    toast({ title: "🤖 Buscando feriados nacionais..." });
     try {
-      // Chamada fictícia para uma API de feriados ou função de IA
       const year = new Date().getFullYear();
-      const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
-      const data = await res.json();
+      console.log(`Buscando feriados para o ano: ${year}`);
       
-      if (Array.isArray(data)) {
+      const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
+      
+      if (!res.ok) {
+        throw new Error(`Erro na API: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      console.log("Dados recebidos da BrasilAPI:", data);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData.user?.id || "";
+
         const toInsert = data.map((f: any) => ({
           clinic_id: clinicId,
-          descricao: f.name,
+          motivo: f.name,
           data_inicio: f.date,
           data_fim: f.date,
-          tipo: "feriado"
+          created_by: userId
         }));
 
+        console.log(`Tentando inserir ${toInsert.length} feriados no banco...`);
         const { error } = await supabase.from("recesso_clinica").insert(toInsert);
-        if (error) throw error;
+        
+        if (error) {
+          console.error("Erro Supabase ao inserir feriados:", error);
+          throw error;
+        }
         
         queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
-        toast({ title: "Feriados nacionais importados!" });
+        toast({ title: "Feriados nacionais importados com sucesso!" });
+      } else {
+        console.warn("Nenhum feriado retornado pela API ou formato inválido.");
+        toast({ title: "Nenhum feriado encontrado para este ano.", variant: "destructive" });
       }
-    } catch (err) {
-      toast({ title: "Erro ao importar feriados", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Falha completa na importação de feriados:", err);
+      toast({ 
+        title: "Erro ao importar feriados", 
+        description: err.message || "Verifique o console para mais detalhes.",
+        variant: "destructive" 
+      });
     }
   };
 

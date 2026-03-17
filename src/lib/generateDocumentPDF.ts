@@ -11,8 +11,10 @@ interface DocumentData {
   pacienteCpf?: string;
   data: string;
   incluirCarimbo?: boolean;
+  incluirRubrica?: boolean;
   profissionalSignature?: string;
   profissionalRubrica?: string;
+  rubricaNoCarimbo?: boolean;
 }
 
 const tipoLabels: Record<string, string> = {
@@ -23,10 +25,23 @@ const tipoLabels: Record<string, string> = {
   comparecimento: "COMPROVANTE DE COMPARECIMENTO",
 };
 
-function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string) {
+function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, rubricaUrl?: string) {
   const w = 70;
   const h = 28;
   const cx = x - w / 2;
+
+  // Real Rubrica Image inside stamp if available
+  if (rubricaUrl) {
+    try {
+      // Posiciona a rubrica centralizada no carimbo, com uma opacidade leve
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.3 }));
+      doc.addImage(rubricaUrl, "PNG", cx + 5, y + 2, w - 10, h - 10);
+      doc.restoreGraphicsState();
+    } catch (e) {
+      console.error("Erro ao adicionar rubrica ao carimbo:", e);
+    }
+  }
 
   // Border
   doc.setDrawColor(0, 90, 160);
@@ -192,11 +207,20 @@ export async function generateDocumentPDF(docData: DocumentData) {
       doc.addPage();
       y = 80;
     }
-    drawCarimbo(doc, pageWidth / 2, y, docData.profissionalNome, docData.profissionalRegistro);
+    drawCarimbo(
+      doc, 
+      pageWidth / 2, 
+      y, 
+      docData.profissionalNome, 
+      docData.profissionalRegistro, 
+      docData.rubricaNoCarimbo ? docData.profissionalRubrica : undefined
+    );
   }
 
   // Watermark with professional profile for automatic rubrica
-  await addWatermarkToAllPages(doc, { rubrica_url: docData.profissionalRubrica });
+  if (docData.incluirRubrica) {
+    await addWatermarkToAllPages(doc, { rubrica_url: docData.profissionalRubrica });
+  }
 
   const fileName = (tipoLabels[docData.tipo] || docData.titulo || docData.tipo).toLowerCase().replace(/\s+/g, "_");
   doc.save(`${fileName}_${docData.pacienteNome.split(" ")[0]}.pdf`);

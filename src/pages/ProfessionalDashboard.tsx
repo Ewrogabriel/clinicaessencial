@@ -15,9 +15,9 @@ import { RequestsCard } from "@/components/dashboard/RequestsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
 import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
-import { AdvancedKPIs } from "@/components/professional/AdvancedKPIs";
-import { PerformanceCharts } from "@/components/professional/PerformanceCharts";
-import { AIInsightsPanel } from "@/components/professional/AIInsightsPanel";
+import { AdvancedKPIs } from "@/components/profissionais/AdvancedKPIs";
+import { PerformanceCharts } from "@/components/profissionais/PerformanceCharts";
+import { AIInsightsPanel } from "@/components/profissionais/AIInsightsPanel";
 import { useProfessionalAnalytics } from "@/modules/professionals/hooks/useProfessionalAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
@@ -401,3 +401,4 @@ const ProfessionalDashboard = () => {
 };
 
 export default ProfessionalDashboard;
+

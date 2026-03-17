@@ -13,7 +13,63 @@ interface ContractData {
   dataContrato: string;
   pacienteSignature?: string;
   profissionalSignature?: string;
+  profissionalRubrica?: string;
+  rubricaNoCarimbo?: boolean;
+  incluirRubrica?: boolean;
+  incluirCarimbo?: boolean;
   profissionalNome?: string;
+  profissionalRegistro?: string;
+}
+
+export async function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, rubricaUrl?: string) {
+  const w = 70;
+  const h = 28;
+  const cx = x - w / 2;
+
+  // Real Rubrica Image inside stamp if available
+  if (rubricaUrl) {
+    try {
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.3 }));
+      doc.addImage(rubricaUrl, "PNG", cx + 5, y + 2, w - 10, h - 10);
+      doc.restoreGraphicsState();
+    } catch (e) {
+      console.error("Erro ao adicionar rubrica ao carimbo:", e);
+    }
+  }
+
+  // Border
+  doc.setDrawColor(0, 90, 160);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(cx, y, w, h, 2, 2);
+
+  // Inner line
+  doc.setLineWidth(0.3);
+  doc.line(cx + 3, y + 10, cx + w - 3, y + 10);
+
+  // Name
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 60, 120);
+  doc.text(nome, x, y + 7, { align: "center" });
+
+  // Registration
+  if (registro) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 60, 120);
+    doc.text(registro, x, y + 15, { align: "center" });
+  }
+
+  // Professional label
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100);
+  doc.text("Profissional de Saúde", x, y + 22, { align: "center" });
+
+  // Reset colors
+  doc.setTextColor(0);
+  doc.setDrawColor(0);
 }
 
 export async function generateContractPDF(data: ContractData) {
@@ -162,7 +218,24 @@ export async function generateContractPDF(data: ContractData) {
   y += 5;
   addText("CONTRATADA", 9);
   addText(data.profissionalNome || settings.nome, 9);
-  y += 10;
+  y += 5;
+
+  // Carimbo (stamp) if requested
+  if (data.incluirCarimbo) {
+    if (y > 255) {
+      doc.addPage();
+      y = 20;
+    }
+    await drawCarimbo(
+      doc, 
+      margin + 35, 
+      y, 
+      data.profissionalNome || settings.nome, 
+      data.profissionalRegistro || undefined, 
+      data.rubricaNoCarimbo ? data.profissionalRubrica : undefined
+    );
+    y += 32;
+  }
 
   // Patient Signature
   checkPage();
@@ -180,6 +253,8 @@ export async function generateContractPDF(data: ContractData) {
   addText(data.pacienteNome, 9);
 
   // Aumentar marca d'água chamando a função com parâmetros se disponíveis (opcional aqui)
-  await addWatermarkToAllPages(doc);
+  if (data.incluirRubrica) {
+    await addWatermarkToAllPages(doc, { rubrica_url: data.profissionalRubrica });
+  }
   return doc;
 }

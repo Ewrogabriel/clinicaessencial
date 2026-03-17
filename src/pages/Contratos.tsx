@@ -29,6 +29,9 @@ const Contratos = () => {
   const [selectedPlano, setSelectedPlano] = useState("");
   const [selectedMatricula, setSelectedMatricula] = useState("");
   const [selectedProfissional, setSelectedProfissional] = useState("");
+  const [incluirCarimbo, setIncluirCarimbo] = useState(false);
+  const [incluirRubrica, setIncluirRubrica] = useState(false);
+  const [rubricaNoCarimbo, setRubricaNoCarimbo] = useState(false);
 
   const clinicNome = clinicSettings?.nome || "Essencial Fisio Pilates";
   const clinicCNPJ = clinicSettings?.cnpj || "";
@@ -81,7 +84,7 @@ const Contratos = () => {
   const { data: currentUserProfile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url").eq("id", user?.id).single();
+      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional").eq("id", user?.id).single();
       return data;
     },
     enabled: !!user?.id,
@@ -138,6 +141,11 @@ const Contratos = () => {
     dataContrato: format(new Date(), "dd/MM/yyyy"),
     profissionalSignature: currentUserProfile?.assinatura_url || undefined,
     profissionalNome: currentUserProfile?.nome || clinicNome,
+    profissionalRubrica: (incluirRubrica || (incluirCarimbo && rubricaNoCarimbo)) ? currentUserProfile?.rubrica_url : undefined,
+    rubricaNoCarimbo: incluirCarimbo && rubricaNoCarimbo,
+    incluirRubrica: incluirRubrica,
+    incluirCarimbo: incluirCarimbo,
+    profissionalRegistro: currentUserProfile?.registro_profissional || undefined,
   });
 
   const valorFinal = (matricula?.valor_mensal || (plano ? plano.valor : 0)) * (1 - (desconto?.percentual_desconto || 0) / 100);
@@ -268,6 +276,54 @@ const Contratos = () => {
                     )}
                   </div>
                 )}
+
+                <div className="space-y-3 pt-2 border-t mt-2">
+                  <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="space-y-0.5">
+                      <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-carimbo">Incluir Carimbo</Label>
+                    </div>
+                    <input
+                      id="inc-carimbo"
+                      type="checkbox"
+                      title="Incluir Carimbo"
+                      aria-label="Incluir Carimbo"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={incluirCarimbo}
+                      onChange={(e) => setIncluirCarimbo(e.target.checked)}
+                    />
+                  </div>
+
+                  {incluirCarimbo && currentUserProfile?.rubrica_url && (
+                    <div className="flex items-center justify-between p-2 rounded-md bg-blue-50/30 border border-blue-100 ml-2">
+                      <Label className="text-[10px] font-medium cursor-pointer" htmlFor="rub-carimbo">Rubrica no Carimbo</Label>
+                      <input
+                        id="rub-carimbo"
+                        type="checkbox"
+                        title="Rubrica no Carimbo"
+                        aria-label="Rubrica no Carimbo"
+                        className="h-3 w-3 rounded border-gray-300"
+                        checked={rubricaNoCarimbo}
+                        onChange={(e) => setRubricaNoCarimbo(e.target.checked)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="space-y-0.5">
+                      <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-rubrica">Rubrica (Rodapé)</Label>
+                    </div>
+                    <input
+                      id="inc-rubrica"
+                      type="checkbox"
+                      title="Rubrica no Rodapé"
+                      aria-label="Rubrica no Rodapé"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={incluirRubrica}
+                      onChange={(e) => setIncluirRubrica(e.target.checked)}
+                    />
+                  </div>
+                </div>
+
                   <div className="flex flex-col gap-2 pt-2">
                     <Button onClick={handleDownload} disabled={!paciente} className="w-full">
                       <Download className="h-4 w-4 mr-2" /> Baixar PDF

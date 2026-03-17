@@ -17,6 +17,7 @@ import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronD
 import { toast } from "@/modules/shared/hooks/use-toast";
 import jsPDF from "jspdf";
 import { getClinicSettings, addLogoToPDF, formatClinicAddress } from "@/lib/pdfLogo";
+import { calculateSessionValue, calculateSessionCommission } from "@/lib/calculations";
 
 interface ProfSummary {
   nome: string;
@@ -70,7 +71,16 @@ export function CommissionExtract() {
       const { data } = await supabase.from("profiles").select("*").in("user_id", allIds).order("nome");
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
+  });
+
+  const { data: matriculas = [] } = useQuery({
+    queryKey: ["matriculas-comissoes-extract"],
+    queryFn: async () => {
+      const { data } = await supabase.from("matriculas").select("id, paciente_id, valor_mensal");
+      return data ?? [];
+    },
+    enabled: canManage || isProfissional,
   });
 
   const { data: agendamentos = [] } = useQuery({
@@ -78,15 +88,15 @@ export function CommissionExtract() {
     queryFn: async () => {
       const startDate = `${mesRef}-01T00:00:00`;
       const endMonth = new Date(parseInt(mesRef.split("-")[0]), parseInt(mesRef.split("-")[1]), 0);
-      const endDate = `${mesRef}-${endMonth.getDate()}T23:59:59`;
+      const endDate = `${mesRef}-${String(endMonth.getDate()).padStart(2, "0")}T23:59:59`;
       const { data } = await (supabase.from("agendamentos") as any)
         .select("*, pacientes(nome)")
-        .in("status", ["agendado", "confirmado", "pendente", "realizado"])
+        .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"])
         .gte("data_horario", startDate)
         .lte("data_horario", endDate);
       return data ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   const { data: regrasComissao = [] } = useQuery({
@@ -179,7 +189,7 @@ export function CommissionExtract() {
         .from("agendamentos")
         .select("*, pacientes(nome)")
         .eq("profissional_id", user.id)
-        .in("status", ["agendado", "confirmado", "pendente", "realizado"] as any[])
+        .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"] as any[])
         .gte("data_horario", startDate)
         .lte("data_horario", endDate)
         .order("data_horario", { ascending: true });
@@ -206,19 +216,14 @@ export function CommissionExtract() {
     let comissaoTotal = 0;
     let totalValor = 0;
     const realizados = meusAgendamentos.filter((a: any) => a.status === "realizado").length;
+    
     for (const a of meusAgendamentos) {
-      const valorSessao = Number(a.valor_sessao || 0);
-      totalValor += valorSessao;
-      if (minhasRegrasComissao.length > 0) {
-        const tipoRegra = minhasRegrasComissao.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
-          || minhasRegrasComissao.find((r: any) => r.tipo_atendimento === "geral");
-        if (tipoRegra) {
-          comissaoTotal += (valorSessao * Number(tipoRegra.percentual || 0) / 100) + Number(tipoRegra.valor_fixo || 0);
-        }
-      }
+      const sc = getSessionCommission(user.id, a);
+      totalValor += sc.valorSessao;
+      comissaoTotal += sc.comissao;
     }
     return { total: comissaoTotal, realizados, totalValor };
-  }, [user, meusAgendamentos, minhasRegrasComissao]);
+  }, [user, meusAgendamentos, minhasRegrasComissao, getSessionCommission]);
 
   const isClosed = (profId: string) => fechamentos.some((f: any) => f.profissional_id === profId);
 
@@ -228,32 +233,47 @@ export function CommissionExtract() {
     if (!prof) return 0;
     const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
     let comissaoTotal = 0;
-    let totalValor = 0;
 
+    // Enrollment session price pre-calculation map
+    const enrollmentPrices: Record<string, number> = {};
+    
     for (const a of atendimentos) {
+      if (a.enrollment_id && !enrollmentPrices[a.enrollment_id]) {
+        const mat = matriculas.find((m: any) => m.id === a.enrollment_id);
+        if (mat) {
+          const totalSessionsInMonth = agendamentos.filter((ag: any) => ag.enrollment_id === a.enrollment_id).length;
+          enrollmentPrices[a.enrollment_id] = totalSessionsInMonth > 0 ? Number(mat.valor_mensal) / totalSessionsInMonth : 0;
+        }
+      }
+
       let valorSessao = Number(a.valor_sessao || 0);
-      if (valorSessao === 0 && a.observacoes?.startsWith("plano:")) {
+      
+      // Override with enrollment calculation if applicable
+      if (a.enrollment_id && enrollmentPrices[a.enrollment_id]) {
+        valorSessao = enrollmentPrices[a.enrollment_id];
+      } else if (valorSessao === 0 && a.observacoes?.startsWith("plano:")) {
         const planoId = a.observacoes.replace("plano:", "").trim();
         const plano = planosData.find((pl: any) => pl.id === planoId);
         if (plano && plano.total_sessoes > 0) {
           valorSessao = Number(plano.valor) / plano.total_sessoes;
         }
       }
-      totalValor += valorSessao;
 
+      const statusFalta = a.status === 'falta' || a.status === 'cancelado';
+      // By core rule: professional earns commission even on lack/cancel, 
+      // EXCEPT if another professional attended (which is already filtered by profId in this loop)
+      
       if (profRegras.length > 0) {
         const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
           || profRegras.find((r: any) => r.tipo_atendimento === "geral");
         if (tipoRegra) {
           comissaoTotal += (valorSessao * Number(tipoRegra.percentual || 0) / 100) + Number(tipoRegra.valor_fixo || 0);
         }
+      } else if (prof) {
+        const rate = Number(prof.commission_rate || 0);
+        const fixed = Number(prof.commission_fixed || 0);
+        comissaoTotal += (valorSessao * rate / 100) + fixed;
       }
-    }
-
-    if (profRegras.length === 0 && prof) {
-      const rate = Number(prof.commission_rate || 0);
-      const fixed = Number(prof.commission_fixed || 0);
-      comissaoTotal = (totalValor * rate / 100) + (fixed * atendimentos.length);
     }
 
     return comissaoTotal;
@@ -285,12 +305,16 @@ export function CommissionExtract() {
     const summaryMap: Record<string, ProfSummary> = {};
     const profsToCalc = filterProf === "todos" ? profissionais : profissionais.filter((p: any) => p.user_id === filterProf);
 
+    // Enrollment session price pre-calculation map (global for this summary)
+    const enrollmentPrices: Record<string, number> = {};
+
     profsToCalc.forEach((p: any) => {
       const profRegras = regrasComissao.filter((r: any) => r.profissional_id === p.user_id && r.ativo);
+      // Filter sessions for this professional
       let atendimentos = agendamentos.filter((a: any) => a.profissional_id === p.user_id);
 
       if (filterModalidade !== "todos") {
-        atendimentos = atendimentos.filter((a: any) => a.tipo_atendimento === filterModalidade);
+        atendimentos = atendimentos.filter((a: any) => (a.tipo_atendimento || "").toLowerCase() === filterModalidade.toLowerCase());
       }
 
       let comissaoTotal = 0;
@@ -298,32 +322,14 @@ export function CommissionExtract() {
       const modalidadesMap: Record<string, number> = {};
 
       for (const a of atendimentos) {
-        const tipo = a.tipo_atendimento || "outro";
-        modalidadesMap[tipo] = (modalidadesMap[tipo] || 0) + 1;
-
-        let valorSessao = Number(a.valor_sessao || 0);
-        if (valorSessao === 0 && a.observacoes?.startsWith("plano:")) {
-          const planoId = a.observacoes.replace("plano:", "").trim();
-          const plano = planosData.find((pl: any) => pl.id === planoId);
-          if (plano && plano.total_sessoes > 0) {
-            valorSessao = Number(plano.valor) / plano.total_sessoes;
-          }
-        }
+        const valorSessao = calculateSessionValue(a, matriculas, agendamentos, planosData);
         totalValor += valorSessao;
 
-        if (profRegras.length > 0) {
-          const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === a.tipo_atendimento)
-            || profRegras.find((r: any) => r.tipo_atendimento === "geral");
-          if (tipoRegra) {
-            comissaoTotal += (valorSessao * Number(tipoRegra.percentual || 0) / 100) + Number(tipoRegra.valor_fixo || 0);
-          }
-        }
-      }
+        const { commission } = calculateSessionCommission(valorSessao, a.tipo_atendimento, p, profRegras);
+        comissaoTotal += commission;
 
-      if (profRegras.length === 0) {
-        const rate = Number(p.commission_rate || 0);
-        const fixed = Number(p.commission_fixed || 0);
-        comissaoTotal = (totalValor * rate / 100) + (fixed * atendimentos.length);
+        const tipo = a.tipo_atendimento || "outro";
+        modalidadesMap[tipo] = (modalidadesMap[tipo] || 0) + 1;
       }
 
       if (atendimentos.length > 0) {
@@ -350,29 +356,11 @@ export function CommissionExtract() {
   const getSessionCommission = (profId: string, atendimento: any) => {
     const prof = profissionais.find((p: any) => p.user_id === profId);
     const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
-    let valorSessao = Number(atendimento.valor_sessao || 0);
-    if (valorSessao === 0 && atendimento.observacoes?.startsWith("plano:")) {
-      const planoId = atendimento.observacoes.replace("plano:", "").trim();
-      const plano = planosData.find((pl: any) => pl.id === planoId);
-      if (plano && plano.total_sessoes > 0) valorSessao = Number(plano.valor) / plano.total_sessoes;
-    }
-    let percentual = 0;
-    let fixo = 0;
-    let comissao = 0;
-    if (profRegras.length > 0) {
-      const tipoRegra = profRegras.find((r: any) => r.tipo_atendimento === atendimento.tipo_atendimento)
-        || profRegras.find((r: any) => r.tipo_atendimento === "geral");
-      if (tipoRegra) {
-        percentual = Number(tipoRegra.percentual || 0);
-        fixo = Number(tipoRegra.valor_fixo || 0);
-        comissao = (valorSessao * percentual / 100) + fixo;
-      }
-    } else if (prof) {
-      percentual = Number(prof.commission_rate || 0);
-      fixo = Number(prof.commission_fixed || 0);
-      comissao = (valorSessao * percentual / 100) + fixo;
-    }
-    return { valorSessao, percentual, fixo, comissao };
+    
+    const valorSessao = calculateSessionValue(atendimento, matriculas, agendamentos, planosData);
+    const { percentual, fixo, commission } = calculateSessionCommission(valorSessao, atendimento.tipo_atendimento, prof, profRegras);
+    
+    return { valorSessao, percentual, fixo, comissao: commission };
   };
 
 
