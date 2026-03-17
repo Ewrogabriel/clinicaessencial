@@ -759,6 +759,35 @@ const Profissionais = () => {
                     <span className="text-sm text-muted-foreground">{corAgenda}</span>
                   </div>
                 </div>
+
+                {/* Signature & Rubric */}
+                {!isCreating && editingId && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold text-sm">Assinatura e Rubrica</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Imagem da Assinatura</Label>
+                        <ImageUpload
+                          value={assinaturaUrl}
+                          onChange={setAssinaturaUrl}
+                          bucket="professional-documents"
+                          folder="assinaturas"
+                        />
+                        <p className="text-xs text-muted-foreground">Envie a imagem da assinatura. O sistema fará ajustes automáticos.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Imagem da Rubrica</Label>
+                        <ImageUpload
+                          value={rubricaUrl}
+                          onChange={setRubricaUrl}
+                          bucket="professional-documents"
+                          folder="rubricas"
+                        />
+                        <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional nos documentos.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="formacoes" className="space-y-4">
