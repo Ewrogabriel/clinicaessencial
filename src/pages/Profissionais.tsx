@@ -127,6 +127,8 @@ const Profissionais = () => {
   const [estado, setEstado] = useState("");
   const [cep, setCep] = useState("");
   const [loading, setLoading] = useState(false);
+  const [assinaturaUrl, setAssinaturaUrl] = useState("");
+  const [rubricaUrl, setRubricaUrl] = useState("");
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["staff-users", activeClinicId],
