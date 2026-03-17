@@ -81,6 +81,7 @@ const Financeiro = () => {
   const [filterMes, setFilterMes] = useState(format(new Date(), "yyyy-MM"));
   const [filterForma, setFilterForma] = useState("all");
   const [filterOrigem, setFilterOrigem] = useState("all");
+  const [filterPaciente, setFilterPaciente] = useState("");
   
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; source: string; open: boolean } | null>(null);
   const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
@@ -286,8 +287,9 @@ const Financeiro = () => {
 
   const { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido } = kpis;
 
+  // Pagamentos tab: show only confirmed (pago) payments
   const filteredPagamentos = useMemo(() => {
-    let filtered = allPayments;
+    let filtered = allPayments.filter((p) => p.status === "pago");
     if (filterMes && filterMes !== "all") {
       filtered = filtered.filter((p) => {
         const datePago = p.data_pagamento?.substring(0, 7);
@@ -305,8 +307,11 @@ const Financeiro = () => {
     if (filterOrigem && filterOrigem !== "all") {
       filtered = filtered.filter((p) => p.origem_tipo === filterOrigem);
     }
+    if (filterPaciente && filterPaciente !== "all") {
+      filtered = filtered.filter((p) => p.paciente_nome.toLowerCase().includes(filterPaciente.toLowerCase()));
+    }
     return filtered;
-  }, [allPayments, filterMes, filterForma, filterOrigem]);
+  }, [allPayments, filterMes, filterForma, filterOrigem, filterPaciente]);
 
   const previsaoPagamentos = useMemo(() => {
     return allPayments
@@ -485,8 +490,25 @@ const Financeiro = () => {
                   <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
-              {(filterMes !== format(new Date(), "yyyy-MM") || filterOrigem !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(format(new Date(), "yyyy-MM")); setFilterOrigem("all"); }}>Limpar filtros</Button>
+              <Select value={filterForma} onValueChange={setFilterForma}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Forma pgto" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas formas</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="cartao">Cartão</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Filtrar por paciente..."
+                value={filterPaciente}
+                onChange={(e) => setFilterPaciente(e.target.value)}
+                className="w-[200px]"
+              />
+              {(filterMes !== format(new Date(), "yyyy-MM") || filterOrigem !== "all" || filterForma !== "all" || filterPaciente) && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterMes(format(new Date(), "yyyy-MM")); setFilterOrigem("all"); setFilterForma("all"); setFilterPaciente(""); }}>Limpar filtros</Button>
               )}
             </div>
           )}

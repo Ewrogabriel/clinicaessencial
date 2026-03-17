@@ -96,7 +96,7 @@ export async function addWatermarkToAllPages(doc: any): Promise<void> {
         await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
         // Size: ~60% of page width, maintain aspect ratio
-        const maxW = pageWidth * 0.55;
+        const maxW = pageWidth * 0.7;
         let w = maxW;
         let h = (img.height / img.width) * w;
         if (h > pageHeight * 0.4) {
@@ -150,8 +150,8 @@ export async function addLogoToPDF(
   doc: any, 
   x: number, 
   y: number, 
-  maxWidth: number = 30,
-  maxHeight: number = 20,
+  maxWidth: number = 45,
+  maxHeight: number = 30,
   centered: boolean = true
 ): Promise<number> {
   const settings = await getClinicSettings();

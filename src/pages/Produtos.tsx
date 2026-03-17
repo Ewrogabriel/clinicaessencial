@@ -144,13 +144,15 @@ const Produtos = () => {
       if (!produto) throw new Error("Produto não encontrado");
       const qty = parseInt(saleData.quantidade) || 1;
       const valorUnit = Number(produto.preco);
+      // Use the exact date the user selected - append noon time to avoid timezone shifts
+      const dataVendaFinal = saleData.data_venda;
       const { error } = await supabase.from("vendas_produtos").insert({
         produto_id: saleData.produto_id,
         paciente_id: saleData.paciente_id || null,
         quantidade: qty,
         valor_unitario: valorUnit,
         valor_total: valorUnit * qty,
-        data_venda: saleData.data_venda,
+        data_venda: dataVendaFinal,
         observacoes: saleData.observacoes || null,
         created_by: user.id,
       });

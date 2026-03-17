@@ -17,6 +17,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 const Prontuarios = () => {
     const navigate = useNavigate();
@@ -27,28 +28,48 @@ const Prontuarios = () => {
     const { data: pacientes = [], isLoading } = useQuery({
         queryKey: ["prontuarios-list", activeClinicId],
         queryFn: async () => {
+            let ids: string[] = [];
             if (activeClinicId) {
                 const { data: cp } = await supabase.from("clinic_pacientes")
                     .select("paciente_id").eq("clinic_id", activeClinicId);
-                const ids = (cp || []).map(c => c.paciente_id);
+                ids = (cp || []).map(c => c.paciente_id);
                 if (!ids.length) return [];
-                const { data, error } = await supabase.from("pacientes")
-                    .select("id, nome, tipo_atendimento, status")
-                    .in("id", ids).order("nome");
-                if (error) throw error;
-                return data;
             }
-            const { data, error } = await supabase
-                .from("pacientes")
+
+            let query = supabase.from("pacientes")
                 .select("id, nome, tipo_atendimento, status")
                 .order("nome");
+            if (ids.length > 0) query = query.in("id", ids);
+
+            const { data, error } = await query;
             if (error) throw error;
-            return data;
+
+            // Fetch latest evaluation for each patient
+            const patientIds = (data || []).map(p => p.id);
+            if (patientIds.length === 0) return [];
+
+            const { data: evals } = await supabase
+                .from("evaluations")
+                .select("paciente_id, data_avaliacao")
+                .in("paciente_id", patientIds)
+                .order("data_avaliacao", { ascending: false });
+
+            // Build map of latest evaluation per patient
+            const evalMap: Record<string, string> = {};
+            (evals || []).forEach(e => {
+                if (!evalMap[e.paciente_id]) {
+                    evalMap[e.paciente_id] = e.data_avaliacao;
+                }
+            });
+
+            return (data || []).map(p => ({
+                ...p,
+                ultima_avaliacao: evalMap[p.id] || null,
+            }));
         },
         enabled: isAdmin || isProfissional,
     });
 
-    // Only admin and professionals can access this page
     if (!isAdmin && !isProfissional) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted-foreground">
@@ -103,34 +124,33 @@ const Prontuarios = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filtrados.map((p: any) => {
-                                    const ultimaAvaliacao = p.evaluations?.[0]?.data_avaliacao;
-                                    return (
-                                        <TableRow key={p.id} className="group cursor-pointer" onClick={() => navigate(`/pacientes/${p.id}/detalhes`)}>
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    <User className="h-4 w-4 text-muted-foreground" />
-                                                    {p.nome}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="capitalize">{p.tipo_atendimento}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={ultimaAvaliacao ? "default" : "destructive"}>
-                                                    {ultimaAvaliacao ? "Avaliado" : "Sem Avaliação"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {ultimaAvaliacao ? new Date(ultimaAvaliacao).toLocaleDateString() : "—"}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    Ver Prontuário
-                                                    <ChevronRight className="h-4 w-4 ml-1" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
+                                {filtrados.map((p: any) => (
+                                    <TableRow key={p.id} className="group cursor-pointer" onClick={() => navigate(`/pacientes/${p.id}/detalhes`)}>
+                                        <TableCell className="font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <User className="h-4 w-4 text-muted-foreground" />
+                                                {p.nome}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="capitalize">{p.tipo_atendimento}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={p.ultima_avaliacao ? "default" : "destructive"}>
+                                                {p.ultima_avaliacao ? "Avaliado" : "Sem Avaliação"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {p.ultima_avaliacao
+                                                ? format(new Date(p.ultima_avaliacao), "dd/MM/yyyy")
+                                                : "—"}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Ver Prontuário
+                                                <ChevronRight className="h-4 w-4 ml-1" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
                     )}

@@ -21,6 +21,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Pencil, Plus, Shield, UserCheck, Search, KeyRound, Eye, PenLine, Calculator, GraduationCap } from "lucide-react";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -126,6 +127,8 @@ const Profissionais = () => {
   const [estado, setEstado] = useState("");
   const [cep, setCep] = useState("");
   const [loading, setLoading] = useState(false);
+  const [assinaturaUrl, setAssinaturaUrl] = useState("");
+  const [rubricaUrl, setRubricaUrl] = useState("");
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["staff-users", activeClinicId],
@@ -192,7 +195,7 @@ const Profissionais = () => {
     setTipoContratacao(null); setCnpj(""); setCpf(""); setRg("");
     setDataNascimento(""); setEstadoCivil(null);
     setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
-  // State setters from useState are guaranteed stable references — empty deps is intentional.
+    setAssinaturaUrl(""); setRubricaUrl("");
   }, []);
 
   const openCreate = () => {
@@ -218,6 +221,8 @@ const Profissionais = () => {
     setEndereco(u.endereco || ""); setNumero(u.numero || "");
     setBairro(u.bairro || ""); setCidade(u.cidade || "");
     setEstado(u.estado || ""); setCep(u.cep || "");
+    setAssinaturaUrl((u as any).assinatura_url || "");
+    setRubricaUrl((u as any).rubrica_url || "");
     setDialogOpen(true);
   };
 
@@ -356,6 +361,8 @@ const Profissionais = () => {
           endereco: endereco || null, numero: numero || null,
           bairro: bairro || null, cidade: cidade || null,
           estado: estado || null, cep: cep || null,
+          assinatura_url: assinaturaUrl || null,
+          rubrica_url: rubricaUrl || null,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
@@ -759,6 +766,33 @@ const Profissionais = () => {
                     <span className="text-sm text-muted-foreground">{corAgenda}</span>
                   </div>
                 </div>
+
+                {/* Signature & Rubric */}
+                {!isCreating && editingId && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold text-sm">Assinatura e Rubrica</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Imagem da Assinatura</Label>
+                        <ImageUpload
+                          value={assinaturaUrl}
+                          onChange={setAssinaturaUrl}
+                          folder="assinaturas"
+                        />
+                        <p className="text-xs text-muted-foreground">Envie a imagem da assinatura.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Imagem da Rubrica</Label>
+                        <ImageUpload
+                          value={rubricaUrl}
+                          onChange={setRubricaUrl}
+                          folder="rubricas"
+                        />
+                        <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="formacoes" className="space-y-4">

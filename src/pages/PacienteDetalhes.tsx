@@ -1,19 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-    ArrowLeft,
-    User,
-    ClipboardList,
-    History,
-    Plus,
-    Stethoscope,
-    Calendar,
-    DollarSign,
-    FileCheck,
-    Brain,
+    ArrowLeft, User, ClipboardList, History, Plus, Stethoscope,
+    Calendar, DollarSign, FileCheck, Brain, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -30,16 +22,17 @@ import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
 import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { isAdmin, isProfissional } = useAuth();
-    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("prontuario");
     const [evolutionOpen, setEvolutionOpen] = useState(false);
     const [evaluationOpen, setEvaluationOpen] = useState(false);
     const [contractOpen, setContractOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
 
     const canAccess = isAdmin || isProfissional;
 
@@ -57,23 +50,32 @@ const PacienteDetalhes = () => {
         enabled: !!id && canAccess,
     });
 
-    const { data: avaliacao, isLoading: loadingAvaliacao } = useQuery({
-        queryKey: ["avaliacao", id],
+    // Fetch ALL evaluations for history
+    const { data: allAvaliacoes = [], isLoading: loadingAvaliacoes } = useQuery({
+        queryKey: ["avaliacoes-historico", id],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("evaluations")
                 .select("*")
                 .eq("paciente_id", id)
-                .order("data_avaliacao", { ascending: false })
-                .limit(1)
-                .maybeSingle();
+                .order("data_avaliacao", { ascending: false });
             if (error) throw error;
-            return data;
+
+            // Fetch profissional names
+            const profIds = [...new Set((data || []).map(e => e.profissional_id))] as string[];
+            const profMap: Record<string, string> = {};
+            if (profIds.length > 0) {
+                const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
+                if (profs) profs.forEach(p => { profMap[p.user_id] = p.nome; });
+            }
+            return (data || []).map(e => ({ ...e, profissional_nome: profMap[e.profissional_id] || "—" }));
         },
         enabled: !!id && canAccess,
     });
 
-    const { data: evolucoes = [], isLoading: loadingEvolucoes } = useQuery({
+    const avaliacao = allAvaliacoes.length > 0 ? allAvaliacoes[0] : null;
+
+    const { data: evolucoes = [] } = useQuery({
         queryKey: ["evolucoes", id],
         queryFn: async () => {
             const { data, error } = await supabase
@@ -82,25 +84,18 @@ const PacienteDetalhes = () => {
                 .eq("paciente_id", id)
                 .order("data_evolucao", { ascending: false });
             if (error) throw error;
-            
-            // Fetch profissional names
+
             const profIds = [...new Set((data || []).map((e) => e.profissional_id))] as string[];
             const profMap: Record<string, string> = {};
             if (profIds.length > 0) {
-              const { data: profs } = await supabase
-                .from("profiles")
-                .select("user_id, nome")
-                .in("user_id", profIds);
-              if (profs) {
-                profs.forEach((p) => { profMap[p.user_id] = p.nome; });
-              }
+                const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
+                if (profs) profs.forEach((p) => { profMap[p.user_id] = p.nome; });
             }
             return (data || []).map((e) => ({ ...e, profissional_nome: profMap[e.profissional_id] || "—" }));
         },
         enabled: !!id && canAccess,
     });
 
-    // Block patient access - placed after hooks to preserve hooks order
     if (!canAccess) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted-foreground">
@@ -125,7 +120,6 @@ const PacienteDetalhes = () => {
                 <Button variant="ghost" size="icon" onClick={() => navigate("/pacientes")}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                {/* Patient avatar */}
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                     {paciente.foto_url ? (
                         <img src={paciente.foto_url} alt={paciente.nome} className="w-full h-full object-cover" />
@@ -135,9 +129,7 @@ const PacienteDetalhes = () => {
                 </div>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
-                            {paciente.nome}
-                        </h1>
+                        <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">{paciente.nome}</h1>
                         <Badge variant={paciente.status === "ativo" ? "default" : "outline"}>
                             {paciente.status === "ativo" ? "Ativo" : "Inativo"}
                         </Badge>
@@ -177,11 +169,15 @@ const PacienteDetalhes = () => {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
                                 <CardTitle>Avaliação Clínica</CardTitle>
-                                <CardDescription>Resumo da anamnese e exame físico inicial</CardDescription>
+                                <CardDescription>
+                                    {avaliacao
+                                        ? `Última avaliação em ${format(new Date(avaliacao.data_avaliacao), "dd/MM/yyyy")} por ${avaliacao.profissional_nome}`
+                                        : "Nenhuma avaliação registrada"}
+                                </CardDescription>
                             </div>
                             <Button size="sm" onClick={() => setEvaluationOpen(true)}>
                                 <Plus className="h-4 w-4 mr-2" />
-                                {avaliacao ? "Atualizar Avaliação" : "Nova Avaliação"}
+                                {avaliacao ? "Nova Avaliação" : "Realizar Avaliação"}
                             </Button>
                         </CardHeader>
                         <CardContent>
@@ -216,7 +212,7 @@ const PacienteDetalhes = () => {
                                         </div>
                                     )}
                                     <div className="pt-4 text-xs text-muted-foreground text-right italic">
-                                        Avaliado em {format(new Date(avaliacao.data_avaliacao), "dd/MM/yyyy")}
+                                        Avaliado em {format(new Date(avaliacao.data_avaliacao), "dd/MM/yyyy")} por {avaliacao.profissional_nome}
                                     </div>
                                 </div>
                             ) : (
@@ -229,12 +225,52 @@ const PacienteDetalhes = () => {
                         </CardContent>
                     </Card>
 
-                    <PatientAttachments pacienteId={id!} />
+                    {/* Evaluation History */}
+                    {allAvaliacoes.length > 1 && (
+                        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+                            <Card>
+                                <CollapsibleTrigger asChild>
+                                    <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <History className="h-4 w-4" />
+                                                    Histórico de Avaliações ({allAvaliacoes.length})
+                                                </CardTitle>
+                                            </div>
+                                            <ChevronDown className={`h-4 w-4 transition-transform ${historyOpen ? "rotate-180" : ""}`} />
+                                        </div>
+                                    </CardHeader>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <CardContent className="space-y-4 pt-0">
+                                        {allAvaliacoes.map((eval_item: any, idx: number) => (
+                                            <div key={eval_item.id} className={`p-4 rounded-lg border ${idx === 0 ? "bg-primary/5 border-primary/20" : "bg-muted/30"}`}>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={idx === 0 ? "default" : "outline"} className="text-xs">
+                                                            {format(new Date(eval_item.data_avaliacao), "dd/MM/yyyy")}
+                                                        </Badge>
+                                                        {idx === 0 && <Badge variant="secondary" className="text-xs">Atual</Badge>}
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground">por {eval_item.profissional_nome}</span>
+                                                </div>
+                                                <div className="space-y-2 text-sm">
+                                                    <p><strong>Queixa:</strong> {eval_item.queixa_principal}</p>
+                                                    {eval_item.conduta_inicial && <p><strong>Conduta:</strong> {eval_item.conduta_inicial}</p>}
+                                                    {eval_item.objetivos_tratamento && <p><strong>Objetivos:</strong> {eval_item.objetivos_tratamento}</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </CardContent>
+                                </CollapsibleContent>
+                            </Card>
+                        </Collapsible>
+                    )}
 
-                    {/* AI Clinical Assistant */}
+                    <PatientAttachments pacienteId={id!} />
                     <AIClinicalAssistant pacienteId={id!} modalidade={paciente?.tipo_atendimento} />
 
-                    {/* Digital Contract */}
                     <Card>
                         <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -324,7 +360,6 @@ const PacienteDetalhes = () => {
                                 </div>
                             </div>
 
-                            {/* Legal Guardian Section */}
                             {(paciente as any).tem_responsavel_legal && (
                                 <div className="mt-6 pt-4 border-t">
                                     <h4 className="font-semibold text-sm mb-3">Responsável Legal</h4>
@@ -345,20 +380,6 @@ const PacienteDetalhes = () => {
                                             <p className="text-muted-foreground">Telefone</p>
                                             <p className="font-medium">{(paciente as any).responsavel_telefone || "—"}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-muted-foreground">E-mail</p>
-                                            <p className="font-medium">{(paciente as any).responsavel_email || "—"}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-muted-foreground">RG</p>
-                                            <p className="font-medium">{(paciente as any).responsavel_rg || "—"}</p>
-                                        </div>
-                                        {(paciente as any).responsavel_endereco && (
-                                            <div className="col-span-2">
-                                                <p className="text-muted-foreground">Endereço</p>
-                                                <p className="font-medium">{(paciente as any).responsavel_endereco}</p>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             )}
@@ -373,17 +394,8 @@ const PacienteDetalhes = () => {
                 </TabsContent>
             </Tabs>
 
-            <EvolutionForm
-                open={evolutionOpen}
-                onOpenChange={setEvolutionOpen}
-                pacienteId={id!}
-            />
-
-            <EvaluationForm
-                open={evaluationOpen}
-                onOpenChange={setEvaluationOpen}
-                pacienteId={id!}
-            />
+            <EvolutionForm open={evolutionOpen} onOpenChange={setEvolutionOpen} pacienteId={id!} />
+            <EvaluationForm open={evaluationOpen} onOpenChange={setEvaluationOpen} pacienteId={id!} />
             <DigitalContractDialog
                 open={contractOpen}
                 onOpenChange={setContractOpen}
