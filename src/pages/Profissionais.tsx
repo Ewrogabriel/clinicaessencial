@@ -773,20 +773,18 @@ const Profissionais = () => {
                         <ImageUpload
                           value={assinaturaUrl}
                           onChange={setAssinaturaUrl}
-                          bucket="professional-documents"
                           folder="assinaturas"
                         />
-                        <p className="text-xs text-muted-foreground">Envie a imagem da assinatura. O sistema fará ajustes automáticos.</p>
+                        <p className="text-xs text-muted-foreground">Envie a imagem da assinatura.</p>
                       </div>
                       <div className="space-y-2">
                         <Label>Imagem da Rubrica</Label>
                         <ImageUpload
                           value={rubricaUrl}
                           onChange={setRubricaUrl}
-                          bucket="professional-documents"
                           folder="rubricas"
                         />
-                        <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional nos documentos.</p>
+                        <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional.</p>
                       </div>
                     </div>
                   </div>
