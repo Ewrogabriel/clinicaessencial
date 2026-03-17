@@ -96,7 +96,7 @@ export async function addWatermarkToAllPages(doc: any): Promise<void> {
         await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
         // Size: ~60% of page width, maintain aspect ratio
-        const maxW = pageWidth * 0.55;
+        const maxW = pageWidth * 0.7;
         let w = maxW;
         let h = (img.height / img.width) * w;
         if (h > pageHeight * 0.4) {
