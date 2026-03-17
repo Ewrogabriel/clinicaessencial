@@ -195,7 +195,7 @@ const Profissionais = () => {
     setTipoContratacao(null); setCnpj(""); setCpf(""); setRg("");
     setDataNascimento(""); setEstadoCivil(null);
     setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
-  // State setters from useState are guaranteed stable references — empty deps is intentional.
+    setAssinaturaUrl(""); setRubricaUrl("");
   }, []);
 
   const openCreate = () => {
