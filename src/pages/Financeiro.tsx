@@ -286,8 +286,9 @@ const Financeiro = () => {
 
   const { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido } = kpis;
 
+  // Pagamentos tab: show only confirmed (pago) payments
   const filteredPagamentos = useMemo(() => {
-    let filtered = allPayments;
+    let filtered = allPayments.filter((p) => p.status === "pago");
     if (filterMes && filterMes !== "all") {
       filtered = filtered.filter((p) => {
         const datePago = p.data_pagamento?.substring(0, 7);
@@ -305,8 +306,11 @@ const Financeiro = () => {
     if (filterOrigem && filterOrigem !== "all") {
       filtered = filtered.filter((p) => p.origem_tipo === filterOrigem);
     }
+    if (filterPaciente && filterPaciente !== "all") {
+      filtered = filtered.filter((p) => p.paciente_nome.toLowerCase().includes(filterPaciente.toLowerCase()));
+    }
     return filtered;
-  }, [allPayments, filterMes, filterForma, filterOrigem]);
+  }, [allPayments, filterMes, filterForma, filterOrigem, filterPaciente]);
 
   const previsaoPagamentos = useMemo(() => {
     return allPayments
