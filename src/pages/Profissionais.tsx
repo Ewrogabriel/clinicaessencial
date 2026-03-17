@@ -221,6 +221,8 @@ const Profissionais = () => {
     setEndereco(u.endereco || ""); setNumero(u.numero || "");
     setBairro(u.bairro || ""); setCidade(u.cidade || "");
     setEstado(u.estado || ""); setCep(u.cep || "");
+    setAssinaturaUrl((u as any).assinatura_url || "");
+    setRubricaUrl((u as any).rubrica_url || "");
     setDialogOpen(true);
   };
 
