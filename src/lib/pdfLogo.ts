@@ -150,8 +150,8 @@ export async function addLogoToPDF(
   doc: any, 
   x: number, 
   y: number, 
-  maxWidth: number = 30,
-  maxHeight: number = 20,
+  maxWidth: number = 45,
+  maxHeight: number = 30,
   centered: boolean = true
 ): Promise<number> {
   const settings = await getClinicSettings();
