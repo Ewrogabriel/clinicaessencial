@@ -764,7 +764,7 @@ const Profissionais = () => {
                         <Label>Imagem da Assinatura</Label>
                         <ImageUpload
                           value={assinaturaUrl}
-                          onChange={setAssinaturaUrl}
+                          onChange={handleAssinaturaChange}
                           folder="assinaturas"
                         />
                         <div className="flex flex-col gap-1">
