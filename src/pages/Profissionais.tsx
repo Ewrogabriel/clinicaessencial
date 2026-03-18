@@ -134,6 +134,33 @@ const Profissionais = () => {
   const [rubricaUrl, setRubricaUrl] = useState("");
   const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
   const [cleaningRubrica, setCleaningRubrica] = useState(false);
+
+  // Auto-clean signature on upload
+  const handleAssinaturaChange = async (url: string) => {
+    setAssinaturaUrl(url);
+    if (url && url.startsWith("data:")) {
+      setCleaningAssinatura(true);
+      try {
+        const cleaned = await cleanSignatureImage(url);
+        setAssinaturaUrl(cleaned);
+        toast({ title: "Assinatura otimizada automaticamente! ✨" });
+      } catch { /* keep original */ }
+      finally { setCleaningAssinatura(false); }
+    }
+  };
+
+  const handleRubricaChange = async (url: string) => {
+    setRubricaUrl(url);
+    if (url && url.startsWith("data:")) {
+      setCleaningRubrica(true);
+      try {
+        const cleaned = await cleanSignatureImage(url);
+        setRubricaUrl(cleaned);
+        toast({ title: "Rubrica otimizada automaticamente! ✨" });
+      } catch { /* keep original */ }
+      finally { setCleaningRubrica(false); }
+    }
+  };
   const { profissionais: users, isLoading } = useProfissionais();
 
 
