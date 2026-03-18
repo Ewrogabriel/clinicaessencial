@@ -29,6 +29,22 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
     const { user } = useAuth();
     const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
+    const [assinaturaUrl, setAssinaturaUrl] = useState("");
+    const [useProfSignature, setUseProfSignature] = useState(false);
+
+    const { data: professional } = useQuery({
+        queryKey: ["professional-profile-eval", user?.id],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("assinatura_url, rubrica_url, nome")
+                .eq("id", user?.id)
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!user?.id,
+    });
 
     const [formData, setFormData] = useState({
         queixa_principal: "",
