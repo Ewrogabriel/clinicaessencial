@@ -184,6 +184,34 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                         </div>
                     </div>
 
+                    {/* Assinatura Digital */}
+                    <div className="space-y-3 border-t pt-4">
+                        <Label className="font-semibold flex items-center gap-2">
+                            <PenLine className="h-4 w-4" />
+                            Assinatura Digital
+                        </Label>
+                        {professional?.assinatura_url && (
+                            <label className="flex items-center gap-2 cursor-pointer p-2 rounded border hover:bg-muted/50 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-gray-300"
+                                    checked={useProfSignature}
+                                    onChange={(e) => setUseProfSignature(e.target.checked)}
+                                />
+                                <span className="text-sm">Usar assinatura do profissional</span>
+                            </label>
+                        )}
+                        {!useProfSignature && (
+                            <>
+                                <p className="text-xs text-muted-foreground">Ou desenhe a assinatura abaixo:</p>
+                                <SignaturePad onSave={setAssinaturaUrl} />
+                                {assinaturaUrl && (
+                                    <p className="text-xs text-primary font-medium">✓ Assinatura capturada</p>
+                                )}
+                            </>
+                        )}
+                    </div>
+
                     <DialogFooter className="pt-4 border-t sm:justify-end gap-2">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancelar
