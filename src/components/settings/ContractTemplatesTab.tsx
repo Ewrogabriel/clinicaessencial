@@ -45,7 +45,12 @@ export const ContractTemplatesTab = ({ clinicId }: { clinicId: string }) => {
       } else {
         const { error } = await supabase
           .from("contrato_templates")
-          .insert({ ...template, clinic_id: clinicId });
+          .insert({
+            nome: template.nome || "",
+            conteudo: template.conteudo || "",
+            tipo: template.tipo || "paciente",
+            clinic_id: clinicId,
+          });
         if (error) throw error;
       }
     },

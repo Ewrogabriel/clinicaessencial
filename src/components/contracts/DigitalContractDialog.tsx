@@ -44,9 +44,9 @@ export function DigitalContractDialog({
         .from("contrato_templates")
         .select("*")
         .eq("ativo", true)
-        .eq("clinic_id", activeClinicId);
+        .eq("clinic_id", activeClinicId!);
       if (error) throw error;
-      return data;
+      return data as Array<{ id: string; nome: string; conteudo: string; tipo: string; ativo: boolean }>;
     },
     enabled: !!activeClinicId,
   });

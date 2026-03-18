@@ -62,9 +62,9 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
             const { error: patientErr } = await supabase
                 .from("pacientes")
                 .update({ 
-                    status_clinico: "Avaliado",
-                    ultima_avaliacao_data: new Date().toISOString().split("T")[0]
-                })
+                    status_clinico: "Avaliado" as any,
+                    ultima_avaliacao_data: new Date().toISOString().split("T")[0] as any,
+                } as any)
                 .eq("id", pacienteId);
             
             if (patientErr) console.error("Erro ao atualizar status do paciente:", patientErr);

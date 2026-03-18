@@ -874,6 +874,47 @@ export type Database = {
         }
         Relationships: []
       }
+      contrato_templates: {
+        Row: {
+          ativo: boolean
+          clinic_id: string | null
+          conteudo: string
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          clinic_id?: string | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          clinic_id?: string | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_templates_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contratos_digitais: {
         Row: {
           assinado_em: string | null
@@ -2206,9 +2247,11 @@ export type Database = {
           sexo: string | null
           solicita_nf: boolean | null
           status: Database["public"]["Enums"]["status_paciente"]
+          status_clinico: string | null
           telefone: string
           tem_responsavel_legal: boolean | null
           tipo_atendimento: string
+          ultima_avaliacao_data: string | null
           updated_at: string
           user_id: string | null
         }
@@ -2260,9 +2303,11 @@ export type Database = {
           sexo?: string | null
           solicita_nf?: boolean | null
           status?: Database["public"]["Enums"]["status_paciente"]
+          status_clinico?: string | null
           telefone: string
           tem_responsavel_legal?: boolean | null
           tipo_atendimento?: string
+          ultima_avaliacao_data?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -2314,9 +2359,11 @@ export type Database = {
           sexo?: string | null
           solicita_nf?: boolean | null
           status?: Database["public"]["Enums"]["status_paciente"]
+          status_clinico?: string | null
           telefone?: string
           tem_responsavel_legal?: boolean | null
           tipo_atendimento?: string
+          ultima_avaliacao_data?: string | null
           updated_at?: string
           user_id?: string | null
         }
