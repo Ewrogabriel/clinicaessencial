@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { PenLine } from "lucide-react";
+import { SignaturePad } from "./SignaturePad";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -27,6 +29,22 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
     const { user } = useAuth();
     const { activeClinicId } = useClinic();
     const queryClient = useQueryClient();
+    const [assinaturaUrl, setAssinaturaUrl] = useState("");
+    const [useProfSignature, setUseProfSignature] = useState(false);
+
+    const { data: professional } = useQuery({
+        queryKey: ["professional-profile-eval", user?.id],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("assinatura_url, rubrica_url, nome")
+                .eq("id", user?.id)
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!user?.id,
+    });
 
     const [formData, setFormData] = useState({
         queixa_principal: "",
@@ -164,6 +182,34 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                                 onChange={handleChange}
                             />
                         </div>
+                    </div>
+
+                    {/* Assinatura Digital */}
+                    <div className="space-y-3 border-t pt-4">
+                        <Label className="font-semibold flex items-center gap-2">
+                            <PenLine className="h-4 w-4" />
+                            Assinatura Digital
+                        </Label>
+                        {professional?.assinatura_url && (
+                            <label className="flex items-center gap-2 cursor-pointer p-2 rounded border hover:bg-muted/50 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-gray-300"
+                                    checked={useProfSignature}
+                                    onChange={(e) => setUseProfSignature(e.target.checked)}
+                                />
+                                <span className="text-sm">Usar assinatura do profissional</span>
+                            </label>
+                        )}
+                        {!useProfSignature && (
+                            <>
+                                <p className="text-xs text-muted-foreground">Ou desenhe a assinatura abaixo:</p>
+                                <SignaturePad onSave={setAssinaturaUrl} />
+                                {assinaturaUrl && (
+                                    <p className="text-xs text-primary font-medium">✓ Assinatura capturada</p>
+                                )}
+                            </>
+                        )}
                     </div>
 
                     <DialogFooter className="pt-4 border-t sm:justify-end gap-2">

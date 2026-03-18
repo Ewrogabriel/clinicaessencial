@@ -134,6 +134,33 @@ const Profissionais = () => {
   const [rubricaUrl, setRubricaUrl] = useState("");
   const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
   const [cleaningRubrica, setCleaningRubrica] = useState(false);
+
+  // Auto-clean signature on upload
+  const handleAssinaturaChange = async (url: string) => {
+    setAssinaturaUrl(url);
+    if (url && url.startsWith("data:")) {
+      setCleaningAssinatura(true);
+      try {
+        const cleaned = await cleanSignatureImage(url);
+        setAssinaturaUrl(cleaned);
+        toast({ title: "Assinatura otimizada automaticamente! ✨" });
+      } catch { /* keep original */ }
+      finally { setCleaningAssinatura(false); }
+    }
+  };
+
+  const handleRubricaChange = async (url: string) => {
+    setRubricaUrl(url);
+    if (url && url.startsWith("data:")) {
+      setCleaningRubrica(true);
+      try {
+        const cleaned = await cleanSignatureImage(url);
+        setRubricaUrl(cleaned);
+        toast({ title: "Rubrica otimizada automaticamente! ✨" });
+      } catch { /* keep original */ }
+      finally { setCleaningRubrica(false); }
+    }
+  };
   const { profissionais: users, isLoading } = useProfissionais();
 
 
@@ -737,7 +764,7 @@ const Profissionais = () => {
                         <Label>Imagem da Assinatura</Label>
                         <ImageUpload
                           value={assinaturaUrl}
-                          onChange={setAssinaturaUrl}
+                          onChange={handleAssinaturaChange}
                           folder="assinaturas"
                         />
                         <div className="flex flex-col gap-1">
@@ -772,7 +799,7 @@ const Profissionais = () => {
                         <Label>Imagem da Rubrica</Label>
                         <ImageUpload
                           value={rubricaUrl}
-                          onChange={setRubricaUrl}
+                          onChange={handleRubricaChange}
                           folder="rubricas"
                         />
                         <div className="flex flex-col gap-1">
