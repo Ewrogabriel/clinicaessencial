@@ -799,7 +799,7 @@ const Profissionais = () => {
                         <Label>Imagem da Rubrica</Label>
                         <ImageUpload
                           value={rubricaUrl}
-                          onChange={setRubricaUrl}
+                          onChange={handleRubricaChange}
                           folder="rubricas"
                         />
                         <div className="flex flex-col gap-1">
