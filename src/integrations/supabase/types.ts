@@ -3705,6 +3705,68 @@ export type Database = {
           },
         ]
       }
+      schedule_slots: {
+        Row: {
+          availability_slot_id: string | null
+          clinic_id: string | null
+          created_at: string
+          current_capacity: number
+          date: string
+          duration_min: number
+          end_time: string
+          id: string
+          is_available: boolean
+          is_blocked: boolean
+          max_capacity: number
+          notes: string | null
+          professional_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          availability_slot_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          current_capacity?: number
+          date: string
+          duration_min?: number
+          end_time: string
+          id?: string
+          is_available?: boolean
+          is_blocked?: boolean
+          max_capacity?: number
+          notes?: string | null
+          professional_id: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          availability_slot_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          current_capacity?: number
+          date?: string
+          duration_min?: number
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          is_blocked?: boolean
+          max_capacity?: number
+          notes?: string | null
+          professional_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_slots_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solicitacoes_alteracao_dados: {
         Row: {
           approved_at: string | null
