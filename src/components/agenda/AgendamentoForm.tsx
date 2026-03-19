@@ -450,57 +450,74 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
             {!isRecorrente && (
               <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="slot_id"
-                  render={({ field }) => {
-                    let slotPlaceholder = "Selecione o horário";
-                    if (isLoadingSlots) slotPlaceholder = "Carregando...";
-                    else if (!watchedDate || !watchedProfId) slotPlaceholder = "Selecione data e profissional";
-                    return (
-                    <FormItem>
-                      <FormLabel>Horário (Vagas)</FormLabel>
-                      <Select
-                        onValueChange={(val) => {
-                          field.onChange(val);
-                          const slot = availableSlots?.find((s: any) => s.id === val);
-                          if (slot) {
-                            form.setValue("horario", slot.start_time.slice(0, 5));
-                          }
-                        }}
-                        value={field.value}
-                        disabled={isLoadingSlots || !watchedDate || !watchedProfId}
-                      >
+                {/* Show slot picker when slots exist, otherwise manual time input */}
+                {availableSlots && availableSlots.length > 0 ? (
+                  <FormField
+                    control={form.control}
+                    name="slot_id"
+                    render={({ field }) => {
+                      let slotPlaceholder = "Selecione o horário";
+                      if (isLoadingSlots) slotPlaceholder = "Carregando...";
+                      else if (!watchedDate || !watchedProfId) slotPlaceholder = "Selecione data e profissional";
+                      return (
+                      <FormItem>
+                        <FormLabel>Horário (Vagas)</FormLabel>
+                        <Select
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            const slot = availableSlots?.find((s: any) => s.id === val);
+                            if (slot) {
+                              form.setValue("horario", slot.start_time.slice(0, 5));
+                            }
+                          }}
+                          value={field.value}
+                          disabled={isLoadingSlots || !watchedDate || !watchedProfId}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={slotPlaceholder} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {availableSlots?.map((slot: any) => (
+                              <SelectItem
+                                key={slot.id}
+                                value={slot.id}
+                                disabled={slot.status === 'full' || slot.status === 'blocked'}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
+                                  <span className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded-full border",
+                                    slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
+                                  )}>
+                                    {slot.current_capacity}/{slot.max_capacity} pacientes
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    ); }}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="horario"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Horário</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={slotPlaceholder} />
-                          </SelectTrigger>
+                          <Input type="time" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          {availableSlots?.map((slot: any) => (
-                            <SelectItem
-                              key={slot.id}
-                              value={slot.id}
-                              disabled={slot.status === 'full' || slot.status === 'blocked'}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
-                                <span className={cn(
-                                  "text-[10px] px-1.5 py-0.5 rounded-full border",
-                                  slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
-                                )}>
-                                  {slot.current_capacity}/{slot.max_capacity} pacientes
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  ); }}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}
