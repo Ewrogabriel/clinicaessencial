@@ -383,16 +383,16 @@ const Matriculas = () => {
       if (finalValue > 0) {
         const mesReferencia = format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-01");
 
-        const { error: mensalidadeError } = await (supabase.from("pagamentos_mensalidade").upsert({
+        const { error: mensalidadeError } = await (supabase.from("pagamentos_mensalidade").insert({
           paciente_id: formData.paciente_id,
           matricula_id: mat.id,
           mes_referencia: mesReferencia,
-          data_vencimento: dueDate, // Novo campo salvo no banco
+          data_vencimento: dueDate,
           valor: finalValue,
           status: "aberto",
           observacoes: `Mensalidade ${formData.tipo_atendimento}`,
           clinic_id: activeClinicId,
-        }, { onConflict: 'paciente_id,mes_referencia' }) as any);
+        }) as any);
 
         if (mensalidadeError) throw mensalidadeError;
       }

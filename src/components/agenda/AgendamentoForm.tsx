@@ -310,7 +310,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             observacoes: values.observacoes,
             created_by: user.id,
             clinic_id: activeClinicId,
-            slot_id: values.slot_id || undefined,
+            // slot_id is from disponibilidade_profissional, not schedule_slots table
+            // so we must NOT pass it to the RPC book_appointment which queries schedule_slots
+            slot_id: undefined,
           });
         }
       }
