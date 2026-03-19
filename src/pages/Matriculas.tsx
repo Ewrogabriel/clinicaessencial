@@ -367,6 +367,7 @@ const Matriculas = () => {
               valor_sessao: finalValue > 0 && sessionsInMonth > 0
                 ? parseFloat((finalValue / sessionsInMonth).toFixed(2))
                 : 0,
+              created_by: user.id,
               clinic_id: activeClinicId,
             });
           }

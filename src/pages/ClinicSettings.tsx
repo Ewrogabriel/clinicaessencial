@@ -14,9 +14,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import FormasPagamento from "./FormasPagamento";
 import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
-import { ContractTemplatesTab } from "@/components/settings/ContractTemplatesTab";
+
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
-import { Calendar, Signature } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
@@ -120,9 +120,6 @@ const ClinicSettings = () => {
           <TabsTrigger value="pagamento" className="gap-2">
             <CreditCard className="h-4 w-4" /> Pagamento
           </TabsTrigger>
-          <TabsTrigger value="contratos" className="gap-2">
-            <Signature className="h-4 w-4" /> Contratos
-          </TabsTrigger>
           <TabsTrigger value="feriados" className="gap-2">
             <Calendar className="h-4 w-4" /> Feriados
           </TabsTrigger>
@@ -206,9 +203,6 @@ const ClinicSettings = () => {
           <AuditLogViewer />
         </TabsContent>
 
-        <TabsContent value="contratos">
-          <ContractTemplatesTab clinicId={settings?.id || ""} />
-        </TabsContent>
 
         <TabsContent value="feriados">
           <HolidaysTab clinicId={settings?.id || ""} />
