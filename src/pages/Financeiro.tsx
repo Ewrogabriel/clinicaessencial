@@ -241,11 +241,14 @@ const Financeiro = () => {
   const createPagamento = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
+      const valorNum = parseFloat(formData.valor);
+      if (isNaN(valorNum) || valorNum <= 0) throw new Error("O valor deve ser maior que zero");
+
       const { error } = await supabase.from("pagamentos").insert({
         paciente_id: formData.paciente_id,
         profissional_id: user.id,
         plano_id: formData.plano_id || null,
-        valor: parseFloat(formData.valor) || 0,
+        valor: valorNum,
         data_pagamento: formData.data_pagamento,
         data_vencimento: formData.data_vencimento || null,
         forma_pagamento: formData.forma_pagamento as any,
@@ -803,7 +806,7 @@ const Financeiro = () => {
           </ScrollArea>
           <div className="shrink-0 flex justify-end gap-3 pt-4 border-t mt-4">
             <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createPagamento.mutate()} disabled={!formData.paciente_id || !formData.valor || createPagamento.isPending}>
+            <Button onClick={() => createPagamento.mutate()} disabled={!formData.paciente_id || parseFloat(formData.valor) <= 0 || isNaN(parseFloat(formData.valor)) || createPagamento.isPending}>
               {createPagamento.isPending ? "Salvando..." : "Registrar"}
             </Button>
           </div>

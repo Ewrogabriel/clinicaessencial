@@ -54,10 +54,13 @@ const Despesas = () => {
 
     const createMutation = useMutation({
         mutationFn: async () => {
+            const valorNum = parseFloat(formData.valor);
+            if (isNaN(valorNum) || valorNum <= 0) throw new Error("O valor deve ser maior que zero");
+
             const { error } = await supabase.from("expenses").insert({
                 clinic_id: activeClinicId || "",
                 descricao: formData.descricao,
-                valor: parseFloat(formData.valor),
+                valor: valorNum,
                 data_vencimento: formData.data_vencimento,
                 categoria: formData.categoria,
                 status: formData.status,
@@ -228,7 +231,7 @@ const Despesas = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={() => createMutation.mutate()} disabled={!formData.descricao || !formData.valor}>
+                        <Button onClick={() => createMutation.mutate()} disabled={!formData.descricao || parseFloat(formData.valor) <= 0 || isNaN(parseFloat(formData.valor))}>
                             Salvar Despesa
                         </Button>
                     </DialogFooter>

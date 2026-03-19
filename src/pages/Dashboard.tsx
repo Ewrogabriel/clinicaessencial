@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay, eachDayOfInterval, getDay, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Dialog,
@@ -168,7 +168,20 @@ const Dashboard = () => {
       if (activeClinicId) agQ = agQ.eq("clinic_id", activeClinicId);
       const { data: agendamentosMes } = await agQ;
 
-      const totalSlots = (disp || []).reduce((sum, d) => sum + (d.max_pacientes || 1), 0) * 4;
+      const start = startOfMonth(new Date());
+      const end = endOfMonth(new Date());
+      const daysInMonth = eachDayOfInterval({ start, end });
+      const weekdayCounts: Record<number, number> = {};
+      daysInMonth.forEach(day => {
+        const wd = getDay(day);
+        weekdayCounts[wd] = (weekdayCounts[wd] || 0) + 1;
+      });
+
+      const totalSlots = (disp || []).reduce((sum, d) => {
+        const occurrences = weekdayCounts[d.dia_semana] || 0;
+        return sum + ((d.max_pacientes || 1) * occurrences);
+      }, 0);
+
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
     },
