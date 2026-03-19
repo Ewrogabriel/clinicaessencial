@@ -16,7 +16,7 @@ import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
-import { Calendar, Signature } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
