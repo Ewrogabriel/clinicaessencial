@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   MessageSquare, Ban, RotateCcw, CheckCircle2, Send, Calendar, Clock,
   User, Activity, FileText, Phone, ClipboardList, Stethoscope, StickyNote, Video,
+  XCircle, Plus, AlertCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -170,12 +171,36 @@ export function AppointmentDetailDialog({
 
   const goToPatient = () => {
     onOpenChange(false);
-    navigate(`/pacientes/${ag.paciente_id}`);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes`);
+  };
+
+  const goToProntuario = () => {
+    onOpenChange(false);
+    navigate(`/prontuarios?paciente=${ag.paciente_id}`);
   };
 
   const goToEvolution = () => {
     onOpenChange(false);
-    navigate(`/pacientes/${ag.paciente_id}?tab=atendimentos`);
+    navigate(`/prontuarios?paciente=${ag.paciente_id}&tab=evolucoes`);
+  };
+
+  const goToNewEvolution = () => {
+    onOpenChange(false);
+    navigate(`/prontuarios?paciente=${ag.paciente_id}&tab=evolucoes&new=1`);
+  };
+
+  const handleMarkStatus = async (newStatus: string, label: string) => {
+    try {
+      const { error } = await (supabase
+        .from("agendamentos")
+        .update({ status: newStatus as any })
+        .eq("id", ag.id) as any);
+      if (error) throw error;
+      toast.success(`Sessão marcada como ${label}!`);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Erro ao atualizar status: " + e.message);
+    }
   };
 
   return (
@@ -254,22 +279,69 @@ export function AppointmentDetailDialog({
         )}
 
         <Separator />
+
+        {/* Navigation + Session Status Actions */}
         {!isPatient && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => { onOpenChange(false); navigate(`/pacientes/${ag.paciente_id}/detalhes`); }}>
-              <User className="h-4 w-4 mr-1" /> Ver Perfil
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToPatient}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Prontuário
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToEvolution}>
-              <Stethoscope className="h-4 w-4 mr-1" /> Evoluções
-            </Button>
-            <Button variant="outline" size="sm" onClick={openWhatsAppDirect}>
-              <Phone className="h-4 w-4 mr-1" /> Falar com Paciente
-            </Button>
+          <div className="space-y-3">
+            {/* Navigation buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={goToPatient}>
+                <User className="h-4 w-4 mr-1" /> Ver Perfil
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToProntuario}>
+                <ClipboardList className="h-4 w-4 mr-1" /> Prontuário
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToEvolution}>
+                <Stethoscope className="h-4 w-4 mr-1" /> Evoluções
+              </Button>
+              <Button size="sm" className="bg-primary/90 hover:bg-primary" onClick={goToNewEvolution}>
+                <Plus className="h-4 w-4 mr-1" /> Nova Evolução
+              </Button>
+              <Button variant="outline" size="sm" onClick={openWhatsAppDirect}>
+                <Phone className="h-4 w-4 mr-1" /> Falar com Paciente
+              </Button>
+            </div>
+
+            {/* Session status actions — clear text labels */}
+            {canAct && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  onClick={() => handleMarkStatus("realizado", "Realizado")}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" /> ✅ Realizado
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-amber-700 border-amber-300 hover:bg-amber-50 font-semibold"
+                  onClick={() => handleMarkStatus("falta", "Faltou")}
+                >
+                  <AlertCircle className="h-4 w-4 mr-1.5" /> ❌ Faltou
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => { onReschedule(ag); onOpenChange(false); }}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" /> 🔄 Remarcar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                  onClick={() => setActionMode("cancelar")}
+                >
+                  <XCircle className="h-4 w-4 mr-1" /> 🚫 Cancelar
+                </Button>
+              </div>
+            )}
           </div>
         )}
+
+        {!isPatient && <Separator />}
 
         {!isPatient && <Separator />}
 

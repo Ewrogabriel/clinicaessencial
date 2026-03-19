@@ -73,6 +73,8 @@ const formSchema = z.object({
   horarios_por_dia: z.record(z.string(), z.string()).default({}),
   valor_sessao: z.number().min(0).optional(),
   valor_mensal: z.number().min(0).optional(),
+  forma_pagamento: z.string().optional(),
+  data_vencimento: z.string().optional(),
   repetir: z.boolean().default(false),
   repetir_tipo: z.enum(["vezes", "semanas"]).default("vezes"),
   repetir_quantidade: z.number().min(1).max(52).default(4),
@@ -313,7 +315,10 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             // slot_id is from disponibilidade_profissional, not schedule_slots table
             // so we must NOT pass it to the RPC book_appointment which queries schedule_slots
             slot_id: undefined,
-          });
+            valor_sessao: values.valor_sessao,
+            forma_pagamento: values.forma_pagamento,
+            data_vencimento: values.data_vencimento,
+          } as any);
         }
       }
 
@@ -692,32 +697,74 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               />
             )}
 
-            {/* Valor - sessão única */}
+            {/* Financeiro — sessão única */}
             {!isRecorrente && (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <Label className="font-medium">Valor da Consulta/Sessão</Label>
+                  <Label className="font-medium">Financeiro da Sessão</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="valor_sessao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Valor (R$)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0,00"
+                              className="pl-10"
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="data_vencimento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Data de Vencimento</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <FormField
                   control={form.control}
-                  name="valor_sessao"
+                  name="forma_pagamento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0,00"
-                            className="pl-10"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </div>
-                      </FormControl>
+                      <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione (opcional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="pix">PIX</SelectItem>
+                          <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                          <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                          <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                          <SelectItem value="transferencia">Transferência Bancária</SelectItem>
+                          <SelectItem value="convenio">Convênio</SelectItem>
+                          <SelectItem value="boleto">Boleto</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

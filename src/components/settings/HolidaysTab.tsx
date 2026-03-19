@@ -2,26 +2,26 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Trash2, Calendar, Save } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Trash2, Plus } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface Feriado {
-  id: string;
-  nome: string;
-  data: string;
-  tipo: 'feriado' | 'recesso';
-}
+/** Parse a YYYY-MM-DD string as local date (avoids UTC offset shifting the day) */
+const parseLocalDate = (dateStr: string) => {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
 
 export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const queryClient = useQueryClient();
-  const [newHoliday, setNewHoliday] = useState({ nome: "", data: "", tipo: "feriado" });
+  const [newEvent, setNewEvent] = useState({ nome: "", data_inicio: "", data_fim: "" });
 
-  const { data: feriados = [], isLoading } = useQuery({
+  const { data: eventos = [], isLoading } = useQuery({
     queryKey: ["clinic-holidays", clinicId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -30,32 +30,29 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
         .eq("clinic_id", clinicId)
         .order("data_inicio");
       if (error) throw error;
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        nome: d.motivo,
-        data: d.data_inicio,
-        tipo: "feriado" // assuming fixed for now or add a column if needed
-      }));
+      return data || [];
     },
     enabled: !!clinicId,
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (h: any) => {
+    mutationFn: async (h: typeof newEvent) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("recesso_clinica").insert({
         clinic_id: clinicId,
         motivo: h.nome,
-        data_inicio: h.data,
-        data_fim: h.data,
-        created_by: (await supabase.auth.getUser()).data.user?.id || ""
-      });
+        data_inicio: h.data_inicio,
+        data_fim: h.data_fim || h.data_inicio,
+        created_by: user?.id || "",
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
-      setNewHoliday({ nome: "", data: "", tipo: "feriado" });
+      setNewEvent({ nome: "", data_inicio: "", data_fim: "" });
       toast({ title: "Evento adicionado!" });
     },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -73,54 +70,34 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
     toast({ title: "🤖 Buscando feriados nacionais..." });
     try {
       const year = new Date().getFullYear();
-      console.log(`Buscando feriados para o ano: ${year}`);
-      
       const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
-      
-      if (!res.ok) {
-        throw new Error(`Erro na API: ${res.status} ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Erro na API: ${res.status}`);
 
       const data = await res.json();
-      console.log("Dados recebidos da BrasilAPI:", data);
-      
       if (Array.isArray(data) && data.length > 0) {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData.user?.id || "";
-
+        const { data: { user } } = await supabase.auth.getUser();
         const toInsert = data.map((f: any) => ({
           clinic_id: clinicId,
           motivo: f.name,
           data_inicio: f.date,
           data_fim: f.date,
-          created_by: userId
-        }));
+          created_by: user?.id || "",
+        })) as any[];
 
-        console.log(`Tentando inserir ${toInsert.length} feriados no banco...`);
-        const { error } = await supabase.from("recesso_clinica").insert(toInsert);
-        
-        if (error) {
-          console.error("Erro Supabase ao inserir feriados:", error);
-          throw error;
-        }
-        
+        const { error } = await supabase.from("recesso_clinica").insert(toInsert as any);
+        if (error) throw error;
+
         queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
-        toast({ title: "Feriados nacionais importados com sucesso!" });
+        toast({ title: `${toInsert.length} feriados nacionais importados!` });
       } else {
-        console.warn("Nenhum feriado retornado pela API ou formato inválido.");
-        toast({ title: "Nenhum feriado encontrado para este ano.", variant: "destructive" });
+        toast({ title: "Nenhum feriado encontrado.", variant: "destructive" });
       }
     } catch (err: any) {
-      console.error("Falha completa na importação de feriados:", err);
-      toast({ 
-        title: "Erro ao importar feriados", 
-        description: err.message || "Verifique o console para mais detalhes.",
-        variant: "destructive" 
-      });
+      toast({ title: "Erro ao importar feriados", description: err.message, variant: "destructive" });
     }
   };
 
-  if (isLoading) return <div>Carregando...</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground">Carregando...</div>;
 
   return (
     <div className="space-y-6">
@@ -133,16 +110,42 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-4 gap-4 items-end">
-            <div className="col-span-2">
-              <Label>Descrição</Label>
-              <Input value={newHoliday.nome} onChange={(e) => setNewHoliday({ ...newHoliday, nome: e.target.value })} placeholder="Ex: Natal" />
+          <p className="text-sm text-muted-foreground font-medium">Adicionar Feriado ou Recesso</p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div className="sm:col-span-2">
+              <Label>Descrição *</Label>
+              <Input
+                value={newEvent.nome}
+                onChange={(e) => setNewEvent({ ...newEvent, nome: e.target.value })}
+                placeholder="Ex: Recesso de Fim de Ano"
+              />
             </div>
             <div>
-              <Label>Data</Label>
-              <Input type="date" value={newHoliday.data} onChange={(e) => setNewHoliday({ ...newHoliday, data: e.target.value })} />
+              <Label>Data Início *</Label>
+              <Input
+                type="date"
+                value={newEvent.data_inicio}
+                onChange={(e) => setNewEvent({ ...newEvent, data_inicio: e.target.value, data_fim: e.target.value })}
+              />
             </div>
-            <Button onClick={() => saveMutation.mutate(newHoliday)} disabled={!newHoliday.nome || !newHoliday.data}> Adicionar </Button>
+            <div>
+              <Label>Data Fim (recesso)</Label>
+              <Input
+                type="date"
+                value={newEvent.data_fim}
+                min={newEvent.data_inicio}
+                onChange={(e) => setNewEvent({ ...newEvent, data_fim: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={() => saveMutation.mutate(newEvent)}
+              disabled={!newEvent.nome || !newEvent.data_inicio || saveMutation.isPending}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" /> Adicionar
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -152,20 +155,38 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
           <thead className="bg-muted">
             <tr className="text-left">
               <th className="p-3 font-medium">Evento</th>
-              <th className="p-3 font-medium">Data</th>
+              <th className="p-3 font-medium">Data Início</th>
+              <th className="p-3 font-medium">Data Fim</th>
               <th className="p-3 font-medium text-right">Ação</th>
             </tr>
           </thead>
           <tbody>
-            {feriados.length === 0 ? (
-              <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhum feriado cadastrado.</td></tr>
+            {eventos.length === 0 ? (
+              <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhum evento cadastrado.</td></tr>
             ) : (
-              feriados.map((h: any) => (
+              eventos.map((h: any) => (
                 <tr key={h.id} className="border-t">
-                  <td className="p-3">{h.nome}</td>
-                  <td className="p-3">{format(new Date(h.data), "dd/MM/yyyy", { locale: ptBR })}</td>
+                  <td className="p-3 font-medium">
+                    {h.motivo || h.descricao}
+                    {h.data_inicio !== h.data_fim && (
+                      <Badge variant="outline" className="ml-2 text-xs">Recesso</Badge>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    {h.data_inicio ? format(parseLocalDate(h.data_inicio), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                  </td>
+                  <td className="p-3">
+                    {h.data_fim && h.data_fim !== h.data_inicio
+                      ? format(parseLocalDate(h.data_fim), "dd/MM/yyyy", { locale: ptBR })
+                      : "—"}
+                  </td>
                   <td className="p-3 text-right">
-                    <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(h.id)} className="text-destructive h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteMutation.mutate(h.id)}
+                      className="text-destructive h-8 w-8"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </td>

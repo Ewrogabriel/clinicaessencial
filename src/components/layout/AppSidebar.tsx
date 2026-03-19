@@ -90,7 +90,6 @@ export const AppSidebar = memo(function AppSidebar() {
   // Professionals group
   const menuProfissionais = [
     { title: t("nav.team"), url: "/profissionais", icon: UserCog },
-    { title: "Check-in", url: "/check-in", icon: FileCheck },
   ];
 
   // Finance group
@@ -175,7 +174,6 @@ export const AppSidebar = memo(function AppSidebar() {
 
   const menuProfissionalAdmin = [
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
-    { title: "Check-in", url: "/check-in", icon: FileCheck },
     { title: t("nav.products"), url: "/inventario", icon: Tag },
   ];
 
