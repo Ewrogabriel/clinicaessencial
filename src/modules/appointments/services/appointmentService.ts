@@ -124,7 +124,7 @@ export const appointmentService = {
             // When a slot_id is provided, use the atomic book_appointment RPC which
             // locks the slot row (FOR UPDATE) and validates capacity in one transaction.
             // This is the only safe path for group sessions and concurrent bookings.
-            if (params.slot_id) {
+            if (params.slot_id && params.slot_id.trim() !== "") {
                 const { data, error } = await (supabase as any).rpc("book_appointment", {
                     p_paciente_id: params.paciente_id,
                     p_profissional_id: params.profissional_id,

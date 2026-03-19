@@ -203,9 +203,6 @@ const ClinicSettings = () => {
           <AuditLogViewer />
         </TabsContent>
 
-        <TabsContent value="contratos">
-          <ContractTemplatesTab clinicId={settings?.id || ""} />
-        </TabsContent>
 
         <TabsContent value="feriados">
           <HolidaysTab clinicId={settings?.id || ""} />
