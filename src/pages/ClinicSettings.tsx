@@ -120,9 +120,6 @@ const ClinicSettings = () => {
           <TabsTrigger value="pagamento" className="gap-2">
             <CreditCard className="h-4 w-4" /> Pagamento
           </TabsTrigger>
-          <TabsTrigger value="contratos" className="gap-2">
-            <Signature className="h-4 w-4" /> Contratos
-          </TabsTrigger>
           <TabsTrigger value="feriados" className="gap-2">
             <Calendar className="h-4 w-4" /> Feriados
           </TabsTrigger>
