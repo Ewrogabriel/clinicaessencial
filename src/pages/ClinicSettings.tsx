@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import FormasPagamento from "./FormasPagamento";
 import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
-import { ContractTemplatesTab } from "@/components/settings/ContractTemplatesTab";
+
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
 import { Calendar, Signature } from "lucide-react";
 
