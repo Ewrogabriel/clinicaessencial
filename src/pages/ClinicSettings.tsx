@@ -24,6 +24,7 @@ const ClinicSettings = () => {
   const [form, setForm] = useState({
     nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
     telefone: "", whatsapp: "", email: "", instagram: "", logo_url: "",
+    assinatura_url: "", rubrica_url: "",
   });
   const [uploading, setUploading] = useState(false);
 
@@ -43,6 +44,8 @@ const ClinicSettings = () => {
         email: settings.email || "",
         instagram: settings.instagram || "",
         logo_url: settings.logo_url || "",
+        assinatura_url: (settings as any).assinatura_url || "",
+        rubrica_url: (settings as any).rubrica_url || "",
       });
     }
   }, [settings]);
@@ -70,6 +73,52 @@ const ClinicSettings = () => {
       updateMutation.mutate({ id: settings.id, logo_url }, {
         onSuccess: () => toast({ title: "Logo atualizada!" }),
         onError: (err: any) => toast({ title: "Erro ao salvar logo", description: err.message, variant: "destructive" }),
+      });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings?.id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `clinic/signature-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
+      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
+      const assinatura_url = urlData.publicUrl;
+      setForm(f => ({ ...f, assinatura_url }));
+      updateMutation.mutate({ id: settings.id, assinatura_url } as any, {
+        onSuccess: () => toast({ title: "Assinatura atualizada!" }),
+        onError: (err: any) => toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" }),
+      });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRubricaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings?.id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `clinic/rubrica-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
+      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
+      const rubrica_url = urlData.publicUrl;
+      setForm(f => ({ ...f, rubrica_url }));
+      updateMutation.mutate({ id: settings.id, rubrica_url } as any, {
+        onSuccess: () => toast({ title: "Rubrica atualizada!" }),
+        onError: (err: any) => toast({ title: "Erro ao salvar rubrica", description: err.message, variant: "destructive" }),
       });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
@@ -116,6 +165,9 @@ const ClinicSettings = () => {
         <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1 max-w-[900px]">
           <TabsTrigger value="dados" className="gap-2">
             <Settings2 className="h-4 w-4" /> Dados
+          </TabsTrigger>
+          <TabsTrigger value="assinaturas" className="gap-2">
+            <Settings2 className="h-4 w-4" /> Assinaturas
           </TabsTrigger>
           <TabsTrigger value="pagamento" className="gap-2">
             <CreditCard className="h-4 w-4" /> Pagamento
@@ -189,6 +241,57 @@ const ClinicSettings = () => {
           <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 mt-4">
             <Save className="h-4 w-4" /> Salvar Alterações
           </Button>
+        </TabsContent>
+
+        <TabsContent value="assinaturas">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /> Assinaturas da Clínica</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Assinatura Digital</Label>
+                  <div className="flex items-center gap-4">
+                    {form.assinatura_url ? (
+                      <img src={form.assinatura_url} alt="Assinatura" className="h-16 w-32 rounded-lg object-contain border bg-white" />
+                    ) : (
+                      <div className="h-16 w-32 rounded-lg bg-muted flex flex-col items-center justify-center text-xs text-muted-foreground">Sem assinatura</div>
+                    )}
+                    <div>
+                      <Label htmlFor="assinatura" className="cursor-pointer">
+                        <Button variant="outline" size="sm" asChild disabled={uploading}>
+                          <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Upload Assinatura"}</span>
+                        </Button>
+                      </Label>
+                      <input id="assinatura" type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Usada como assinatura principal em contratos e documentos da clínica.</p>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <Label>Rubrica (Opcional)</Label>
+                  <div className="flex items-center gap-4">
+                    {form.rubrica_url ? (
+                      <img src={form.rubrica_url} alt="Rubrica" className="h-16 w-16 rounded-lg object-contain border bg-white" />
+                    ) : (
+                      <div className="h-16 w-16 rounded-lg bg-muted flex flex-col items-center justify-center text-xs text-muted-foreground uppercase text-center">-</div>
+                    )}
+                    <div>
+                      <Label htmlFor="rubrica" className="cursor-pointer">
+                        <Button variant="outline" size="sm" asChild disabled={uploading}>
+                          <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Upload Rubrica"}</span>
+                        </Button>
+                      </Label>
+                      <input id="rubrica" type="file" accept="image/*" className="hidden" onChange={handleRubricaUpload} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Símbolo curto ou rubrica anexado ao carimbo da clínica.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="pagamento">

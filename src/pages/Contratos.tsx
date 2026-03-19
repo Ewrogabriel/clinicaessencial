@@ -32,6 +32,7 @@ const Contratos = () => {
   const [incluirCarimbo, setIncluirCarimbo] = useState(false);
   const [incluirRubrica, setIncluirRubrica] = useState(false);
   const [rubricaNoCarimbo, setRubricaNoCarimbo] = useState(false);
+  const [usarAssinaturaClinica, setUsarAssinaturaClinica] = useState(false);
 
   const clinicNome = clinicSettings?.nome || "Essencial Fisio Pilates";
   const clinicCNPJ = clinicSettings?.cnpj || "";
@@ -129,24 +130,29 @@ const Contratos = () => {
   const profissional = (profissionais as any[]).find((p: any) => p.id === selectedProfissional);
   const matricula = (matriculas as any[]).find((m: any) => m.id === selectedMatricula);
 
-  const getContractData = () => ({
-    pacienteNome: paciente?.nome || "",
-    cpf: paciente?.cpf || "",
-    rg: paciente?.rg || "",
-    planoNome: plano?.nome || "A definir",
-    planoFrequencia: plano?.frequencia_semanal || 1,
-    planoModalidade: plano?.modalidade || "grupo",
-    planoValor: matricula?.valor_mensal || plano?.valor || 0,
-    desconto: desconto?.percentual_desconto || 0,
-    dataContrato: format(new Date(), "dd/MM/yyyy"),
-    profissionalSignature: currentUserProfile?.assinatura_url || undefined,
-    profissionalNome: currentUserProfile?.nome || clinicNome,
-    profissionalRubrica: (incluirRubrica || (incluirCarimbo && rubricaNoCarimbo)) ? currentUserProfile?.rubrica_url : undefined,
-    rubricaNoCarimbo: incluirCarimbo && rubricaNoCarimbo,
-    incluirRubrica: incluirRubrica,
-    incluirCarimbo: incluirCarimbo,
-    profissionalRegistro: currentUserProfile?.registro_profissional || undefined,
-  });
+  const getContractData = () => {
+    const sigUrl = usarAssinaturaClinica ? (clinicSettings as any)?.assinatura_url : currentUserProfile?.assinatura_url;
+    const rubUrl = usarAssinaturaClinica ? (clinicSettings as any)?.rubrica_url : currentUserProfile?.rubrica_url;
+
+    return {
+      pacienteNome: paciente?.nome || "",
+      cpf: paciente?.cpf || "",
+      rg: paciente?.rg || "",
+      planoNome: plano?.nome || "A definir",
+      planoFrequencia: plano?.frequencia_semanal || 1,
+      planoModalidade: plano?.modalidade || "grupo",
+      planoValor: matricula?.valor_mensal || plano?.valor || 0,
+      desconto: desconto?.percentual_desconto || 0,
+      dataContrato: format(new Date(), "dd/MM/yyyy"),
+      profissionalSignature: sigUrl || undefined,
+      profissionalNome: usarAssinaturaClinica ? clinicNome : (currentUserProfile?.nome || clinicNome),
+      profissionalRubrica: (incluirRubrica || (incluirCarimbo && rubricaNoCarimbo)) ? rubUrl : undefined,
+      rubricaNoCarimbo: incluirCarimbo && rubricaNoCarimbo,
+      incluirRubrica: incluirRubrica,
+      incluirCarimbo: incluirCarimbo,
+      profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : currentUserProfile?.registro_profissional,
+    };
+  };
 
   const valorFinal = (matricula?.valor_mensal || (plano ? plano.valor : 0)) * (1 - (desconto?.percentual_desconto || 0) / 100);
 
@@ -278,6 +284,21 @@ const Contratos = () => {
                 )}
 
                 <div className="space-y-3 pt-2 border-t mt-2">
+                  <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="space-y-0.5">
+                      <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-assinatura-clinica">Usar assinatura da clínica</Label>
+                    </div>
+                    <input
+                      id="inc-assinatura-clinica"
+                      type="checkbox"
+                      title="Usar assinatura da clínica"
+                      aria-label="Usar assinatura da clínica"
+                      className="h-4 w-4 rounded border-gray-300"
+                      checked={usarAssinaturaClinica}
+                      onChange={(e) => setUsarAssinaturaClinica(e.target.checked)}
+                    />
+                  </div>
+
                   <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <div className="space-y-0.5">
                       <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-carimbo">Incluir Carimbo</Label>

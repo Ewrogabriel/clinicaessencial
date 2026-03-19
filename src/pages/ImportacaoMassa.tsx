@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, Users, Calendar, DollarSign } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, Users, Calendar, DollarSign, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 
@@ -42,6 +42,35 @@ const ImportacaoMassa = () => {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ success: number; errors: number } | null>(null);
 
+  const [analyzingAI, setAnalyzingAI] = useState(false);
+
+  const handleAnalyzeAI = async () => {
+    setAnalyzingAI(true);
+    setErrors([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+        body: {
+          action: "analyze_import",
+          context: {
+            expectedFields: EXAMPLE_HEADERS[activeTab],
+            rows: rows.slice(0, 50), // Limit to 50 for API limits
+          }
+        }
+      });
+      if (error) throw error;
+      if (data && data.corrected_rows) {
+        setRows(data.corrected_rows);
+        toast({ title: "Dados analisados e corrigidos com sucesso!" });
+      } else {
+        throw new Error("Resposta inválida da IA");
+      }
+    } catch (err: any) {
+      setErrors(["Erro na análise por IA: " + err.message]);
+    } finally {
+      setAnalyzingAI(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -58,13 +87,6 @@ const ImportacaoMassa = () => {
 
         if (json.length === 0) {
           setErrors(["Arquivo vazio ou sem dados."]);
-          return;
-        }
-
-        // Validate required fields
-        const missing = REQUIRED_FIELDS[activeTab].filter(f => !(f in json[0]));
-        if (missing.length > 0) {
-          setErrors([`Colunas obrigatórias ausentes: ${missing.join(", ")}`]);
           return;
         }
 
@@ -85,35 +107,37 @@ const ImportacaoMassa = () => {
     let errorCount = 0;
     const importErrors: string[] = [];
 
+    // Validate current rows against required fields before importing
+    const missing = REQUIRED_FIELDS[activeTab].filter(f => !(f in rows[0] || Object.keys(rows[0]).map(k => k.toLowerCase()).includes(f.toLowerCase())));
+    if (missing.length > 0) {
+      setErrors([`As colunas atuais não batem com os obrigatórios: ${missing.join(", ")}. Use a análise de IA para mapeá-los automaticamente.`]);
+      setImporting(false);
+      return;
+    }
+
     if (activeTab === "pacientes") {
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
+        
+        // Use loose matching for keys if they were not mapped properly by AI
+        const nomeKey = Object.keys(row).find(k => k.toLowerCase().includes('nome')) || 'nome';
+        const telefoneKey = Object.keys(row).find(k => k.toLowerCase().includes('tele')) || 'telefone';
+        const emailKey = Object.keys(row).find(k => k.toLowerCase().includes('email')) || 'email';
+        const cpfKey = Object.keys(row).find(k => k.toLowerCase().includes('cpf')) || 'cpf';
+
         try {
-          const { error } = await supabase.from("pacientes").insert({
-            nome: String(row.nome).trim(),
-            telefone: String(row.telefone).trim(),
-            email: row.email ? String(row.email).trim() : null,
-            cpf: row.cpf ? String(row.cpf).trim() : null,
+          const { error } = await supabase.from("pre_cadastros").insert({
+            nome: String(row[nomeKey] || row.nome || "").trim(),
+            telefone: String(row[telefoneKey] || row.telefone || "").trim(),
+            email: row[emailKey] || row.email ? String(row[emailKey] || row.email).trim() : null,
+            cpf: row[cpfKey] || row.cpf ? String(row[cpfKey] || row.cpf).trim() : null,
             data_nascimento: row.data_nascimento || null,
             tipo_atendimento: row.tipo_atendimento || "fisioterapia",
-            observacoes: row.observacoes || null,
-            created_by: user.id,
-            status: "ativo",
+            observacoes: row.observacoes || "Importado em massa",
+            status: "pendente",
+            clinic_id: activeClinicId
           });
           if (error) throw error;
-
-          // Link to clinic
-          if (activeClinicId) {
-            const { data: inserted } = await supabase.from("pacientes")
-              .select("id").eq("nome", String(row.nome).trim()).eq("telefone", String(row.telefone).trim())
-              .order("created_at", { ascending: false }).limit(1).single();
-            if (inserted) {
-              await supabase.from("clinic_pacientes").insert({
-                clinic_id: activeClinicId,
-                paciente_id: inserted.id,
-              });
-            }
-          }
           success++;
         } catch (err: any) {
           errorCount++;
@@ -250,18 +274,24 @@ const ImportacaoMassa = () => {
 
                 {rows.length > 0 && (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <Badge variant="secondary" className="text-sm">
                         {rows.length} registro(s) prontos para importar
                       </Badge>
-                      <Button onClick={handleImport} disabled={importing}>
-                        {importing ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4 mr-2" />
-                        )}
-                        {importing ? "Importando..." : "Importar Agora"}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button onClick={handleAnalyzeAI} disabled={analyzingAI || importing} variant="secondary">
+                          {analyzingAI ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          {analyzingAI ? "Analisando..." : "Mapear e Corrigir com IA"}
+                        </Button>
+                        <Button onClick={handleImport} disabled={importing || analyzingAI}>
+                          {importing ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          {importing ? "Importando..." : "Importar Agora"}
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Preview table */}

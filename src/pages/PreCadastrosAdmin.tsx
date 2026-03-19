@@ -107,6 +107,7 @@ const PreCadastrosAdmin = () => {
       queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
       setDetailOpen(false);
       toast({ title: "Paciente cadastrado com sucesso!", description: `Código de acesso: ${code}` });
+      setTimeout(() => navigate('/pacientes'), 1500);
     } catch (err: any) {
       toast({ title: "Erro ao criar paciente", description: err.message, variant: "destructive" });
     }

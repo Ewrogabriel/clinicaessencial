@@ -383,7 +383,7 @@ const Produtos = () => {
                         <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma venda no período</TableCell></TableRow>
                       ) : vendas.map((v: any) => (
                         <TableRow key={v.id}>
-                          <TableCell>{format(new Date(v.data_venda), "dd/MM/yyyy")}</TableCell>
+                          <TableCell>{format(new Date(v.data_venda + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="font-medium">{v.produtos?.nome}</TableCell>
                           <TableCell>{v.pacientes?.nome || "—"}</TableCell>
                           <TableCell>{v.quantidade}</TableCell>
@@ -415,7 +415,7 @@ const Produtos = () => {
                       <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhuma entrada registrada</TableCell></TableRow>
                     ) : entradas.map((e: any) => (
                       <TableRow key={e.id}>
-                        <TableCell>{format(new Date(e.data_entrada), "dd/MM/yyyy")}</TableCell>
+                        <TableCell>{format(new Date(e.data_entrada + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
                         <TableCell className="font-medium">{e.produtos?.nome}</TableCell>
                         <TableCell><Badge variant="outline">+{e.quantidade}</Badge></TableCell>
                         <TableCell className="text-muted-foreground">{e.observacoes || "—"}</TableCell>

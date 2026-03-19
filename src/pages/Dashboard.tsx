@@ -12,6 +12,7 @@ import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
+import { DashboardAgenda } from "@/components/dashboard/DashboardAgenda";
 import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -463,49 +464,7 @@ const Dashboard = () => {
       ) : null;
       case "requests": return <RequestsCard key="requests" />;
       case "today-agenda": return (
-        <Card key="today-agenda">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CalendarCheck className="h-5 w-5 text-primary" /> Hoje na Agenda
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/agenda")}>Ver completa <ArrowRight className="h-3 w-3 ml-1" /></Button>
-          </CardHeader>
-          <CardContent>
-            {todayAgenda.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum agendamento para hoje.</p>
-            ) : (
-              <div className="space-y-4">
-                {todayAgenda.map((item: any) => (
-                  <div key={item.id} className="flex items-start justify-between p-3 rounded-lg border bg-muted/30 group">
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => { setSelectedSession(item); setIsDetailOpen(true); }}>
-                        {format(new Date(item.data_horario), "HH:mm")} - <span>{item.pacientes?.nome}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground capitalize">{item.tipo_atendimento} • {item.status}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      {item.status === "agendado" && (
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary" onClick={() => updateStatus.mutate({ id: item.id, status: "confirmado" })} title="Confirmar"><CheckCircle2 className="h-4 w-4" /></Button>
-                      )}
-                      {(item.status === "agendado" || item.status === "confirmado") && (
-                        <>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => updateStatus.mutate({ id: item.id, status: "realizado" })} title="Realizado"><CheckCircle2 className="h-4 w-4" /></Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-amber-600" onClick={() => updateStatus.mutate({ id: item.id, status: "falta" })} title="Falta"><XCircle className="h-4 w-4" /></Button>
-                        </>
-                      )}
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => {
-                        const cleanPhone = item.pacientes?.telefone?.replace(/\D/g, "");
-                        if (cleanPhone) window.open(`https://wa.me/${cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`}`, "_blank");
-                      }}><MessageCircle className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => updateStatus.mutate({ id: item.id, status: "cancelado" })} title="Cancelar"><XCircle className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => navigate("/agenda")} title="Reagendar"><RefreshCw className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <DashboardAgenda key="today-agenda" isAdmin={true} />
       );
       case "past-agenda": return (
         <Card key="past-agenda">

@@ -14,6 +14,7 @@ import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
 import { RequestsCard } from "@/components/dashboard/RequestsCard";
 import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
+import { DashboardAgenda } from "@/components/dashboard/DashboardAgenda";
 import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
 import { AdvancedKPIs } from "@/components/profissionais/AdvancedKPIs";
 import { PerformanceCharts } from "@/components/profissionais/PerformanceCharts";
@@ -162,94 +163,7 @@ const ProfessionalDashboard = () => {
     switch (cardId) {
 
       case "today-agenda":
-        return (
-          <Card key="today-agenda">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                Agenda de Hoje ({todayAgenda.length} sessões)
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => navigate("/agenda")}>
-                Ver Agenda Completa <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {todayAgenda.length === 0 ? (
-                <p className="text-muted-foreground text-sm py-4 text-center">Nenhuma sessão agendada para hoje.</p>
-              ) : (
-                <div className="divide-y">
-                  {todayAgenda.map((ag) => {
-                    const pacienteNome = (ag as Record<string, unknown>).pacientes
-                      ? ((ag as Record<string, unknown>).pacientes as Record<string, string>)?.nome
-                      : "Paciente";
-                    const canDoActions = ["agendado", "confirmado"].includes(ag.status);
-
-                    return (
-                      <div key={ag.id} className="flex items-center justify-between py-3 gap-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{pacienteNome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(ag.data_horario), "HH:mm")} - {ag.tipo_atendimento} - {ag.duracao_minutos}min
-                          </p>
-                        </div>
-                        <Badge className={statusColors[ag.status] || ""}>{ag.status}</Badge>
-                        {canDoActions && (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
-                              onClick={() => handleSessionAction(ag.id, "check-in")}
-                              title="Check-in"
-                            >
-                              <Play className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-green-600 hover:bg-green-50"
-                              onClick={() => handleSessionAction(ag.id, "realizado")}
-                              title="Marcar como realizado"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-amber-600 hover:bg-amber-50"
-                              onClick={() => handleSessionAction(ag.id, "falta")}
-                              title="Marcar falta"
-                            >
-                              <AlertCircle className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-600 hover:bg-red-50"
-                              onClick={() => handleSessionAction(ag.id, "cancelado")}
-                              title="Cancelar"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                              onClick={() => navigate("/agenda")}
-                              title="Reagendar"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
+        return <DashboardAgenda key="today-agenda" isAdmin={false} defaultProfissionalId={user?.id} />;
 
       case "birthdays":
         return (

@@ -97,7 +97,11 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
     try {
       for (const file of Array.from(files)) {
         const ext = file.name.split(".").pop();
-        const filePath = `${pacienteId}/${Date.now()}_${file.name}`;
+        const sanitizedFileName = file.name
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
+          .replace(/[^a-zA-Z0-9.-]/g, '_');                  // substitui caracteres especiais por underline
+
+        const filePath = `${pacienteId}/${Date.now()}_${sanitizedFileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("patient-documents")

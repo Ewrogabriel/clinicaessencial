@@ -312,6 +312,42 @@ Gere o documento completo e profissional.`;
         break;
       }
 
+      case "analyze_import":
+        systemPrompt = `Você é um assistente de validação de dados para clínicas de saúde.
+Analise as linhas fornecidas extraídas de uma planilha e identifique/corrija os principais erros de formatação usando as regras abaixo:
+- Nome: capitalizar adequadamente (Primeira Letra Maiúscula).
+- Telefone/WhatsApp: remover caracteres não numéricos e formatar se for BR (ex: 32999999999).
+- CPF: formatar para o padrão XXX.XXX.XXX-XX, se houver.
+- E-mail: remover espaços adicionais, garantir lower case.
+Mapeie a saída para o formato exato esperado.`;
+        userPrompt = `Campos esperados: ${JSON.stringify(context.expectedFields)}
+Linhas fornecidas (JSON original bruto da planilha não estruturado): ${JSON.stringify(context.rows)}
+
+Por favor, para as ${context.rows?.length || 0} linhas fornecidas, tente mapear os valores corretamente para os Campos esperados, adivinhando a intenção das colunas mal nomeadas da planilha original, e aplique as correções de formato.
+Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Campos Esperados.`;
+        tools = [{
+          type: "function",
+          function: {
+            name: "return_analyzed_rows",
+            description: "Return the AI corrected and mapped dataset",
+            parameters: {
+              type: "object",
+              properties: {
+                corrected_rows: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: true
+                  }
+                }
+              },
+              required: ["corrected_rows"]
+            }
+          }
+        }];
+        toolChoice = { type: "function", function: { name: "return_analyzed_rows" } };
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

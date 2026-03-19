@@ -40,6 +40,10 @@ const PerfilProfissional = () => {
   const [domiciliarRaioKm, setDomiciliarRaioKm] = useState("");
   const [domiciliarValorAdicional, setDomiciliarValorAdicional] = useState("");
   const [domiciliarObservacoes, setDomiciliarObservacoes] = useState("");
+  const [assinaturaUrl, setAssinaturaUrl] = useState("");
+  const [rubricaUrl, setRubricaUrl] = useState("");
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [uploadingRubrica, setUploadingRubrica] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const { data: profileData } = useQuery({
@@ -69,6 +73,8 @@ const PerfilProfissional = () => {
     setDomiciliarRaioKm(p.domiciliar_raio_km ? String(p.domiciliar_raio_km) : "");
     setDomiciliarValorAdicional(p.domiciliar_valor_adicional ? String(p.domiciliar_valor_adicional) : "");
     setDomiciliarObservacoes(p.domiciliar_observacoes || "");
+    setAssinaturaUrl(p.assinatura_url || "");
+    setRubricaUrl(p.rubrica_url || "");
     setLoaded(true);
   }
 
@@ -137,6 +143,50 @@ const PerfilProfissional = () => {
     await supabase.from("profiles").update({ foto_url: urlData.publicUrl } as any).eq("user_id", user.id);
     queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
     toast({ title: t("profile.photo_updated") });
+  };
+
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingSignature(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/signature-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("professional-documents").upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("professional-documents").getPublicUrl(path);
+      const url = urlData.publicUrl;
+      setAssinaturaUrl(url);
+      await supabase.from("profiles").update({ assinatura_url: url } as any).eq("user_id", user.id);
+      queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
+      toast({ title: "Assinatura atualizada com sucesso!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleRubricaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingRubrica(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/rubrica-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("professional-documents").upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("professional-documents").getPublicUrl(path);
+      const url = urlData.publicUrl;
+      setRubricaUrl(url);
+      await supabase.from("profiles").update({ rubrica_url: url } as any).eq("user_id", user.id);
+      queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
+      toast({ title: "Rubrica atualizada com sucesso!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingRubrica(false);
+    }
   };
 
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,6 +289,58 @@ const PerfilProfissional = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Signatures */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5 text-primary" /> Assinaturas Digitais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
+              <Label className="font-semibold block mb-2">Assinatura</Label>
+              <div className="flex flex-col gap-3 items-start">
+                {assinaturaUrl ? (
+                  <img src={assinaturaUrl} alt="Assinatura" className="h-16 w-32 object-contain bg-white border rounded" />
+                ) : (
+                  <div className="h-16 w-32 bg-muted border rounded flex items-center justify-center text-xs text-muted-foreground">Obrigatória</div>
+                )}
+                <div>
+                  <Label htmlFor="upload-assinatura" className="cursor-pointer">
+                    <Button asChild variant="outline" size="sm" disabled={uploadingSignature}>
+                      <span><Upload className="h-3 w-3 mr-2" /> {uploadingSignature ? "Enviando..." : "Enviar Assinatura"}</span>
+                    </Button>
+                  </Label>
+                  <input id="upload-assinatura" type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Usada em contratos e documentos. Recomenda-se fundo branco ou transparente.</p>
+            </div>
+
+            <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
+              <Label className="font-semibold block mb-2">Rubrica (Opcional)</Label>
+              <div className="flex flex-col gap-3 items-start">
+                {rubricaUrl ? (
+                  <img src={rubricaUrl} alt="Rubrica" className="h-16 w-16 object-contain bg-white border rounded" />
+                ) : (
+                  <div className="h-16 w-16 bg-muted border rounded flex items-center justify-center text-xs text-muted-foreground uppercase text-center">-</div>
+                )}
+                <div>
+                  <Label htmlFor="upload-rubrica" className="cursor-pointer">
+                    <Button asChild variant="outline" size="sm" disabled={uploadingRubrica}>
+                      <span><Upload className="h-3 w-3 mr-2" /> {uploadingRubrica ? "Enviando..." : "Enviar Rubrica"}</span>
+                    </Button>
+                  </Label>
+                  <input id="upload-rubrica" type="file" accept="image/*" className="hidden" onChange={handleRubricaUpload} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Símbolo curto que pode ser anexado aos carimbos profissionais nos PDFs.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Teleconsulta Settings */}
       <Card>
