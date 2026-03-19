@@ -2462,6 +2462,7 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           data_pagamento: string | null
+          data_vencimento: string | null
           forma_pagamento_id: string | null
           id: string
           matricula_id: string | null
@@ -2476,6 +2477,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           data_pagamento?: string | null
+          data_vencimento?: string | null
           forma_pagamento_id?: string | null
           id?: string
           matricula_id?: string | null
@@ -2490,6 +2492,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           data_pagamento?: string | null
+          data_vencimento?: string | null
           forma_pagamento_id?: string | null
           id?: string
           matricula_id?: string | null
