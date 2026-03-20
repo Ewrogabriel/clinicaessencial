@@ -12,9 +12,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, XCircle, Eye, UserPlus, Search } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, UserPlus, Search, Loader2 } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
+import { patientService } from "@/modules/patients/services/patientService";
+
+type StatusFilter = "pendente" | "aprovado" | "rejeitado" | "todos";
 
 const PreCadastrosAdmin = () => {
   const { user } = useAuth();
@@ -22,15 +25,21 @@ const PreCadastrosAdmin = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendente");
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  const [approving, setApproving] = useState(false);
 
   const { data: preCadastros = [], isLoading } = useQuery({
-    queryKey: ["pre-cadastros"],
+    queryKey: ["pre-cadastros", statusFilter],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("pre_cadastros") as any)
+      let query = (supabase.from("pre_cadastros") as any)
         .select("*")
         .order("created_at", { ascending: false });
+      if (statusFilter !== "todos") {
+        query = query.eq("status", statusFilter);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -50,65 +59,26 @@ const PreCadastrosAdmin = () => {
   });
 
   const approveAndCreate = async (preCadastro: any) => {
-    if (!user) return;
+    if (!user || approving) return;
+    setApproving(true);
     try {
-      // Generate access code
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let code = "";
-      for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-
-      const { data: newPatient, error } = await (supabase.from("pacientes") as any).insert({
-        nome: preCadastro.nome,
-        cpf: preCadastro.cpf || null,
-        rg: preCadastro.rg || null,
-        telefone: preCadastro.telefone,
-        email: preCadastro.email || null,
-        data_nascimento: preCadastro.data_nascimento || null,
-        cep: preCadastro.cep || null,
-        rua: preCadastro.rua || null,
-        numero: preCadastro.numero || null,
-        complemento: preCadastro.complemento || null,
-        bairro: preCadastro.bairro || null,
-        cidade: preCadastro.cidade || null,
-        estado: preCadastro.estado || null,
-        tipo_atendimento: preCadastro.tipo_atendimento || "fisioterapia",
-        observacoes: preCadastro.observacoes || null,
-        tem_responsavel_legal: preCadastro.tem_responsavel_legal || false,
-        responsavel_nome: preCadastro.responsavel_nome || null,
-        responsavel_cpf: preCadastro.responsavel_cpf || null,
-        responsavel_telefone: preCadastro.responsavel_telefone || null,
-        responsavel_email: preCadastro.responsavel_email || null,
-        responsavel_parentesco: preCadastro.responsavel_parentesco || null,
-        created_by: user.id,
-        profissional_id: user.id,
-        codigo_acesso: code,
-        status: "ativo",
-      }).select().single();
-      if (error) throw error;
-
-      // Link patient to clinic
-      if (activeClinicId && newPatient?.id) {
-        const { error: linkError } = await supabase.from("clinic_pacientes").insert({
-          clinic_id: activeClinicId,
-          paciente_id: newPatient.id,
-        });
-        if (linkError) {
-          const err = new Error(`Erro ao vincular paciente à clínica: ${linkError.message}`);
-          throw err;
-        }
-      }
-
-      await (supabase.from("pre_cadastros") as any)
-        .update({ status: "aprovado", revisado_por: user.id })
-        .eq("id", preCadastro.id);
+      const { codigoAcesso } = await patientService.approvePreCadastro({
+        preCadastroId: preCadastro.id,
+        preCadastroData: preCadastro,
+        activeClinicId,
+        createdBy: user.id,
+        revisadoPor: user.id,
+      });
 
       queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
       queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
       setDetailOpen(false);
-      toast({ title: "Paciente cadastrado com sucesso!", description: `Código de acesso: ${code}` });
+      toast({ title: "Paciente cadastrado com sucesso!", description: `Código de acesso: ${codigoAcesso}` });
       setTimeout(() => navigate('/pacientes'), 1500);
     } catch (err: any) {
       toast({ title: "Erro ao criar paciente", description: err.message, variant: "destructive" });
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -126,6 +96,13 @@ const PreCadastrosAdmin = () => {
     }
   };
 
+  const STATUS_FILTERS: { label: string; value: StatusFilter }[] = [
+    { label: "Pendentes", value: "pendente" },
+    { label: "Aprovados", value: "aprovado" },
+    { label: "Rejeitados", value: "rejeitado" },
+    { label: "Todos", value: "todos" },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -133,10 +110,22 @@ const PreCadastrosAdmin = () => {
         <p className="text-muted-foreground">Revise e aprove os pré-cadastros recebidos</p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <div className="flex gap-1">
+          {STATUS_FILTERS.map(({ label, value }) => (
+            <Button
+              key={value}
+              size="sm"
+              variant={statusFilter === value ? "default" : "outline"}
+              onClick={() => setStatusFilter(value)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -216,10 +205,11 @@ const PreCadastrosAdmin = () => {
               </div>
               {selected.status === "pendente" && (
                 <div className="flex gap-3 pt-4 border-t">
-                  <Button className="flex-1 gap-2" onClick={() => approveAndCreate(selected)}>
-                    <UserPlus className="h-4 w-4" /> Aprovar e Cadastrar Paciente
+                  <Button className="flex-1 gap-2" onClick={() => approveAndCreate(selected)} disabled={approving}>
+                    {approving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                    {approving ? "Cadastrando..." : "Aprovar e Cadastrar Paciente"}
                   </Button>
-                  <Button variant="destructive" onClick={() => { updateStatus.mutate({ id: selected.id, status: "rejeitado" }); setDetailOpen(false); }}>
+                  <Button variant="destructive" onClick={() => { updateStatus.mutate({ id: selected.id, status: "rejeitado" }); setDetailOpen(false); }} disabled={approving}>
                     Rejeitar
                   </Button>
                 </div>
