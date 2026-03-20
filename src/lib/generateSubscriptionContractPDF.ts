@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { addWatermarkToAllPages } from "./pdfLogo";
+import { addWatermarkToAllPages, getClinicSettings } from "./pdfLogo";
 
 interface SubscriptionContractData {
   clinicaNome: string;
@@ -24,6 +24,8 @@ export async function generateSubscriptionContractPDF(data: SubscriptionContract
   const margin = 20;
   const maxWidth = pageWidth - margin * 2;
   let y = 20;
+
+  const clinicSettings = await getClinicSettings();
 
   const addText = (text: string, size: number, bold = false, align: "left" | "center" = "left") => {
     doc.setFontSize(size);
@@ -155,8 +157,27 @@ export async function generateSubscriptionContractPDF(data: SubscriptionContract
   // Signatures
   checkPage();
   addText(`Data: ${data.dataContrato}`, 10);
-  y += 12;
+  y += 5;
 
+  // CONTRATADA signature (clinic)
+  if (clinicSettings.assinatura_url) {
+    try {
+      const response = await fetch(clinicSettings.assinatura_url);
+      const blob = await response.blob();
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      doc.addImage(base64, "PNG", margin, y, 50, 20);
+      y += 22;
+    } catch {
+      y += 12;
+    }
+  } else {
+    y += 12;
+  }
   doc.setFontSize(10);
   doc.line(margin, y, margin + 70, y);
   y += 5;
@@ -164,6 +185,9 @@ export async function generateSubscriptionContractPDF(data: SubscriptionContract
   addText("Essencial Fisio Pilates - Sistema", 9);
   y += 8;
 
+  // CONTRATANTE signature space
+  checkPage();
+  y += 12;
   doc.line(margin, y, margin + 70, y);
   y += 5;
   addText("CONTRATANTE", 9);
