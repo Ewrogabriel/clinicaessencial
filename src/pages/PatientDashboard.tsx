@@ -1,989 +1,898 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, Activity, AlertCircle, Phone, TrendingUp, Clock, PartyPopper, Building2, MessageCircle, QrCode } from "lucide-react";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
+import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { GamificationDashboard } from "@/components/gamification/GamificationDashboard";
+import {
+  AlertCircle, Calendar, CreditCard, Trophy, Dumbbell,
+  ClipboardList, FileText, MessageSquare, Handshake, User,
+  ChevronRight, Megaphone, CalendarDays, Gift, Star, Phone,
+  MapPin, AlertTriangle, CheckCircle2, ArrowRight,
+  Clock, Settings2
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Progress } from "@/components/ui/progress";
-import { useClinicSettings } from "@/hooks/useClinicSettings";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
-import { Lightbulb, CheckCircle2, XCircle, RefreshCw, MessageSquare, Hourglass } from "lucide-react";
-import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
+import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
+import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
 
-const PatientDashboard = () => {
-  const { profile, patientId, loading } = useAuth();
-  const { data: clinicSettings } = useClinicSettings();
-  const queryClient = useQueryClient();
-  const [rescheduleData, setRescheduleData] = useState<any>(null);
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [selectedProduto, setSelectedProduto] = useState<any>(null);
-  const [observacao, setObservacao] = useState("");
-  const [isReservaDialogOpen, setIsReservaDialogOpen] = useState(false);
+// Ícone do WhatsApp
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+  </svg>
+);
 
-  if (loading) {
+const DEFAULT_CARDS: DashboardCard[] = [
+  { id: "tips", label: "Dica do Dia", visible: true },
+  { id: "sessoes", label: "Próximas Sessões", visible: true },
+  { id: "exercicios", label: "Exercícios", visible: true },
+  { id: "planos", label: "Meus Planos", visible: true },
+  { id: "pagamentos", label: "Pagamentos", visible: true },
+  { id: "mensagens", label: "Mensagens", visible: true },
+  { id: "contratos", label: "Contratos", visible: true },
+  { id: "parceiros", label: "Parceiros", visible: true },
+  { id: "feriados", label: "Feriados", visible: true },
+  { id: "conquistas", label: "Conquistas", visible: true },
+  { id: "recompensas", label: "Recompensas", visible: true },
+];
+
+export default function PatientDashboard() {
+  const { user, profile } = useAuth();
+  const { activeClinicId } = useClinic();
+  const navigate = useNavigate();
+  const { cards, visibleCards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("patient", DEFAULT_CARDS);
+
+  const hoje = new Date();
+  const saudacao =
+    hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
+
+  const [feriadosDialogOpen, setFeriadosDialogOpen] = useState(false);
+
+  const { data: paciente } = useQuery({
+    queryKey: ["paciente-by-user", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("pacientes")
+        .select("id, nome, cpf")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: nextAppointments = [] } = useQuery({
+    queryKey: ["patient-next-appointments", paciente?.id],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from("agendamentos")
+        .select("id, data_horario, tipo_atendimento, status")
+        .eq("paciente_id", paciente!.id)
+        .gte("data_horario", now)
+        .in("status", ["agendado", "confirmado"])
+        .order("data_horario")
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  const { data: planosExercicios = [] } = useQuery({
+    queryKey: ["planos-exercicios", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("planos_exercicios" as never)
+        .select("id, nome, descricao, ativo")
+        .eq("paciente_id", paciente.id)
+        .eq("ativo", true)
+        .limit(5);
+      return (data as Record<string, unknown>[]) || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  const { data: meusPlanosServico = [] } = useQuery({
+    queryKey: ["meus-planos-servico", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("planos" as never)
+        .select("id, nome, sessoes_contratadas, sessoes_utilizadas, status")
+        .eq("paciente_id", paciente.id)
+        .eq("status", "ativo")
+        .limit(5);
+      return (data as Record<string, unknown>[]) || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  const { data: pendingPayments = [] } = useQuery({
+    queryKey: ["patient-pending-payments", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("pagamentos")
+        .select("id, valor, data_vencimento, descricao")
+        .eq("paciente_id", paciente.id)
+        .eq("status", "pendente")
+        .order("data_vencimento")
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  const { data: mensagens = [] } = useQuery({
+    queryKey: ["mensagens-recentes", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("mensagens" as never)
+        .select("id, assunto, created_at, lida")
+        .eq("destinatario_id", user?.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return (data as Record<string, unknown>[]) || [];
+    },
+    enabled: !!paciente?.id && !!user?.id,
+  });
+
+  const { data: contratos = [] } = useQuery({
+    queryKey: ["contratos-paciente", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("contratos_digitais")
+        .select("id, titulo, created_at")
+        .eq("paciente_id", paciente.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  const { data: convenios = [] } = useQuery({
+    queryKey: ["convenios-ativos", activeClinicId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("convenios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!activeClinicId,
+  });
+
+  const { data: rewardsAvailable = [] } = useQuery({
+    queryKey: ["rewards-catalog-active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rewards_catalog")
+        .select("*")
+        .eq("ativo", true)
+        .order("pontos_necessarios");
+      return data || [];
+    },
+  });
+
+  const { data: avisos = [] } = useQuery({
+    queryKey: ["avisos-ativos", activeClinicId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("avisos")
+        .select("*")
+        .eq("ativo", true)
+        .eq("clinic_id", activeClinicId!)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      return data || [];
+    },
+    enabled: !!activeClinicId,
+  });
+
+  const { data: clinicSettings } = useQuery({
+    queryKey: ["clinic-settings", activeClinicId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clinicas")
+        .select("*")
+        .eq("id", activeClinicId!)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!activeClinicId,
+  });
+
+  const { data: feriados = [] } = useQuery({
+    queryKey: ["feriados-proximos"],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const in30Days = new Date();
+      in30Days.setDate(in30Days.getDate() + 30);
+      const in30DaysStr = in30Days.toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("feriados")
+        .select("*")
+        .gte("data", today)
+        .lte("data", in30DaysStr)
+        .order("data");
+      return data || [];
+    },
+  });
+
+  const { data: todosOsFeriados = [] } = useQuery({
+    queryKey: ["feriados-todos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("feriados")
+        .select("*")
+        .order("data");
+      return data || [];
+    },
+    enabled: feriadosDialogOpen,
+  });
+
+  const { data: totalPoints } = useQuery({
+    queryKey: ["patient-total-points", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return 0;
+      const { data } = await supabase
+        .from("patient_points")
+        .select("pontos")
+        .eq("paciente_id", paciente.id);
+      return (data || []).reduce((sum, p) => sum + (p.pontos || 0), 0);
+    },
+    enabled: !!paciente?.id,
+  });
+
+  const redeemReward = async (reward: any) => {
+    if (!paciente?.id) return;
+    if ((totalPoints || 0) < reward.pontos_necessarios) {
+      toast.error("Pontos insuficientes para este resgate.");
+      return;
+    }
+    try {
+      const expiresAt = reward.validade_dias
+        ? new Date(Date.now() + reward.validade_dias * 86400000).toISOString()
+        : null;
+      const { error } = await supabase.from("rewards_redemptions").insert({
+        reward_id: reward.id,
+        paciente_id: paciente.id,
+        pontos_gastos: reward.pontos_necessarios,
+        status: "pendente",
+        codigo_desconto: `DESC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        expira_em: expiresAt,
+      });
+      if (error) throw error;
+      toast.success("Resgate solicitado! Aguarde aprovação da clínica.");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const openWhatsApp = () => {
+    if (clinicSettings?.whatsapp) {
+      const phone = clinicSettings.whatsapp.replace(/\D/g, "");
+      const msg = encodeURIComponent(`Olá! Sou paciente ${paciente?.nome || ""} e gostaria de falar com a clínica.`);
+      window.open(`https://wa.me/55${phone}?text=${msg}`, "_blank");
+    } else {
+      toast.error("WhatsApp da clínica não configurado.");
+    }
+  };
+
+  const isCardVisible = (id: string) => visibleCards.some(c => c.id === id);
+
+  if (!paciente) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Sua conta não está vinculada a um cadastro de paciente. Entre em contato com a clínica.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
-  const { data: paciente } = useQuery({
-    queryKey: ["patient-self", patientId],
-    queryFn: async () => {
-      if (!patientId) return null;
-      const { data, error } = await (supabase
-        .from("pacientes")
-        .select("*")
-        .eq("id", patientId)
-        .single() as any);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: agenda = [] } = useQuery({
-    queryKey: ["patient-agenda", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase
-        .from("agendamentos")
-        .select("*")
-        .eq("paciente_id", patientId)
-        .gte("data_horario", new Date().toISOString())
-        .in("status", ["agendado", "confirmado"])
-        .order("data_horario", { ascending: true })
-        .limit(5) as any);
-      if (error) throw error;
-      // Manual profile lookup (no FK join)
-      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
-      if (profIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
-        (profs || []).forEach((p: any) => {
-          profMap[p.user_id] = { nome: p.nome, telefone: p.telefone };
-        });
-      }
-      return (data || []).map((a: any) => {
-        const profInfo = profMap[a.profissional_id] || { nome: "Profissional", telefone: "" };
-        return {
-          ...a,
-          profiles: { nome: profInfo.nome },
-          profissional_telefone: profInfo.telefone
-        };
-      });
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: planoAtivo } = useQuery({
-    queryKey: ["patient-plano", patientId],
-    queryFn: async () => {
-      if (!patientId) return null;
-      const { data, error } = await (supabase
-        .from("planos")
-        .select("*")
-        .eq("paciente_id", patientId)
-        .eq("status", "ativo")
-        .maybeSingle() as any);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: frequencyStats } = useQuery({
-    queryKey: ["patient-frequency", patientId],
-    queryFn: async () => {
-      if (!patientId) return null;
-      const { data, error } = await (supabase
-        .from("agendamentos")
-        .select("status")
-        .eq("paciente_id", patientId) as any);
-      if (error) throw error;
-      const total = data?.length || 0;
-      const realizados = data?.filter((a: any) => a.status === "realizado").length || 0;
-      const cancelados = data?.filter((a: any) => a.status === "cancelado").length || 0;
-      const faltas = data?.filter((a: any) => a.status === "falta").length || 0;
-      const taxa = total > 0 ? Math.round((realizados / total) * 100) : 0;
-      return { total, realizados, cancelados, faltas, taxa };
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: avisos = [] } = useQuery({
-    queryKey: ["avisos-ativos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avisos")
-        .select("*")
-        .eq("ativo", true)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: feriados = [] } = useQuery({
-    queryKey: ["feriados-patient"],
-    queryFn: async () => {
-      const hoje = new Date();
-      const dataFutura = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
-      
-      const { data, error } = await (supabase
-        .from("feriados")
-        .select("*")
-        .gte("data", hoje.toISOString().split("T")[0])
-        .lte("data", dataFutura.toISOString().split("T")[0])
-        .order("data")
-        .limit(10) as any);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: pendencias = [] } = useQuery({
-    queryKey: ["patient-pendencias", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase
-        .from("pagamentos")
-        .select("*")
-        .eq("paciente_id", patientId)
-        .eq("status", "pendente")
-        .order("data_vencimento", { ascending: true }) as any);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: solicitacoes = [] } = useQuery({
-    queryKey: ["patient-solicitacoes", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await supabase
-        .from("solicitacoes_remarcacao")
-        .select("agendamento_id, status")
-        .eq("paciente_id", patientId)
-        .eq("status", "pendente");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: produtosDisponiveis = [] } = useQuery({
-    queryKey: ["produtos-disponiveis"],
-    queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("produtos")
-        .select("*")
-        .gt("estoque", 0)
-        .eq("ativo", true)
-        .order("nome") as any);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: formasPagamento = [] } = useQuery({
-    queryKey: ["formas-pagamento-ativas"],
-    queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("formas_pagamento" as any) as any)
-        .select("*")
-        .eq("ativo", true)
-        .order("ordem");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: pagamentosMensalidade = [] } = useQuery({
-    queryKey: ["pagamentos-mensalidade-paciente", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase
-        .from("pagamentos_mensalidade" as any) as any)
-        .select("*")
-        .eq("paciente_id", patientId)
-        .eq("status", "aberto")
-        .order("mes_referencia", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: pagamentosSessoes = [] } = useQuery({
-    queryKey: ["pagamentos-sessoes-paciente", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase
-        .from("pagamentos_sessoes" as any) as any)
-        .select("*")
-        .eq("paciente_id", patientId)
-        .eq("status", "aberto")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!patientId,
-  });
-
-  const { data: configPixMap = {} } = useQuery({
-    queryKey: ["config-pix-map"],
-    queryFn: async () => {
-      const { data } = await (supabase
-        .from("config_pix" as any) as any)
-        .select("forma_pagamento_id, chave_pix, tipo_chave, nome_beneficiario");
-      const map: any = {};
-      (data || []).forEach((p: any) => {
-        map[p.forma_pagamento_id] = p;
-      });
-      return map;
-    },
-  });
-
-  // Daily tips - simulated based on day
-  const dicasPaciente = [
-    { id: 1, titulo: "Hidratação e Bem-estar", conteudo: "Beba pelo menos 2 litros de água por dia. A hidratação adequada melhora a flexibilidade muscular e previne cãibras durante os exercícios de pilates." },
-    { id: 2, titulo: "Respiração Correta em Pilates", conteudo: "Inspire pelo nariz e expire pela boca. A respiração coordenada durante os movimentos ativa o transverso do abdômen, potencializando os resultados." },
-    { id: 3, titulo: "Postura no Dia a Dia", conteudo: "Mantenha a coluna reta ao sentar. Uma boa postura reduz dores nas costas e melhora a qualidade de vida." },
-    { id: 4, titulo: "Alimentação Pré-aula", conteudo: "Evite refeições pesadas 2 horas antes da aula. Uma pequena banana ou barra de cereal é ideal para fornecer energia sem desconforto." },
-  ];
-  const dailyTip = dicasPaciente[new Date().getDate() % dicasPaciente.length];
-
-  const { data: pastAgenda = [] } = useQuery({
-
-    queryKey: ["patient-agenda-past", patientId],
-    queryFn: async () => {
-      if (!patientId) return [];
-      const { data, error } = await (supabase
-        .from("agendamentos")
-        .select("*")
-        .eq("paciente_id", patientId)
-        .lt("data_horario", new Date().toISOString())
-        .order("data_horario", { ascending: false })
-        .limit(10) as any);
-      if (error) throw error;
-
-      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, { nome: string; telefone: string }> = {};
-      if (profIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("user_id, nome, telefone").in("user_id", profIds);
-        (profs || []).forEach((p: any) => {
-          profMap[p.user_id] = { nome: p.nome, telefone: p.telefone };
-        });
-      }
-      return (data || []).map((a: any) => {
-        const profInfo = profMap[a.profissional_id] || { nome: "Profissional", telefone: "" };
-        return {
-          ...a,
-          profiles: { nome: profInfo.nome },
-          profissional_telefone: profInfo.telefone
-        };
-      });
-    },
-    enabled: !!patientId,
-  });
-
-  const updateSessionStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ status }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
-      toast({ title: "Sessão atualizada!" });
-    },
-  });
-
-  const reservarProduto = useMutation({
-    mutationFn: async () => {
-      if (!patientId || !selectedProduto) throw new Error("Dados inválidos");
-      
-      // Create reservation
-      const { data: reserva, error: reservaError } = await (supabase
-        .from("reservas_produtos" as any) as any)
-        .insert([{
-          paciente_id: patientId,
-          produto_id: selectedProduto.id,
-          quantidade: 1,
-          observacao: observacao || null,
-          status: "pendente"
-        }])
-        .select()
-        .single();
-      
-      if (reservaError) throw reservaError;
-
-      // Create alert for admin
-      const { error: avisoError } = await (supabase
-        .from("avisos" as any) as any)
-        .insert([{
-          tipo: "reserva_produto",
-          titulo: `Nova reserva de ${selectedProduto.nome}`,
-          mensagem: `${profile?.nome || "Paciente"} reservou ${selectedProduto.nome}${observacao ? ` - Observação: ${observacao}` : ""}`,
-          reserva_id: reserva?.id,
-          lido: false
-        }]);
-      
-      if (avisoError) console.error("Erro ao criar aviso:", avisoError);
-      
-      return reserva;
-    },
-    onSuccess: () => {
-      toast({ title: "Reserva realizada!", description: "Você receberá um contato para finalizar a compra." });
-      setIsReservaDialogOpen(false);
-      setSelectedProduto(null);
-      setObservacao("");
-      queryClient.invalidateQueries({ queryKey: ["produtos-disponiveis"] });
-    },
-    onError: (error) => {
-      toast({ title: "Erro ao reservar", description: (error as any).message, variant: "destructive" });
-    }
-  });
-
-  const hoje = new Date();
-  const saudacao = hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
-  const horaAtual = format(hoje, "HH:mm");
-  const dataAtual = format(hoje, "EEEE, dd 'de' MMMM", { locale: ptBR });
-
-  const sessoesRestantes = planoAtivo ? (planoAtivo.total_sessoes - planoAtivo.sessoes_utilizadas) : 0;
-  const sessoesPercent = planoAtivo ? Math.round((planoAtivo.sessoes_utilizadas / planoAtivo.total_sessoes) * 100) : 0;
-
-  const planoVencimento = planoAtivo?.data_vencimento ? new Date(planoAtivo.data_vencimento) : null;
-  const diasParaVencer = planoVencimento ? differenceInDays(planoVencimento, hoje) : null;
-
-  const openWhatsAppClinic = () => {
-    const whatsapp = clinicSettings?.whatsapp?.replace(/\D/g, "") || "";
-    if (whatsapp) window.open(`https://wa.me/${whatsapp}`, "_blank");
-  };
-
-  const openWhatsAppProfissional = (telefone: string) => {
-    const phone = telefone.replace(/\D/g, "");
-    const fullPhone = phone.startsWith("55") ? phone : `55${phone}`;
-    window.open(`https://wa.me/${fullPhone}`, "_blank");
-  };
+  const naoLidas = mensagens.filter((m: any) => !m.lida).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
-            {saudacao}, {profile?.nome?.split(" ")[0]}! 👋
+    <div className="container mx-auto p-4 space-y-6 max-w-4xl">
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold text-foreground truncate">
+            {saudacao}, {profile?.nome?.split(" ")[0] || paciente?.nome?.split(" ")[0]}!
           </h1>
-          <p className="text-muted-foreground">{dataAtual} • {horaAtual}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {format(hoje, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+          </p>
         </div>
-        <Button variant="outline" onClick={openWhatsAppClinic} className="gap-2">
-          <MessageCircle className="h-4 w-4" /> Suporte
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <DashboardCustomizer
+            cards={cards}
+            onReorder={reorderCards}
+            onToggle={toggleCard}
+            onReset={resetToDefault}
+          />
+          <button
+            onClick={() => navigate("/meu-perfil")}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+          >
+            <User className="h-5 w-5 text-primary" />
+          </button>
+        </div>
       </div>
 
-      {/* Highlights: Daily Tip */}
-      {dailyTip && (
-        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none shadow-lg overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Lightbulb className="h-24 w-24" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-white">
-              <Lightbulb className="h-5 w-5" />
-              Dica do Dia
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <h3 className="font-bold text-xl mb-1">{dailyTip.titulo}</h3>
-            <p className="text-indigo-100 italic text-sm">"{dailyTip.conteudo}"</p>
-          </CardContent>
-        </Card>
+      {/* Botão flutuante Fale com a Clínica */}
+      {clinicSettings?.whatsapp && (
+        <button
+          onClick={openWhatsApp}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
+          aria-label="Fale com a clínica via WhatsApp"
+        >
+          <WhatsAppIcon className="h-5 w-5" />
+          <span className="hidden sm:inline">Fale com a clínica</span>
+        </button>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Sessões Restantes</CardTitle>
-            <Activity className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {planoAtivo ? `${sessoesRestantes} / ${planoAtivo.total_sessoes}` : "—"}
-            </div>
-            {planoAtivo && (
-              <Progress value={sessoesPercent} className="mt-2 h-2" />
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              {planoAtivo ? `Plano de ${planoAtivo.tipo_atendimento}` : "Nenhum plano ativo"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Próxima Consulta</CardTitle>
-            <Calendar className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">
-              {agenda.length > 0
-                ? format(new Date(agenda[0].data_horario), "dd 'de' MMM, HH:mm", { locale: ptBR })
-                : "Nenhuma"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {agenda.length > 0 ? `Com ${agenda[0].profiles?.nome}` : "Nenhuma sessão agendada"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Frequência</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{frequencyStats?.taxa ?? 0}%</div>
-            <Progress value={frequencyStats?.taxa ?? 0} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {frequencyStats?.realizados ?? 0} realizadas • {frequencyStats?.faltas ?? 0} faltas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Financeiro</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            {pendencias.length > 0 ? (
-              <>
-                <Badge variant="destructive" className="mb-1">
-                  {pendencias.length} pendência(s)
-                </Badge>
-                <p className="text-xs text-muted-foreground mt-1">
-                  R$ {pendencias.reduce((s: number, p: any) => s + Number(p.valor), 0).toFixed(2)} em aberto
-                </p>
-              </>
-            ) : (
-              <>
-                <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200 mb-1">Em dia</Badge>
-                <p className="text-xs text-muted-foreground mt-1">Nenhuma pendência</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Plan expiry warning */}
-      {planoVencimento && diasParaVencer !== null && diasParaVencer <= 15 && diasParaVencer >= 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-          <Clock className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>
-            <strong>Seu plano vence em {diasParaVencer} dia(s)!</strong>
-            <p className="text-xs mt-1">
-              Vencimento: {format(planoVencimento, "dd/MM/yyyy")}. Entre em contato com a clínica para renovação.
-            </p>
-          </div>
-        </div>
+      {/* Alerta de pagamentos pendentes */}
+      {pendingPayments.length > 0 && (
+        <button onClick={() => navigate("/meus-pagamentos")} className="w-full text-left">
+          <Alert className="border-destructive/40 bg-destructive/5 hover:bg-destructive/10 transition-colors cursor-pointer">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive font-medium">
+              Você tem {pendingPayments.length} pagamento(s) pendente(s). Clique para regularizar.
+            </AlertDescription>
+          </Alert>
+        </button>
       )}
 
-      {planoVencimento && diasParaVencer !== null && diasParaVencer < 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>
-            <strong>Seu plano está vencido!</strong>
-            <p className="text-xs mt-1">
-              Venceu em {format(planoVencimento, "dd/MM/yyyy")}. Regularize junto à clínica.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Feriados Alert */}
-      {feriados.length > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <PartyPopper className="h-5 w-5 text-primary" />
-              Feriados – Clínica Fechada
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {feriados.map((f: any) => (
-                <div key={f.id} className="flex items-center justify-between p-2 rounded-md bg-background border text-sm">
-                  <span className="font-medium">{f.descricao}</span>
-                  <Badge variant="outline">{format(new Date(f.data + "T12:00:00"), "dd/MM/yyyy (EEE)", { locale: ptBR })}</Badge>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-3">⚠️ Não haverá atendimentos nestas datas. Aulas não serão repostas.</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Next sessions & Notices */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Próximas Sessões</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {agenda.length === 0 ? (
-              <div className="py-6 text-center text-muted-foreground text-sm">
-                Nenhum agendamento futuro encontrado.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {agenda.map((item: any) => (
-                  <div key={item.id} className="flex flex-col p-4 rounded-xl border bg-card shadow-sm group transition-all hover:border-primary/50">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-bold text-base">
-                          {format(new Date(item.data_horario), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </p>
-                        <p className="text-sm text-primary font-medium flex items-center gap-2">
-                          <Clock className="h-3.5 w-3.5" />
-                          {format(new Date(item.data_horario), "HH:mm")}
-                        </p>
-                      </div>
-                      <Badge variant={item.status === 'confirmado' ? 'default' : 'secondary'} className="capitalize">
-                        {item.status}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 mb-4">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                        {item.profiles?.nome?.charAt(0)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate">{item.profiles?.nome}</p>
-                        <p className="text-[10px] text-muted-foreground truncate capitalize">{item.tipo_atendimento}</p>
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Falar com o profissional"
-                        onClick={() => openWhatsAppProfissional(item.profissional_telefone || "")}
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {item.status === "agendado" && (
-                        <Button
-                          size="sm"
-                          className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
-                          onClick={() => updateSessionStatus.mutate({ id: item.id, status: "confirmado" })}
-                        >
-                          <CheckCircle2 className="h-4 w-4" /> Confirmar
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        disabled={solicitacoes.some((s: any) => s.agendamento_id === item.id)}
-                        onClick={() => {
-                          setRescheduleData(item);
-                          setIsRescheduleOpen(true);
-                        }}
-                      >
-                        {solicitacoes.some((s: any) => s.agendamento_id === item.id) ? (
-                          <><Hourglass className="h-4 w-4" /> Pendente</>
-                        ) : (
-                          <><RefreshCw className="h-4 w-4" /> Reagendar</>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10 gap-2"
-                        onClick={() => updateSessionStatus.mutate({ id: item.id, status: "cancelado" })}
-                      >
-                        <XCircle className="h-4 w-4" /> Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Cancelled appointments - option to reschedule */}
-        {pastAgenda.filter((item: any) => item.status === "cancelado").length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-destructive" />
-                Sessões Canceladas
-              </CardTitle>
-              <CardDescription>Você pode solicitar o reagendamento dessas sessões.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pastAgenda.filter((item: any) => item.status === "cancelado").slice(0, 5).map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {format(new Date(item.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.profiles?.nome} • {item.tipo_atendimento}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => {
-                        setRescheduleData(item);
-                        setIsRescheduleOpen(true);
-                      }}
-                    >
-                      <RefreshCw className="h-4 w-4" /> Reagendar
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="space-y-4">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg">Histórico de Sessões</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pastAgenda.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma sessão anterior encontrada.</p>
-              ) : (
-                <div className="space-y-3">
-                  {pastAgenda.map((item: any) => (
-                    <div key={item.id} className="flex flex-col p-3 rounded-lg border bg-background text-sm">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{format(new Date(item.data_horario), "dd/MM/yyyy")}</span>
-                        <Badge variant={
-                          item.status === 'realizado' ? 'default' :
-                            item.status === 'cancelado' || item.status === 'falta' ? 'destructive' : 'secondary'
-                        } className="text-[10px] scale-90 origin-right">
-                          {item.status}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-muted-foreground mt-1">
-                        {item.profiles?.nome} • {item.tipo_atendimento}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                Mural de Avisos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-3">
-              {avisos.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">Nenhum aviso no momento.</p>
-              ) : (
-                avisos.map((aviso: any) => (
-                  <div key={aviso.id} className="bg-background p-3 rounded-md border shadow-sm">
-                    <h4 className="font-semibold text-primary">{aviso.titulo}</h4>
-                    <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{aviso.mensagem}</p>
-                    <span className="text-[10px] text-muted-foreground mt-2 block">
-                      {format(new Date(aviso.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Frequency Stats Card */}
-        {frequencyStats && frequencyStats.total > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Estatísticas de Frequência
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold">{frequencyStats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total de sessões</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold text-primary">{frequencyStats.realizados}</p>
-                  <p className="text-xs text-muted-foreground">Realizadas</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold text-destructive">{frequencyStats.cancelados}</p>
-                  <p className="text-xs text-muted-foreground">Canceladas</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold text-destructive">{frequencyStats.faltas}</p>
-                  <p className="text-xs text-muted-foreground">Faltas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Sobre a Clínica
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {clinicSettings ? (
-              <div className="flex items-start gap-4">
-                {clinicSettings.logo_url && (
-                  <img src={clinicSettings.logo_url} alt="Logo" className="h-16 w-16 rounded-lg object-cover border shrink-0" />
+      {/* Avisos da clínica */}
+      {avisos.length > 0 && (
+        <div className="space-y-2">
+          {avisos.map((aviso) => (
+            <Alert key={aviso.id} className="border-l-4 border-l-primary bg-primary/5">
+              <Megaphone className="h-4 w-4 text-primary" />
+              <AlertDescription>
+                <span className="font-semibold text-foreground">{aviso.titulo}</span>
+                {aviso.mensagem && (
+                  <span className="text-muted-foreground ml-1">— {aviso.mensagem}</span>
                 )}
-                <div className="space-y-1 text-sm">
-                  <p className="font-semibold text-base">{clinicSettings.nome}</p>
-                  {clinicSettings.cnpj && <p className="text-muted-foreground">CNPJ: {clinicSettings.cnpj}</p>}
-                  {clinicSettings.endereco && (
-                    <p className="text-muted-foreground">
-                      {[clinicSettings.endereco, clinicSettings.numero ? `nº ${clinicSettings.numero}` : "", clinicSettings.bairro, clinicSettings.cidade, clinicSettings.estado].filter(Boolean).join(", ")}
-                    </p>
-                  )}
-                  {clinicSettings.telefone && <p className="text-muted-foreground">Tel: {clinicSettings.telefone}</p>}
-                  {clinicSettings.instagram && <p className="text-muted-foreground">Instagram: {clinicSettings.instagram}</p>}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground animate-pulse">Carregando informações da clínica...</p>
-            )}
-            <div className="flex gap-2 mt-4">
-              {clinicSettings?.whatsapp && (
-                <Button variant="outline" size="sm" onClick={openWhatsAppClinic} className="gap-2">
-                  <MessageCircle className="h-4 w-4" /> WhatsApp Clínica
-                </Button>
-              )}
+              </AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
+
+      {/* KPIs pequenos */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/minha-agenda")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg p-2 bg-blue-50"><Calendar className="h-5 w-5 text-blue-600" /></div>
+            <div>
+              <p className="text-2xl font-bold">{nextAppointments.length}</p>
+              <p className="text-xs text-muted-foreground">Sessões</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/planos-exercicios")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg p-2 bg-purple-50"><Dumbbell className="h-5 w-5 text-purple-600" /></div>
+            <div>
+              <p className="text-2xl font-bold">{planosExercicios.length}</p>
+              <p className="text-xs text-muted-foreground">Exercícios</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={`hover:shadow-md transition-shadow cursor-pointer ${pendingPayments.length > 0 ? "border-destructive/30" : ""}`} onClick={() => navigate("/meus-pagamentos")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className={`rounded-lg p-2 ${pendingPayments.length > 0 ? "bg-destructive/10" : "bg-green-50"}`}>
+              <CreditCard className={`h-5 w-5 ${pendingPayments.length > 0 ? "text-destructive" : "text-green-600"}`} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{pendingPayments.length}</p>
+              <p className="text-xs text-muted-foreground">Pendentes</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/meu-perfil")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg p-2 bg-amber-50"><Trophy className="h-5 w-5 text-amber-500" /></div>
+            <div>
+              <p className="text-2xl font-bold">{totalPoints || 0}</p>
+              <p className="text-xs text-muted-foreground">Pontos</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Formas de Pagamento - Mensalidade e Sessões Abertas */}
-      {(pagamentosMensalidade.length > 0 || pagamentosSessoes.length > 0) && formasPagamento.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-orange-600" />
-              Formas de Pagamento
-            </CardTitle>
-            <CardDescription>Escolha como deseja realizar o pagamento de sua mensalidade ou sessões abertas</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Mensalidades em Aberto */}
-            {pagamentosMensalidade.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Mensalidades em Aberto</h4>
-                  <Badge variant="destructive">{pagamentosMensalidade.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {pagamentosMensalidade.map((pag: any) => (
-                    <div key={pag.id} className="p-3 rounded-lg border bg-white flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{format(new Date(pag.mes_referencia), "MMMM 'de' yyyy", { locale: ptBR })}</p>
-                        <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
-                      </div>
-                      <Badge variant="outline" className="ml-2">Pendente</Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+      {/* Cards Grandes - Coluna única */}
+      <div className="space-y-4">
 
-            {/* Sessões em Aberto */}
-            {pagamentosSessoes.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Sessões em Aberto</h4>
-                  <Badge variant="destructive">{pagamentosSessoes.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {pagamentosSessoes.slice(0, 3).map((pag: any) => (
-                    <div key={pag.id} className="p-3 rounded-lg border bg-white flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Sessão</p>
-                        <p className="text-sm text-muted-foreground">R$ {Number(pag.valor).toFixed(2)}</p>
-                      </div>
-                      <Badge variant="outline" className="ml-2">Pendente</Badge>
-                    </div>
-                  ))}
-                  {pagamentosSessoes.length > 3 && (
-                    <p className="text-xs text-muted-foreground">+ {pagamentosSessoes.length - 3} sessões pendentes</p>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* Dica do Dia */}
+        {isCardVisible("tips") && <DailyTipsCard tipo="paciente" />}
 
-            {/* Formas de Pagamento Disponíveis */}
-            <div className="border-t pt-4 space-y-3">
-              <h4 className="font-semibold text-sm">Escolha uma forma de pagamento:</h4>
-              <div className="grid gap-3 md:grid-cols-2">
-                {formasPagamento.map((forma: any) => {
-                  const pixConfig = configPixMap[forma.id];
-                  return (
-                    <button
-                      key={forma.id}
-                      className="p-4 rounded-lg border border-orange-200 bg-white hover:bg-orange-50 hover:border-orange-400 transition-colors text-left"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-semibold text-sm">{forma.nome}</h5>
-                        {forma.tipo === "pix" && <QrCode className="h-4 w-4 text-orange-600" />}
-                      </div>
-                      {forma.descricao && <p className="text-xs text-muted-foreground mb-2">{forma.descricao}</p>}
-                      
-                      {/* PIX Details */}
-                      {forma.tipo === "pix" && pixConfig && (
-                        <div className="bg-blue-50 rounded p-2 text-xs space-y-1">
-                          <p className="text-blue-900"><strong>Chave PIX:</strong> {pixConfig.chave_pix}</p>
-                          <p className="text-blue-900"><strong>Beneficiário:</strong> {pixConfig.nome_beneficiario}</p>
-                        </div>
-                      )}
-                      
-                      <Button size="sm" className="w-full mt-3 bg-orange-600 hover:bg-orange-700">
-                        Pagar com {forma.nome}
-                      </Button>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Produtos Disponíveis */}
-      {produtosDisponiveis.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              Produtos em Estoque
-            </CardTitle>
-            <CardDescription>Confira nossos produtos disponíveis para compra ou reserva</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {produtosDisponiveis.map((produto: any) => (
-                <div key={produto.id} className="p-4 rounded-lg border border-blue-200 bg-white hover:border-blue-400 transition-colors">
-                  <div className="mb-3">
-                    <h4 className="font-semibold text-sm mb-1 line-clamp-2">{produto.nome}</h4>
-                    {produto.descricao && <p className="text-xs text-muted-foreground line-clamp-2">{produto.descricao}</p>}
-                  </div>
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <span className="text-lg font-bold text-blue-600">
-                      R$ {Number(produto.preco).toFixed(2)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {produto.estoque} em estoque
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      setSelectedProduto(produto);
-                      setIsReservaDialogOpen(true);
-                    }}
-                  >
-                    Reservar Agora
+        {/* Próximas Sessões */}
+        {isCardVisible("sessoes") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Próximas Sessões
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/minha-agenda")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {nextAppointments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Calendar className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma sessão agendada</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/minha-agenda")}>
+                    Agendar sessão
                   </Button>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-1">
+                  {nextAppointments.map((apt, idx) => (
+                    <div key={apt.id}>
+                      <button onClick={() => navigate("/minha-agenda")} className="w-full text-left group">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg shrink-0">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {format(new Date(apt.data_horario), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{apt.tipo_atendimento}</p>
+                          </div>
+                          <Badge variant={apt.status === "confirmado" ? "default" : "secondary"} className="text-xs shrink-0">
+                            {apt.status === "confirmado" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                            {apt.status}
+                          </Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                      {idx < nextAppointments.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Exercícios */}
+        {isCardVisible("exercicios") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-purple-600" />
+                Exercícios
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/planos-exercicios")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {planosExercicios.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Dumbbell className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum plano de exercício ativo</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {planosExercicios.map((plano: any, idx) => (
+                    <div key={plano.id}>
+                      <button onClick={() => navigate("/planos-exercicios")} className="w-full text-left group">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-center w-10 h-10 bg-purple-50 rounded-lg shrink-0">
+                            <Dumbbell className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">{plano.nome}</p>
+                            {plano.descricao && <p className="text-xs text-muted-foreground truncate">{plano.descricao}</p>}
+                          </div>
+                          <Badge variant="secondary" className="text-xs shrink-0">Ativo</Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                      {idx < planosExercicios.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Meus Planos */}
+        {isCardVisible("planos") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-amber-600" />
+                Meus Planos
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/meus-planos")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {meusPlanosServico.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum pacote de sessões ativo</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {meusPlanosServico.map((pp: any, idx) => (
+                    <div key={pp.id}>
+                      <button onClick={() => navigate("/meus-planos")} className="w-full text-left group">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-center w-10 h-10 bg-amber-50 rounded-lg shrink-0">
+                            <ClipboardList className="h-5 w-5 text-amber-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">{pp.plano?.nome || "Plano"}</p>
+                            <p className="text-xs text-muted-foreground">{pp.sessoes_restantes} sessões restantes</p>
+                          </div>
+                          <Badge variant="default" className="text-xs shrink-0 bg-amber-600">Ativo</Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                      {idx < meusPlanosServico.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pagamentos */}
+        {isCardVisible("pagamentos") && (
+          <Card className={pendingPayments.length > 0 ? "border-destructive/30" : ""}>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CreditCard className={`h-5 w-5 ${pendingPayments.length > 0 ? "text-destructive" : "text-green-600"}`} />
+                Pagamentos
+                {pendingPayments.length > 0 && <Badge variant="destructive" className="text-xs">{pendingPayments.length} pendente(s)</Badge>}
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/meus-pagamentos")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {pendingPayments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <CheckCircle2 className="h-10 w-10 text-green-500 mb-2" />
+                  <p className="text-sm text-muted-foreground">Tudo em dia! Nenhum pagamento pendente.</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {pendingPayments.map((p: any, idx) => (
+                    <div key={p.id}>
+                      <button onClick={() => navigate("/meus-pagamentos")} className="w-full text-left group">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-destructive/5 transition-colors">
+                          <div className="flex items-center justify-center w-10 h-10 bg-destructive/10 rounded-lg shrink-0">
+                            <CreditCard className="h-5 w-5 text-destructive" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">{p.descricao || "Pagamento"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Vencimento: {format(new Date(p.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                          </div>
+                          <p className="text-sm font-bold text-destructive shrink-0">R$ {Number(p.valor).toFixed(2)}</p>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                      {idx < pendingPayments.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mensagens */}
+        {isCardVisible("mensagens") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-rose-600" />
+                Mensagens
+                {naoLidas > 0 && <Badge variant="destructive" className="text-xs">{naoLidas} nova(s)</Badge>}
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/mensagens")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {mensagens.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <MessageSquare className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma mensagem</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {mensagens.slice(0, 5).map((msg: any, idx) => (
+                    <div key={msg.id}>
+                      <button onClick={() => navigate("/mensagens")} className="w-full text-left group">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className={`flex items-center justify-center w-10 h-10 ${msg.lida ? "bg-rose-50" : "bg-rose-100"} rounded-lg shrink-0`}>
+                            <MessageSquare className={`h-5 w-5 ${msg.lida ? "text-rose-400" : "text-rose-600"}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm ${msg.lida ? "text-muted-foreground" : "font-medium text-foreground"}`}>{msg.assunto || "Sem assunto"}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(msg.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</p>
+                          </div>
+                          {!msg.lida && <Badge variant="secondary" className="text-xs shrink-0">Nova</Badge>}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                      {idx < Math.min(mensagens.length, 5) - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contratos */}
+        {isCardVisible("contratos") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-5 w-5 text-teal-600" />
+                Contratos
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/contratos")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {contratos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum contrato disponível</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {contratos.map((contrato: any, idx) => (
+                    <div key={contrato.id}>
+                      <button onClick={() => navigate("/contratos")} className="w-full text-left group">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-center w-10 h-10 bg-teal-50 rounded-lg shrink-0">
+                            <FileText className="h-5 w-5 text-teal-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">{contrato.titulo}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(contrato.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                          </div>
+                          <Badge variant={contrato.status === "assinado" ? "default" : "secondary"} className="text-xs shrink-0">{contrato.status}</Badge>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                      {idx < contratos.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Parceiros/Convênios - rotating */}
+        {isCardVisible("parceiros") && <ConvenioCard />}
+
+        {/* Feriados */}
+        {isCardVisible("feriados") && feriados.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-orange-600" />
+                  Feriados — próximos 30 dias
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 px-2 text-muted-foreground"
+                  onClick={() => setFeriadosDialogOpen(true)}
+                >
+                  Ver todos →
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-1">
+                {feriados.map((f: any, idx) => (
+                  <div key={f.id}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg">
+                      <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-lg shrink-0">
+                        <CalendarDays className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{f.descricao}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(f.data), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
+                      </div>
+                    </div>
+                    {idx < feriados.length - 1 && <Separator />}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Feriados list dialog */}
+        <Dialog open={feriadosDialogOpen} onOpenChange={setFeriadosDialogOpen}>
+          <DialogContent className="sm:max-w-[420px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-orange-600" />
+                Todos os Feriados
+              </DialogTitle>
+            </DialogHeader>
+            {todosOsFeriados.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">Nenhum feriado cadastrado.</p>
+            ) : (
+              <div className="space-y-1">
+                {todosOsFeriados.map((f: any, idx) => (
+                  <div key={f.id}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg">
+                      <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-lg shrink-0">
+                        <CalendarDays className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{f.descricao}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(f.data), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                    {idx < todosOsFeriados.length - 1 && <Separator />}
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Conquistas */}
+        {isCardVisible("conquistas") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                Conquistas
+              </CardTitle>
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                {totalPoints || 0} pts
+              </Badge>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <GamificationDashboard pacienteId={paciente.id} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recompensas */}
+        {isCardVisible("recompensas") && rewardsAvailable.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Gift className="h-5 w-5 text-rose-500" />
+                Recompensas Disponíveis
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {rewardsAvailable.map((reward: any) => {
+                const canRedeem = (totalPoints || 0) >= reward.pontos_necessarios;
+                return (
+                  <div key={reward.id} className={`rounded-lg border p-4 ${canRedeem ? "border-primary/30 bg-primary/5" : "opacity-60"}`}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <p className="text-sm font-semibold text-foreground leading-tight">{reward.nome}</p>
+                      <Badge variant="outline" className="gap-1 shrink-0 text-xs whitespace-nowrap">
+                        <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                        {reward.pontos_necessarios} pts
+                      </Badge>
+                    </div>
+                    {reward.descricao && (
+                      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{reward.descricao}</p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-green-600 text-white text-xs">
+                        {reward.tipo === "desconto_percentual"
+                          ? `${reward.percentual_desconto}% OFF`
+                          : `R$ ${reward.valor_desconto?.toFixed(2)}`}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant={canRedeem ? "default" : "outline"}
+                        disabled={!canRedeem}
+                        onClick={() => redeemReward(reward)}
+                        className="h-8 text-xs gap-1"
+                      >
+                        <Gift className="h-3 w-3" />
+                        Resgatar
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+      </div>
+
+      {/* Contato da Clínica */}
+      {clinicSettings && (
+        <Card className="bg-muted/30">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg shrink-0">
+                <MapPin className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-foreground">{clinicSettings.nome}</p>
+                {clinicSettings.endereco && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {clinicSettings.endereco}
+                    {clinicSettings.numero && `, ${clinicSettings.numero}`}
+                    {clinicSettings.bairro && ` - ${clinicSettings.bairro}`}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-4 mt-2">
+                  {clinicSettings.telefone && (
+                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4" /> {clinicSettings.telefone}
+                    </span>
+                  )}
+                  {clinicSettings.whatsapp && (
+                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <WhatsAppIcon className="h-4 w-4" /> {clinicSettings.whatsapp}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Reserva Produto Dialog */}
-      {isReservaDialogOpen && selectedProduto && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Reservar {selectedProduto.nome}</CardTitle>
-              <CardDescription>Preencha os dados para reservar este produto</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Preço</p>
-                <p className="text-2xl font-bold text-blue-600">R$ {Number(selectedProduto.preco).toFixed(2)}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Observação (opcional)</label>
-                <textarea
-                  className="w-full px-3 py-2 border rounded-md text-sm"
-                  placeholder="Adicione uma observação sobre sua reserva..."
-                  rows={3}
-                  value={observacao}
-                  onChange={(e) => setObservacao(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsReservaDialogOpen(false);
-                    setSelectedProduto(null);
-                    setObservacao("");
-                  }}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={reservarProduto.isPending}
-                  onClick={() => reservarProduto.mutate()}
-                >
-                  {reservarProduto.isPending ? "Reservando..." : "Confirmar Reserva"}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                A clínica entrará em contato para finalizar a compra.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <RescheduleDialog
-        open={isRescheduleOpen}
-        onOpenChange={setIsRescheduleOpen}
-        agendamento={rescheduleData}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["patient-solicitacoes"] })}
-      />
     </div>
   );
-};
-
-export default PatientDashboard;
+}

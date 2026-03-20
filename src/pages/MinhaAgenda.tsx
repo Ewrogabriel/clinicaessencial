@@ -3,11 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Trash2, AlertCircle, RotateCcw } from "lucide-react";
@@ -16,19 +14,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 
 const MinhaAgenda = () => {
-  const { patientId, user } = useAuth();
+  const { patientId } = useAuth();
   const queryClient = useQueryClient();
   const [cancelDialog, setCancelDialog] = useState<{ id: string; open: boolean } | null>(null);
   const [cancelObs, setCancelObs] = useState("");
   const [rescheduleDialog, setRescheduleDialog] = useState<any>(null);
-  const [rescheduleObs, setRescheduleObs] = useState("");
-  const [newDateTime, setNewDateTime] = useState("");
-  const [selectedProfId, setSelectedProfId] = useState<string>("");
 
   const { data: agendamentos = [], isLoading } = useQuery({
     queryKey: ["patient-full-agenda", patientId],
@@ -42,10 +35,10 @@ const MinhaAgenda = () => {
       if (error) throw error;
       // Fetch professional names
       const profIds = [...new Set((data || []).map((a: any) => a.profissional_id))] as string[];
-      let profMap: Record<string, string> = {};
+      const profMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
-        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+        (profs || []).forEach((p: { user_id: string; nome: string }) => { profMap[p.user_id] = p.nome; });
       }
       return (data || []).map((a: any) => ({
         ...a,
@@ -56,17 +49,6 @@ const MinhaAgenda = () => {
   });
 
   // Fetch all professionals for cross-professional reschedule
-  const { data: profissionais = [] } = useQuery({
-    queryKey: ["all-professionals"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, nome, especialidade");
-      // Filter only professionals
-      const { data: roles } = await supabase.from("user_roles").select("user_id, role").eq("role", "profissional");
-      const profIds = new Set((roles || []).map((r: any) => r.user_id));
-      return (data || []).filter((p: any) => profIds.has(p.user_id));
-    },
-  });
-
   const cancelMutation = useMutation({
     mutationFn: async ({ id, obs }: { id: string; obs: string }) => {
       const ag = agendamentos.find((a: any) => a.id === id);
@@ -89,67 +71,6 @@ const MinhaAgenda = () => {
     onError: (error) => toast.error("Erro ao desmarcar: " + error.message),
   });
 
-  const rescheduleMutation = useMutation({
-    mutationFn: async ({ agendamentoId, novaData, motivo, novoProfId }: { agendamentoId: string; novaData: string; motivo: string; novoProfId: string }) => {
-      if (!patientId || !user) throw new Error("Paciente não identificado");
-      // Insert reschedule request
-      const { error } = await (supabase
-        .from("solicitacoes_remarcacao")
-        .insert({
-          agendamento_id: agendamentoId,
-          paciente_id: patientId,
-          nova_data_horario: novaData,
-          motivo: novoProfId !== rescheduleDialog?.profissional_id
-            ? `[Troca de profissional] ${motivo}`
-            : motivo,
-        }) as any);
-      if (error) throw error;
-
-      // If different professional, notify both old and new
-      const ag = rescheduleDialog;
-      const patientName = "Paciente";
-      const oldProfName = ag?.profiles?.nome || "Profissional";
-
-      if (novoProfId !== ag?.profissional_id) {
-        // Notify new professional
-        await (supabase.from("notificacoes").insert({
-          user_id: novoProfId,
-          tipo: "remarcacao",
-          titulo: "Solicitação de remarcação (novo profissional)",
-          resumo: `${patientName} solicita remarcação para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
-          conteudo: `Um paciente solicitou remarcação de uma sessão originalmente com ${oldProfName} para você.\n\nNova data: ${format(new Date(novaData), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
-          link: "/agenda",
-        }) as any);
-        // Notify old professional
-        await (supabase.from("notificacoes").insert({
-          user_id: ag.profissional_id,
-          tipo: "remarcacao",
-          titulo: "Paciente solicitou troca de profissional",
-          resumo: `Remarcação com outro profissional solicitada`,
-          conteudo: `Um paciente solicitou remarcação para outro profissional.\nData original: ${format(new Date(ag.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
-        }) as any);
-      } else {
-        // Same professional, just notify them
-        await (supabase.from("notificacoes").insert({
-          user_id: ag.profissional_id,
-          tipo: "remarcacao",
-          titulo: "Solicitação de remarcação",
-          resumo: `Remarcação para ${format(new Date(novaData), "dd/MM 'às' HH:mm")}`,
-          conteudo: `Paciente solicita remarcação.\nData atual: ${format(new Date(ag.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nNova data: ${format(new Date(novaData), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo}`,
-          link: "/agenda",
-        }) as any);
-      }
-    },
-    onSuccess: () => {
-      toast.success("Solicitação de remarcação enviada! Aguarde a confirmação.");
-      setRescheduleDialog(null);
-      setRescheduleObs("");
-      setNewDateTime("");
-      setSelectedProfId("");
-    },
-    onError: (error) => toast.error("Erro: " + error.message),
-  });
-
   const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     agendado: { label: "Agendado", variant: "outline" },
     confirmado: { label: "Confirmado", variant: "default" },
@@ -159,6 +80,7 @@ const MinhaAgenda = () => {
   };
 
   const canAct = (status: string) => status !== "cancelado" && status !== "realizado" && status !== "falta";
+  const canRequestReschedule = (status: string) => status === "cancelado" || status === "falta";
 
   return (
     <div className="space-y-6">
@@ -202,7 +124,7 @@ const MinhaAgenda = () => {
                         <Button
                           variant="ghost" size="icon"
                           className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                          onClick={() => { setRescheduleDialog(item); setRescheduleObs(""); setNewDateTime(""); setSelectedProfId(item.profissional_id); }}
+                          onClick={() => setRescheduleDialog(item)}
                           title="Solicitar remarcação"
                         >
                           <RotateCcw className="h-4 w-4" />
@@ -216,6 +138,17 @@ const MinhaAgenda = () => {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+                    )}
+                    {canRequestReschedule(item.status) && (
+                      <Button
+                        variant="outline" size="sm"
+                        className="h-8 text-xs gap-1 text-amber-700 border-amber-300 hover:bg-amber-50"
+                        onClick={() => setRescheduleDialog(item)}
+                        title="Solicitar reagendamento"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reagendar
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -266,75 +199,16 @@ const MinhaAgenda = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reschedule Dialog - now with professional selector */}
-      <Dialog open={!!rescheduleDialog} onOpenChange={(open) => !open && setRescheduleDialog(null)}>
-        <DialogContent className="sm:max-w-[460px]">
-          <DialogHeader>
-            <DialogTitle>Solicitar Remarcação</DialogTitle>
-          </DialogHeader>
-          {rescheduleDialog && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                <p><strong>Sessão atual:</strong> {format(new Date(rescheduleDialog.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                <p><strong>Profissional:</strong> {rescheduleDialog.profiles?.nome}</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Profissional</Label>
-                <Select value={selectedProfId} onValueChange={setSelectedProfId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o profissional..." /></SelectTrigger>
-                  <SelectContent>
-                    {profissionais.map((p: any) => (
-                      <SelectItem key={p.user_id} value={p.user_id}>
-                        {p.nome}{p.especialidade ? ` — ${p.especialidade}` : ""}
-                        {p.user_id === rescheduleDialog.profissional_id ? " (atual)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedProfId && selectedProfId !== rescheduleDialog.profissional_id && (
-                  <p className="text-xs text-amber-600 font-medium">
-                    ⚠️ Troca de profissional — dependerá de aprovação e disponibilidade de vaga.
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Nova data e horário desejado</Label>
-                <input
-                  type="datetime-local"
-                  value={newDateTime}
-                  onChange={(e) => setNewDateTime(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Motivo (opcional)</Label>
-                <Textarea value={rescheduleObs} onChange={(e) => setRescheduleObs(e.target.value)} placeholder="Informe o motivo da remarcação..." />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRescheduleDialog(null)}>Cancelar</Button>
-            <Button
-              onClick={() => {
-                if (!newDateTime) { toast.error("Informe a nova data e horário."); return; }
-                if (!selectedProfId) { toast.error("Selecione o profissional."); return; }
-                rescheduleMutation.mutate({
-                  agendamentoId: rescheduleDialog.id,
-                  novaData: new Date(newDateTime).toISOString(),
-                  motivo: rescheduleObs || "Sem motivo informado",
-                  novoProfId: selectedProfId,
-                });
-              }}
-              disabled={rescheduleMutation.isPending}
-            >
-              {rescheduleMutation.isPending ? "Enviando..." : "Enviar Solicitação"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reschedule Dialog - uses full calendar with availability */}
+      <RescheduleDialog
+        open={!!rescheduleDialog}
+        onOpenChange={(open) => !open && setRescheduleDialog(null)}
+        agendamento={rescheduleDialog}
+        onSuccess={() => {
+          setRescheduleDialog(null);
+          queryClient.invalidateQueries({ queryKey: ["patient-full-agenda"] });
+        }}
+      />
     </div>
   );
 };

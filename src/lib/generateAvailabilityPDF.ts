@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addLogoToPDF, getClinicSettings, addWatermarkToAllPages } from "./pdfLogo";
 
 interface AvailabilitySlot {
   dia_semana: number;
@@ -10,15 +11,28 @@ interface AvailabilitySlot {
 
 const DIAS_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
-export function generateAvailabilityPDF(slots: AvailabilitySlot[], professionalName: string) {
+export async function generateAvailabilityPDF(slots: AvailabilitySlot[], professionalName: string) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-  doc.setFontSize(14);
+  const settings = await getClinicSettings();
+
+  let y = 10;
+
+  // Add logo
+  y = await addLogoToPDF(doc, 10, y, 25, 18);
+
+  // Header
+  doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(`Grade Semanal - ${professionalName}`, 14, 15);
+  doc.text(settings.nome, pageWidth / 2, 15, { align: "center" });
+
+  doc.setFontSize(11);
+  doc.text(`Grade Semanal - ${professionalName}`, 14, Math.max(y, 28));
+  
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, 21);
+  doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 14, Math.max(y + 6, 34));
 
   // Group by day
   const dayOrder = [1, 2, 3, 4, 5, 6, 0];
@@ -43,7 +57,7 @@ export function generateAvailabilityPDF(slots: AvailabilitySlot[], professionalN
   autoTable(doc, {
     head: [headers],
     body: bodyRows,
-    startY: 26,
+    startY: Math.max(y + 12, 40),
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 3, valign: "middle" },
     headStyles: { fillColor: [34, 139, 115], textColor: 255, fontStyle: "bold", fontSize: 9, halign: "center" },
@@ -54,6 +68,7 @@ export function generateAvailabilityPDF(slots: AvailabilitySlot[], professionalN
       }
     },
   });
-
+  await addWatermarkToAllPages(doc);
+  
   doc.save(`grade-semanal-${professionalName.replace(/\s+/g, "_").toLowerCase()}.pdf`);
 }

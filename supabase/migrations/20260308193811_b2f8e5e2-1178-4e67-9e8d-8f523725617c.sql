@@ -1,0 +1,1 @@
+ALTER TABLE public.clinic_subscriptions ADD COLUMN IF NOT EXISTS desconto_percentual numeric DEFAULT 0;

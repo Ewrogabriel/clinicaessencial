@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
@@ -12,9 +12,11 @@ import { Brain, TrendingUp, Users, Target, AlertTriangle, Sparkles, Loader2 } fr
 import { Badge } from "@/components/ui/badge";
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChurnPrediction } from "@/components/intelligence/ChurnPrediction";
+import { OccupancyReport } from "@/components/intelligence/OccupancyReport";
 
 const Inteligencia = () => {
-  const { clinicId } = useAuth();
+  const _unused = useAuth();
   const [aiInsights, setAiInsights] = useState<string | null>(null);
 
   const { data: insights, isLoading } = useQuery({
@@ -34,7 +36,7 @@ const Inteligencia = () => {
 
       // Prediction
       const values = historicalRevenue.map(d => d.valor);
-      let predictedNext = values.length >= 2 ? values[values.length - 1] + (values[values.length - 1] - values[values.length - 2]) * 0.5 : values[0] || 0;
+      const predictedNext = values.length >= 2 ? values[values.length - 1] + (values[values.length - 1] - values[values.length - 2]) * 0.5 : values[0] || 0;
 
       const predictions = [
         { name: "Projeção 1", valor: predictedNext, isPrediction: true },
@@ -226,6 +228,12 @@ Receita mensal: ${historicalRevenue.map(h => `${h.name}: R$ ${h.valor.toFixed(2)
           </CardContent>
         </Card>
       </div>
+
+      {/* Churn Prediction - Detailed */}
+      <ChurnPrediction />
+
+      {/* Occupancy Report */}
+      <OccupancyReport />
 
       {/* Produtividade por Profissional */}
       <Card>

@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
@@ -73,6 +74,7 @@ interface AgendaExtra {
 
 const DisponibilidadeProfissional = () => {
   const { user, isAdmin, isGestor } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const canManage = isAdmin || isGestor;
   const [selectedProfissional, setSelectedProfissional] = useState<string>(user?.id || "");
@@ -110,24 +112,28 @@ const DisponibilidadeProfissional = () => {
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-disp"],
     queryFn: async () => {
-      const { data } = await (supabase.from("profiles") as any).select("id, user_id, nome").order("nome");
+      const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+      const ids = (roles || []).map(r => r.user_id);
+      if (!ids.length) return [];
+      const { data } = await supabase.from("profiles").select("id, user_id, nome").in("user_id", ids).order("nome");
       return data ?? [];
     },
   });
 
   const currentProfName = canManage
-    ? (profissionais as any[]).find((p: any) => p.user_id === profId)?.nome || "Profissional"
+    ? profissionais.find((p) => p.user_id === profId)?.nome || "Profissional"
     : "Minha Grade";
 
   const effectiveVacancyProfId = vacancyProfId || profId;
-  const vacancyProfName = (profissionais as any[]).find((p: any) => p.user_id === effectiveVacancyProfId)?.nome || "Profissional";
+  const vacancyProfName = profissionais.find((p) => p.user_id === effectiveVacancyProfId)?.nome || "Profissional";
 
   const { data: slots = [], refetch } = useQuery({
-    queryKey: ["disponibilidade", profId],
+    queryKey: ["disponibilidade", profId, activeClinicId],
     queryFn: async () => {
-      const { data } = await (supabase.from("disponibilidade_profissional") as any)
-        .select("*").eq("profissional_id", profId).eq("ativo", true)
-        .order("dia_semana").order("hora_inicio");
+      let q = supabase.from("disponibilidade_profissional")
+        .select("*").eq("profissional_id", profId).eq("ativo", true);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q.order("dia_semana").order("hora_inicio");
       return (data ?? []) as Slot[];
     },
     enabled: !!profId,
@@ -136,7 +142,7 @@ const DisponibilidadeProfissional = () => {
   const { data: bloqueios = [], refetch: refetchBloqueios } = useQuery({
     queryKey: ["bloqueios", profId],
     queryFn: async () => {
-      const { data } = await (supabase.from("bloqueios_profissional") as any)
+      const { data } = await supabase.from("bloqueios_profissional")
         .select("*").eq("profissional_id", profId)
         .gte("data", new Date().toISOString().split("T")[0])
         .order("data");
@@ -209,6 +215,7 @@ const DisponibilidadeProfissional = () => {
     const { error } = await (supabase.from("disponibilidade_profissional") as any).insert({
       profissional_id: profId, dia_semana: newSlot.dia_semana,
       hora_inicio: newSlot.hora_inicio, hora_fim: newSlot.hora_fim, max_pacientes: newSlot.max_pacientes,
+      clinic_id: activeClinicId,
     });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else { toast({ title: "Horário adicionado! ✅" }); refetch(); }
@@ -234,6 +241,7 @@ const DisponibilidadeProfissional = () => {
     if (fromSlots.length === 0) { toast({ title: "Nenhum horário para copiar", variant: "destructive" }); return; }
     const records = fromSlots.map(s => ({
       profissional_id: profId, dia_semana: toDay, hora_inicio: s.hora_inicio, hora_fim: s.hora_fim, max_pacientes: s.max_pacientes,
+      clinic_id: activeClinicId,
     }));
     const { error } = await (supabase.from("disponibilidade_profissional") as any).insert(records);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -247,6 +255,7 @@ const DisponibilidadeProfissional = () => {
       hora_inicio: bloqueioDiaInteiro ? null : bloqueioHoraInicio,
       hora_fim: bloqueioDiaInteiro ? null : bloqueioHoraFim,
       motivo: bloqueioMotivo || null,
+      clinic_id: activeClinicId,
     });
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     // Broadcast block notification to all users
@@ -305,6 +314,7 @@ const DisponibilidadeProfissional = () => {
       profissional_id: profId, data: extraData,
       hora_inicio: extraHoraInicio, hora_fim: extraHoraFim,
       max_pacientes: extraMaxPacientes, motivo: extraMotivo || null,
+      clinic_id: activeClinicId,
     });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else {

@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { addLogoToPDF, getClinicSettings, formatClinicAddress, addWatermarkToAllPages } from "./pdfLogo";
 
 interface ContractData {
   pacienteNome: string;
@@ -10,14 +11,75 @@ interface ContractData {
   planoValor: number;
   desconto: number;
   dataContrato: string;
+  pacienteSignature?: string;
+  profissionalSignature?: string;
+  profissionalRubrica?: string;
+  rubricaNoCarimbo?: boolean;
+  incluirRubrica?: boolean;
+  incluirCarimbo?: boolean;
+  profissionalNome?: string;
+  profissionalRegistro?: string;
 }
 
-export function generateContractPDF(data: ContractData) {
+export async function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, rubricaUrl?: string) {
+  const w = 70;
+  const h = 28;
+  const cx = x - w / 2;
+
+  // Real Rubrica Image inside stamp if available
+  if (rubricaUrl) {
+    try {
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.3 }));
+      doc.addImage(rubricaUrl, "PNG", cx + 5, y + 2, w - 10, h - 10);
+      doc.restoreGraphicsState();
+    } catch (e) {
+      console.error("Erro ao adicionar rubrica ao carimbo:", e);
+    }
+  }
+
+  // Border
+  doc.setDrawColor(0, 90, 160);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(cx, y, w, h, 2, 2);
+
+  // Inner line
+  doc.setLineWidth(0.3);
+  doc.line(cx + 3, y + 10, cx + w - 3, y + 10);
+
+  // Name
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 60, 120);
+  doc.text(nome, x, y + 7, { align: "center" });
+
+  // Registration
+  if (registro) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 60, 120);
+    doc.text(registro, x, y + 15, { align: "center" });
+  }
+
+  // Professional label
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100);
+  doc.text("Profissional de Saúde", x, y + 22, { align: "center" });
+
+  // Reset colors
+  doc.setTextColor(0);
+  doc.setDrawColor(0);
+}
+
+export async function generateContractPDF(data: ContractData) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const maxWidth = pageWidth - margin * 2;
-  let y = 20;
+  let y = 15;
+
+  const settings = await getClinicSettings();
 
   const addText = (text: string, size: number, bold = false, align: "left" | "center" = "left") => {
     doc.setFontSize(size);
@@ -42,9 +104,16 @@ export function generateContractPDF(data: ContractData) {
     }
   };
 
+  // Logo
+  const logoX = pageWidth / 2 - 15;
+  y = await addLogoToPDF(doc, logoX, y, 30, 25);
+  y += 2;
+
   // Header
-  addText("ESSENCIAL FISIO PILATES", 16, true, "center");
-  addText("CNPJ: 61.080.977/0001-50", 9, false, "center");
+  addText(settings.nome.toUpperCase(), 16, true, "center");
+  if (settings.cnpj) {
+    addText(`CNPJ: ${settings.cnpj}`, 9, false, "center");
+  }
   y += 4;
   addText("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PILATES", 13, true, "center");
   y += 6;
@@ -53,7 +122,13 @@ export function generateContractPDF(data: ContractData) {
   addText("Pelo presente instrumento particular, de um lado:", 10);
   y += 2;
 
-  addText("CONTRATADA: Essencial Fisio Pilates, pessoa jurídica de direito privado, com sede à Rua Capitão Antônio Ferreira Campos, nº 46 – Bairro Carmo – Barbacena/MG, telefone/WhatsApp (32) 98415-2802, Instagram @essencialfisiopilatesbq, doravante denominada CONTRATADA.", 10);
+  const endereco = formatClinicAddress(settings);
+  const contato = [
+    settings.whatsapp ? `telefone/WhatsApp ${settings.whatsapp}` : null,
+    settings.instagram ? `Instagram ${settings.instagram}` : null,
+  ].filter(Boolean).join(", ");
+
+  addText(`CONTRATADA: ${settings.nome}, pessoa jurídica de direito privado, com sede à ${endereco}${contato ? `, ${contato}` : ""}, doravante denominada CONTRATADA.`, 10);
   y += 4;
 
   addText("E, de outro lado:", 10);
@@ -73,10 +148,10 @@ export function generateContractPDF(data: ContractData) {
     { title: "CLÁUSULA 4ª – CANCELAMENTOS E REPOSIÇÕES", text: "§1º Somente haverá reposição de aulas desmarcadas com antecedência mínima de 3 (três) horas.\n\n§2º Cancelamentos fora desse prazo não geram reposição.\n\n§3º As reposições devem ocorrer em até 30 (trinta) dias, sob pena de perda da aula." },
     { title: "CLÁUSULA 5ª – DOS FERIADOS E RECESSOS", text: "Não haverá aulas em feriados ou durante recessos previamente comunicados pela clínica.\n\nParágrafo único: Feriados e recessos não geram reposição, abatimento ou compensação financeira." },
     { title: "CLÁUSULA 6ª – DAS CONDIÇÕES DE SAÚDE", text: "O CONTRATANTE declara estar apto à prática do Pilates e compromete-se a informar qualquer condição de saúde relevante." },
-    { title: "CLÁUSULA 7ª – DO DIREITO DE IMAGEM", text: "O CONTRATANTE autoriza, de forma gratuita, o uso de sua imagem e voz para fins institucionais e de divulgação da Essencial Fisio Pilates.\n\nParágrafo único: A autorização poderá ser revogada mediante solicitação escrita." },
+    { title: "CLÁUSULA 7ª – DO DIREITO DE IMAGEM", text: `O CONTRATANTE autoriza, de forma gratuita, o uso de sua imagem e voz para fins institucionais e de divulgação da ${settings.nome}.\n\nParágrafo único: A autorização poderá ser revogada mediante solicitação escrita.` },
     { title: "CLÁUSULA 8ª – DA SUSPENSÃO TEMPORÁRIA", text: "Suspensões somente serão aceitas mediante solicitação prévia e aprovação da CONTRATADA, sem devolução de valores já pagos." },
     { title: "CLÁUSULA 9ª – DA RESCISÃO", text: "O contrato poderá ser rescindido por qualquer das partes, não sendo devida devolução de mensalidades já quitadas." },
-    { title: "CLÁUSULA 10ª – DO FORO", text: "Fica eleito o foro da comarca de Barbacena/MG." },
+    { title: "CLÁUSULA 10ª – DO FORO", text: `Fica eleito o foro da comarca de ${settings.cidade || "Barbacena"}/${settings.estado || "MG"}.` },
   ];
 
   clauses.forEach((c) => {
@@ -127,19 +202,59 @@ export function generateContractPDF(data: ContractData) {
   // Signatures
   checkPage();
   addText(`Data: ${data.dataContrato}`, 10);
-  y += 12;
+  y += 5;
 
+  // Profissional Signature
+  if (data.profissionalSignature) {
+    try {
+      doc.addImage(data.profissionalSignature, "PNG", margin, y, 50, 20);
+      y += 22;
+    } catch { y += 12; }
+  } else {
+    y += 12;
+  }
   doc.setFontSize(10);
   doc.line(margin, y, margin + 70, y);
   y += 5;
   addText("CONTRATADA", 9);
-  addText("Essencial Fisio Pilates", 9);
-  y += 8;
+  addText(data.profissionalNome || settings.nome, 9);
+  y += 5;
 
+  // Carimbo (stamp) if requested
+  if (data.incluirCarimbo) {
+    if (y > 255) {
+      doc.addPage();
+      y = 20;
+    }
+    await drawCarimbo(
+      doc, 
+      margin + 35, 
+      y, 
+      data.profissionalNome || settings.nome, 
+      data.profissionalRegistro || undefined, 
+      data.rubricaNoCarimbo ? data.profissionalRubrica : undefined
+    );
+    y += 32;
+  }
+
+  // Patient Signature
+  checkPage();
+  if (data.pacienteSignature) {
+    try {
+      doc.addImage(data.pacienteSignature, "PNG", margin, y, 50, 20);
+      y += 22;
+    } catch { y += 12; }
+  } else {
+    y += 12;
+  }
   doc.line(margin, y, margin + 70, y);
   y += 5;
   addText("CONTRATANTE", 9);
   addText(data.pacienteNome, 9);
 
+  // Aumentar marca d'água chamando a função com parâmetros se disponíveis (opcional aqui)
+  if (data.incluirRubrica) {
+    await addWatermarkToAllPages(doc, { rubrica_url: data.profissionalRubrica });
+  }
   return doc;
 }

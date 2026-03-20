@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Clock, CheckCircle2, AlertTriangle, Lightbulb, RefreshCw } from "lucide-react";
+import { CalendarIcon, Clock, CheckCircle2, AlertTriangle, Lightbulb, RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
+import { suggestAvailableSlots, type SuggestedSlot } from "@/lib/suggestSlots";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,6 +52,8 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [suggestedSlots, setSuggestedSlots] = useState<SuggestedSlot[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Reseta campos quando o modal abre
   useEffect(() => {
@@ -63,9 +66,19 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       setSelectedProfId(agendamento.profissional_id || "");
       setMotivo("");
       setAvailabilityResult(null);
+      setSuggestedSlots([]);
       fetchProfissionais();
     }
   }, [open, agendamento]);
+
+  // Load suggestions when professional changes
+  useEffect(() => {
+    if (!selectedProfId || !open) return;
+    setLoadingSuggestions(true);
+    suggestAvailableSlots(selectedProfId, 14, agendamento?.duracao_minutos || 50)
+      .then(setSuggestedSlots)
+      .finally(() => setLoadingSuggestions(false));
+  }, [selectedProfId, open]);
 
   const fetchProfissionais = async () => {
     // First get professional user_ids from user_roles
@@ -112,6 +125,10 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
     return () => clearTimeout(timer);
   }, [selectedProfId, date, horario, open]);
 
+  const isCancelado = agendamento?.status === "cancelado" || agendamento?.status === "falta";
+  const tipoLabel = isCancelado ? "Remarcação" : "Reagendamento";
+  const tipoLabelLower = isCancelado ? "remarcação" : "reagendamento";
+
   const requestReschedule = useMutation({
     mutationFn: async () => {
       if (!user || !agendamento || !date) return;
@@ -136,11 +153,45 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
         });
 
       if (error) throw error;
+
+      // Notify professional
+      await (supabase.from("notificacoes").insert({
+        user_id: agendamento.profissional_id,
+        tipo: isCancelado ? "remarcacao" : "reagendamento",
+        titulo: `Solicitação de ${tipoLabelLower}`,
+        resumo: `Paciente solicita ${tipoLabelLower} para ${format(novaData, "dd/MM 'às' HH:mm")}`,
+        conteudo: `Paciente solicita ${tipoLabelLower}.\nData ${isCancelado ? "cancelada" : "atual"}: ${format(new Date(agendamento.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nNova data: ${format(novaData, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo || "Não informado"}`,
+        link: "/solicitacoes-alteracao",
+      }) as any);
+
+      // If different professional, also notify the new one
+      if (selectedProfId !== agendamento.profissional_id) {
+        await (supabase.from("notificacoes").insert({
+          user_id: selectedProfId,
+          tipo: isCancelado ? "remarcacao" : "reagendamento",
+          titulo: `Solicitação de ${tipoLabelLower} (novo profissional)`,
+          resumo: `Paciente solicita ${tipoLabelLower} para ${format(novaData, "dd/MM 'às' HH:mm")}`,
+          link: "/solicitacoes-alteracao",
+        }) as any);
+      }
+
+      // Notify admins
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      for (const admin of (adminRoles || [])) {
+        if (admin.user_id === agendamento.profissional_id) continue;
+        await (supabase.from("notificacoes").insert({
+          user_id: admin.user_id,
+          tipo: isCancelado ? "remarcacao" : "reagendamento",
+          titulo: `Nova solicitação de ${tipoLabelLower}`,
+          resumo: `Paciente solicita ${tipoLabelLower} para ${format(novaData, "dd/MM 'às' HH:mm")}`,
+          link: "/solicitacoes-alteracao",
+        }) as any);
+      }
     },
     onSuccess: () => {
       toast({
         title: "Solicitação enviada!",
-        description: "Sua solicitação de remarcação foi enviada para análise da clínica.",
+        description: `Sua solicitação de ${tipoLabelLower} foi enviada para análise da clínica.`,
       });
       queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
       onSuccess();
@@ -148,7 +199,7 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao solicitar remarcação",
+        title: `Erro ao solicitar ${tipoLabelLower}`,
         description: error.message,
         variant: "destructive",
       });
@@ -171,10 +222,12 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-primary" />
-            Solicitar Remarcação
+            Solicitar {tipoLabel}
           </DialogTitle>
           <DialogDescription>
-            Escolha uma nova data e horário para sua sessão de {agendamento.tipo_atendimento}.
+            {isCancelado
+              ? "Escolha uma nova data e horário para remarcar sua sessão cancelada."
+              : `Escolha uma nova data e horário para reagendar sua sessão de ${agendamento.tipo_atendimento}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -280,6 +333,33 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
                 <p className="font-semibold">{availabilityResult.isWithinSchedule && !availabilityResult.isOverCapacity ? "Horário Disponível" : "Horário Indisponível"}</p>
                 <p className="text-xs opacity-90">{availabilityResult.message}</p>
               </div>
+            </div>
+          )}
+
+          {/* Suggested Slots */}
+          {suggestedSlots.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3 w-3" /> Horários Sugeridos
+              </Label>
+              <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
+                {suggestedSlots.slice(0, 12).map((slot, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="text-[11px] px-2 py-1 rounded-md border bg-card hover:bg-primary/10 hover:border-primary transition-colors"
+                    onClick={() => {
+                      setDate(slot.date);
+                      setHorario(slot.horario);
+                    }}
+                  >
+                    <span className="font-medium">{slot.dayLabel}</span>
+                    <span className="text-muted-foreground ml-1">{slot.horario}</span>
+                    <span className="text-[9px] text-muted-foreground ml-1">({slot.vagas}v)</span>
+                  </button>
+                ))}
+              </div>
+              {loadingSuggestions && <span className="text-[10px] text-muted-foreground">Buscando horários...</span>}
             </div>
           )}
 

@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { addLogoToPDF, getClinicSettings, addWatermarkToAllPages } from "./pdfLogo";
 
 interface AgendamentoForPDF {
   data_horario: string;
@@ -19,24 +20,38 @@ function formatPatientName(nome: string): string {
   return `${firstName} ${initials}`;
 }
 
-export function generateWeeklyPDF(
+export async function generateWeeklyPDF(
   agendamentos: AgendamentoForPDF[],
   currentDate: Date,
   pacientesMap: Record<string, string>,
-  professionalName?: string // if filtering by professional
+  professionalName?: string
 ) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  const settings = await getClinicSettings();
+
+  let y = 10;
+
+  // Add logo
+  y = await addLogoToPDF(doc, 10, y, 25, 18);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
+  // Title next to logo
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(settings.nome, pageWidth / 2, 15, { align: "center" });
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
   let title = `Agenda Semanal - ${format(weekStart, "dd/MM")} a ${format(weekEnd, "dd/MM/yyyy")}`;
   if (professionalName) {
     title += ` — ${professionalName}`;
   }
-  doc.setFontSize(14);
-  doc.text(title, 14, 15);
+  doc.text(title, pageWidth / 2, 21, { align: "center" });
 
   // Determine hour range from actual agendamentos
   const agHours = agendamentos.map(ag => new Date(ag.data_horario).getHours());
@@ -71,7 +86,7 @@ export function generateWeeklyPDF(
   autoTable(doc, {
     head: [dayHeaders],
     body: bodyRows,
-    startY: 22,
+    startY: Math.max(y, 26),
     theme: "grid",
     styles: {
       fontSize: 7,
@@ -96,6 +111,8 @@ export function generateWeeklyPDF(
     },
   });
 
+  await addWatermarkToAllPages(doc);
+  
   const fileName = professionalName
     ? `agenda-semanal-${professionalName.replace(/\s+/g, "_")}-${format(weekStart, "yyyy-MM-dd")}.pdf`
     : `agenda-semanal-${format(weekStart, "yyyy-MM-dd")}.pdf`;

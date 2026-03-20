@@ -1,0 +1,1 @@
+ALTER TYPE public.status_agendamento ADD VALUE IF NOT EXISTS 'reagendado';

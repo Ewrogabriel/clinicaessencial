@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { MessageSquare, Bell, UserPlus, FileCheck, Send, Users, FileText, Download, Save, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -104,7 +105,8 @@ const PatientDispatchRow = ({
 };
 
 const Automacoes = () => {
-  const { clinicId } = useAuth();
+  const _unused = useAuth(); // keep auth context
+  const { activeClinicId } = useClinic();
 
   const [searchPatient, setSearchPatient] = useState("");
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -114,9 +116,20 @@ const Automacoes = () => {
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
 
   const { data: patients = [] } = useQuery({
-    queryKey: ["automation-patients"],
+    queryKey: ["automation-patients", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("pacientes") as any)
+      if (activeClinicId) {
+        const { data: cp } = await supabase.from("clinic_pacientes")
+          .select("paciente_id").eq("clinic_id", activeClinicId);
+        const ids = (cp || []).map(c => c.paciente_id);
+        if (!ids.length) return [];
+        const { data, error } = await supabase.from("pacientes")
+          .select("id, nome, telefone, status")
+          .in("id", ids).eq("status", "ativo").order("nome");
+        if (error) throw error;
+        return data;
+      }
+      const { data, error } = await supabase.from("pacientes")
         .select("id, nome, telefone, status")
         .eq("status", "ativo")
         .order("nome");
@@ -127,14 +140,16 @@ const Automacoes = () => {
 
   // Fetch next upcoming appointment per patient
   const { data: upcomingAppointments = [] } = useQuery({
-    queryKey: ["automation-upcoming-appointments"],
+    queryKey: ["automation-upcoming-appointments", activeClinicId],
     queryFn: async () => {
       const now = new Date().toISOString();
-      const { data, error } = await (supabase.from("agendamentos") as any)
-        .select("id, paciente_id, data_horario, profissional_id, profiles:profissional_id(nome)")
+      let q = supabase.from("agendamentos")
+        .select("id, paciente_id, data_horario, profissional_id")
         .gte("data_horario", now)
         .in("status", ["agendado", "confirmado"])
         .order("data_horario", { ascending: true });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -146,7 +161,7 @@ const Automacoes = () => {
     if (!nextAppointmentMap[ag.paciente_id]) {
       nextAppointmentMap[ag.paciente_id] = {
         data_horario: ag.data_horario,
-        profissional_nome: ag.profiles?.nome || "Profissional",
+        profissional_nome: "Profissional",
         id: ag.id,
       };
     }

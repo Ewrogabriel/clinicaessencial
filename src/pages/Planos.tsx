@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock, Pencil, CalendarPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
+import { PlanoSessoesDialog } from "@/components/planos/PlanoSessoesDialog";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   ativo: { label: "Ativo", variant: "default" },
@@ -30,24 +32,46 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   finalizado: { label: "Finalizado", variant: "secondary" },
 };
 
+interface PlanoRow {
+  id: string;
+  paciente_id: string;
+  profissional_id: string;
+  tipo_atendimento: string;
+  total_sessoes: number;
+  sessoes_utilizadas: number;
+  valor: number;
+  status: string;
+  data_inicio: string;
+  data_vencimento: string | null;
+  observacoes: string | null;
+  created_at: string;
+  pacientes: { nome: string } | null;
+  profiles: { nome: string } | null;
+}
+
+const TIPO_TO_FORMA_ENUM: Record<string, string> = {
+  pix: "pix",
+  dinheiro: "dinheiro",
+  boleto: "boleto",
+  transferencia: "transferencia",
+  cartao: "cartao_credito",
+  cartao_credito: "cartao_credito",
+  cartao_debito: "cartao_debito",
+  cheque: "transferencia",
+};
+
 const Planos = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    paciente_id: "",
-    tipo_atendimento: "",
-    total_sessoes: 10,
-    valor: "",
-    data_inicio: format(new Date(), "yyyy-MM-dd"),
-    data_vencimento: "",
-    observacoes: "",
-  });
-
+  const [editPlano, setEditPlano] = useState<PlanoRow | null>(null);
+  const [sessoesPlano, setSessoesPlano] = useState<PlanoRow | null>(null);
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("ativo");
+  const [confirmDialog, setConfirmDialog] = useState<{ planoId: string; open: boolean } | null>(null);
+  const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
 
-  const { data: planos = [], isLoading } = useQuery({
+  const { data: planos = [], isLoading } = useQuery<PlanoRow[]>({
     queryKey: ["planos", filterPaciente, filterStatus],
     queryFn: async () => {
       let query = supabase
@@ -55,6 +79,7 @@ const Planos = () => {
         .select("*, pacientes(nome), profiles(nome)");
       
       if (filterStatus) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         query = query.eq("status", filterStatus as any);
       }
       if (filterPaciente) {
@@ -63,8 +88,30 @@ const Planos = () => {
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data || []) as PlanoRow[];
     },
+  });
+
+  // Fetch scheduled (non-completed) sessions count per plano
+  const { data: agendadasMap = {} } = useQuery<Record<string, number>>({
+    queryKey: ["planos-agendadas", planos.map(p => p.id).join(",")],
+    queryFn: async () => {
+      if (planos.length === 0) return {};
+      const { data } = await supabase
+        .from("agendamentos")
+        .select("observacoes, status")
+        .in("status", ["agendado", "confirmado", "pendente"] as any[])
+        .ilike("observacoes", "plano:%");
+      const map: Record<string, number> = {};
+      (data || []).forEach((a: any) => {
+        const match = a.observacoes?.match(/plano:([0-9a-f-]+)/);
+        if (match) {
+          map[match[1]] = (map[match[1]] || 0) + 1;
+        }
+      });
+      return map;
+    },
+    enabled: planos.length > 0,
   });
 
   const { data: pacientes = [] } = useQuery({
@@ -91,64 +138,59 @@ const Planos = () => {
     },
   });
 
-  const createPlano = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Não autenticado");
-      const { data: plano, error: planoError } = await supabase.from("planos").insert({
-        paciente_id: formData.paciente_id,
-        profissional_id: user.id,
-        tipo_atendimento: formData.tipo_atendimento,
-        total_sessoes: formData.total_sessoes,
-        valor: parseFloat(formData.valor) || 0,
-        data_inicio: formData.data_inicio,
-        data_vencimento: formData.data_vencimento || null,
-        observacoes: formData.observacoes || null,
-        created_by: user.id,
-      }).select().single();
-
-      if (planoError) throw planoError;
-
-      // Auto-create pending payment
-      const { error: pgtoError } = await supabase.from("pagamentos").insert({
-        paciente_id: formData.paciente_id,
-        profissional_id: user.id,
-        plano_id: plano.id,
-        valor: parseFloat(formData.valor) || 0,
-        data_vencimento: formData.data_vencimento || null,
-        status: "pendente",
-        descricao: `Plano ${formData.tipo_atendimento} - ${formData.total_sessoes} sessões`,
-        created_by: user.id,
-      });
-
-      if (pgtoError) throw pgtoError;
+  const { data: formasPagamentoList = [] } = useQuery({
+    queryKey: ["formas-pagamento-lookup"],
+    queryFn: async () => {
+      const { data } = await supabase.from("formas_pagamento").select("id, nome, tipo").eq("ativo", true);
+      return data ?? [];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["planos"] });
-      setFormOpen(false);
-      setFormData({ paciente_id: "", tipo_atendimento: "", total_sessoes: 10, valor: "", data_inicio: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", observacoes: "" });
-      toast({ title: "Plano criado com sucesso!" });
-    },
-    onError: (e: Error | any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const confirmPayment = useMutation({
-    mutationFn: async (planoId: string) => {
-      const { error } = await supabase
+    mutationFn: async ({ planoId, data_pagamento, forma_pagamento_id }: { planoId: string; data_pagamento: string; forma_pagamento_id: string }) => {
+      const tipo = formasPagamentoList.find((f: { id: string; tipo: string }) => f.id === forma_pagamento_id)?.tipo ?? "pix";
+      const formaEnum = TIPO_TO_FORMA_ENUM[tipo] ?? "pix";
+      
+      const { data: updated, error: updateError } = await supabase
         .from("pagamentos")
-        .update({ status: "pago", data_pagamento: new Date().toISOString() })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ status: "pago" as any, data_pagamento, forma_pagamento: formaEnum } as any)
         .eq("plano_id", planoId)
-        .eq("status", "pendente");
-      if (error) throw error;
+        .eq("status", "pendente")
+        .select();
+
+      if (updateError) throw updateError;
+
+      // Se não atualizou nada, significa que é um plano antigo sem cobrança pendente. Vamos criar uma PAGA direto.
+      if (!updated || updated.length === 0) {
+         const planoToUpdate = planos.find(p => p.id === planoId);
+         if (planoToUpdate) {
+            const { error: insertError } = await supabase.from("pagamentos").insert({
+               paciente_id: planoToUpdate.paciente_id,
+               profissional_id: planoToUpdate.profissional_id,
+               plano_id: planoId,
+               valor: planoToUpdate.valor,
+               data_pagamento: data_pagamento,
+               forma_pagamento: formaEnum as any,
+               status: "pago",
+               descricao: `Plano - Baixa manual retrospectiva`,
+               created_by: user!.id,
+             });
+             if (insertError) throw insertError;
+         }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["planos"] });
       queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      setConfirmDialog(null);
       toast({ title: "Pagamento confirmado!" });
     },
-    onError: (e: any) => toast({ title: "Erro ao confirmar", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Erro ao confirmar", description: e.message, variant: "destructive" }),
   });
 
-  const planosAtivos = (planos as any[]).filter((p) => p.status === "ativo");
+  const planosAtivos = planos.filter((p) => p.status === "ativo");
   const planosVencendo = planosAtivos.filter((p) => {
     if (!p.data_vencimento) return false;
     const diff = new Date(p.data_vencimento).getTime() - Date.now();
@@ -166,7 +208,7 @@ const Planos = () => {
           <h1 className="text-2xl font-bold tracking-tight">Planos de Sessões</h1>
           <p className="text-muted-foreground">Controle de pacotes e saldo de sessões</p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
+        <Button onClick={() => { setEditPlano(null); setFormOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Novo Plano
         </Button>
       </div>
@@ -242,7 +284,7 @@ const Planos = () => {
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Package className="h-12 w-12 mb-4 opacity-40" />
               <p className="text-lg font-medium">Nenhum plano cadastrado</p>
-              <Button className="mt-4" onClick={() => setFormOpen(true)}>
+              <Button className="mt-4" onClick={() => { setEditPlano(null); setFormOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" /> Criar primeiro plano
               </Button>
             </div>
@@ -261,9 +303,10 @@ const Planos = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(planos as any[]).map((plano) => {
-                  const pct = plano.total_sessoes > 0 ? (plano.sessoes_utilizadas / plano.total_sessoes) * 100 : 0;
-                  const restante = plano.total_sessoes - plano.sessoes_utilizadas;
+                {planos.map((plano) => {
+                  const agendadas = agendadasMap[plano.id] || 0;
+                  const pct = plano.total_sessoes > 0 ? ((plano.sessoes_utilizadas + agendadas) / plano.total_sessoes) * 100 : 0;
+                  const restante = plano.total_sessoes - plano.sessoes_utilizadas - agendadas;
                   const st = statusConfig[plano.status] || statusConfig.ativo;
                   return (
                     <TableRow
@@ -272,7 +315,7 @@ const Planos = () => {
                     >
                       <TableCell className="font-medium">{plano.pacientes?.nome ?? "—"}</TableCell>
                       <TableCell className="capitalize">{plano.tipo_atendimento}</TableCell>
-                      <TableCell>{plano.sessoes_utilizadas}/{plano.total_sessoes} <span className="text-xs text-muted-foreground">({restante} restantes)</span></TableCell>
+                      <TableCell>{plano.sessoes_utilizadas}/{plano.total_sessoes} <span className="text-xs text-muted-foreground">({Math.max(0, restante)} disponíveis{agendadas > 0 ? `, ${agendadas} agendadas` : ""})</span></TableCell>
                       <TableCell className="w-32">
                         <Progress value={pct} className="h-2" />
                       </TableCell>
@@ -282,15 +325,37 @@ const Planos = () => {
                       </TableCell>
                       <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8"
-                          onClick={() => confirmPayment.mutate(plano.id)}
-                          disabled={confirmPayment.isPending}
-                        >
-                          Confirmar Pagamento
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            title="Editar plano"
+                            onClick={() => { setEditPlano(plano); setFormOpen(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            title="Ver sessões do plano"
+                            onClick={() => setSessoesPlano(plano)}
+                          >
+                            <CalendarPlus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            onClick={() => {
+                              setConfirmData({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
+                              setConfirmDialog({ planoId: plano.id, open: true });
+                            }}
+                          >
+                            Confirmar Pgto
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -301,72 +366,57 @@ const Planos = () => {
         </CardContent>
       </Card>
 
-      {/* Form Dialog */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Novo Plano de Sessões</DialogTitle>
-          </DialogHeader>
+      {/* Form Dialog (create/edit) */}
+      <PlanoFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editPlano={editPlano}
+        pacientes={pacientes}
+        modalidades={modalidades}
+        userId={user?.id || ""}
+      />
+
+      {/* Sessoes Dialog */}
+      {sessoesPlano && (
+        <PlanoSessoesDialog
+          open={!!sessoesPlano}
+          onOpenChange={(open) => { if (!open) setSessoesPlano(null); }}
+          plano={sessoesPlano}
+          userId={user?.id || ""}
+        />
+      )}
+
+      {/* Confirm Payment Dialog */}
+      <Dialog open={!!confirmDialog?.open} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader><DialogTitle>Confirmar Pagamento</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Paciente</Label>
-              <Select value={formData.paciente_id} onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <Label>Data do Pagamento</Label>
+              <Input type="date" value={confirmData.data_pagamento} onChange={(e) => setConfirmData(p => ({ ...p, data_pagamento: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Forma de Pagamento</Label>
+              <Select value={confirmData.forma_pagamento_id} onValueChange={(v) => setConfirmData(p => ({ ...p, forma_pagamento_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a forma de pagamento" /></SelectTrigger>
                 <SelectContent>
-                  {(pacientes as any[]).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  {formasPagamentoList.map((f: { id: string; nome: string }) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Modalidade</Label>
-                <Select value={formData.tipo_atendimento} onValueChange={(v: any) => setFormData(p => ({ ...p, tipo_atendimento: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {(modalidades as any[]).map((mod) => (
-                      <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Qtd. Sessões</Label>
-                <Select value={String(formData.total_sessoes)} onValueChange={(v) => setFormData(p => ({ ...p, total_sessoes: Number(v) }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5 sessões</SelectItem>
-                    <SelectItem value="10">10 sessões</SelectItem>
-                    <SelectItem value="15">15 sessões</SelectItem>
-                    <SelectItem value="20">20 sessões</SelectItem>
-                    <SelectItem value="30">30 sessões</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Valor (R$)</Label>
-                <Input type="number" step="0.01" placeholder="0,00" value={formData.valor} onChange={(e) => setFormData(p => ({ ...p, valor: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Data Início</Label>
-                <Input type="date" value={formData.data_inicio} onChange={(e) => setFormData(p => ({ ...p, data_inicio: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <Label>Data de Vencimento (opcional)</Label>
-              <Input type="date" value={formData.data_vencimento} onChange={(e) => setFormData(p => ({ ...p, data_vencimento: e.target.value }))} />
-            </div>
-            <div>
-              <Label>Observações</Label>
-              <Textarea placeholder="Observações sobre o plano..." value={formData.observacoes} onChange={(e) => setFormData(p => ({ ...p, observacoes: e.target.value }))} />
-            </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-              <Button onClick={() => createPlano.mutate()} disabled={!formData.paciente_id || createPlano.isPending}>
-                {createPlano.isPending ? "Salvando..." : "Criar Plano"}
+              <Button variant="outline" onClick={() => setConfirmDialog(null)}>Cancelar</Button>
+              <Button
+                disabled={!confirmData.data_pagamento || !confirmData.forma_pagamento_id || confirmPayment.isPending}
+                onClick={() => confirmDialog && confirmPayment.mutate({
+                  planoId: confirmDialog.planoId,
+                  data_pagamento: confirmData.data_pagamento,
+                  forma_pagamento_id: confirmData.forma_pagamento_id,
+                })}
+              >
+                {confirmPayment.isPending ? "Confirmando..." : "Confirmar Pagamento"}
               </Button>
             </div>
           </div>

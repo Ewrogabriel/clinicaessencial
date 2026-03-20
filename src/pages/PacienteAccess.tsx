@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, LogIn } from "lucide-react";
 
@@ -25,7 +25,7 @@ export default function PacienteAccess() {
       const cleanCode = codigoAcesso.trim().toUpperCase();
       
       // Find patient by access code
-      const { data: pacientes, error: searchError } = await (supabase.from("pacientes") as any)
+      const { data: pacientes, error: searchError } = await supabase.from("pacientes")
         .select("id, nome, cpf")
         .eq("codigo_acesso", cleanCode);
       

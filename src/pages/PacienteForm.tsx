@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,368 +12,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, User } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { maskCPF, maskPhone, maskCEP, maskRG } from "@/lib/masks";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, ShieldCheck } from "lucide-react";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import defaultAvatarImg from "@/assets/default-avatar.png";
+import defaultAvatarMale from "@/assets/default-avatar-male.png";
+import defaultAvatarFemale from "@/assets/default-avatar-female.png";
+import { usePatientForm } from "@/modules/patients/hooks/usePatientForm";
 
 const PacienteForm = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(false);
-  const isEditing = !!id;
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [nome, setNome] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [email, setEmail] = useState("");
-  const [dataNascimento, setDataNascimento] = useState("");
-  const [fotoUrl, setFotoUrl] = useState("");
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
-  // Address
-  const [cep, setCep] = useState("");
-  const [rua, setRua] = useState("");
-  const [numero, setNumero] = useState("");
-  const [complemento, setComplemento] = useState("");
-  const [bairro, setBairro] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
-
-  // Clinical
-  const [tipoAtendimento, setTipoAtendimento] = useState("fisioterapia");
-  const [status, setStatus] = useState<"ativo" | "inativo">("ativo");
-  const [observacoes, setObservacoes] = useState("");
-
-  // Legal guardian
-  const [temResponsavel, setTemResponsavel] = useState(false);
-  const [respNome, setRespNome] = useState("");
-  const [respCpf, setRespCpf] = useState("");
-  const [respRg, setRespRg] = useState("");
-  const [respTelefone, setRespTelefone] = useState("");
-  const [respEmail, setRespEmail] = useState("");
-  const [respParentesco, setRespParentesco] = useState("");
-  const [respEndereco, setRespEndereco] = useState("");
-  const [respCep, setRespCep] = useState("");
-  const [respRua, setRespRua] = useState("");
-  const [respNumero, setRespNumero] = useState("");
-  const [respComplemento, setRespComplemento] = useState("");
-  const [respBairro, setRespBairro] = useState("");
-  const [respCidade, setRespCidade] = useState("");
-  const [respEstado, setRespEstado] = useState("");
-
-  const [rg, setRg] = useState("");
-  const [codigoAcesso, setCodigoAcesso] = useState<string | null>(null);
-
-  const { data: modalidades = [] } = useQuery({
-    queryKey: ["modalidades-ativas"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("modalidades")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      return data ?? [];
-    },
-  });
-
-  useEffect(() => {
-    if (id) {
-      setLoadingData(true);
-      (supabase.from("pacientes") as any)
-        .select("*")
-        .eq("id", id)
-        .single()
-        .then(({ data, error }: any) => {
-          if (error || !data) {
-            toast({ title: "Paciente não encontrado", variant: "destructive" });
-            navigate("/pacientes");
-            return;
-          }
-          setNome(data.nome);
-          setCpf(data.cpf || "");
-          setRg(data.rg || "");
-          setTelefone(data.telefone || "");
-          setEmail(data.email || "");
-          setDataNascimento(data.data_nascimento || "");
-          setFotoUrl(data.foto_url || "");
-          setCep(data.cep || "");
-          setRua(data.rua || "");
-          setNumero(data.numero || "");
-          setComplemento(data.complemento || "");
-          setBairro(data.bairro || "");
-          setCidade(data.cidade || "");
-          setEstado(data.estado || "");
-          setTipoAtendimento(data.tipo_atendimento);
-          setStatus(data.status);
-          setObservacoes(data.observacoes || "");
-          setTemResponsavel(data.tem_responsavel_legal || false);
-          setRespNome(data.responsavel_nome || "");
-          setRespCpf(data.responsavel_cpf || "");
-          setRespRg(data.responsavel_rg || "");
-          setRespTelefone(data.responsavel_telefone || "");
-          setRespEmail(data.responsavel_email || "");
-          setRespParentesco(data.responsavel_parentesco || "");
-          setRespEndereco(data.responsavel_endereco || "");
-          setRespCep(data.responsavel_cep || "");
-          setRespRua(data.responsavel_rua || "");
-          setRespNumero(data.responsavel_numero || "");
-          setRespComplemento(data.responsavel_complemento || "");
-          setRespBairro(data.responsavel_bairro || "");
-          setRespCidade(data.responsavel_cidade || "");
-          setRespEstado(data.responsavel_estado || "");
-          setCodigoAcesso(data.codigo_acesso || null);
-          setLoadingData(false);
-        });
-    }
-  }, [id, navigate]);
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Selecione uma imagem válida", variant: "destructive" });
-      return;
-    }
-    setUploadingPhoto(true);
-      const ext = file.name.split(".").pop();
-      // Generate UUID v4 manually
-      const generateUUID = () => {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-      };
-      const path = `pacientes/${id || generateUUID()}/foto.${ext}`;
-    const { error } = await supabase.storage
-      .from("patient-documents")
-      .upload(path, file, { upsert: true });
-    if (error) {
-      toast({ title: "Erro ao enviar foto", description: error.message, variant: "destructive" });
-    } else {
-      const { data: urlData } = supabase.storage.from("patient-documents").getPublicUrl(path);
-      setFotoUrl(urlData.publicUrl);
-      toast({ title: "Foto enviada! 📸" });
-    }
-    setUploadingPhoto(false);
-  };
-
-  const fetchAddressFor = async (cepCode: string, target: "paciente" | "responsavel") => {
-    const cleanCep = cepCode.replace(/\D/g, "");
-    if (cleanCep.length !== 8) return;
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await res.json();
-      if (data.erro) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
-        return;
-      }
-      if (target === "paciente") {
-        setRua(data.logradouro || "");
-        setBairro(data.bairro || "");
-        setCidade(data.localidade || "");
-        setEstado(data.uf || "");
-      } else {
-        setRespRua(data.logradouro || "");
-        setRespBairro(data.bairro || "");
-        setRespCidade(data.localidade || "");
-        setRespEstado(data.uf || "");
-      }
-    } catch (err) {
-      console.error("Erro ao buscar CEP", err);
-      toast({ title: "Erro ao buscar endereço", variant: "destructive" });
-    }
-  };
-
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newCep = e.target.value;
-    setCep(newCep);
-    fetchAddressFor(newCep, "paciente");
-  };
-
-  const handleRespCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newCep = e.target.value;
-    setRespCep(newCep);
-    fetchAddressFor(newCep, "responsavel");
-  };
-
-  const copyAddressToGuardian = () => {
-    setRespCep(cep);
-    setRespRua(rua);
-    setRespNumero(numero);
-    setRespComplemento(complemento);
-    setRespBairro(bairro);
-    setRespCidade(cidade);
-    setRespEstado(estado);
-    toast({ title: "Endereço copiado! 📋" });
-  };
-
-  const generateInviteLink = async () => {
-    if (!id) return;
-    
-    // Get code from state or database
-    let accessCode = codigoAcesso;
-    
-    if (!accessCode) {
-      // Fetch from database if not in state
-      const { data } = await (supabase.from("pacientes") as any)
-        .select("codigo_acesso")
-        .eq("id", id)
-        .single();
-      
-      if (data?.codigo_acesso) {
-        accessCode = data.codigo_acesso;
-        setCodigoAcesso(data.codigo_acesso);
-      }
-    }
-    
-    if (!accessCode) {
-      toast({ title: "Código não encontrado", variant: "destructive" });
-      return;
-    }
-
-    const accessLink = `${window.location.origin}/paciente-access`;
-    const inviteMessage = `Olá ${nome.split(' ')[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
-    
-    navigator.clipboard.writeText(inviteMessage).then(() => {
-      toast({ title: "Convite Copiado! ✓", description: "O convite com código foi copiado para a área de transferência." });
-    }).catch(() => {
-      toast({ title: "Erro ao copiar o convite.", variant: "destructive" });
-    });
-  };
-
-  // Helper function to generate access code
-  const generateAccessCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user) return;
-    setLoading(true);
-
-    try {
-      const payload: any = {
-        nome,
-        cpf: cpf || null,
-        rg: rg || null,
-        telefone: telefone || null,
-        email: email || null,
-        data_nascimento: dataNascimento || null,
-        foto_url: fotoUrl || null,
-        cep: cep || null,
-        rua: rua || null,
-        numero: numero || null,
-        complemento: complemento || null,
-        bairro: bairro || null,
-        cidade: cidade || null,
-        estado: estado || null,
-        tipo_atendimento: tipoAtendimento,
-        status,
-        observacoes: observacoes || null,
-        tem_responsavel_legal: temResponsavel,
-        responsavel_nome: temResponsavel ? respNome || null : null,
-        responsavel_cpf: temResponsavel ? respCpf || null : null,
-        responsavel_rg: temResponsavel ? respRg || null : null,
-        responsavel_telefone: temResponsavel ? respTelefone || null : null,
-        responsavel_email: temResponsavel ? respEmail || null : null,
-        responsavel_parentesco: temResponsavel ? respParentesco || null : null,
-        responsavel_endereco: temResponsavel ? respEndereco || null : null,
-        responsavel_cep: temResponsavel ? respCep || null : null,
-        responsavel_rua: temResponsavel ? respRua || null : null,
-        responsavel_numero: temResponsavel ? respNumero || null : null,
-        responsavel_complemento: temResponsavel ? respComplemento || null : null,
-        responsavel_bairro: temResponsavel ? respBairro || null : null,
-        responsavel_cidade: temResponsavel ? respCidade || null : null,
-        responsavel_estado: temResponsavel ? respEstado || null : null,
-      };
-
-      let savedPatientId = id;
-      let newAccessCode: string | null = null;
-
-      if (isEditing) {
-        // Update existing patient
-        const { error } = await (supabase.from("pacientes") as any)
-          .update(payload)
-          .eq("id", id);
-        
-        if (error) throw error;
-        
-        toast({ title: "Paciente atualizado com sucesso!" });
-      } else {
-        // Create new patient with access code
-        const accessCode = generateAccessCode();
-        
-        const insertData = {
-          ...payload,
-          created_by: user.id,
-          profissional_id: user.id,
-          codigo_acesso: accessCode,
-        } as any;
-
-        const { data, error } = await (supabase.from("pacientes") as any)
-          .insert([insertData])
-          .select("id")
-          .single();
-        
-        if (error) throw error;
-        if (!data) throw new Error("Erro ao criar paciente");
-
-        savedPatientId = data.id;
-        newAccessCode = accessCode;
-        setCodigoAcesso(accessCode);
-
-        // Show success with access code
-        const accessLink = `${window.location.origin}/paciente-access`;
-        const inviteMessage = `Olá ${nome.split(' ')[0]}!\n\nVocê foi cadastrado em nosso sistema. Para acessar, use o código:\n\nCÓDIGO: ${accessCode}\n\nLink: ${accessLink}\n\nQualquer dúvida, entre em contato!`;
-        
-        toast({
-          title: "Paciente cadastrado com sucesso!",
-          description: "Código de acesso gerado. Clique para copiar.",
-          action: (
-            <Button variant="outline" size="sm" onClick={() => {
-              navigator.clipboard.writeText(inviteMessage);
-              toast({ title: "Convite copiado!" });
-            }}>
-              <Copy className="h-4 w-4 mr-2" /> Copiar
-            </Button>
-          ),
-          duration: 10000,
-        });
-      }
-
-      // Try to create patient account if CPF exists
-      if (cpf && cpf.replace(/\D/g, "").length === 11) {
-        try {
-          await supabase.functions.invoke("create-patient-account", {
-            body: { cpf, nome, paciente_id: savedPatientId },
-          });
-        } catch (err) {
-          console.error("Erro ao criar conta do paciente:", err);
-        }
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
-      navigate("/pacientes");
-    } catch (err: any) {
-      const errorMessage = err?.message || "Erro ao salvar paciente";
-      toast({ title: "Erro ao salvar", description: errorMessage, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    id, isEditing,
+    basic, setBasicField,
+    address, setAddressField,
+    guardian, setGuardian, setGuardianField,
+    invoice, setInvoiceField,
+    clinical, setClinicalField,
+    lgpdConsentimento, setLgpdConsentimento,
+    codigoAcesso,
+    loading, loadingData, uploadingPhoto,
+    fileInputRef,
+    modalidades, convenios,
+    handleSubmit, handlePhotoUpload, fetchAddressFor,
+    copyAddressToGuardian, generateInviteLink,
+    maskCPF, maskPhone, maskCEP, maskRG,
+  } = usePatientForm();
 
   if (loadingData) {
     return <p className="text-center py-12 text-muted-foreground animate-pulse">Carregando dados...</p>;
@@ -418,10 +81,14 @@ const PacienteForm = () => {
                 className="relative w-20 h-20 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {fotoUrl ? (
-                  <img src={fotoUrl} alt="Foto do paciente" className="w-full h-full object-cover" />
+                {basic.fotoUrl ? (
+                  <img src={basic.fotoUrl} alt="Foto do paciente" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="h-8 w-8 text-muted-foreground/50" />
+                  <img 
+                    src={basic.sexo === "masculino" ? defaultAvatarMale : basic.sexo === "feminino" ? defaultAvatarFemale : defaultAvatarImg} 
+                    alt="Avatar padrão" 
+                    className="w-full h-full object-cover opacity-60" 
+                  />
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Camera className="h-5 w-5 text-white" />
@@ -452,27 +119,56 @@ const PacienteForm = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 space-y-2">
                 <Label htmlFor="nome">Nome Completo *</Label>
-                <Input id="nome" placeholder="Nome completo do paciente" value={nome} onChange={(e) => setNome(e.target.value)} required />
+                <Input id="nome" placeholder="Nome completo do paciente" value={basic.nome} onChange={(e) => setBasicField("nome", e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} />
+                <Input id="cpf" placeholder="000.000.000-00" value={basic.cpf} onChange={(e) => setBasicField("cpf", maskCPF(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rg">RG</Label>
-                <Input id="rg" placeholder="00.000.000-0" value={rg} onChange={(e) => setRg(maskRG(e.target.value))} />
+                <Input id="rg" placeholder="00.000.000-0" value={basic.rg} onChange={(e) => setBasicField("rg", maskRG(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-                <Input id="data_nascimento" type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
+                <Input id="data_nascimento" type="date" value={basic.dataNascimento} onChange={(e) => setBasicField("dataNascimento", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone / WhatsApp</Label>
-                <Input id="telefone" placeholder="(00) 00000-0000" value={telefone} onChange={(e) => setTelefone(maskPhone(e.target.value))} />
+                <Input id="telefone" placeholder="(00) 00000-0000" value={basic.telefone} onChange={(e) => setBasicField("telefone", maskPhone(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" placeholder="email@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input id="email" type="email" placeholder="email@exemplo.com" value={basic.email} onChange={(e) => setBasicField("email", e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nome_social">Nome Social</Label>
+                <Input id="nome_social" placeholder="Nome social (opcional)" value={basic.nomeSocial} onChange={(e) => setBasicField("nomeSocial", e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sexo">Sexo</Label>
+                <Select value={basic.sexo} onValueChange={(v) => setBasicField("sexo", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="feminino">Feminino</SelectItem>
+                    <SelectItem value="intersexo">Intersexo</SelectItem>
+                    <SelectItem value="prefiro_nao_informar">Prefiro não informar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="identidade_genero">Identidade de Gênero</Label>
+                <Select value={basic.identidadeGenero} onValueChange={(v) => setBasicField("identidadeGenero", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cisgênero">Cisgênero</SelectItem>
+                    <SelectItem value="transgênero">Transgênero</SelectItem>
+                    <SelectItem value="não-binário">Não-binário</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                    <SelectItem value="prefiro_nao_informar">Prefiro não informar</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
@@ -521,26 +217,26 @@ const PacienteForm = () => {
                 <CardTitle className="text-lg">Responsável Legal</CardTitle>
                 <CardDescription>Ative para cadastrar os dados do responsável legal (menores de idade ou incapazes)</CardDescription>
               </div>
-              <Switch checked={temResponsavel} onCheckedChange={setTemResponsavel} />
+              <Switch checked={guardian.temResponsavel} onCheckedChange={(v) => setGuardian((prev) => ({ ...prev, temResponsavel: v }))} />
             </div>
           </CardHeader>
-          {temResponsavel && (
+          {guardian.temResponsavel && (
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 space-y-2">
                 <Label>Nome do Responsável *</Label>
-                <Input placeholder="Nome completo do responsável" value={respNome} onChange={(e) => setRespNome(e.target.value)} />
+                <Input placeholder="Nome completo do responsável" value={guardian.nome} onChange={(e) => setGuardianField("nome", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>CPF do Responsável</Label>
-                <Input placeholder="000.000.000-00" value={respCpf} onChange={(e) => setRespCpf(maskCPF(e.target.value))} />
+                <Input placeholder="000.000.000-00" value={guardian.cpf} onChange={(e) => setGuardianField("cpf", maskCPF(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>RG do Responsável</Label>
-                <Input placeholder="00.000.000-0" value={respRg} onChange={(e) => setRespRg(maskRG(e.target.value))} />
+                <Input placeholder="00.000.000-0" value={guardian.rg} onChange={(e) => setGuardianField("rg", maskRG(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>Parentesco</Label>
-                <Select value={respParentesco || "none"} onValueChange={(v) => setRespParentesco(v === "none" ? "" : v)}>
+                <Select value={guardian.parentesco || "none"} onValueChange={(v) => setGuardianField("parentesco", v === "none" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -557,11 +253,11 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label>Telefone do Responsável</Label>
-                <Input placeholder="(00) 00000-0000" value={respTelefone} onChange={(e) => setRespTelefone(maskPhone(e.target.value))} />
+                <Input placeholder="(00) 00000-0000" value={guardian.telefone} onChange={(e) => setGuardianField("telefone", maskPhone(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>E-mail do Responsável</Label>
-                <Input type="email" placeholder="email@exemplo.com" value={respEmail} onChange={(e) => setRespEmail(e.target.value)} />
+                <Input type="email" placeholder="email@exemplo.com" value={guardian.email} onChange={(e) => setGuardianField("email", e.target.value)} />
               </div>
 
               {/* Guardian Address */}
@@ -575,31 +271,31 @@ const PacienteForm = () => {
               </div>
               <div className="space-y-2">
                 <Label>CEP</Label>
-                <Input placeholder="00000-000" value={respCep} onChange={(e) => { const v = maskCEP(e.target.value); setRespCep(v); fetchAddressFor(v, "responsavel"); }} />
+                <Input placeholder="00000-000" value={guardian.cep} onChange={(e) => { const v = maskCEP(e.target.value); setGuardianField("cep", v); fetchAddressFor(v, "responsavel"); }} />
               </div>
               <div className="sm:col-span-2 space-y-2">
                 <Label>Rua / Logradouro</Label>
-                <Input placeholder="Nome da rua" value={respRua} onChange={(e) => setRespRua(e.target.value)} />
+                <Input placeholder="Nome da rua" value={guardian.rua} onChange={(e) => setGuardianField("rua", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Número</Label>
-                <Input placeholder="123" value={respNumero} onChange={(e) => setRespNumero(e.target.value)} />
+                <Input placeholder="123" value={guardian.numero} onChange={(e) => setGuardianField("numero", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Complemento</Label>
-                <Input placeholder="Apto, Bloco, etc." value={respComplemento} onChange={(e) => setRespComplemento(e.target.value)} />
+                <Input placeholder="Apto, Bloco, etc." value={guardian.complemento} onChange={(e) => setGuardianField("complemento", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Bairro</Label>
-                <Input placeholder="Bairro" value={respBairro} onChange={(e) => setRespBairro(e.target.value)} />
+                <Input placeholder="Bairro" value={guardian.bairro} onChange={(e) => setGuardianField("bairro", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Cidade</Label>
-                <Input placeholder="Cidade" value={respCidade} onChange={(e) => setRespCidade(e.target.value)} />
+                <Input placeholder="Cidade" value={guardian.cidade} onChange={(e) => setGuardianField("cidade", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Estado (UF)</Label>
-                <Input placeholder="SP" value={respEstado} onChange={(e) => setRespEstado(e.target.value)} maxLength={2} />
+                <Input placeholder="SP" value={guardian.estado} onChange={(e) => setGuardianField("estado", e.target.value)} maxLength={2} />
               </div>
             </CardContent>
           )}
@@ -614,33 +310,70 @@ const PacienteForm = () => {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="cep">CEP</Label>
-              <Input id="cep" placeholder="00000-000" value={cep} onChange={(e) => { const v = maskCEP(e.target.value); setCep(v); fetchAddressFor(v, "paciente"); }} />
+              <Input id="cep" placeholder="00000-000" value={address.cep} onChange={(e) => { const v = maskCEP(e.target.value); setAddressField("cep", v); fetchAddressFor(v, "paciente"); }} />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="rua">Rua / Logradouro</Label>
-              <Input id="rua" placeholder="Nome da rua" value={rua} onChange={(e) => setRua(e.target.value)} />
+              <Input id="rua" placeholder="Nome da rua" value={address.rua} onChange={(e) => setAddressField("rua", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="numero">Número</Label>
-              <Input id="numero" placeholder="123" value={numero} onChange={(e) => setNumero(e.target.value)} />
+              <Input id="numero" placeholder="123" value={address.numero} onChange={(e) => setAddressField("numero", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="complemento">Complemento</Label>
-              <Input id="complemento" placeholder="Apto, Bloco, etc." value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+              <Input id="complemento" placeholder="Apto, Bloco, etc." value={address.complemento} onChange={(e) => setAddressField("complemento", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="bairro">Bairro</Label>
-              <Input id="bairro" placeholder="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+              <Input id="bairro" placeholder="Bairro" value={address.bairro} onChange={(e) => setAddressField("bairro", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="cidade">Cidade</Label>
-              <Input id="cidade" placeholder="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
+              <Input id="cidade" placeholder="Cidade" value={address.cidade} onChange={(e) => setAddressField("cidade", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="estado">Estado (UF)</Label>
-              <Input id="estado" placeholder="SP" value={estado} onChange={(e) => setEstado(e.target.value)} maxLength={2} />
+              <Input id="estado" placeholder="SP" value={address.estado} onChange={(e) => setAddressField("estado", e.target.value)} maxLength={2} />
             </div>
           </CardContent>
+        </Card>
+
+        {/* Nota Fiscal */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Nota Fiscal</CardTitle>
+                <CardDescription>Dados para emissão de nota fiscal quando solicitada pelo paciente</CardDescription>
+              </div>
+              <Switch checked={invoice.solicitaNf} onCheckedChange={(v) => setInvoiceField("solicitaNf", v)} />
+            </div>
+          </CardHeader>
+          {invoice.solicitaNf && (
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2 space-y-2">
+                <Label>Razão Social / Nome</Label>
+                <Input value={invoice.razaoSocial} onChange={(e) => setInvoiceField("razaoSocial", e.target.value)} placeholder="Nome ou Razão Social para NF" />
+              </div>
+              <div className="space-y-2">
+                <Label>CPF/CNPJ para NF</Label>
+                <Input value={invoice.cnpjCpf} onChange={(e) => setInvoiceField("cnpjCpf", e.target.value)} placeholder="CPF ou CNPJ" />
+              </div>
+              <div className="space-y-2">
+                <Label>Inscrição Estadual</Label>
+                <Input value={invoice.inscricaoEstadual} onChange={(e) => setInvoiceField("inscricaoEstadual", e.target.value)} placeholder="Inscrição estadual (se houver)" />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label>Endereço para NF</Label>
+                <Input value={invoice.endereco} onChange={(e) => setInvoiceField("endereco", e.target.value)} placeholder="Endereço completo para a nota fiscal" />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail para envio da NF</Label>
+                <Input type="email" value={invoice.email} onChange={(e) => setInvoiceField("email", e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Clinical */}
@@ -652,20 +385,34 @@ const PacienteForm = () => {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Modalidade *</Label>
-              <Select value={tipoAtendimento} onValueChange={(v) => setTipoAtendimento(v)}>
+              <Select value={clinical.tipoAtendimento} onValueChange={(v) => setClinicalField("tipoAtendimento", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a modalidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(modalidades || []).map((mod: any) => (
+                  {(modalidades || []).map((mod: { id: string; nome: string }) => (
                     <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Convênio</Label>
+              <Select value={clinical.convenioId || "none"} onValueChange={(v) => setClinicalField("convenioId", v === "none" ? null : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um convênio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {(convenios || []).map((conv: { id: string; nome: string }) => (
+                    <SelectItem key={conv.id} value={conv.id}>{conv.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as "ativo" | "inativo")}>
+              <Select value={clinical.status} onValueChange={(v) => setClinicalField("status", v as "ativo" | "inativo")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -677,14 +424,43 @@ const PacienteForm = () => {
             </div>
             <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="observacoes">Observações Clínicas</Label>
-              <Textarea id="observacoes" placeholder="Anotações sobre o paciente, histórico clínico, restrições..." rows={4} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+              <Textarea id="observacoes" placeholder="Anotações sobre o paciente, histórico clínico, restrições..." rows={4} value={clinical.observacoes} onChange={(e) => setClinicalField("observacoes", e.target.value)} />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* LGPD Consent */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <div>
+                  <CardTitle className="text-lg">Consentimento LGPD</CardTitle>
+                  <CardDescription>Lei Geral de Proteção de Dados Pessoais</CardDescription>
+                </div>
+              </div>
+              <Switch checked={lgpdConsentimento} onCheckedChange={setLgpdConsentimento} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Ao ativar, o paciente declara que autoriza a coleta, armazenamento e processamento
+              de seus dados pessoais e de saúde para fins de atendimento clínico, conforme a
+              Lei nº 13.709/2018 (LGPD). Os dados serão utilizados exclusivamente para
+              prontuário eletrônico, agendamentos e comunicação relacionada ao tratamento.
+            </p>
+            {lgpdConsentimento && (
+              <p className="text-xs text-green-600 mt-2 font-medium">
+                ✓ Consentimento registrado
+              </p>
+            )}
           </CardContent>
         </Card>
 
         <div className="flex gap-3 justify-end pb-12">
           <Button type="button" variant="outline" onClick={() => navigate("/pacientes")}>Cancelar</Button>
-          <Button type="submit" disabled={loading || !nome.trim() || !telefone.trim()}>
+          <Button type="submit" disabled={loading || !basic.nome.trim() || !basic.telefone.trim()}>
             {loading ? "Salvando..." : isEditing ? "Atualizar Paciente" : "Salvar e Gerar Convite"}
           </Button>
         </div>

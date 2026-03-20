@@ -1,128 +1,68 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { useModalidades, useCreateModalidade, useUpdateModalidade, useDeleteModalidade } from "@/modules/appointments/hooks/useModalidades";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Plus, Pencil, Layers, Trash2 } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Modalidade {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  ativo: boolean;
-  created_at: string;
-}
+import type { Modalidade } from "@/types/entities";
 
 const Modalidades = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { activeClinicId } = useClinic();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [ativo, setAtivo] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: modalidades = [], isLoading } = useQuery({
-    queryKey: ["modalidades"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("modalidades")
-        .select("*")
-        .order("nome");
-      if (error) throw error;
-      return data as Modalidade[];
-    },
-  });
+  const { data: modalidades = [], isLoading } = useModalidades();
+  const createMutation = useCreateModalidade();
+  const updateMutation = useUpdateModalidade();
+  const deleteMutation = useDeleteModalidade();
 
   const openNew = () => {
-    setEditingId(null);
-    setNome("");
-    setDescricao("");
-    setAtivo(true);
-    setDialogOpen(true);
+    setEditingId(null); setNome(""); setDescricao(""); setAtivo(true); setDialogOpen(true);
   };
 
   const openEdit = (m: Modalidade) => {
-    setEditingId(m.id);
-    setNome(m.nome);
-    setDescricao(m.descricao || "");
-    setAtivo(m.ativo);
-    setDialogOpen(true);
+    setEditingId(m.id); setNome(m.nome); setDescricao(m.descricao || ""); setAtivo(m.ativo); setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!user || !nome.trim()) return;
-    setLoading(true);
-
-    try {
-      if (editingId) {
-        const { error } = await supabase
-          .from("modalidades")
-          .update({ nome: nome.trim(), descricao: descricao || null, ativo })
-          .eq("id", editingId);
-        if (error) throw error;
-        toast({ title: "Modalidade atualizada!" });
-      } else {
-        const { error } = await supabase
-          .from("modalidades")
-          .insert({ nome: nome.trim(), descricao: descricao || null, ativo, created_by: user.id });
-        if (error) throw error;
-        toast({ title: "Modalidade criada!" });
-      }
-      queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-      setDialogOpen(false);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
-    }
-
-    setLoading(false);
-  };
-
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from("modalidades").delete().eq("id", deleteId);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, nome, descricao, ativo }, { onSuccess: () => setDialogOpen(false) });
     } else {
-      toast({ title: "Modalidade excluída!" });
-      queryClient.invalidateQueries({ queryKey: ["modalidades"] });
+      createMutation.mutate({ nome, descricao, ativo, userId: user.id, clinicId: activeClinicId }, { onSuccess: () => setDialogOpen(false) });
     }
-    setDeleteId(null);
   };
+
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteMutation.mutate(deleteId, { onSuccess: () => setDeleteId(null) });
+  };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -160,13 +100,9 @@ const Modalidades = () => {
                 {modalidades.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.nome}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {m.descricao || "—"}
-                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">{m.descricao || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={m.ativo ? "default" : "outline"}>
-                        {m.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
+                      <Badge variant={m.ativo ? "default" : "outline"}>{m.ativo ? "Ativo" : "Inativo"}</Badge>
                     </TableCell>
                     <TableCell className="w-[120px]">
                       <div className="flex gap-1">
@@ -206,8 +142,8 @@ const Modalidades = () => {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={loading || !nome.trim()}>
-                {loading ? "Salvando..." : "Salvar"}
+              <Button onClick={handleSave} disabled={isSaving || !nome.trim()}>
+                {isSaving ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           </div>
@@ -218,9 +154,7 @@ const Modalidades = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir modalidade?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A modalidade será removida permanentemente.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. A modalidade será removida permanentemente.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

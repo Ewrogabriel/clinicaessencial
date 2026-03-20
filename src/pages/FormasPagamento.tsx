@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Plus, Edit2, Trash2, QrCode } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const FormasPagamento = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -95,6 +95,7 @@ const FormasPagamento = () => {
       setPixDialogOpen(false);
       setSelectedFormaId(null);
       setPixForm({ chave_pix: "", tipo_chave: "cpf", nome_beneficiario: "" });
+      refetch();
     },
     onError: (err: any) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });

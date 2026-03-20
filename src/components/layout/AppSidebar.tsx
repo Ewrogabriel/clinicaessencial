@@ -1,126 +1,67 @@
 import {
-  LayoutDashboard,
-  Users,
-  Calendar,
-  ClipboardList,
-  DollarSign,
-  BarChart3,
-  LogOut,
-  Activity,
-  Layers,
-  UserCog,
-  Receipt,
-  Brain,
-  Send,
-  Megaphone,
-  Clock,
-  FileText,
-  Tag,
-  CreditCard,
-  User,
-  Calculator,
-  MessageSquare,
-  Cake,
-  TrendingUp,
-  Lightbulb,
+  LayoutDashboard, Users, Calendar, ClipboardList, DollarSign, BarChart3,
+  LogOut, Activity, Layers, UserCog, Receipt, Send, Megaphone,
+  FileText, Tag, CreditCard, User, Calculator, MessageSquare,
+  FileCheck, Handshake, Video,
+  Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
+  Clock, Settings2, CheckCheck,
 } from "lucide-react";
+import { memo } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useI18n } from "@/modules/shared/hooks/useI18n";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { ClinicSwitcher } from "@/components/layout/ClinicSwitcher";
 
-/* ── Admin / Gestor menus ── */
-const menuPrincipal = [
-  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Agenda", url: "/agenda", icon: Calendar },
-  { title: "Pacientes", url: "/pacientes", icon: Users },
-  { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
-];
+/* Resource key → route mapping (for permission-based menus) */
+const RESOURCE_ROUTES: Record<string, string> = {
+  agenda: "/agenda", pacientes: "/pacientes", prontuarios: "/prontuarios",
+  modalidades: "/modalidades", profissionais: "/profissionais",
+  disponibilidade: "/disponibilidade", financeiro: "/financeiro",
+  matriculas: "/matriculas", comissoes: "/comissoes",
+  contratos: "/contratos", relatorios: "/relatorios",
+  avisos: "/avisos", mensagens: "/mensagens", aniversariantes: "/aniversariantes",
+  clinica: "/clinica", dicas_diarias: "/dicas-diarias",
+  automacoes: "/automacoes",
+  precos_planos: "/precos-planos", produtos: "/produtos",
+};
 
-const menuServicos = [
-  { title: "Modalidades", url: "/modalidades", icon: Layers },
-  { title: "Profissionais", url: "/profissionais", icon: UserCog },
-  { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
-];
+const RESOURCE_ICONS: Record<string, any> = {
+  agenda: Calendar, pacientes: Users, prontuarios: ClipboardList,
+  modalidades: Layers, profissionais: UserCog, disponibilidade: Clock,
+  financeiro: DollarSign, matriculas: Receipt, comissoes: Calculator,
+  contratos: FileText, relatorios: BarChart3, avisos: Megaphone,
+  mensagens: MessageSquare, aniversariantes: Users, clinica: Activity,
+  dicas_diarias: Activity, automacoes: Send,
+  precos_planos: Tag, produtos: Tag,
+};
 
-const menuFinanceiro = [
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Matrículas", url: "/matriculas", icon: Receipt },
-  { title: "Planos", url: "/planos", icon: ClipboardList },
-  { title: "Produtos", url: "/produtos", icon: Tag },
-  { title: "Comissões", url: "/comissoes", icon: Calculator },
-  { title: "Preços & Descontos", url: "/precos-planos", icon: Tag },
-  { title: "Despesas", url: "/despesas", icon: Receipt },
-  { title: "Contratos", url: "/contratos", icon: FileText },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-];
+const RESOURCE_I18N_KEYS: Record<string, string> = {
+  agenda: "nav.agenda", pacientes: "nav.patients", prontuarios: "nav.records",
+  modalidades: "nav.modalities", profissionais: "nav.professionals",
+  disponibilidade: "nav.availability", financeiro: "nav.finance",
+  matriculas: "nav.enrollments", comissoes: "nav.commissions",
+  contratos: "nav.contracts", relatorios: "nav.reports", avisos: "nav.notices",
+  mensagens: "nav.messages", aniversariantes: "nav.birthdays",
+  clinica: "nav.clinic_data", dicas_diarias: "nav.daily_tips",
+  automacoes: "nav.automations",
+  precos_planos: "nav.prices", produtos: "nav.products",
+};
 
-const menuComunicacao = [
-  { title: "Mural de Avisos", url: "/avisos", icon: Megaphone },
-  { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
-  { title: "Aniversariantes", url: "/aniversariantes", icon: Cake },
-  { title: "Dados da Clínica", url: "/clinica", icon: Activity },
-];
-
-const menuIA = [
-  { title: "Dicas Diárias", url: "/dicas-diarias", icon: Lightbulb },
-  { title: "Inteligência", url: "/inteligencia", icon: Brain },
-  { title: "Automações", url: "/automacoes", icon: Send },
-  { title: "Indicadores", url: "/indicadores", icon: TrendingUp },
-];
-
-/* ── Professional menu ── */
-const menuProfissional = [
-  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
-  { title: "Check-in", url: "/check-in", icon: Users },
-  { title: "Pacientes", url: "/pacientes", icon: Users },
-  { title: "Prontuários", url: "/prontuarios", icon: ClipboardList },
-  { title: "Disponibilidade", url: "/disponibilidade", icon: Clock },
-];
-
-const menuProfFinanceiro = [
-  { title: "Minhas Comissões", url: "/comissoes", icon: Calculator },
-];
-
-const menuProfComunicacao = [
-  { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
-];
-
-const menuProfPerfil = [
-  { title: "Meu Perfil", url: "/perfil-profissional", icon: User },
-];
-
-/* ── Patient menu ── */
-const menuPatient = [
-  { title: "Início", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Minha Agenda", url: "/minha-agenda", icon: Calendar },
-  { title: "Meus Planos", url: "/meus-planos", icon: ClipboardList },
-  { title: "Histórico", url: "/meu-historico", icon: ClipboardList },
-  { title: "Pagamentos", url: "/meus-pagamentos", icon: CreditCard },
-  { title: "Meu Contrato", url: "/contratos", icon: FileText },
-  { title: "Meu Perfil", url: "/meu-perfil", icon: Users },
-];
-
-export function AppSidebar() {
+export const AppSidebar = memo(function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, isAdmin, isGestor, isPatient, isProfissional } = useAuth();
-  const isStaff = isAdmin || isGestor || isProfissional;
+  const { profile, signOut, isAdmin, isGestor, isPatient, isProfissional, isSecretario, isMaster, hasPermission } = useAuth();
+  const { t } = useI18n();
+  const isStaff = isAdmin || isGestor || isProfissional || isSecretario || isMaster;
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -129,23 +70,86 @@ export function AppSidebar() {
     navigate("/login");
   };
 
-  const renderGroup = (label: string, items: typeof menuPrincipal) => (
-    <SidebarGroup>
+  /* ── Menus by prescribed UX structure ── */
+
+  // Patients group
+  const menuPacientes = [
+    { title: t("nav.patients"), url: "/pacientes", icon: Users },
+    { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
+    { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
+  ];
+
+  // Scheduling group
+  const menuAgendamentos = [
+    { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
+    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
+    { title: "Confirmações", url: "/confirmacoes-dia", icon: CheckCheck },
+    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
+    { title: t("nav.modalities"), url: "/modalidades", icon: Layers },
+    { title: t("nav.availability"), url: "/disponibilidade", icon: Clock },
+  ];
+
+  // Professionals group
+  const menuProfissionais = [
+    { title: t("nav.team"), url: "/profissionais", icon: UserCog },
+  ];
+
+  // Finance group
+  const menuFinanceiro = [
+    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
+    { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
+    { title: t("nav.reports"), url: "/relatorios", icon: BarChart3 },
+  ];
+
+  // Clinic group
+  const menuClinica = [
+    { title: t("nav.clinic_payment"), url: "/clinica", icon: Activity },
+    { title: t("nav.units"), url: "/gestao-clinicas", icon: Building2 },
+    { title: t("nav.pre_registrations"), url: "/pre-cadastros", icon: UserCog },
+    { title: t("nav.requests"), url: "/solicitacoes-alteracao", icon: FileCheck },
+    { title: t("nav.inventory"), url: "/inventario", icon: Tag },
+  ];
+
+  // Settings group
+  const menuConfiguracoes = [
+    { title: t("nav.partners"), url: "/convenios", icon: Handshake },
+    { title: t("nav.contracts"), url: "/contratos", icon: FileText },
+    { title: t("nav.automations"), url: "/automacoes", icon: Send },
+    { title: "Marketing", url: "/marketing", icon: Target },
+    { title: t("nav.goals"), url: "/metas", icon: Trophy },
+    { title: t("nav.gamification"), url: "/gamificacao-admin", icon: Trophy },
+    { title: t("nav.import"), url: "/importacao", icon: Upload },
+    { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
+    { title: t("nav.notices"), url: "/avisos", icon: Megaphone },
+  ];
+
+  const menuMaster = [
+    { title: t("nav.master_panel"), url: "/master", icon: Crown },
+  ];
+
+  const menuPatient = [
+    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
+    { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
+    { title: t("nav.my_plans"), url: "/meus-planos", icon: ClipboardList },
+    { title: t("nav.my_history"), url: "/meu-historico", icon: ClipboardList },
+    { title: t("nav.my_payments"), url: "/meus-pagamentos", icon: CreditCard },
+    { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
+    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
+    { title: t("nav.partners"), url: "/convenios", icon: Handshake },
+    { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
+    { title: t("nav.my_contract"), url: "/contratos", icon: FileText },
+    { title: t("nav.my_profile"), url: "/meu-perfil", icon: Users },
+  ];
+
+  const renderGroup = (label: string, items: { title: string; url: string; icon: any }[]) => (
+    <SidebarGroup key={label}>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive(item.url)}
-                tooltip={item.title}
-              >
-                <NavLink
-                  to={item.url}
-                  end={item.url === "/dashboard"}
-                  activeClassName="bg-sidebar-accent text-sidebar-primary"
-                >
+            <SidebarMenuItem key={item.url}>
+              <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                <NavLink to={item.url} end={item.url === "/dashboard"} activeClassName="bg-sidebar-accent text-sidebar-primary">
                   <item.icon className="h-4 w-4" />
                   <span>{item.title}</span>
                 </NavLink>
@@ -157,6 +161,51 @@ export function AppSidebar() {
     </SidebarGroup>
   );
 
+  // Professional menu groups
+  const menuProfissionalClinico = [
+    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
+    { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
+    { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
+    { title: t("nav.patients"), url: "/pacientes", icon: Users },
+    { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
+    { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
+    { title: t("nav.session_plans"), url: "/planos", icon: ClipboardList },
+    { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
+    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
+  ];
+
+  const menuProfissionalAdmin = [
+    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
+    { title: t("nav.products"), url: "/inventario", icon: Tag },
+  ];
+
+  const menuProfissionalFinanceiro = [
+    { title: "Minhas Comissões", url: "/comissoes", icon: Calculator },
+  ];
+
+  const menuProfissionalConfig = [
+    { title: t("nav.contracts"), url: "/contratos", icon: FileText },
+    { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
+    { title: t("nav.notices"), url: "/avisos", icon: Megaphone },
+    { title: t("nav.my_profile"), url: "/perfil-profissional", icon: User },
+  ];
+
+  // Build permission-based menu for non-admin staff (secretário)
+  const buildPermissionMenu = () => {
+    const items: { title: string; url: string; icon: any }[] = [
+      { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
+    ];
+    Object.entries(RESOURCE_ROUTES).forEach(([resource, route]) => {
+      if (hasPermission(resource)) {
+        const i18nKey = RESOURCE_I18N_KEYS[resource] || resource;
+        const label = resource === "agenda" && isProfissional ? t("nav.my_agenda") : t(i18nKey);
+        const url = resource === "agenda" && isProfissional ? "/minha-agenda" : route;
+        items.push({ title: label, url, icon: RESOURCE_ICONS[resource] || Activity });
+      }
+    });
+    return items;
+  };
+
   return (
     <Sidebar collapsible="icon">
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
@@ -165,60 +214,60 @@ export function AppSidebar() {
         </div>
         {!collapsed && (
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">
-              Essencial
-            </span>
-            <span className="text-[11px] text-sidebar-foreground/60">
-              FisioPilates
-            </span>
+            <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">Essencial</span>
+            <span className="text-[11px] text-sidebar-foreground/60">Clínicas</span>
           </div>
         )}
       </div>
 
+      <ClinicSwitcher collapsed={collapsed} />
+
       <SidebarContent>
+        {isMaster && renderGroup(t("group.master"), menuMaster)}
         {(isAdmin || isGestor) ? (
           <>
-            {renderGroup("Principal", menuPrincipal)}
-            {renderGroup("Serviços", menuServicos)}
-            {renderGroup("Financeiro & Gestão", menuFinanceiro)}
-            {renderGroup("Comunicação", menuComunicacao)}
-            {renderGroup("IA & Automação", menuIA)}
-            {/* If admin is also a professional, show their profile/commission links */}
-            {isProfissional && (
-              <>
-                {renderGroup("Meu Perfil Profissional", menuProfPerfil)}
-              </>
-            )}
+            {renderGroup("Início", [{ title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard }])}
+            {renderGroup("Pacientes", menuPacientes)}
+            {renderGroup("Agendamentos", menuAgendamentos)}
+            {renderGroup("Profissionais", menuProfissionais)}
+            {renderGroup("Financeiro", menuFinanceiro)}
+            {renderGroup("Clínica", menuClinica)}
+            {renderGroup("Configurações", menuConfiguracoes)}
+            {isProfissional && renderGroup(t("group.profile"), [
+              { title: t("nav.my_profile"), url: "/perfil-profissional", icon: User },
+            ])}
           </>
         ) : isProfissional ? (
           <>
-            {renderGroup("Principal", menuProfissional)}
-            {renderGroup("Financeiro", menuProfFinanceiro)}
-            {renderGroup("Comunicação", menuProfComunicacao)}
-            {renderGroup("Perfil", menuProfPerfil)}
+            {renderGroup("Clínico", menuProfissionalClinico)}
+            {renderGroup("Administrativo", menuProfissionalAdmin)}
+            {renderGroup("Financeiro", menuProfissionalFinanceiro)}
+            {renderGroup("Configurações", menuProfissionalConfig)}
           </>
-        ) : (
-          renderGroup("Meu Portal", menuPatient)
-        )}
+        ) : isSecretario ? (
+          <>
+            {renderGroup(t("group.menu"), buildPermissionMenu())}
+          </>
+        ) : isPatient ? (
+          renderGroup(t("group.my_portal"), menuPatient)
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter>
         <SidebarMenu>
           {!collapsed && profile && (
             <div className="px-3 py-2 mb-2">
-              <p className="text-xs text-sidebar-foreground/60 truncate">
-                {profile.nome}
-              </p>
+              <p className="text-xs text-sidebar-foreground/60 truncate">{profile.nome}</p>
             </div>
           )}
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} tooltip="Sair">
+            <SidebarMenuButton onClick={handleSignOut} tooltip={t("nav.logout")}>
               <LogOut className="h-4 w-4" />
-              <span>Sair</span>
+              <span>{t("nav.logout")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
-}
+});

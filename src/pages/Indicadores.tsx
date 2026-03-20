@@ -36,7 +36,10 @@ const getAgeDistribution = (pacientes: any[]) => {
   return counts.filter(c => c.value > 0);
 };
 
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+
 export default function Indicadores() {
+  const { activeClinicId } = useClinic();
   const agora = new Date();
   const mesAnterior = subMonths(agora, 1);
 
@@ -90,14 +93,16 @@ export default function Indicadores() {
 
   // Taxa de Ocupação Real
   const { data: ocupacao = { agendados: 0, capacidade: 0 } } = useQuery({
-    queryKey: ["taxa-ocupacao"],
+    queryKey: ["taxa-ocupacao", activeClinicId],
     queryFn: async () => {
-      const { data: agendamentos } = await supabase
+      let q = supabase
         .from("agendamentos")
         .select("id")
         .gte("data_horario", startOfMonth(agora).toISOString())
         .lte("data_horario", endOfMonth(agora).toISOString())
         .in("status", ["agendado", "confirmado"]);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data: agendamentos } = await q;
 
       // Estimar capacidade baseado em 5 horários por dia x 20 dias úteis
       const capacidade = 100;
@@ -148,15 +153,16 @@ export default function Indicadores() {
 
   // Consultas Realizadas
   const { data: consultasRealizadas = 0 } = useQuery({
-    queryKey: ["consultas-realizadas"],
+    queryKey: ["consultas-realizadas", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("agendamentos")
         .select("id")
         .in("status", ["confirmado", "realizado"])
         .gte("data_horario", startOfMonth(agora).toISOString())
         .lte("data_horario", endOfMonth(agora).toISOString());
-
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data || []).length;
     },
@@ -166,19 +172,30 @@ export default function Indicadores() {
   const { data: pacientesTotal = [] } = useQuery({
     queryKey: ["pacientes-total"],
     queryFn: async () => {
-      const { data } = await (supabase.from("pacientes") as any).select("*");
+      const { data } = await supabase.from("pacientes").select("data_nascimento");
       return data || [];
     },
   });
 
   const { data: financeData } = useQuery({
-    queryKey: ["indicadores-finance"],
+    queryKey: ["indicadores-finance", activeClinicId],
     queryFn: async () => {
       const inicioMesStr = startOfMonth(agora).toISOString().split('T')[0];
       const fimMesStr = endOfMonth(agora).toISOString().split('T')[0];
-      const { data: pagamentos } = await (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMesStr).lte("data_pagamento", fimMesStr);
-      const { data: despesas } = await (supabase.from("expenses") as any).select("valor, status");
-      const { data: comissoes } = await (supabase.from("commissions") as any).select("valor");
+
+      let qPag = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", inicioMesStr).lte("data_pagamento", fimMesStr);
+      let qDesp = supabase.from("expenses").select("valor, status");
+      let qCom = supabase.from("commissions").select("valor");
+
+      if (activeClinicId) {
+        qPag = qPag.eq("clinic_id", activeClinicId);
+        qDesp = qDesp.eq("clinic_id", activeClinicId);
+        qCom = qCom.eq("clinic_id", activeClinicId);
+      }
+
+      const [{ data: pagamentos }, { data: despesas }, { data: comissoes }] = await Promise.all([
+        qPag, qDesp, qCom
+      ]);
 
       const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
       const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc: number, d: any) => acc + Number(d.valor), 0) || 0;
@@ -189,10 +206,12 @@ export default function Indicadores() {
   });
 
   const { data: frequencyRanking = [] } = useQuery({
-    queryKey: ["indicadores-frequency-ranking"],
+    queryKey: ["indicadores-frequency-ranking", activeClinicId],
     queryFn: async () => {
-      const { data: agendamentos } = await (supabase.from("agendamentos") as any)
+      let qFreq = (supabase.from("agendamentos") as any)
         .select("paciente_id, status, pacientes(nome)");
+      if (activeClinicId) qFreq = qFreq.eq("clinic_id", activeClinicId);
+      const { data: agendamentos } = await qFreq;
       if (!agendamentos) return [];
 
       const stats: Record<string, { nome: string; total: number; cancelados: number; realizados: number }> = {};
@@ -420,8 +439,8 @@ export default function Indicadores() {
                 {frequencyRanking.map((p: any, i: number) => (
                   <div key={p.id} className="flex items-center gap-4 p-3 rounded-lg border bg-muted/20">
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-700" :
-                        i === 1 ? "bg-gray-100 text-gray-600" :
-                          i === 2 ? "bg-orange-100 text-orange-700" : "bg-muted text-muted-foreground"
+                      i === 1 ? "bg-gray-100 text-gray-600" :
+                        i === 2 ? "bg-orange-100 text-orange-700" : "bg-muted text-muted-foreground"
                       }`}>
                       {i + 1}º
                     </div>

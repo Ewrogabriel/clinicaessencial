@@ -1,17 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
+import { AdminOnboardingWizard } from "@/components/onboarding/AdminOnboardingWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Activity, AlertTriangle, ArrowRight, Trophy,
   CalendarCheck, Clock, TrendingUp, Lightbulb, PartyPopper,
-  CheckCircle2, XCircle, RefreshCw, MessageCircle
+  CheckCircle2, XCircle, RefreshCw, MessageCircle, UserPlus
 } from "lucide-react";
+import { DailyTipsCard } from "@/components/dashboard/DailyTipsCard";
+import { RequestsCard } from "@/components/dashboard/RequestsCard";
+import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
+import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
+import { DashboardAgenda } from "@/components/dashboard/DashboardAgenda";
+import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { format, startOfDay, endOfDay, eachDayOfInterval, getDay, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Dialog,
@@ -26,131 +36,209 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { ClinicReportButton } from "@/components/reports/ClinicReportButton";
+import { AIKpiInsights } from "@/components/reports/AIKpiInsights";
+import { usePacientes } from "@/modules/shared/hooks/usePacientes";
+import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
+
+const ADMIN_DEFAULT_CARDS: DashboardCard[] = [
+  { id: "today-agenda", label: "Agenda de Hoje", visible: true },
+  { id: "tips", label: "Dicas do Dia", visible: true },
+  { id: "stats", label: "Indicadores (KPIs)", visible: true },
+  { id: "ai-insights", label: "Insights IA", visible: true },
+  { id: "requests", label: "Solicitações", visible: true },
+  { id: "convenios", label: "Convênios & Parceiros", visible: true },
+  { id: "birthdays", label: "Aniversariantes", visible: true },
+  { id: "chart", label: "Gráfico Mensal", visible: true },
+  { id: "past-agenda", label: "Sessões Anteriores", visible: true },
+  { id: "recent-patients", label: "Pacientes Recentes", visible: true },
+];
 
 const tipoLabels: Record<string, string> = {
   fisioterapia: "Fisioterapia",
   pilates: "Pilates",
   rpg: "RPG",
+  psicologia: "Psicologia",
+  nutricao: "Nutrição",
+  fonoaudiologia: "Fonoaudiologia",
+  estetica: "Estética",
+  acupuntura: "Acupuntura",
+  terapia_ocupacional: "Terapia Ocupacional",
+  outro: "Outro",
 };
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { profile, isAdmin, isGestor, loading } = useAuth();
+  const { profile, isAdmin, isGestor, isProfissional, isSecretario, loading } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
   const [currentTime, setCurrentTime] = useState(new Date());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("admin", ADMIN_DEFAULT_CARDS);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("pacientes") as any)
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { pacientes, isLoading: isLoadingPacientes } = usePacientes();
 
   const hoje = new Date();
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
 
   const { data: financeData } = useQuery({
-    queryKey: ["dashboard-finance", inicioMes],
+    queryKey: ["dashboard-finance", inicioMes, activeClinicId],
     queryFn: async () => {
-      const { data: pagamentos } = await (supabase.from("pagamentos") as any).select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
-      const { data: despesas } = await (supabase.from("expenses") as any).select("valor, status");
-      const { data: comissoes } = await (supabase.from("commissions") as any).select("valor");
+      let pQ = supabase.from("pagamentos").select("valor, status").gte("data_pagamento", inicioMes).lte("data_pagamento", fimMes);
+      let dQ = supabase.from("expenses").select("valor, status");
+      let cQ = supabase.from("commissions").select("valor");
+      if (activeClinicId) {
+        pQ = pQ.eq("clinic_id", activeClinicId);
+        dQ = dQ.eq("clinic_id", activeClinicId);
+        cQ = cQ.eq("clinic_id", activeClinicId);
+      }
+      const { data: pagamentos } = await pQ;
+      const { data: despesas } = await dQ;
+      const { data: comissoes } = await cQ;
 
-      const receita = (pagamentos || [])?.filter((p: any) => p.status === 'pago').reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
-      const custos = (despesas || [])?.filter((d: any) => d.status === 'pago').reduce((acc: number, d: any) => acc + Number(d.valor), 0) || 0;
-      const repasses = (comissoes || [])?.reduce((acc: number, c: any) => acc + Number(c.valor), 0) || 0;
+      const receita = (pagamentos || []).filter((p) => p.status === 'pago').reduce((acc, p) => acc + Number(p.valor), 0);
+      const custos = (despesas || []).filter((d) => d.status === 'pago').reduce((acc, d) => acc + Number(d.valor), 0);
+      const repasses = (comissoes || []).reduce((acc, c) => acc + Number(c.valor), 0);
 
       return { receita, custos, repasses, lucro: receita - custos - repasses };
     },
   });
 
   const { data: alertCount = 0 } = useQuery({
-    queryKey: ["dashboard-alerts"],
+    queryKey: ["dashboard-alerts", activeClinicId],
     queryFn: async () => {
-      const { count } = await (supabase.from("pagamentos") as any)
+      let q = supabase.from("pagamentos")
         .select("id", { count: "exact", head: true })
         .eq("status", "pendente")
         .lte("data_vencimento", new Date().toISOString().split("T")[0]);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { count } = await q;
       return count ?? 0;
     },
   });
 
-  // Today's agenda stats
   const { data: todayStats } = useQuery({
-    queryKey: ["dashboard-today-stats"],
+    queryKey: ["dashboard-today-stats", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      const { data } = await (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("id, status")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       const all = data || [];
       return {
         total: all.length,
-        realizados: all.filter((a: any) => a.status === "realizado").length,
-        confirmados: all.filter((a: any) => a.status === "confirmado" || a.status === "agendado").length,
-        faltas: all.filter((a: any) => a.status === "falta").length,
+        realizados: all.filter((a) => a.status === "realizado").length,
+        confirmados: all.filter((a) => a.status === "confirmado" || a.status === "agendado").length,
+        faltas: all.filter((a) => a.status === "falta").length,
       };
     },
   });
 
   // Occupancy rate (this month)
   const { data: occupancyRate = 0 } = useQuery({
-    queryKey: ["dashboard-occupancy", inicioMes],
+    queryKey: ["dashboard-occupancy", inicioMes, activeClinicId],
     queryFn: async () => {
-      const { data: disp } = await (supabase.from("disponibilidade_profissional") as any)
+      let dispQ = supabase.from("disponibilidade_profissional")
         .select("hora_inicio, hora_fim, max_pacientes, dia_semana")
         .eq("ativo", true);
-      const { data: agendamentosMes } = await (supabase.from("agendamentos") as any)
+      if (activeClinicId) dispQ = dispQ.eq("clinic_id", activeClinicId);
+      const { data: disp } = await dispQ;
+
+      let agQ = supabase.from("agendamentos")
         .select("id")
         .gte("data_horario", `${inicioMes}T00:00:00`)
         .lte("data_horario", `${fimMes}T23:59:59`)
         .in("status", ["agendado", "confirmado", "realizado"]);
+      if (activeClinicId) agQ = agQ.eq("clinic_id", activeClinicId);
+      const { data: agendamentosMes } = await agQ;
 
-      // Estimate total slots per month (availability * ~4 weeks)
-      const totalSlots = (disp || []).reduce((sum: number, d: any) => sum + (d.max_pacientes || 1), 0) * 4;
+      const start = startOfMonth(new Date());
+      const end = endOfMonth(new Date());
+      const daysInMonth = eachDayOfInterval({ start, end });
+      const weekdayCounts: Record<number, number> = {};
+      daysInMonth.forEach(day => {
+        const wd = getDay(day);
+        weekdayCounts[wd] = (weekdayCounts[wd] || 0) + 1;
+      });
+
+      const totalSlots = (disp || []).reduce((sum, d) => {
+        const occurrences = weekdayCounts[d.dia_semana] || 0;
+        return sum + ((d.max_pacientes || 1) * occurrences);
+      }, 0);
+
       if (totalSlots === 0) return 0;
       return Math.min(100, Math.round(((agendamentosMes || []).length / totalSlots) * 100));
     },
   });
+
+  // Monthly sessions chart data (last 6 months)
+  const { data: monthlyChart = [] } = useQuery({
+    queryKey: ["dashboard-monthly-chart", activeClinicId],
+    queryFn: async () => {
+      const months: { label: string; start: string; end: string }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        months.push({
+          label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+          start: d.toISOString().split("T")[0],
+          end: end.toISOString().split("T")[0],
+        });
+      }
+      // Run all 6 month queries in parallel instead of sequentially
+      const rows = await Promise.all(
+        months.map(async (m) => {
+          let q = supabase.from("agendamentos")
+            .select("status")
+            .gte("data_horario", `${m.start}T00:00:00`)
+            .lte("data_horario", `${m.end}T23:59:59`);
+          if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+          const { data } = await q;
+          const all = data || [];
+          return {
+            mes: m.label,
+            realizadas: all.filter((a) => a.status === "realizado").length,
+            faltas: all.filter((a) => a.status === "falta").length,
+            canceladas: all.filter((a) => a.status === "cancelado").length,
+          };
+        })
+      );
+      return rows;
+    },
+  });
   // Ranking de frequência - pacientes que menos cancelam
   const { data: frequencyRanking = [] } = useQuery({
-    queryKey: ["dashboard-frequency-ranking"],
+    queryKey: ["dashboard-frequency-ranking", activeClinicId],
     queryFn: async () => {
-      const { data: agendamentos } = await (supabase.from("agendamentos") as any)
+      let q = supabase.from("agendamentos")
         .select("paciente_id, status, pacientes(nome)");
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data: agendamentos } = await q;
       if (!agendamentos) return [];
 
       const stats: Record<string, { nome: string; total: number; cancelados: number; realizados: number; checkins: number }> = {};
-      agendamentos.forEach((ag: any) => {
+      agendamentos.forEach((ag) => {
         const pid = ag.paciente_id;
         if (!stats[pid]) {
-          stats[pid] = { nome: ag.pacientes?.nome || "?", total: 0, cancelados: 0, realizados: 0, checkins: 0 };
+          const pacNome = ag.pacientes && typeof ag.pacientes === 'object' && 'nome' in ag.pacientes
+            ? (ag.pacientes as { nome: string }).nome : "?";
+          stats[pid] = { nome: pacNome, total: 0, cancelados: 0, realizados: 0, checkins: 0 };
         }
         stats[pid].total++;
         if (ag.status === "cancelado" || ag.status === "falta") stats[pid].cancelados++;
@@ -171,29 +259,41 @@ const Dashboard = () => {
     },
   });
 
-  // Daily tips for professionals - simulated based on day
-  const dicasProfissional = [
-    { id: 1, titulo: "Comunicação Efetiva com Pacientes", conteudo: "Sempre explique o motivo de cada exercício. Pacientes que entendem os benefícios têm maior adesão ao tratamento.", target_role: "profissional" },
-    { id: 2, titulo: "Limite de Uso de Celular", conteudo: "Durante as aulas, minimize o uso de celular. Sua atenção integral cria um ambiente mais profissional e seguro.", target_role: "profissional" },
-    { id: 3, titulo: "Postura Correta no Ensino", conteudo: "Demonstre os exercícios com postura perfeita. Você é um modelo para seus pacientes.", target_role: "profissional" },
-    { id: 4, titulo: "Feedback Positivo", conteudo: "Reconheça o progresso dos pacientes, mesmo pequeno. Feedback positivo aumenta a motivação.", target_role: "profissional" },
-  ];
-  const dailyTips = [dicasProfissional[new Date().getDate() % dicasProfissional.length]];
+  // Role-based tip type
+  const tipRole = isAdmin ? "admin" : isGestor ? "admin" : isSecretario ? "secretario" : "profissional";
 
   // Upcoming Birthdays
   const birthdays: any[] = []; // get_upcoming_birthdays RPC not yet created
 
+  // Pending plan sessions (pendente status)
+  const { data: pendingSessions = [] } = useQuery({
+    queryKey: ["dashboard-pending-sessions", activeClinicId],
+    queryFn: async () => {
+      let q = supabase.from("agendamentos")
+        .select("id, data_horario, status, tipo_atendimento, pacientes(nome), observacoes")
+        .eq("status", "pendente")
+        .order("data_horario", { ascending: true })
+        .limit(10);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Today's Detailed Agenda
   const { data: todayAgenda = [] } = useQuery({
-    queryKey: ["dashboard-today-agenda"],
+    queryKey: ["dashboard-today-agenda", activeClinicId],
     queryFn: async () => {
       const todayStart = startOfDay(new Date()).toISOString();
       const todayEnd = endOfDay(new Date()).toISOString();
-      const { data, error } = await (supabase.from("agendamentos") as any)
-        .select("*, pacientes(nome, telefone), profiles(nome, telefone)")
+      let q = supabase.from("agendamentos")
+        .select("*, pacientes(nome, telefone)")
         .gte("data_horario", todayStart)
         .lte("data_horario", todayEnd)
         .order("data_horario", { ascending: true });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -201,61 +301,45 @@ const Dashboard = () => {
 
   // Past Sessions (Yesterday)
   const { data: pastAgenda = [] } = useQuery({
-    queryKey: ["dashboard-past-agenda"],
+    queryKey: ["dashboard-past-agenda", activeClinicId],
     queryFn: async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const pastStart = startOfDay(yesterday).toISOString();
       const pastEnd = endOfDay(yesterday).toISOString();
-      const { data, error } = await (supabase.from("agendamentos") as any)
-        .select("*, pacientes(nome, telefone), profiles(nome, telefone)")
+      let q = supabase.from("agendamentos")
+        .select("*, pacientes(nome, telefone)")
         .gte("data_horario", pastStart)
         .lte("data_horario", pastEnd)
         .order("data_horario", { ascending: false });
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
   });
 
   // Professionals for the re-assignment dialog
-  const { data: profissionais = [] } = useQuery({
-    queryKey: ["profissionais-dashboard"],
-    queryFn: async () => {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["profissional", "admin", "gestor"]);
-
-      const userIds = roles?.map(r => r.user_id) || [];
-      if (userIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, nome")
-        .in("user_id", userIds);
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { profissionais, isLoading: isLoadingProfissionais } = useProfissionais();
 
   // Quick Action Mutations
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ status }).eq("id", id);
+      const { error } = await supabase.from("agendamentos").update({ status: status as "agendado" | "confirmado" | "realizado" | "cancelado" | "falta" | "pendente" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-today-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-past-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-today-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] });
       toast({ title: "Status atualizado!" });
     },
   });
 
   const updateProfessional = useMutation({
     mutationFn: async ({ id, profissional_id }: { id: string; profissional_id: string }) => {
-      const { error } = await (supabase.from("agendamentos") as any).update({ profissional_id }).eq("id", id);
+      const { error } = await supabase.from("agendamentos").update({ profissional_id }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -277,10 +361,10 @@ const Dashboard = () => {
   const saudacao =
     hoje.getHours() < 12 ? "Bom dia" : hoje.getHours() < 18 ? "Boa tarde" : "Boa noite";
 
-  const ativos = (pacientes || []).filter((p: any) => p.status === "ativo");
-  const recentes = (pacientes || []).slice(0, 5);
+  const ativos = useMemo(() => (pacientes || []).filter((p: any) => p.status === "ativo"), [pacientes]);
+  const recentes = useMemo(() => (pacientes || []).slice(0, 5), [pacientes]);
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       title: "Pacientes Ativos",
       value: String(ativos.length),
@@ -316,10 +400,158 @@ const Dashboard = () => {
       description: alertCount === 0 ? "Nenhum atraso" : `${alertCount} pagamento(s) em atraso`,
       color: alertCount > 0 ? "text-red-600 bg-red-50" : "text-amber-600 bg-amber-50",
     },
-  ];
+  ], [ativos, pacientes, todayStats, occupancyRate, financeData, alertCount]);
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+  const isCardVisible = (id: string) => visibleCards.some(c => c.id === id);
+
+  // Build ordered sections map
+  const renderSection = (cardId: string) => {
+    switch (cardId) {
+      case "tips": return <DailyTipsCard key="tips" tipo={tipRole} />;
+      case "convenios": return <ConvenioCard key="convenios" />;
+      case "birthdays": return birthdays.length > 0 ? (
+        <Card key="birthdays" className="border-pink-200 bg-pink-50/50">
+          <CardHeader className="py-3">
+            <CardTitle className="text-md flex items-center gap-2 text-pink-700">
+              <PartyPopper className="h-5 w-5" /> Aniversariantes da Semana
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="flex flex-wrap gap-2">
+              {birthdays.map((b: any) => (
+                <Badge key={b.id} variant="outline" className="bg-white border-pink-200 text-pink-700 py-1.5 px-3 gap-2 flex items-center cursor-pointer hover:bg-pink-100 transition-colors"
+                  onClick={() => sendBirthdayWishes(b.nome, b.telefone)}>
+                  <span className="font-bold">{b.nome}</span>
+                  <MessageCircle className="h-3 w-3" />
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null;
+      case "stats": return (
+        <div key="stats" className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {stats.map((stat) => (
+            <Card key={stat.title} className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <div className={`rounded-lg p-2 ${stat.color}`}><stat.icon className="h-4 w-4" /></div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+      case "chart": return monthlyChart.length > 0 ? (
+        <Card key="chart">
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Sessões por Mês (Últimos 6 meses)</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={monthlyChart}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" /><YAxis className="text-xs" /><Tooltip />
+                <Bar dataKey="realizadas" name="Realizadas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="faltas" name="Faltas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="canceladas" name="Canceladas" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      ) : null;
+      case "ai-insights": return (isAdmin || isGestor) ? (
+        <AIKpiInsights key="ai-insights" kpiData={{
+          pacientesAtivos: pacientes.filter((p: any) => p.status === "ativo").length,
+          sessoesRealizadas: todayStats?.realizados || 0,
+          taxaFaltas: todayStats?.total ? Math.round((todayStats.faltas / todayStats.total) * 100) : 0,
+          faturamento: financeData?.receita || 0,
+          despesas: financeData?.custos || 0,
+          ocupacao: occupancyRate,
+        }} />
+      ) : null;
+      case "requests": return <RequestsCard key="requests" />;
+      case "today-agenda": return (
+        <DashboardAgenda key="today-agenda" isAdmin={true} />
+      );
+      case "past-agenda": return (
+        <Card key="past-agenda">
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-muted-foreground" /> Sessões Anteriores (Ontem)</CardTitle></CardHeader>
+          <CardContent>
+            {pastAgenda.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma sessão registrada ontem.</p>
+            ) : (
+              <div className="space-y-4">
+                {pastAgenda.map((item: any) => (
+                  <div key={item.id} className="flex items-start justify-between p-3 rounded-lg border bg-muted/10 group">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{format(new Date(item.data_horario), "HH:mm")} - {item.pacientes?.nome}</p>
+                      <Badge variant={item.status === "realizado" ? "default" : item.status === "falta" ? "destructive" : "outline"} className="text-[10px] h-4 px-1">{item.status}</Badge>
+                    </div>
+                    <div className="flex gap-1">
+                      {item.status !== "realizado" && item.status !== "falta" && item.status !== "cancelado" && (
+                        <>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={() => updateStatus.mutate({ id: item.id, status: "realizado" })} title="Realizado"><CheckCircle2 className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-amber-600" onClick={() => updateStatus.mutate({ id: item.id, status: "falta" })} title="Falta"><XCircle className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => updateStatus.mutate({ id: item.id, status: "cancelado" })} title="Cancelar"><XCircle className="h-4 w-4" /></Button>
+                        </>
+                      )}
+                      {item.status === "falta" && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => navigate(`/pacientes/${item.paciente_id}/detalhes`)}><RefreshCw className="h-3 w-3 mr-1" /> Reagendar</Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      );
+      case "recent-patients": return (
+        <Card key="recent-patients">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Pacientes Recentes</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/pacientes")}>Ver todos <ArrowRight className="h-3 w-3 ml-1" /></Button>
+          </CardHeader>
+          <CardContent>
+            {recentes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Users className="h-10 w-10 mb-3 opacity-40" />
+                <p className="text-sm">Nenhum paciente cadastrado ainda</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {recentes.map((p: any) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                        {(p.nome || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate hover:underline cursor-pointer text-primary" onClick={() => navigate(`/pacientes/${p.id}/detalhes`)}>{p.nome}</p>
+                        <p className="text-xs text-muted-foreground">{p.telefone}</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px]">{tipoLabels[p.tipo_atendimento] || p.tipo_atendimento}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      );
+      default: return null;
+    }
+  };
 
   return (
     <div className="space-y-6">
+      <AdminOnboardingWizard />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">
@@ -329,7 +561,9 @@ const Dashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {(isAdmin || isGestor) && <ClinicReportButton />}
+          <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
           <span className="inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">
             <Clock className="h-4 w-4 text-primary" />
             {format(currentTime, "HH:mm:ss")}
@@ -337,342 +571,30 @@ const Dashboard = () => {
           <Button
             size="sm"
             variant="outline"
+            className="gap-2"
+            onClick={() => {
+              const link = `${window.location.origin}/pre-cadastro`;
+              const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
+              const encoded = encodeURIComponent(msg);
+              window.open(`https://wa.me/?text=${encoded}`, "_blank");
+            }}
+          >
+            <UserPlus className="h-4 w-4" /> Enviar Pré-Cadastro
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
-            onClick={() => window.open(`https://wa.me/5581900000000`, "_blank")} // Placeholder CLINIC number
+            onClick={() => window.open(`https://wa.me/5581900000000`, "_blank")}
           >
             <MessageCircle className="h-4 w-4" /> Falar com a Clínica
           </Button>
         </div>
       </div>
 
-      {/* Destaque: Dicas do Dia */}
-      {dailyTips.length > 0 && (
-        <div className={cn("grid gap-4", dailyTips.length > 1 ? "lg:grid-cols-2" : "grid-cols-1")}>
-          {dailyTips.map((tip: any) => (
-            <Card key={tip.id} className={cn(
-              "text-white border-none shadow-xl overflow-hidden relative group",
-              tip.target_role === 'paciente'
-                ? "bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700"
-                : "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700"
-            )}>
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                <Lightbulb className="h-32 w-32" />
-              </div>
-              <CardHeader className="pb-2 relative z-10">
-                <CardTitle className="text-lg flex items-center gap-2 font-medium text-white/90">
-                  <Lightbulb className={cn("h-5 w-5", tip.target_role === 'paciente' ? "text-yellow-200 fill-yellow-200" : "text-yellow-300 fill-yellow-300")} />
-                  {tip.target_role === 'paciente' ? "Dica para Pacientes" : "Dica de Produtividade"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 pb-8">
-                <h3 className="font-bold text-2xl mb-2 tracking-tight">{tip.titulo}</h3>
-                <p className="text-white/90 text-lg max-w-2xl leading-relaxed">"{tip.conteudo}"</p>
-                {dailyTips.length > 1 && (
-                  <Badge variant="outline" className="mt-4 border-white/30 text-white bg-white/10 capitalize">
-                    Público: {tip.target_role}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Dynamic card rendering based on user preferences */}
+      {visibleCards.map(card => renderSection(card.id))}
 
-      {/* Birthdays - compact in the top row if present */}
-      {birthdays.length > 0 && (
-        <Card className="border-pink-200 bg-pink-50/50">
-          <CardHeader className="py-3">
-            <CardTitle className="text-md flex items-center gap-2 text-pink-700">
-              <PartyPopper className="h-5 w-5" />
-              Aniversariantes da Semana
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <div className="flex flex-wrap gap-2">
-              {birthdays.map((b: any) => (
-                <Badge key={b.id} variant="outline" className="bg-white border-pink-200 text-pink-700 py-1.5 px-3 gap-2 flex items-center cursor-pointer hover:bg-pink-100 transition-colors"
-                  onClick={() => sendBirthdayWishes(b.nome, b.telefone)}>
-                  <span className="font-bold">{b.nome}</span>
-                  <span className="text-[10px] opacity-70">
-                    {b.dia_aniversario === hoje.getDate() && b.mes_aniversario === (hoje.getMonth() + 1) ? "HOJE! 🎂" : `${b.dia_aniversario}/${b.mes_aniversario}`}
-                  </span>
-                  <MessageCircle className="h-3 w-3" />
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`rounded-lg p-2 ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CalendarCheck className="h-5 w-5 text-blue-500" />
-              Hoje na Agenda
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/agenda")}>
-              Ver completa <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {todayAgenda.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum agendamento para hoje.</p>
-            ) : (
-              <div className="space-y-4">
-                {todayAgenda.map((item: any) => (
-                  <div key={item.id} className="flex items-start justify-between p-3 rounded-lg border bg-muted/30 group">
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => { setSelectedSession(item); setIsDetailOpen(true); }}>
-                        {format(new Date(item.data_horario), "HH:mm")} - {" "}
-                        <span>{item.pacientes?.nome}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {item.tipo_atendimento} • {item.status}
-                      </p>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {item.status === "agendado" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title="Confirmar Presença"
-                          className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => updateStatus.mutate({ id: item.id, status: "confirmado" })}
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {(item.status === "agendado" || item.status === "confirmado") && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Check-in (Realizado)"
-                            className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => updateStatus.mutate({ id: item.id, status: "realizado" })}
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Marcar Falta"
-                            className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => updateStatus.mutate({ id: item.id, status: "falta" })}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        title="Falar com Profissional"
-                        className="h-7 w-7 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                        onClick={() => {
-                          const prof = item.profiles;
-                          const cleanPhone = prof?.telefone?.replace(/\D/g, "");
-                          if (cleanPhone) {
-                            const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-                            window.open(`https://wa.me/${fullPhone}`, "_blank");
-                          } else {
-                            toast({ title: "Profissional sem telefone cadastrado", variant: "destructive" });
-                          }
-                        }}
-                      >
-                        <UserCheck className="h-4 w-4" />
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        title="WhatsApp Paciente"
-                        className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                        onClick={() => {
-                          const cleanPhone = item.pacientes?.telefone?.replace(/\D/g, "");
-                          if (cleanPhone) {
-                            const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-                            window.open(`https://wa.me/${fullPhone}`, "_blank");
-                          } else {
-                            toast({ title: "Paciente sem telefone cadastrado", variant: "destructive" });
-                          }
-                        }}
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        title="Reagendar"
-                        className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={() => {
-                          // Ideally open ReagendamentoDialog or navigate
-                          navigate(`/pacientes/${item.paciente_id}/detalhes`);
-                        }}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        title="Cancelar Sessão"
-                        className="h-7 w-7 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                        onClick={() => updateStatus.mutate({ id: item.id, status: "cancelado" })}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Sessões Passadas */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5 text-gray-500" />
-              Sessões Anteriores (Ontem)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pastAgenda.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma sessão registrada ontem.</p>
-            ) : (
-              <div className="space-y-4">
-                {pastAgenda.map((item: any) => (
-                  <div key={item.id} className="flex items-start justify-between p-3 rounded-lg border bg-muted/10 group">
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => { setSelectedSession(item); setIsDetailOpen(true); }}>
-                        {format(new Date(item.data_horario), "HH:mm")} - {" "}
-                        <span>{item.pacientes?.nome}</span>
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={
-                          item.status === "realizado" ? "default" :
-                            item.status === "falta" ? "destructive" :
-                              item.status === "cancelado" ? "outline" : "secondary"
-                        } className="text-[10px] h-4 px-1">
-                          {item.status}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground truncate">
-                          Prof: {item.profiles?.nome || "Não definido"}
-                        </span>
-                      </div>
-                    </div>
-                    {item.status === "falta" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[10px] px-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-                        onClick={() => navigate(`/pacientes/${item.paciente_id}/detalhes`)}
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" /> Reagendar
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Pacientes Recentes</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/pacientes")}>
-            Ver todos <ArrowRight className="h-3 w-3 ml-1" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {recentes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Users className="h-10 w-10 mb-3 opacity-40" />
-              <p className="text-sm">Nenhum paciente cadastrado ainda</p>
-              <Button
-                variant="link"
-                size="sm"
-                className="mt-2"
-                onClick={() => navigate("/pacientes/novo")}
-              >
-                Cadastrar primeiro paciente <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {recentes.map((p: any) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                      {(p.nome || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p
-                        className="text-sm font-medium truncate hover:underline cursor-pointer text-primary"
-                        onClick={() => navigate(`/pacientes/${p.id}/detalhes`)}
-                      >
-                        {p.nome}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{p.telefone}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                      onClick={() => {
-                        const cleanPhone = p.telefone?.replace(/\D/g, "");
-                        if (cleanPhone) {
-                          const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-                          window.open(`https://wa.me/${fullPhone}`, "_blank");
-                        } else {
-                          toast({ title: "Paciente sem telefone cadastrado", variant: "destructive" });
-                        }
-                      }}
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                    </Button>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {tipoLabels[p.tipo_atendimento] || p.tipo_atendimento}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
       {/* Session Details Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="sm:max-w-[425px]">

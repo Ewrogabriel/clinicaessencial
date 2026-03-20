@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { addLogoToPDF, getClinicSettings, formatClinicAddress, addWatermarkToAllPages } from "./pdfLogo";
 
 interface ReceiptData {
   numero: string;
@@ -8,7 +9,7 @@ interface ReceiptData {
   valor: number;
   formaPagamento: string;
   dataPagamento: string;
-  referencia: string; // e.g. "Março/2026" or service description
+  referencia: string;
 }
 
 const formaLabel: Record<string, string> = {
@@ -20,30 +21,50 @@ const formaLabel: Record<string, string> = {
   transferencia: "Transferência",
 };
 
-export function generateReceiptPDF(data: ReceiptData) {
+export async function generateReceiptPDF(data: ReceiptData) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pw = doc.internal.pageSize.getWidth();
   const margin = 20;
-  let y = 25;
+  let y = 20;
+
+  // Get clinic settings
+  const settings = await getClinicSettings();
 
   // Border
   doc.setDrawColor(0, 120, 120);
   doc.setLineWidth(0.8);
   doc.roundedRect(12, 12, pw - 24, 160, 4, 4);
 
+  // Logo
+  const logoX = pw / 2 - 15;
+  y = await addLogoToPDF(doc, logoX, y, 30, 25);
+  y += 2;
+
   // Header
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("ESSENCIAL FISIO PILATES", pw / 2, y, { align: "center" });
+  doc.text(settings.nome.toUpperCase(), pw / 2, y, { align: "center" });
   y += 6;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("CNPJ: 61.080.977/0001-50", pw / 2, y, { align: "center" });
+  if (settings.cnpj) {
+    doc.text(`CNPJ: ${settings.cnpj}`, pw / 2, y, { align: "center" });
+    y += 4;
+  }
+  const endereco = formatClinicAddress(settings);
+  if (endereco) {
+    doc.text(endereco, pw / 2, y, { align: "center" });
+    y += 4;
+  }
+  const contato = [
+    settings.whatsapp ? `WhatsApp: ${settings.whatsapp}` : null,
+    settings.instagram || null,
+  ].filter(Boolean).join(" | ");
+  if (contato) {
+    doc.text(contato, pw / 2, y, { align: "center" });
+    y += 4;
+  }
   y += 4;
-  doc.text("Rua Capitão Antônio Ferreira Campos, nº 46 – Carmo – Barbacena/MG", pw / 2, y, { align: "center" });
-  y += 4;
-  doc.text("WhatsApp: (32) 98415-2802 | @essencialfisiopilatesbq", pw / 2, y, { align: "center" });
-  y += 8;
 
   // Divider
   doc.setDrawColor(200);
@@ -105,16 +126,21 @@ export function generateReceiptPDF(data: ReceiptData) {
   // Signature
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Barbacena/MG, ${data.dataPagamento}`, margin, y);
+  const cidade = settings.cidade || "Barbacena";
+  const estado = settings.estado || "MG";
+  doc.text(`${cidade}/${estado}, ${data.dataPagamento}`, margin, y);
   y += 16;
 
   doc.line(margin, y, margin + 70, y);
   y += 5;
   doc.setFontSize(9);
-  doc.text("Essencial Fisio Pilates", margin, y);
+  doc.text(settings.nome, margin, y);
   y += 4;
-  doc.text("CNPJ: 61.080.977/0001-50", margin, y);
+  if (settings.cnpj) {
+    doc.text(`CNPJ: ${settings.cnpj}`, margin, y);
+  }
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }
 

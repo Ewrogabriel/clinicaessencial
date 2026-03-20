@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Upload, FileText, Image, File, Trash2, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,38 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Sanitizes a filename so it is safe for use as a Supabase Storage key.
+ * - Removes accents/diacritics (e.g. "João" → "Joao")
+ * - Replaces any remaining non-alphanumeric characters (only _ and - are kept) with underscores
+ * - Collapses consecutive underscores
+ * - Trims leading/trailing underscores from the base name
+ * - Falls back to "arquivo" if the base name becomes empty
+ * - Lowercases the file extension and keeps only alphanumeric characters after the dot
+ */
+function sanitizeFileName(fileName: string): string {
+  const lastDot = fileName.lastIndexOf(".");
+  const baseName = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
+  const rawExt = lastDot > 0 ? fileName.slice(lastDot) : "";
+
+  const sanitizedBase = baseName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")   // strip diacritics / accents
+    .replace(/[^a-zA-Z0-9_-]/g, "_")   // replace unsafe chars with underscore
+    .replace(/_+/g, "_")               // collapse consecutive underscores
+    .replace(/^_+|_+$/g, "");          // trim leading/trailing underscores
+
+  // Fallback so the storage key never ends with just a timestamp and underscore
+  const finalBase = sanitizedBase || "arquivo";
+
+  // Keep exactly one leading dot followed by lowercase alphanumeric characters only
+  const sanitizedExt = rawExt
+    ? "." + rawExt.slice(1).toLowerCase().replace(/[^a-z0-9]/g, "")
+    : "";
+
+  return finalBase + sanitizedExt;
+}
+
 export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -55,11 +87,11 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
   const { data: attachments = [], isLoading } = useQuery({
     queryKey: ["patient-attachments", pacienteId],
     queryFn: async () => {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("patient_attachments")
         .select("*")
         .eq("paciente_id", pacienteId)
-        .order("created_at", { ascending: false }) as any);
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -75,10 +107,10 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
       if (storageError) console.warn("Storage delete error:", storageError);
 
       // Delete from DB
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("patient_attachments")
         .delete()
-        .eq("id", attachment.id) as any);
+        .eq("id", attachment.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -93,35 +125,59 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user) return;
 
+    const pid = pacienteId.trim();
+    if (!pid || pid.length < 30) {
+      toast.error("ID do paciente inválido para upload.");
+      console.error("[PatientAttachments] Invalid pacienteId:", pid);
+      return;
+    }
+
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop();
-        const filePath = `${pacienteId}/${Date.now()}_${file.name}`;
+        const sanitizedFileName = sanitizeFileName(file.name);
+        const filePath = `${pid}/${Date.now()}_${sanitizedFileName}`;
 
+        // Guard: verify the key contains only safe characters before sending to Storage
+        if (!/^[a-zA-Z0-9._/-]+$/.test(filePath)) {
+          throw new Error(
+            `Nome de arquivo inválido após sanitização: "${file.name}" → "${sanitizedFileName}". Renomeie o arquivo e tente novamente.`
+          );
+        }
+
+        console.log("[PatientAttachments] Uploading to storage:", filePath);
         const { error: uploadError } = await supabase.storage
           .from("patient-documents")
           .upload(filePath, file);
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("[PatientAttachments] Storage upload error:", uploadError, "Path:", filePath);
+          throw new Error(`Erro ao enviar arquivo "${file.name}": ${uploadError.message}`);
+        }
 
-        const { error: dbError } = await (supabase
+        console.log("[PatientAttachments] Inserting to DB for paciente:", pid);
+        const { error: dbError } = await supabase
           .from("patient_attachments")
           .insert({
-            paciente_id: pacienteId,
+            paciente_id: pid,
             uploaded_by: user.id,
             file_name: file.name,
             file_path: filePath,
             file_type: file.type,
             file_size: file.size,
             descricao: descricao.trim() || null,
-          }) as any);
-        if (dbError) throw dbError;
+          });
+
+        if (dbError) {
+          console.error("[PatientAttachments] Database insert error:", dbError, "pacienteId:", pid, "filePath:", filePath);
+          throw new Error(`Erro ao registrar anexo "${file.name}": ${dbError.message}`);
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ["patient-attachments", pacienteId] });
       toast.success("Arquivo(s) anexado(s) com sucesso!");
       setDescricao("");
     } catch (err: any) {
+      console.error("[PatientAttachments] Upload failed:", err);
       toast.error("Erro no upload: " + err.message);
     } finally {
       setUploading(false);

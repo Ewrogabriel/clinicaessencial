@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { addLogoToPDF, getClinicSettings, formatClinicAddress, addWatermarkToAllPages } from "./pdfLogo";
 
 interface ProfessionalContractData {
   profissionalNome: string;
@@ -13,12 +14,14 @@ interface ProfessionalContractData {
   telefone?: string;
 }
 
-export function generateProfessionalContractPDF(data: ProfessionalContractData) {
+export async function generateProfessionalContractPDF(data: ProfessionalContractData) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const maxWidth = pageWidth - margin * 2;
-  let y = 20;
+  let y = 15;
+
+  const settings = await getClinicSettings();
 
   const addText = (text: string, size: number, bold = false, align: "left" | "center" = "left") => {
     doc.setFontSize(size);
@@ -40,9 +43,16 @@ export function generateProfessionalContractPDF(data: ProfessionalContractData) 
     if (y > 270) { doc.addPage(); y = 20; }
   };
 
+  // Logo
+  const logoX = pageWidth / 2 - 15;
+  y = await addLogoToPDF(doc, logoX, y, 30, 25);
+  y += 2;
+
   // Header
-  addText("ESSENCIAL FISIO PILATES", 16, true, "center");
-  addText("CNPJ: 61.080.977/0001-50", 9, false, "center");
+  addText(settings.nome.toUpperCase(), 16, true, "center");
+  if (settings.cnpj) {
+    addText(`CNPJ: ${settings.cnpj}`, 9, false, "center");
+  }
   y += 4;
   addText("CONTRATO DE PRESTACAO DE SERVICOS PROFISSIONAIS", 13, true, "center");
   y += 6;
@@ -50,8 +60,11 @@ export function generateProfessionalContractPDF(data: ProfessionalContractData) 
   addText("Pelo presente instrumento particular, de um lado:", 10);
   y += 2;
 
+  const endereco = formatClinicAddress(settings);
+  const contato = settings.whatsapp ? `telefone/WhatsApp ${settings.whatsapp}` : "";
+
   addText(
-    'CLINICA: Essencial Fisio Pilates, pessoa juridica de direito privado, com sede a Rua Capitao Antonio Ferreira Campos, n 46 - Bairro Carmo - Barbacena/MG, telefone/WhatsApp (32) 98415-2802, doravante denominada CLINICA.',
+    `CLINICA: ${settings.nome}, pessoa juridica de direito privado, com sede a ${endereco}${contato ? `, ${contato}` : ""}, doravante denominada CLINICA.`,
     10
   );
   y += 4;
@@ -195,19 +208,19 @@ export function generateProfessionalContractPDF(data: ProfessionalContractData) 
 
   checkPage();
   addText("CLAUSULA 11a - DO FORO", 10, true);
-  addText("Fica eleito o foro da comarca de Barbacena/MG, com renuncia a qualquer outro.", 10);
+  addText(`Fica eleito o foro da comarca de ${settings.cidade || "Barbacena"}/${settings.estado || "MG"}, com renuncia a qualquer outro.`, 10);
   y += 8;
 
   // Signatures
   checkPage();
   const hoje = new Date();
   const meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  addText(`Barbacena/MG, ____ de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`, 10);
+  addText(`${settings.cidade || "Barbacena"}/${settings.estado || "MG"}, ____ de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`, 10);
   y += 12;
 
   doc.line(margin, y, margin + 70, y);
   y += 5;
-  addText("CLINICA - Essencial Fisio Pilates", 9);
+  addText(`CLINICA - ${settings.nome}`, 9);
   y += 10;
 
   checkPage();
@@ -217,5 +230,6 @@ export function generateProfessionalContractPDF(data: ProfessionalContractData) 
   if (data.registroProfissional) addText(`Registro: ${data.registroProfissional}`, 9);
   if (data.cpf) addText(`CPF: ${data.cpf}`, 9);
 
+  await addWatermarkToAllPages(doc);
   return doc;
 }

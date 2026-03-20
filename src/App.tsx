@@ -1,126 +1,181 @@
+// App root
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ThemeProvider } from "next-themes";
+import { AuthProvider, useAuth } from "@/modules/auth/hooks/useAuth";
+import { ClinicProvider } from "@/modules/clinic/hooks/useClinic";
+import { I18nProvider } from "@/modules/shared/hooks/useI18n";
+import { ProtectedRoute } from "@/modules/auth/components/ProtectedRoute";
+import { RequireRole } from "@/modules/auth/components/RequireRole";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+
+// Eager-loaded (critical path)
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Pacientes from "./pages/Pacientes";
-import PacienteForm from "./pages/PacienteForm";
-import Agenda from "./pages/Agenda";
-import Planos from "./pages/Planos";
-import Matriculas from "./pages/Matriculas";
-import CheckInProfissional from "./pages/CheckInProfissional";
-import MeusPlanos from "./pages/MeusPlanos";
-import Produtos from "./pages/Produtos";
-import HistoricoSessoes from "./pages/HistoricoSessoes";
-import Aniversariantes from "./pages/Aniversariantes";
-import Indicadores from "./pages/Indicadores";
-import DicasDiarias from "./pages/DicasDiarias";
-import Financeiro from "./pages/Financeiro";
-import Relatorios from "./pages/Relatorios";
-import Modalidades from "./pages/Modalidades";
-import Profissionais from "./pages/Profissionais";
-import Prontuarios from "./pages/Prontuarios";
-import Despesas from "./pages/Despesas";
-import PacienteDetalhes from "./pages/PacienteDetalhes";
-import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import PatientDashboard from "./pages/PatientDashboard";
-import MinhaAgenda from "./pages/MinhaAgenda";
-import MeusPagamentos from "./pages/MeusPagamentos";
-import Inteligencia from "./pages/Inteligencia";
-import Automacoes from "./pages/Automacoes";
-import PatientOnboarding from "./pages/PatientOnboarding";
-import AvisosAdmin from "./pages/AvisosAdmin";
-import DisponibilidadeProfissional from "./pages/DisponibilidadeProfissional";
-import MeuPerfil from "./pages/MeuPerfil";
-import MeuHistorico from "./pages/MeuHistorico";
-import Contratos from "./pages/Contratos";
-import PrecosPlanos from "./pages/PrecosPlanos";
-import Comissoes from "./pages/Comissoes";
-import PerfilProfissional from "./pages/PerfilProfissional";
-import PerfilProfissionalPublico from "./pages/PerfilProfissionalPublico";
-import ClinicSettings from "./pages/ClinicSettings";
-import MensagensInternas from "./pages/MensagensInternas";
-import PacienteAccess from "./pages/PacienteAccess";
-import DashboardPaciente from "./pages/DashboardPaciente";
 
-const queryClient = new QueryClient();
+// Lazy-loaded pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Pacientes = lazy(() => import("./pages/Pacientes"));
+const PacienteForm = lazy(() => import("./pages/PacienteForm"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const Matriculas = lazy(() => import("./pages/Matriculas"));
+// CheckInProfissional removed
+const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
+const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
+const Financeiro = lazy(() => import("./pages/Financeiro"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Inventario = lazy(() => import("./pages/Inventario"));
+const Modalidades = lazy(() => import("./pages/Modalidades"));
+const Profissionais = lazy(() => import("./pages/Profissionais"));
+const Prontuarios = lazy(() => import("./pages/Prontuarios"));
+const PacienteDetalhes = lazy(() => import("./pages/PacienteDetalhes"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
+const MinhaAgenda = lazy(() => import("./pages/MinhaAgenda"));
+const MeusPagamentos = lazy(() => import("./pages/MeusPagamentos"));
+const Automacoes = lazy(() => import("./pages/Automacoes"));
+const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
+const AvisosAdmin = lazy(() => import("./pages/AvisosAdmin"));
+const MeuPerfil = lazy(() => import("./pages/MeuPerfil"));
+const Contratos = lazy(() => import("./pages/Contratos"));
+const PerfilProfissional = lazy(() => import("./pages/PerfilProfissional"));
+const PerfilProfissionalPublico = lazy(() => import("./pages/PerfilProfissionalPublico"));
+const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
+const MensagensInternas = lazy(() => import("./pages/MensagensInternas"));
+const PacienteAccess = lazy(() => import("./pages/PacienteAccess"));
+const SolicitacoesAlteracao = lazy(() => import("./pages/SolicitacoesAlteracao"));
+const ProfessionalDashboard = lazy(() => import("./pages/ProfessionalDashboard"));
+const Convenios = lazy(() => import("./pages/Convenios"));
+const PreCadastro = lazy(() => import("./pages/PreCadastro"));
+const PreCadastrosAdmin = lazy(() => import("./pages/PreCadastrosAdmin"));
+const GestaoClinicas = lazy(() => import("./pages/GestaoClinicas"));
+const SelecionarClinica = lazy(() => import("./pages/SelecionarClinica"));
+const MasterPanel = lazy(() => import("./pages/MasterPanel"));
+const Comissoes = lazy(() => import("./pages/Comissoes"));
+const ImportacaoMassa = lazy(() => import("./pages/ImportacaoMassa"));
+const MetasGamificacao = lazy(() => import("./pages/MetasGamificacao"));
+const GamificationAdminPanel = lazy(() => import("./pages/GamificationAdminPanel"));
+const DocumentosClinicos = lazy(() => import("./pages/DocumentosClinicos"));
+const Marketing = lazy(() => import("./pages/Marketing"));
+const Teleconsulta = lazy(() => import("./pages/Teleconsulta"));
+const TeleconsultaHub = lazy(() => import("./pages/TeleconsultaHub"));
+const PlanosExercicios = lazy(() => import("./pages/PlanosExercicios"));
+const Planos = lazy(() => import("./pages/Planos"));
+const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
+const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
+const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
+
 
 const DashboardToggle = () => {
-  const { isPatient, isAdmin, isGestor, isProfissional } = useAuth();
-  const isStaff = isAdmin || isGestor || isProfissional;
-  return isStaff ? <Dashboard /> : <PatientDashboard />;
+  const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
+  if (isMaster && !isAdmin) return <MasterPanel />;
+  if (isAdmin || isGestor || isSecretario) return <Dashboard />;
+  if (isProfissional) return <ProfessionalDashboard />;
+  return <PatientDashboard />;
 };
 
+const MeuPerfilToggle = () => {
+  const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
+  if (isAdmin || isGestor || isSecretario || isProfissional || isMaster) return <PerfilProfissional />;
+  return <MeuPerfil />;
+};
+
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/paciente-access" element={<PacienteAccess />} />
-            {/* Access code redirects to /dashboard now */}
-            <Route path="/onboarding/:id" element={<PatientOnboarding />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/" element={<Index />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<DashboardToggle />} />
-              <Route path="/pacientes" element={<Pacientes />} />
-              <Route path="/pacientes/novo" element={<PacienteForm />} />
-              <Route path="/pacientes/:id" element={<PacienteForm />} />
-              <Route path="/pacientes/:id/detalhes" element={<PacienteDetalhes />} />
-              <Route path="/prontuarios" element={<Prontuarios />} />
-              <Route path="/agenda" element={<Agenda />} />
-              <Route path="/minha-agenda" element={<MinhaAgenda />} />
-              <Route path="/check-in" element={<CheckInProfissional />} />
-              <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
-              <Route path="/meus-planos" element={<MeusPlanos />} />
-              <Route path="/meu-perfil" element={<MeuPerfil />} />
-              <Route path="/meu-historico" element={<HistoricoSessoes />} />
-              <Route path="/planos" element={<Planos />} />
-              <Route path="/matriculas" element={<Matriculas />} />
-              <Route path="/produtos" element={<Produtos />} />
-              <Route path="/financeiro" element={<Financeiro />} />
-              <Route path="/despesas" element={<Despesas />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/indicadores" element={<Indicadores />} />
-              <Route path="/aniversariantes" element={<Aniversariantes />} />
-              <Route path="/modalidades" element={<Modalidades />} />
-              <Route path="/profissionais" element={<Profissionais />} />
-              <Route path="/inteligencia" element={<Inteligencia />} />
-              <Route path="/automacoes" element={<Automacoes />} />
-              <Route path="/dicas-diarias" element={<DicasDiarias />} />
-              <Route path="/avisos" element={<AvisosAdmin />} />
-              <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
-              <Route path="/contratos" element={<Contratos />} />
-              <Route path="/precos-planos" element={<PrecosPlanos />} />
-              <Route path="/comissoes" element={<Comissoes />} />
-              <Route path="/perfil-profissional" element={<PerfilProfissional />} />
-              <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
-              <Route path="/clinica" element={<ClinicSettings />} />
-              <Route path="/mensagens" element={<MensagensInternas />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <ClinicProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <ErrorBoundary>
+                  <Suspense fallback={<LazyLoadFallback />}>
+                    <Routes>
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/paciente-access" element={<PacienteAccess />} />
+                      <Route path="/onboarding/:id" element={<PatientOnboarding />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/pre-cadastro" element={<PreCadastro />} />
+                      <Route path="/site" element={<LandingPage />} />
+                      <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
+                      <Route path="/" element={<Index />} />
+                      <Route path="/selecionar-clinica" element={
+                        <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
+                      } />
+                      <Route
+                        element={
+                          <ProtectedRoute>
+                            <AppLayout />
+                          </ProtectedRoute>
+                        }
+                      >
+                        <Route path="/dashboard" element={<DashboardToggle />} />
+                        <Route path="/pacientes" element={<Pacientes />} />
+                        <Route path="/pacientes/novo" element={<PacienteForm />} />
+                        <Route path="/pacientes/:id" element={<PacienteForm />} />
+                        <Route path="/pacientes/:id/detalhes" element={<PacienteDetalhes />} />
+                        <Route path="/prontuarios" element={<Prontuarios />} />
+                        <Route path="/agenda" element={<Agenda />} />
+                        <Route path="/minha-agenda" element={<MinhaAgenda />} />
+                        {/* check-in route removed */}
+                        <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
+                        <Route path="/meus-planos" element={<MeusPlanos />} />
+                        <Route path="/meu-perfil" element={<MeuPerfilToggle />} />
+                        <Route path="/meu-historico" element={<HistoricoSessoes />} />
+                        <Route path="/matriculas" element={<Matriculas />} />
+                        <Route path="/inventario" element={<Inventario />} />
+                        <Route path="/financeiro" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><Financeiro /></RequireRole>} />
+                        <Route path="/relatorios" element={<RequireRole roles={["admin", "gestor", "master"]}><Relatorios /></RequireRole>} />
+                        <Route path="/modalidades" element={<Modalidades />} />
+                        <Route path="/profissionais" element={<RequireRole roles={["admin", "gestor", "master"]}><Profissionais /></RequireRole>} />
+                        <Route path="/automacoes" element={<RequireRole roles={["admin", "gestor", "master"]}><Automacoes /></RequireRole>} />
+                        <Route path="/avisos" element={<AvisosAdmin />} />
+                        <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
+                        <Route path="/contratos" element={<Contratos />} />
+                        <Route path="/comissoes" element={<Comissoes />} />
+                        <Route path="/perfil-profissional" element={<PerfilProfissional />} />
+                        <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
+                        <Route path="/clinica" element={<RequireRole roles={["admin", "gestor", "master"]}><ClinicSettings /></RequireRole>} />
+                        <Route path="/mensagens" element={<MensagensInternas />} />
+                        <Route path="/solicitacoes-alteracao" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><SolicitacoesAlteracao /></RequireRole>} />
+                        <Route path="/convenios" element={<Convenios />} />
+                        <Route path="/pre-cadastros" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><PreCadastrosAdmin /></RequireRole>} />
+                        <Route path="/gestao-clinicas" element={<RequireRole roles={["admin", "master"]}><GestaoClinicas /></RequireRole>} />
+                        <Route path="/master" element={<RequireRole roles={["master"]}><MasterPanel /></RequireRole>} />
+                        <Route path="/importacao" element={<RequireRole roles={["admin", "gestor", "master"]}><ImportacaoMassa /></RequireRole>} />
+                        <Route path="/metas" element={<RequireRole roles={["admin", "gestor", "master"]}><MetasGamificacao /></RequireRole>} />
+                        <Route path="/gamificacao-admin" element={<RequireRole roles={["admin", "gestor", "master"]}><GamificationAdminPanel /></RequireRole>} />
+                        <Route path="/documentos-clinicos" element={<DocumentosClinicos />} />
+                        <Route path="/marketing" element={<RequireRole roles={["admin", "gestor", "master"]}><Marketing /></RequireRole>} />
+                        <Route path="/teleconsulta" element={<Teleconsulta />} />
+                        <Route path="/teleconsulta-hub" element={<TeleconsultaHub />} />
+                        <Route path="/planos-exercicios" element={<PlanosExercicios />} />
+                        <Route path="/planos" element={<Planos />} />
+                        <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </ErrorBoundary>
+              </BrowserRouter>
+            </ClinicProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

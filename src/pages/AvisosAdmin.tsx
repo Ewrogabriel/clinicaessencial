@@ -5,27 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Megaphone, Plus, Trash2, Edit } from "lucide-react";
+import { Megaphone, Plus, Trash2, Edit, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 const AvisosAdmin = () => {
   const { user } = useAuth();
+  const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: avisos = [], isLoading } = useQuery({
-    queryKey: ["admin-avisos"],
+    queryKey: ["admin-avisos", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avisos")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("avisos").select("*");
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -45,8 +48,10 @@ const AvisosAdmin = () => {
       titulo,
       mensagem,
       ativo: true,
-      created_by: user.id
-    });
+      created_by: user.id,
+      image_url: imageUrl || null,
+      clinic_id: activeClinicId,
+    } as any);
 
     if (error) {
        toast({ title: "Erro ao publicar aviso", description: error.message, variant: "destructive" });
@@ -54,6 +59,7 @@ const AvisosAdmin = () => {
        toast({ title: "Aviso publicado no mural dos pacientes!" });
        setTitulo("");
        setMensagem("");
+       setImageUrl("");
        queryClient.invalidateQueries({ queryKey: ["admin-avisos"] });
        queryClient.invalidateQueries({ queryKey: ["avisos-ativos"] });
     }
@@ -115,6 +121,10 @@ const AvisosAdmin = () => {
                   onChange={(e) => setMensagem(e.target.value)} 
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Imagem (opcional)</Label>
+                <ImageUpload value={imageUrl} onChange={setImageUrl} folder="avisos" />
+              </div>
               <Button type="submit" disabled={isSubmitting} className="w-full">
                 <Plus className="h-4 w-4 mr-2" /> 
                 {isSubmitting ? "Publicando..." : "Publicar Aviso"}
@@ -140,9 +150,12 @@ const AvisosAdmin = () => {
                        {format(new Date(aviso.created_at), "dd/MM/yyyy HH:mm")}
                      </span>
                    </div>
-                   <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">
-                     {aviso.mensagem}
-                   </p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
+                      {aviso.mensagem}
+                    </p>
+                    {(aviso as any).image_url && (
+                      <img src={(aviso as any).image_url} alt={aviso.titulo} className="rounded-lg max-h-48 object-cover mb-3" />
+                    )}
                    <div className="flex items-center gap-2 justify-end">
                      <Button 
                        variant={aviso.ativo ? "outline" : "secondary"} 

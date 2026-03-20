@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Activity, CheckCircle, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const PatientOnboarding = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,6 +124,7 @@ const PatientOnboarding = () => {
             
           if (updateError) {
               console.error("Erro ao vincular paciente", updateError);
+              throw updateError;
           }
       }
 
@@ -163,7 +164,7 @@ const PatientOnboarding = () => {
           </div>
           <h1 className="text-2xl font-bold font-[Plus_Jakarta_Sans]">Bem-vindo(a), {paciente?.nome?.split(' ')[0]}!</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Finalize seu cadastro no Essencial FisioPilates
+            Finalize seu cadastro na clínica
           </p>
         </div>
 

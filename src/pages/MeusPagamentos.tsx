@@ -4,12 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Receipt, DollarSign, Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const MeusPagamentos = () => {
   const { patientId } = useAuth();
@@ -24,7 +24,8 @@ const MeusPagamentos = () => {
         .eq("paciente_id", patientId)
         .order("data_vencimento", { ascending: false });
       if (error) throw error;
-      return data;
+      // Show all payments (both pago and pendente)
+      return data || [];
     },
     enabled: !!patientId,
   });
@@ -43,9 +44,28 @@ const MeusPagamentos = () => {
     enabled: !!patientId,
   });
 
-  const statusMap: Record<string, { label: string; variant: "default" | "destructive" }> = {
+  // Fetch NF emissions for this patient (with PDF URLs)
+  const { data: emissoes = [] } = useQuery({
+    queryKey: ["patient-emissoes-nf", patientId],
+    queryFn: async () => {
+      if (!patientId) return [];
+      const { data, error } = await (supabase.from("emissoes_nf") as any)
+        .select("*")
+        .eq("paciente_id", patientId)
+        .eq("emitida", true)
+        .order("mes_referencia", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!patientId,
+  });
+
+  const statusMap: Record<string, { label: string; variant: "default" | "destructive" | "secondary" | "outline" }> = {
     pago: { label: "Pago", variant: "default" },
     pendente: { label: "Pendente", variant: "destructive" },
+    cancelado: { label: "Cancelado", variant: "outline" },
+    reembolsado: { label: "Reembolsado", variant: "secondary" },
+    vencido: { label: "Vencido", variant: "destructive" },
   };
 
   const totalPago = pagamentos
@@ -53,10 +73,10 @@ const MeusPagamentos = () => {
     .reduce((acc: number, p: any) => acc + Number(p.valor), 0);
 
   const totalPendente = pagamentos
-    .filter((p: any) => p.status === 'pendente')
+    .filter((p: any) => p.status === 'pendente' || p.status === 'vencido')
     .reduce((acc: number, p: any) => acc + Number(p.valor), 0);
 
-  const handleDownloadReceipt = (pagamento: any) => {
+  const handleDownloadReceipt = async (pagamento: any) => {
     const numero = getReceiptNumber(pagamento.id, pagamento.created_at);
     const dataPgto = pagamento.data_pagamento
       ? format(new Date(pagamento.data_pagamento), "dd/MM/yyyy")
@@ -66,7 +86,7 @@ const MeusPagamentos = () => {
       ? format(new Date(pagamento.data_vencimento), "MMMM/yyyy", { locale: ptBR })
       : pagamento.descricao || "Serviço";
 
-    const pdf = generateReceiptPDF({
+    const pdf = await generateReceiptPDF({
       numero,
       pacienteNome: paciente?.nome || "—",
       cpf: paciente?.cpf || "",
@@ -159,6 +179,54 @@ const MeusPagamentos = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Notas Fiscais emitidas */}
+      {emissoes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Minhas Notas Fiscais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mês Referência</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Emitida em</TableHead>
+                  <TableHead className="text-right">Download</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {emissoes.map((nf: any) => (
+                  <TableRow key={nf.id}>
+                    <TableCell className="font-medium capitalize">
+                      {format(new Date(nf.mes_referencia), "MMMM/yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>R$ {Number(nf.valor).toFixed(2)}</TableCell>
+                    <TableCell>
+                      {nf.emitida_em ? format(new Date(nf.emitida_em), "dd/MM/yyyy") : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {nf.nf_pdf_url ? (
+                        <a href={nf.nf_pdf_url} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="outline" className="h-8">
+                            <Download className="h-3.5 w-3.5 mr-1" /> NF PDF
+                          </Button>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">PDF não disponível</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

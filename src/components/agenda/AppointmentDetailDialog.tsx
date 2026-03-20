@@ -4,12 +4,14 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   MessageSquare, Ban, RotateCcw, CheckCircle2, Send, Calendar, Clock,
-  User, Activity, FileText, Phone, ClipboardList, Stethoscope, StickyNote,
+  User, Activity, FileText, Phone, ClipboardList, Stethoscope, StickyNote, Video,
+  XCircle, Plus, AlertCircle, ChevronDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { TeleconsultaButton } from "./TeleconsultaButton";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +19,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,12 +32,12 @@ import type { Agendamento } from "./AgendaViews";
 
 const APP_URL = window.location.origin;
 
-const statusColors: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const statusColors: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   agendado: { label: "Agendado", variant: "outline" },
   confirmado: { label: "Confirmado", variant: "default" },
-  realizado: { label: "Realizado", variant: "secondary" },
+  realizado: { label: "Realizado", variant: "outline", className: "bg-emerald-100 text-emerald-700 border-emerald-300" },
   cancelado: { label: "Cancelado", variant: "destructive" },
-  falta: { label: "Falta", variant: "destructive" },
+  falta: { label: "Faltou", variant: "outline", className: "bg-amber-100 text-amber-700 border-amber-300" },
 };
 
 interface AppointmentDetailDialogProps {
@@ -169,12 +177,36 @@ export function AppointmentDetailDialog({
 
   const goToPatient = () => {
     onOpenChange(false);
-    navigate(`/pacientes/${ag.paciente_id}`);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes`);
+  };
+
+  const goToProntuario = () => {
+    onOpenChange(false);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=prontuario`);
   };
 
   const goToEvolution = () => {
     onOpenChange(false);
-    navigate(`/pacientes/${ag.paciente_id}?tab=atendimentos`);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=evolucoes`);
+  };
+
+  const goToNewEvolution = () => {
+    onOpenChange(false);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=evolucoes&new=1`);
+  };
+
+  const handleMarkStatus = async (newStatus: string, label: string) => {
+    try {
+      const { error } = await (supabase
+        .from("agendamentos")
+        .update({ status: newStatus as any })
+        .eq("id", ag.id) as any);
+      if (error) throw error;
+      toast.success(`Sessão marcada como ${label}!`);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Erro ao atualizar status: " + e.message);
+    }
   };
 
   return (
@@ -221,7 +253,7 @@ export function AppointmentDetailDialog({
           </div>
 
           <div className="flex items-center gap-3">
-            <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+            <Badge variant={statusCfg.variant} className={statusCfg.className}>{statusCfg.label}</Badge>
             <span className="text-xs text-muted-foreground capitalize">{ag.tipo_atendimento} • {ag.tipo_sessao}</span>
             {ag.checkin_paciente && <span title="Check-in paciente"><CheckCircle2 className="h-4 w-4 text-green-500" /></span>}
             {ag.checkin_profissional && <span title="Check-in profissional"><CheckCircle2 className="h-4 w-4 text-primary" /></span>}
@@ -237,21 +269,82 @@ export function AppointmentDetailDialog({
 
         <Separator />
 
-        {/* Quick Navigation */}
+        {/* Teleconsulta */}
+        {canAct && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+            <Video className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs font-medium flex-1">Teleconsulta</span>
+            <TeleconsultaButton
+              agendamentoId={ag.id}
+              pacienteNome={pacienteNome}
+              profissionalNome={profNome}
+              dataHorario={ag.data_horario}
+              compact
+            />
+          </div>
+        )}
+
+        <Separator />
+
+        {/* Navigation + Session Status Actions */}
         {!isPatient && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => { onOpenChange(false); navigate(`/pacientes/${ag.paciente_id}/detalhes`); }}>
-              <User className="h-4 w-4 mr-1" /> Ver Perfil
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToPatient}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Prontuário
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToEvolution}>
-              <Stethoscope className="h-4 w-4 mr-1" /> Evoluções
-            </Button>
-            <Button variant="outline" size="sm" onClick={openWhatsAppDirect}>
-              <Phone className="h-4 w-4 mr-1" /> Falar com Paciente
-            </Button>
+          <div className="space-y-3">
+            {/* Navigation buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={goToPatient}>
+                <User className="h-4 w-4 mr-1" /> Ver Perfil
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToProntuario}>
+                <ClipboardList className="h-4 w-4 mr-1" /> Prontuário
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToEvolution}>
+                <Stethoscope className="h-4 w-4 mr-1" /> Evoluções
+              </Button>
+              <Button size="sm" className="bg-primary/90 hover:bg-primary" onClick={goToNewEvolution}>
+                <Plus className="h-4 w-4 mr-1" /> Nova Evolução
+              </Button>
+              <Button variant="outline" size="sm" onClick={openWhatsAppDirect}>
+                <Phone className="h-4 w-4 mr-1" /> Falar com Paciente
+              </Button>
+            </div>
+
+            {/* Session status actions — 2 primary actions + secondary dropdown */}
+            {canAct && (
+              <div className="space-y-2 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    size="lg"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 text-base shadow-md"
+                    onClick={() => handleMarkStatus("realizado", "Realizado")}
+                  >
+                    <CheckCircle2 className="h-5 w-5 mr-2" /> Realizado
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="font-bold h-12 text-base shadow-md"
+                    onClick={() => handleMarkStatus("falta", "Faltou")}
+                  >
+                    <AlertCircle className="h-5 w-5 mr-2" /> Faltou
+                  </Button>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <ChevronDown className="h-4 w-4 mr-2" /> Mais opções
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => { onReschedule(ag); onOpenChange(false); }}>
+                      <RotateCcw className="h-4 w-4 mr-2 text-blue-600" /> Remarcar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setActionMode("cancelar")}>
+                      <XCircle className="h-4 w-4 mr-2" /> Cancelar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         )}
 
@@ -306,19 +399,19 @@ export function AppointmentDetailDialog({
 
         {/* Action Buttons */}
         {!actionMode && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-2">
             {!isPatient && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="border-primary/20"
+                className="w-full text-muted-foreground hover:text-primary"
                 onClick={() => setActionMode("nota_interna")}
               >
-                <StickyNote className="h-4 w-4 mr-1" /> Nota Interna
+                <StickyNote className="h-4 w-4 mr-2" /> Adicionar Nota Interna
               </Button>
             )}
             {canAct && !isPatient && (
-              <>
+              <div className="grid grid-cols-2 gap-2 mt-1">
                 <Button
                   variant="outline"
                   size="sm"
@@ -330,57 +423,12 @@ export function AppointmentDetailDialog({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onCheckin(ag.id, isPatient ? "paciente" : "profissional")}
-                  disabled={isPatient ? !!ag.checkin_paciente : !!ag.checkin_profissional}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-1" /> Check-in
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-amber-600 border-amber-200 hover:bg-amber-50"
-                  onClick={() => {
-                    onReschedule(ag);
-                    onOpenChange(false);
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4 mr-1" /> Remarcar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  onClick={() => setActionMode("cancelar")}
-                >
-                  <Ban className="h-4 w-4 mr-1" /> Cancelar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   className="text-amber-600 border-amber-200 hover:bg-amber-50"
                   onClick={() => setActionMode("aviso_remarcacao")}
                 >
-                  <Send className="h-4 w-4 mr-1" /> Aviso Remarcação
+                  <Send className="h-4 w-4 mr-1" /> Aviso Remarcar
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  onClick={() => setActionMode("aviso_cancelamento")}
-                >
-                  <Send className="h-4 w-4 mr-1" /> Aviso Cancelamento
-                </Button>
-              </>
-            )}
-            {isCanceled && !isPatient && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                onClick={() => setActionMode("aviso_cancelamento")}
-              >
-                <Send className="h-4 w-4 mr-1" /> Aviso Cancelamento
-              </Button>
+              </div>
             )}
           </div>
         )}

@@ -47,7 +47,7 @@ export function GlobalSearch() {
       const items: SearchResult[] = [];
 
       // Search patients (including legal guardian data)
-      const { data: pacientes } = await (supabase.from("pacientes") as any)
+      const { data: pacientes } = await supabase.from("pacientes")
         .select("id, nome, cpf, telefone, responsavel_nome, responsavel_cpf, responsavel_telefone")
         .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%,responsavel_nome.ilike.%${q}%,responsavel_cpf.ilike.%${q}%,responsavel_telefone.ilike.%${q}%`)
         .limit(5);
@@ -64,7 +64,7 @@ export function GlobalSearch() {
       });
 
       // Search appointments
-      const { data: agendamentos } = await (supabase.from("agendamentos") as any)
+      const { data: agendamentos } = await supabase.from("agendamentos")
         .select("id, data_horario, tipo_atendimento, pacientes(nome)")
         .or(`tipo_atendimento.ilike.%${q}%`)
         .limit(5);
@@ -80,7 +80,7 @@ export function GlobalSearch() {
       });
 
       // Search payments
-      const { data: pagamentos } = await (supabase.from("pagamentos") as any)
+      const { data: pagamentos } = await supabase.from("pagamentos")
         .select("id, valor, descricao, pacientes(nome)")
         .or(`descricao.ilike.%${q}%`)
         .limit(5);
@@ -97,7 +97,7 @@ export function GlobalSearch() {
 
       setResults(items);
       setLoading(false);
-    }, 300);
+    }, 500); // Debounce de 500ms para poupar o banco
 
     return () => clearTimeout(timer);
   }, [query]);

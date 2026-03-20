@@ -3,11 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useClinicSettings, useUpdateClinicSettings } from "@/hooks/useClinicSettings";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText } from "lucide-react";
+import { toast } from "@/modules/shared/hooks/use-toast";
+import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import FormasPagamento from "./FormasPagamento";
+import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
+import { BackupExport } from "@/components/settings/BackupExport";
+
+import { HolidaysTab } from "@/components/settings/HolidaysTab";
+import { Calendar } from "lucide-react";
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
@@ -15,6 +24,7 @@ const ClinicSettings = () => {
   const [form, setForm] = useState({
     nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
     telefone: "", whatsapp: "", email: "", instagram: "", logo_url: "",
+    assinatura_url: "", rubrica_url: "",
   });
   const [uploading, setUploading] = useState(false);
 
@@ -34,6 +44,8 @@ const ClinicSettings = () => {
         email: settings.email || "",
         instagram: settings.instagram || "",
         logo_url: settings.logo_url || "",
+        assinatura_url: settings.assinatura_url || "",
+        rubrica_url: settings.rubrica_url || "",
       });
     }
   }, [settings]);
@@ -54,23 +66,61 @@ const ClinicSettings = () => {
       const ext = file.name.split(".").pop();
       const path = `clinic/logo-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
-      
-      if (upErr) { 
-        console.error("Upload error:", upErr);
-        toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); 
-        return;
-      }
-      
+      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const logo_url = urlData.publicUrl;
       setForm(f => ({ ...f, logo_url }));
-      
       updateMutation.mutate({ id: settings.id, logo_url }, {
         onSuccess: () => toast({ title: "Logo atualizada!" }),
         onError: (err: any) => toast({ title: "Erro ao salvar logo", description: err.message, variant: "destructive" }),
       });
     } catch (err: any) {
-      console.error("Logo upload error:", err);
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings?.id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `clinic/signature-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
+      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
+      const assinatura_url = urlData.publicUrl;
+      setForm(f => ({ ...f, assinatura_url }));
+      updateMutation.mutate({ id: settings.id, assinatura_url }, {
+        onSuccess: () => toast({ title: "Assinatura atualizada!" }),
+        onError: (err: any) => toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" }),
+      });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRubricaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings?.id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `clinic/rubrica-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
+      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
+      const rubrica_url = urlData.publicUrl;
+      setForm(f => ({ ...f, rubrica_url }));
+      updateMutation.mutate({ id: settings.id, rubrica_url }, {
+        onSuccess: () => toast({ title: "Rubrica atualizada!" }),
+        onError: (err: any) => toast({ title: "Erro ao salvar rubrica", description: err.message, variant: "destructive" }),
+      });
+    } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
@@ -83,10 +133,7 @@ const ClinicSettings = () => {
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
-      if (data.erro) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
-        return;
-      }
+      if (data.erro) { toast({ title: "CEP não encontrado", variant: "destructive" }); return; }
       setForm(f => ({
         ...f,
         endereco: data.logradouro || f.endereco,
@@ -94,20 +141,14 @@ const ClinicSettings = () => {
         cidade: data.localidade || f.cidade,
         estado: data.uf || f.estado,
       }));
-    } catch (err) {
-      console.error("Erro ao buscar CEP", err);
-      toast({ title: "Erro ao buscar endereço", variant: "destructive" });
-    }
+    } catch { toast({ title: "Erro ao buscar endereço", variant: "destructive" }); }
   };
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
     if (field === "cnpj") val = maskCNPJ(val);
     if (field === "telefone" || field === "whatsapp") val = maskPhone(val);
-    if (field === "cep") {
-      val = maskCEP(val);
-      fetchAddressFor(val);
-    }
+    if (field === "cep") { val = maskCEP(val); fetchAddressFor(val); }
     setForm(f => ({ ...f, [field]: val }));
   };
 
@@ -116,64 +157,279 @@ const ClinicSettings = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dados da Clínica</h1>
-        <p className="text-muted-foreground">Configure as informações que aparecerão nos contratos e no portal do paciente.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Configurações da Clínica</h1>
+        <p className="text-muted-foreground">Gerencie informações, logo e formas de pagamento.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Informações Básicas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              {form.logo_url ? (
-                <img src={form.logo_url} alt="Logo" className="h-16 w-16 rounded-lg object-cover border" />
-              ) : (
-                <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center"><Building2 className="h-6 w-6 text-muted-foreground" /></div>
-              )}
-              <div>
-                <Label htmlFor="logo" className="cursor-pointer">
-                  <Button variant="outline" size="sm" asChild disabled={uploading}>
-                    <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Alterar Logo"}</span>
-                  </Button>
-                </Label>
-                <input id="logo" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-              </div>
-            </div>
-            <div><Label>Nome da Clínica</Label><Input value={form.nome} onChange={set("nome")} /></div>
-            <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={set("cnpj")} placeholder="00.000.000/0000-00" /></div>
-            <div><Label>E-mail</Label><Input value={form.email} onChange={set("email")} type="email" /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Telefone</Label><Input value={form.telefone} onChange={set("telefone")} /></div>
-              <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={set("whatsapp")} /></div>
-            </div>
-            <div><Label>Instagram</Label><Input value={form.instagram} onChange={set("instagram")} placeholder="@clinica" /></div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="dados" className="space-y-4">
+        <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1 max-w-[900px]">
+          <TabsTrigger value="dados" className="gap-2">
+            <Settings2 className="h-4 w-4" /> Dados
+          </TabsTrigger>
+          <TabsTrigger value="assinaturas" className="gap-2">
+            <Settings2 className="h-4 w-4" /> Assinaturas
+          </TabsTrigger>
+          <TabsTrigger value="pagamento" className="gap-2">
+            <CreditCard className="h-4 w-4" /> Pagamento
+          </TabsTrigger>
+          <TabsTrigger value="feriados" className="gap-2">
+            <Calendar className="h-4 w-4" /> Feriados
+          </TabsTrigger>
+          <TabsTrigger value="nfe" className="gap-2">
+            <FileText className="h-4 w-4" /> Nota Fiscal
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2">
+            <Shield className="h-4 w-4" /> Logs
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="gap-2">
+            <Database className="h-4 w-4" /> Backup
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Endereço</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div><Label>CEP</Label><Input value={form.cep} onChange={set("cep")} placeholder="00000-000" /></div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2"><Label>Rua/Logradouro</Label><Input value={form.endereco} onChange={set("endereco")} /></div>
-              <div><Label>Nº</Label><Input value={form.numero} onChange={set("numero")} /></div>
-            </div>
-            <div><Label>Bairro</Label><Input value={form.bairro} onChange={set("bairro")} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Cidade</Label><Input value={form.cidade} onChange={set("cidade")} /></div>
-              <div><Label>Estado</Label><Input value={form.estado} onChange={set("estado")} /></div>
-            </div>
-          </CardContent>
-        </Card>
+        <TabsContent value="dados">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Informações Básicas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  {form.logo_url ? (
+                    <img src={form.logo_url} alt="Logo" className="h-16 w-16 rounded-lg object-cover border" />
+                  ) : (
+                    <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center"><Building2 className="h-6 w-6 text-muted-foreground" /></div>
+                  )}
+                  <div>
+                    <Label htmlFor="logo" className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild disabled={uploading}>
+                        <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Alterar Logo"}</span>
+                      </Button>
+                    </Label>
+                    <input id="logo" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                  </div>
+                </div>
+                <div><Label>Nome da Clínica</Label><Input value={form.nome} onChange={set("nome")} /></div>
+                <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={set("cnpj")} placeholder="00.000.000/0000-00" /></div>
+                <div><Label>E-mail</Label><Input value={form.email} onChange={set("email")} type="email" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Telefone</Label><Input value={form.telefone} onChange={set("telefone")} /></div>
+                  <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={set("whatsapp")} /></div>
+                </div>
+                <div><Label>Instagram</Label><Input value={form.instagram} onChange={set("instagram")} placeholder="@clinica" /></div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Endereço</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div><Label>CEP</Label><Input value={form.cep} onChange={set("cep")} placeholder="00000-000" /></div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2"><Label>Rua/Logradouro</Label><Input value={form.endereco} onChange={set("endereco")} /></div>
+                  <div><Label>Nº</Label><Input value={form.numero} onChange={set("numero")} /></div>
+                </div>
+                <div><Label>Bairro</Label><Input value={form.bairro} onChange={set("bairro")} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Cidade</Label><Input value={form.cidade} onChange={set("cidade")} /></div>
+                  <div><Label>Estado</Label><Input value={form.estado} onChange={set("estado")} /></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 mt-4">
+            <Save className="h-4 w-4" /> Salvar Alterações
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="assinaturas">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /> Assinaturas da Clínica</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Assinatura Digital</Label>
+                  <div className="flex items-center gap-4">
+                    {form.assinatura_url ? (
+                      <img src={form.assinatura_url} alt="Assinatura" className="h-16 w-32 rounded-lg object-contain border bg-white" />
+                    ) : (
+                      <div className="h-16 w-32 rounded-lg bg-muted flex flex-col items-center justify-center text-xs text-muted-foreground">Sem assinatura</div>
+                    )}
+                    <div>
+                      <Label htmlFor="assinatura" className="cursor-pointer">
+                        <Button variant="outline" size="sm" asChild disabled={uploading}>
+                          <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Upload Assinatura"}</span>
+                        </Button>
+                      </Label>
+                      <input id="assinatura" type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Usada como assinatura principal em contratos e documentos da clínica.</p>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <Label>Rubrica (Opcional)</Label>
+                  <div className="flex items-center gap-4">
+                    {form.rubrica_url ? (
+                      <img src={form.rubrica_url} alt="Rubrica" className="h-16 w-16 rounded-lg object-contain border bg-white" />
+                    ) : (
+                      <div className="h-16 w-16 rounded-lg bg-muted flex flex-col items-center justify-center text-xs text-muted-foreground uppercase text-center">-</div>
+                    )}
+                    <div>
+                      <Label htmlFor="rubrica" className="cursor-pointer">
+                        <Button variant="outline" size="sm" asChild disabled={uploading}>
+                          <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Upload Rubrica"}</span>
+                        </Button>
+                      </Label>
+                      <input id="rubrica" type="file" accept="image/*" className="hidden" onChange={handleRubricaUpload} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Símbolo curto ou rubrica anexado ao carimbo da clínica.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="pagamento">
+          <FormasPagamento />
+        </TabsContent>
+
+        <TabsContent value="nfe">
+          <NfeConfigTab />
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <AuditLogViewer />
+        </TabsContent>
+
+
+        <TabsContent value="feriados">
+          <HolidaysTab clinicId={settings?.id || ""} />
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <BackupExport />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+/** NFe Configuration Sub-Tab */
+const NfeConfigTab = () => {
+  const queryClient = useQueryClient();
+  const [nfeForm, setNfeForm] = useState({
+    ambiente: "homologacao",
+    prestador_cnpj: "",
+    prestador_inscricao_municipal: "",
+    prestador_codigo_municipio: "",
+    servico_codigo_tributacao: "",
+    servico_cnae: "",
+    servico_item_lista: "",
+    servico_discriminacao_padrao: "Serviços de Fisioterapia e Pilates",
+    aliquota_iss: "5",
+  });
+
+  const { data: nfeConfig, isLoading } = useQuery({
+    queryKey: ["config-nfe-settings"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("config_nfe") as any).select("*").limit(1).single();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (nfeConfig) {
+      setNfeForm({
+        ambiente: nfeConfig.ambiente || "homologacao",
+        prestador_cnpj: nfeConfig.prestador_cnpj || "",
+        prestador_inscricao_municipal: nfeConfig.prestador_inscricao_municipal || "",
+        prestador_codigo_municipio: nfeConfig.prestador_codigo_municipio || "",
+        servico_codigo_tributacao: nfeConfig.servico_codigo_tributacao || "",
+        servico_cnae: nfeConfig.servico_cnae || "",
+        servico_item_lista: nfeConfig.servico_item_lista || "",
+        servico_discriminacao_padrao: nfeConfig.servico_discriminacao_padrao || "Serviços de Fisioterapia e Pilates",
+        aliquota_iss: String(nfeConfig.aliquota_iss ?? "5"),
+      });
+    }
+  }, [nfeConfig]);
+
+  const saveNfe = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        ...nfeForm,
+        aliquota_iss: parseFloat(nfeForm.aliquota_iss) || 5,
+      };
+      if (nfeConfig?.id) {
+        const { error } = await (supabase.from("config_nfe") as any).update(payload).eq("id", nfeConfig.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("config_nfe") as any).insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["config-nfe-settings"] });
+      toast({ title: "Configuração de NF-e salva!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const setNfe = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setNfeForm((f) => ({ ...f, [field]: e.target.value }));
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" /> Dados do Prestador (Focus NFe)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Ambiente</Label>
+            <Select value={nfeForm.ambiente} onValueChange={(v) => setNfeForm((f) => ({ ...f, ambiente: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="homologacao">Homologação (Testes)</SelectItem>
+                <SelectItem value="producao">Produção</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>CNPJ do Prestador</Label><Input value={nfeForm.prestador_cnpj} onChange={setNfe("prestador_cnpj")} placeholder="00.000.000/0000-00" /></div>
+          <div><Label>Inscrição Municipal</Label><Input value={nfeForm.prestador_inscricao_municipal} onChange={setNfe("prestador_inscricao_municipal")} /></div>
+          <div><Label>Código do Município (IBGE)</Label><Input value={nfeForm.prestador_codigo_municipio} onChange={setNfe("prestador_codigo_municipio")} placeholder="Ex: 3550308" /></div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Dados do Serviço</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>Código de Tributação Municipal</Label><Input value={nfeForm.servico_codigo_tributacao} onChange={setNfe("servico_codigo_tributacao")} /></div>
+          <div><Label>CNAE</Label><Input value={nfeForm.servico_cnae} onChange={setNfe("servico_cnae")} placeholder="Ex: 8650002" /></div>
+          <div><Label>Item da Lista de Serviço</Label><Input value={nfeForm.servico_item_lista} onChange={setNfe("servico_item_lista")} placeholder="Ex: 04.01" /></div>
+          <div><Label>Discriminação Padrão</Label><Input value={nfeForm.servico_discriminacao_padrao} onChange={setNfe("servico_discriminacao_padrao")} /></div>
+          <div><Label>Alíquota ISS (%)</Label><Input type="number" step="0.01" value={nfeForm.aliquota_iss} onChange={setNfe("aliquota_iss")} /></div>
+        </CardContent>
+      </Card>
+
+      <div className="md:col-span-2">
+        <Button onClick={() => saveNfe.mutate()} disabled={saveNfe.isPending} className="gap-2">
+          <Save className="h-4 w-4" /> Salvar Configuração NF-e
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          💡 Após salvar, adicione seu token da Focus NFe nos segredos do projeto para ativar a emissão automática.
+        </p>
       </div>
-
-      <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2">
-        <Save className="h-4 w-4" /> Salvar Alterações
-      </Button>
     </div>
   );
 };

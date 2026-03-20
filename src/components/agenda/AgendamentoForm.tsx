@@ -4,12 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2, Video, Home, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { toast } from "@/hooks/use-toast";
+import { useAgendamentos, useScheduleSlots, useBookAppointment } from "@/modules/appointments/hooks/useAppointments";
+import { toast } from "sonner";
 
 const DIAS_SEMANA = [
   { value: 1, label: "Seg" },
@@ -59,6 +61,7 @@ const formSchema = z.object({
   profissional_id: z.string().min(1, "Selecione um profissional"),
   data: z.date({ required_error: "Selecione a data" }),
   horario: z.string().min(1, "Informe o horário"),
+  slot_id: z.string().optional(),
   duracao_minutos: z.number().min(15).max(120),
   tipo_atendimento: z.string().min(1, "Selecione a modalidade"),
   tipo_sessao: z.enum(["individual", "grupo"]),
@@ -70,9 +73,25 @@ const formSchema = z.object({
   horarios_por_dia: z.record(z.string(), z.string()).default({}),
   valor_sessao: z.number().min(0).optional(),
   valor_mensal: z.number().min(0).optional(),
+  forma_pagamento: z.string().optional(),
+  data_vencimento: z.string().optional(),
   repetir: z.boolean().default(false),
   repetir_tipo: z.enum(["vezes", "semanas"]).default("vezes"),
   repetir_quantidade: z.number().min(1).max(52).default(4),
+}).superRefine((values, ctx) => {
+  if (values.data_vencimento && values.data) {
+    const [year, month, day] = values.data_vencimento.split("-").map(Number);
+    const vencimento = new Date(year, month - 1, day);
+    const appointmentDate = new Date(values.data);
+    appointmentDate.setHours(0, 0, 0, 0);
+    if (vencimento < appointmentDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Data de vencimento não pode ser anterior à data do agendamento.",
+        path: ["data_vencimento"],
+      });
+    }
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -93,6 +112,11 @@ interface Modalidade {
   nome: string;
 }
 
+interface FormaPagamento {
+  id: string;
+  nome: string;
+}
+
 interface AgendamentoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -101,10 +125,12 @@ interface AgendamentoFormProps {
 }
 
 export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: AgendamentoFormProps) {
-  const { user, clinicId } = useAuth();
+  const { user } = useAuth();
+  const { activeClinicId } = useClinic();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [modalidades, setModalidades] = useState<Modalidade[]>([]);
+  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
@@ -116,8 +142,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     defaultValues: {
       duracao_minutos: 50,
       tipo_atendimento: "",
-      tipo_sessao: "individual",
-      horario: "08:00",
+      tipo_sessao: "grupo",
+      horario: "",
+      slot_id: "",
       observacoes: "",
       recorrente: false,
       dias_semana: [],
@@ -132,17 +159,26 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     },
   });
 
+  const watchedProfId = form.watch("profissional_id");
+  const watchedDate = form.watch("data");
+  const watchedHorario = form.watch("horario");
+  const watchedSlotId = form.watch("slot_id");
   const isRecorrente = form.watch("recorrente");
   const diasSelecionados = form.watch("dias_semana");
   const freqSemanal = form.watch("frequencia_semanal");
   const tipoAtendimento = form.watch("tipo_atendimento");
-  const watchedProfId = form.watch("profissional_id");
-  const watchedDate = form.watch("data");
-  const watchedHorario = form.watch("horario");
   const isRepetir = form.watch("repetir");
   const repetirTipo = form.watch("repetir_tipo");
   const repetirQuantidade = form.watch("repetir_quantidade");
   const watchedTipoSessao = form.watch("tipo_sessao");
+
+  const formattedDate = watchedDate ? format(watchedDate, "yyyy-MM-dd") : "";
+  const { data: availableSlots, isLoading: isLoadingSlots } = useScheduleSlots({
+    professionalId: watchedProfId,
+    date: formattedDate,
+    clinicId: activeClinicId
+  });
+  const bookAppointmentMutation = useBookAppointment();
 
   // Fetch monthly availability summary
   useEffect(() => {
@@ -192,24 +228,26 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       fetchPacientes();
       fetchProfissionais();
       fetchModalidades();
+      fetchFormasPagamento();
     }
   }, [open]);
 
   const freqLabel = freqSemanal === 1 ? "1x" : freqSemanal === 2 ? "2x" : freqSemanal === 3 ? "3x" : `${freqSemanal}x`;
 
   const fetchPacientes = async () => {
-    const { data } = await (supabase.from("pacientes") as any)
+    const { data } = await supabase.from("pacientes")
       .select("id, nome")
       .eq("status", "ativo")
       .order("nome");
-    setPacientes(data ?? []);
+    setPacientes((data ?? []) as Paciente[]);
   };
 
   const fetchProfissionais = async () => {
-    const { data } = await (supabase.from("profiles") as any)
-      .select("id, user_id, nome")
-      .order("nome");
-    setProfissionais(data ?? []);
+    const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+    const ids = (roles || []).map(r => r.user_id);
+    if (!ids.length) { setProfissionais([]); return; }
+    const { data } = await supabase.from("profiles").select("id, user_id, nome").in("user_id", ids).order("nome");
+    setProfissionais((data ?? []) as Profissional[]);
   };
 
   const fetchModalidades = async () => {
@@ -219,6 +257,15 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       .eq("ativo", true)
       .order("nome");
     setModalidades(data ?? []);
+  };
+
+  const fetchFormasPagamento = async () => {
+    const { data } = await supabase
+      .from("formas_pagamento")
+      .select("id, nome")
+      .eq("ativo", true)
+      .order("nome");
+    setFormasPagamento(data ?? []);
   };
 
   const toggleDia = (dia: number) => {
@@ -267,133 +314,106 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
   const onSubmit = async (values: FormData) => {
     if (!user) return;
+    if (!activeClinicId) {
+      toast.error("Selecione uma clínica antes de criar um agendamento.");
+      return;
+    }
     setLoading(true);
 
     try {
-      // Check if patient enrollment is blocked
-      const { data: enrollment } = await (supabase as any)
-        .from("matriculas")
-        .select("bloqueado_admin, bloqueio_motivo")
-        .eq("paciente_id", values.paciente_id)
-        .eq("status", "ativa")
-        .eq("bloqueado_admin", true)
-        .maybeSingle();
+      const formaPagamentoId = formasPagamento.find(
+        f => f.nome.toLowerCase() === values.forma_pagamento?.toLowerCase()
+      )?.id;
 
-      if (enrollment) {
-        toast({
-          title: "❌ Atendimento bloqueado",
-          description: `A matrícula deste paciente está bloqueada pelo administrador. ${enrollment.bloqueio_motivo ? "Motivo: " + enrollment.bloqueio_motivo : ""}`,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (isRecorrente) {
-        // Validation: days must match frequency
-        if (values.dias_semana.length !== values.frequencia_semanal) {
-          toast({
-            title: "Atenção",
-            description: `Você selecionou ${values.dias_semana.length} dia(s) mas a frequência é ${values.frequencia_semanal}x. Ajuste para que coincidam.`,
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
+      if (values.recorrente) {
         const dates = generateRecurringDates(values);
         if (dates.length === 0) {
-          toast({ title: "Nenhuma data gerada", description: "Verifique os dias e o período.", variant: "destructive" });
+          toast.error("Nenhuma data gerada para a recorrência.");
           setLoading(false);
           return;
         }
 
-        const grupoId = crypto.randomUUID();
-        const records = dates.map((dt) => ({
-          paciente_id: values.paciente_id,
-          profissional_id: values.profissional_id,
-          data_horario: dt.toISOString(),
-          duracao_minutos: values.duracao_minutos,
-          tipo_atendimento: values.tipo_atendimento,
-          tipo_sessao: values.tipo_sessao,
-          observacoes: values.observacoes || null,
-          created_by: user.id,
-          recorrente: true,
-          recorrencia_grupo_id: grupoId,
-          dias_semana: values.dias_semana,
-          frequencia_semanal: values.frequencia_semanal,
-          valor_mensal: values.valor_mensal || null,
-        }));
+        toast.info(`Agendando ${dates.length} sessões...`);
+        for (const dt of dates) {
+          await bookAppointmentMutation.mutateAsync({
+            paciente_id: values.paciente_id,
+            profissional_id: values.profissional_id,
+            data_horario: dt.toISOString(),
+            duracao_minutos: values.duracao_minutos,
+            tipo_atendimento: values.tipo_atendimento,
+            tipo_sessao: values.tipo_sessao,
+            observacoes: values.observacoes,
+            created_by: user.id,
+            clinic_id: activeClinicId,
+            valor_sessao: values.valor_sessao,
+            forma_pagamento: values.forma_pagamento,
+            forma_pagamento_id: formaPagamentoId,
+            data_vencimento: values.data_vencimento,
+            slot_id: undefined,
+          } as any);
+        }
+        toast.success(`${dates.length} sessões agendadas com sucesso!`);
+      } else if (values.repetir && values.repetir_quantidade > 1) {
+        // Simple repetition loop
+        const [hours, minutes] = values.horario.split(":").map(Number);
+        const startDate = new Date(values.data);
+        startDate.setHours(hours, minutes, 0, 0);
 
-        const { error } = await (supabase.from("agendamentos") as any).insert(records);
-        if (error) throw error;
-
-        toast({
-          title: "Agendamentos recorrentes criados!",
-          description: `${dates.length} sessões agendadas.`,
-        });
+        toast.info(`Agendando ${values.repetir_quantidade} sessões repetidas...`);
+        for (let i = 0; i < values.repetir_quantidade; i++) {
+          const targetDate = addWeeks(startDate, i);
+          await bookAppointmentMutation.mutateAsync({
+            paciente_id: values.paciente_id,
+            profissional_id: values.profissional_id,
+            data_horario: targetDate.toISOString(),
+            duracao_minutos: values.duracao_minutos,
+            tipo_atendimento: values.tipo_atendimento,
+            tipo_sessao: values.tipo_sessao,
+            observacoes: values.observacoes,
+            created_by: user.id,
+            clinic_id: activeClinicId,
+            valor_sessao: values.valor_sessao,
+            forma_pagamento: values.forma_pagamento,
+            forma_pagamento_id: formaPagamentoId,
+            data_vencimento: values.data_vencimento,
+            slot_id: undefined,
+          } as any);
+        }
+        toast.success(`${values.repetir_quantidade} sessões agendadas com sucesso!`);
       } else {
         const [hours, minutes] = values.horario.split(":").map(Number);
         const dataHorario = new Date(values.data);
         dataHorario.setHours(hours, minutes, 0, 0);
 
-        if (values.repetir && values.repetir_quantidade > 1) {
-          // Repeat same day/time for X occurrences (weekly interval)
-          const totalOccurrences = values.repetir_tipo === "vezes"
-            ? values.repetir_quantidade
-            : values.repetir_quantidade; // semanas = same number
-          const grupoId = crypto.randomUUID();
-          const records = [];
-          for (let i = 0; i < totalOccurrences; i++) {
-            const dt = addWeeks(dataHorario, i);
-            records.push({
-              paciente_id: values.paciente_id,
-              profissional_id: values.profissional_id,
-              data_horario: dt.toISOString(),
-              duracao_minutos: values.duracao_minutos,
-              tipo_atendimento: values.tipo_atendimento,
-              tipo_sessao: values.tipo_sessao,
-              observacoes: values.observacoes || null,
-              created_by: user.id,
-              recorrente: true,
-              recorrencia_grupo_id: grupoId,
-              valor_sessao: values.valor_sessao || null,
-            });
-          }
-          const { error } = await (supabase.from("agendamentos") as any).insert(records);
-          if (error) throw error;
-          toast({
-            title: "Sessões repetidas criadas!",
-            description: `${totalOccurrences} sessões agendadas (mesmo dia/horário, semanalmente).`,
-          });
-        } else {
-          const { error } = await (supabase.from("agendamentos") as any).insert({
-            paciente_id: values.paciente_id,
-            profissional_id: values.profissional_id,
-            data_horario: dataHorario.toISOString(),
-            duracao_minutos: values.duracao_minutos,
-            tipo_atendimento: values.tipo_atendimento,
-            tipo_sessao: values.tipo_sessao,
-            observacoes: values.observacoes || null,
-            created_by: user.id,
-            valor_sessao: values.valor_sessao || null,
-          });
-          if (error) throw error;
-          toast({ title: "Agendamento criado com sucesso!" });
-        }
+        await bookAppointmentMutation.mutateAsync({
+          paciente_id: values.paciente_id,
+          profissional_id: values.profissional_id,
+          data_horario: dataHorario.toISOString(),
+          duracao_minutos: values.duracao_minutos,
+          tipo_atendimento: values.tipo_atendimento,
+          tipo_sessao: values.tipo_sessao,
+          observacoes: values.observacoes,
+          created_by: user.id,
+          clinic_id: activeClinicId,
+          slot_id: undefined,
+          valor_sessao: values.valor_sessao,
+          forma_pagamento: values.forma_pagamento,
+          forma_pagamento_id: formaPagamentoId,
+          data_vencimento: values.data_vencimento,
+        } as any);
+        toast.success("Agendamento realizado com sucesso!");
       }
 
       form.reset();
       onOpenChange(false);
       onSuccess();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      toast({ title: "Erro ao criar agendamento", description: errorMessage, variant: "destructive" });
+    } catch (error: any) {
+      console.error("Erro ao salvar agendamento:", error);
+      toast.error("Erro ao salvar agendamento: " + (error.message || "Tente novamente mais tarde"));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
-
   const previewCount = isRecorrente && diasSelecionados.length > 0
     ? diasSelecionados.length * form.watch("recorrencia_semanas")
     : 0;
@@ -451,51 +471,6 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                 </FormItem>
               )}
             />
-
-            {!isRecorrente && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="horario"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Horário</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="duracao_minutos"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duração</FormLabel>
-                      <Select
-                        onValueChange={(v) => field.onChange(Number(v))}
-                        value={String(field.value)}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="30">30 min</SelectItem>
-                          <SelectItem value="45">45 min</SelectItem>
-                          <SelectItem value="50">50 min</SelectItem>
-                          <SelectItem value="60">60 min</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
 
             {!isRecorrente && (
               <FormField
@@ -563,6 +538,106 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               />
             )}
 
+            {!isRecorrente && (
+              <div className="grid grid-cols-2 gap-4">
+                {/* Show slot picker when slots exist, otherwise manual time input */}
+                {availableSlots && availableSlots.length > 0 ? (
+                  <FormField
+                    control={form.control}
+                    name="slot_id"
+                    render={({ field }) => {
+                      let slotPlaceholder = "Selecione o horário";
+                      if (isLoadingSlots) slotPlaceholder = "Carregando...";
+                      else if (!watchedDate || !watchedProfId) slotPlaceholder = "Selecione data e profissional";
+                      return (
+                      <FormItem>
+                        <FormLabel>Horário (Vagas)</FormLabel>
+                        <Select
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            const slot = availableSlots?.find((s: any) => s.id === val);
+                            if (slot) {
+                              form.setValue("horario", slot.start_time.slice(0, 5));
+                            }
+                          }}
+                          value={field.value}
+                          disabled={isLoadingSlots || !watchedDate || !watchedProfId}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={slotPlaceholder} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {availableSlots?.map((slot: any) => (
+                              <SelectItem
+                                key={slot.id}
+                                value={slot.id}
+                                disabled={slot.status === 'full' || slot.status === 'blocked'}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
+                                  <span className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded-full border",
+                                    slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
+                                  )}>
+                                    {slot.current_capacity}/{slot.max_capacity} pacientes
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    ); }}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="horario"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Horário</FormLabel>
+                        <FormControl>
+                          <Input type="time" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="duracao_minutos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duração</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(Number(v))}
+                        value={String(field.value)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="30">30 min</SelectItem>
+                          <SelectItem value="45">45 min</SelectItem>
+                          <SelectItem value="50">50 min</SelectItem>
+                          <SelectItem value="60">60 min</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -608,6 +683,53 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Tipo de consulta: Teleconsulta / Domiciliar */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <Label className="font-medium text-sm">Tipo de Consulta</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("observacoes")?.includes("[TELECONSULTA]") ? "default" : "outline"}
+                  className="gap-2"
+                  onClick={() => {
+                    const obs = form.getValues("observacoes") || "";
+                    if (obs.includes("[TELECONSULTA]")) {
+                      form.setValue("observacoes", obs.replace("[TELECONSULTA]", "").trim());
+                    } else {
+                      form.setValue("observacoes", `[TELECONSULTA] ${obs.replace("[DOMICILIAR]", "").trim()}`.trim());
+                    }
+                  }}
+                >
+                  <Video className="h-4 w-4" />
+                  Teleconsulta
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("observacoes")?.includes("[DOMICILIAR]") ? "default" : "outline"}
+                  className="gap-2"
+                  onClick={() => {
+                    const obs = form.getValues("observacoes") || "";
+                    if (obs.includes("[DOMICILIAR]")) {
+                      form.setValue("observacoes", obs.replace("[DOMICILIAR]", "").trim());
+                    } else {
+                      form.setValue("observacoes", `[DOMICILIAR] ${obs.replace("[TELECONSULTA]", "").trim()}`.trim());
+                    }
+                  }}
+                >
+                  <Home className="h-4 w-4" />
+                  Consulta Domiciliar
+                </Button>
+              </div>
+              {form.watch("observacoes")?.includes("[TELECONSULTA]") && (
+                <p className="text-xs text-muted-foreground">📹 Um link de teleconsulta será gerado para esta sessão.</p>
+              )}
+              {form.watch("observacoes")?.includes("[DOMICILIAR]") && (
+                <p className="text-xs text-muted-foreground">🏠 Esta sessão será realizada no domicílio do paciente.</p>
+              )}
             </div>
 
             {availabilityResult && (
@@ -658,32 +780,81 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               />
             )}
 
-            {/* Valor - sessão única */}
+            {/* Financeiro — sessão única */}
             {!isRecorrente && (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <Label className="font-medium">Valor da Consulta/Sessão</Label>
+                  <Label className="font-medium">Financeiro da Sessão</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="valor_sessao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Valor (R$)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0,00"
+                              className="pl-10"
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="data_vencimento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Data de Vencimento</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <FormField
                   control={form.control}
-                  name="valor_sessao"
+                  name="forma_pagamento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0,00"
-                            className="pl-10"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </div>
-                      </FormControl>
+                      <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione (opcional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {formasPagamento.map((f) => (
+                            <SelectItem key={f.id} value={f.nome.toLowerCase()}>{f.nome}</SelectItem>
+                          ))}
+                          {formasPagamento.length === 0 && (
+                            <>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                              <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                              <SelectItem value="transferencia">Transferência Bancária</SelectItem>
+                              <SelectItem value="convenio">Convênio</SelectItem>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -902,41 +1073,41 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => {
-                                field.onChange(date);
-                                if (date) setCurrentMonth(date);
-                              }}
-                              onMonthChange={setCurrentMonth}
-                              locale={ptBR}
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0
-                              }
-                              className="rounded-md border shadow-sm"
-                              components={{
-                                Day: ({ date, ...props }) => {
-                                  const vacancies = monthlyAvail[date.getDate()];
-                                  const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                                  const isSunday = date.getDay() === 0;
+                               mode="single"
+                               selected={field.value}
+                               onSelect={(date) => {
+                                 field.onChange(date);
+                                 if (date) setCurrentMonth(date);
+                               }}
+                               onMonthChange={setCurrentMonth}
+                               locale={ptBR}
+                               disabled={(date) =>
+                                 date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0
+                               }
+                               className="rounded-md border shadow-sm"
+                               components={{
+                                 Day: ({ date, ...props }: any) => {
+                                   const vacancies = monthlyAvail[date.getDate()];
+                                   const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                                   const isSunday = date.getDay() === 0;
 
-                                  return (
-                                    <div {...props} className="relative w-full h-full flex flex-col items-center justify-center pt-1">
-                                      <span>{date.getDate()}</span>
-                                      {watchedProfId && !isPast && !isSunday && (
-                                        <span className={cn(
-                                          "text-[9px] mt-0.5 px-1 rounded-full",
-                                          vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
-                                        )}>
-                                          {vacancies}v
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                }
-                              }}
-                              initialFocus
-                            />
+                                   return (
+                                     <div {...props} className="relative w-full h-full flex flex-col items-center justify-center pt-1">
+                                       <span>{date.getDate()}</span>
+                                       {watchedProfId && !isPast && !isSunday && (
+                                         <span className={cn(
+                                           "text-[9px] mt-0.5 px-1 rounded-full",
+                                           vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
+                                         )}>
+                                           {vacancies}v
+                                         </span>
+                                       )}
+                                     </div>
+                                   );
+                                 }
+                               }}
+                               initialFocus
+                             />
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -944,38 +1115,110 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                     )}
                   />
 
-                  {/* Valor mensal */}
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  {/* Valor Sessão e Pagamento Mensal */}
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <Label className="font-medium text-sm">Pagamento Mensal</Label>
+                      <Label className="font-medium">Financeiro Recorrente</Label>
                     </div>
-                    <FormField
-                      control={form.control}
-                      name="valor_mensal"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="Ex: 180,00"
-                                className="pl-10"
-                                value={field.value ?? ""}
-                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                              />
-                            </div>
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            Valor mensal do pacote (ex: Pilates {freqLabel}/semana)
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="valor_sessao"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Valor p/ Sessão (R$)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0,00"
+                                  className="pl-10"
+                                  value={field.value ?? ""}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="valor_mensal"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Valor Mensal (Pacote)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="Opcional"
+                                  className="pl-10"
+                                  value={field.value ?? ""}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="data_vencimento"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Data de Vencimento</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="forma_pagamento"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {formasPagamento.map((f) => (
+                                  <SelectItem key={f.id} value={f.nome.toLowerCase()}>{f.nome}</SelectItem>
+                                ))}
+                                {formasPagamento.length === 0 && (
+                                  <>
+                                    <SelectItem value="pix">PIX</SelectItem>
+                                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                    <SelectItem value="transferencia">Transferência Bancária</SelectItem>
+                                    <SelectItem value="convenio">Convênio</SelectItem>
+                                    <SelectItem value="boleto">Boleto</SelectItem>
+                                  </>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
                   {/* Preview - tempo indeterminado */}
