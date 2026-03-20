@@ -161,7 +161,7 @@ export default function Teleconsulta() {
             setSession({
               ...(newSession as any),
               paciente_nome: ag.pacientes?.nome,
-              profissional_nome: ag.profiles?.nome,
+              profissional_nome: profNome,
             });
           }
         } else if (roomParam) {
