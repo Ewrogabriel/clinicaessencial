@@ -20,6 +20,7 @@ import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePersistedFilter } from "@/modules/shared/hooks/usePersistedFilter";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+import type { StatusAgendamento } from "@/types/entities";
 
 const VacancyCalendar = lazy(() => import("./VacancyCalendar"));
 const ListaEspera = lazy(() => import("./ListaEspera"));
@@ -138,7 +139,7 @@ const Agenda = () => {
   }, [agendamentosData, profissionais]);
 
   // Mutations
-  const cancelMutation = useUpdateAgendamentoStatus();
+  const updateStatusMutation = useUpdateAgendamentoStatus();
   const checkinMutation = useAgendamentoCheckin();
   const rescheduleMutation = useRescheduleAgendamento();
 
@@ -162,9 +163,16 @@ const Agenda = () => {
   };
 
   const handleCancelAppointment = async (id: string) => {
-    cancelMutation.mutate({ id, status: "cancelado" }, {
+    updateStatusMutation.mutate({ id, status: "cancelado" }, {
       onSuccess: () => { toast({ title: "Agendamento cancelado" }); refetchAgendamentos(); },
       onError: () => { toast({ title: "Erro ao cancelar", variant: "destructive" }); },
+    });
+  };
+
+  const handleStatusChange = (id: string, status: string) => {
+    updateStatusMutation.mutate({ id, status: status as StatusAgendamento }, {
+      onSuccess: () => { refetchAgendamentos(); },
+      onError: () => { toast({ title: "Erro ao atualizar status", variant: "destructive" }); },
     });
   };
 
@@ -321,6 +329,7 @@ const Agenda = () => {
                 onAppointmentClick={handleAppointmentClick}
                 profColors={profColors}
                 onDrop={handleDragDrop}
+                onStatusChange={handleStatusChange}
               />
             )}
             {viewMode === "semanal" && (

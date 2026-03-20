@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Stethoscope } from "lucide-react";
 import {
   format,
   startOfWeek,
@@ -44,6 +44,7 @@ interface ViewProps {
   onAppointmentClick?: (ag: Agendamento) => void;
   profColors?: Record<string, string>;
   onDrop?: (agId: string, newDate: Date) => void;
+  onStatusChange?: (id: string, status: string) => void;
 }
 
 // Status badge colors (background + text)
@@ -111,6 +112,8 @@ function AppointmentCard({
   onReschedule,
   onAppointmentClick,
   profColor,
+  onStatusChange,
+  showActions,
 }: {
   ag: Agendamento;
   isPatient?: boolean;
@@ -119,6 +122,8 @@ function AppointmentCard({
   onReschedule?: (ag: Agendamento) => void;
   onAppointmentClick?: (ag: Agendamento) => void;
   profColor?: string;
+  onStatusChange?: (id: string, status: string) => void;
+  showActions?: boolean;
 }) {
   const navigate = useNavigate();
   const time = format(new Date(ag.data_horario), "HH:mm");
@@ -126,6 +131,7 @@ function AppointmentCard({
   const checkedIn = isPatient ? ag.checkin_paciente : ag.checkin_profissional;
   const canCheckin = ag.status !== "cancelado" && ag.status !== "falta";
   const isCancelled = ag.status === "cancelado" || ag.status === "falta";
+  const canAct = !isPatient && showActions && ag.status !== "realizado" && ag.status !== "falta" && ag.status !== "cancelado";
 
   // Visual layer 1 – left border: identifies the professional
   const profBorderColor = profColor || "#64748b";
@@ -251,6 +257,39 @@ function AppointmentCard({
             )}
           </div>
         </div>
+
+        {/* Quick-action buttons: Realizado / Faltou / Nova Evolução (daily view only, staff only) */}
+        {canAct && (
+          <div
+            className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); onStatusChange?.(ag.id, "realizado"); }}
+              className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded px-1 py-0.5 transition-colors"
+              title="Marcar como Realizado"
+            >
+              <CheckCircle2 className="h-2.5 w-2.5" /> Realizado
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onStatusChange?.(ag.id, "falta"); }}
+              className="flex items-center gap-0.5 text-[9px] font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded px-1 py-0.5 transition-colors"
+              title="Marcar como Faltou"
+            >
+              <AlertCircle className="h-2.5 w-2.5" /> Faltou
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/prontuarios?paciente=${ag.paciente_id}&tab=evolucoes&new=1`);
+              }}
+              className="flex items-center gap-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded px-1 py-0.5 transition-colors ml-auto"
+              title="Nova Evolução"
+            >
+              <Stethoscope className="h-2.5 w-2.5" /> Evolução
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -334,6 +373,7 @@ export function DailyView({
   onAppointmentClick,
   profColors = {},
   onDrop,
+  onStatusChange,
 }: ViewProps) {
   const dayAgendamentos = agendamentos.filter((ag) =>
     isSameDay(new Date(ag.data_horario), currentDate)
@@ -429,6 +469,8 @@ export function DailyView({
                     onReschedule={onReschedule}
                     onAppointmentClick={onAppointmentClick}
                     profColor={profColors[ag.profissional_id]}
+                    onStatusChange={onStatusChange}
+                    showActions
                   />
                 ))}
               </div>
