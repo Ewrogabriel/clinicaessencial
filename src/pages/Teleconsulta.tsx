@@ -103,12 +103,24 @@ export default function Teleconsulta() {
         if (sessionParam) {
           const { data } = await supabase
             .from("teleconsulta_sessions")
-            .select("*")
+            .select("*, pacientes(nome)")
             .eq("id", sessionParam)
             .single();
           if (data) {
             const s = data as any;
-            setSession(s);
+            
+            // Try to get professional name
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("nome")
+              .eq("id", s.profissional_id)
+              .maybeSingle();
+
+            setSession({
+              ...s,
+              paciente_nome: s.pacientes?.nome,
+              profissional_nome: prof?.nome || "Profissional",
+            });
             if (s.status === "em_andamento") setCallActive(true);
             if (s.transcricao_bruta) setTranscriptLines(s.transcricao_bruta.split("\n").filter(Boolean));
             if (s.resumo_clinico) setClinicalSummary(s.resumo_clinico);
@@ -127,13 +139,39 @@ export default function Teleconsulta() {
             if (s.status === "em_andamento") setCallActive(true);
             if (s.transcricao_bruta) setTranscriptLines(s.transcricao_bruta.split("\n").filter(Boolean));
           } else {
-            const { data: ag } = await supabase
+            const { data: ag, error: agError } = await supabase
               .from("agendamentos")
-              .select("*, pacientes(nome), profiles(nome)")
+              .select("*, pacientes(nome)")
               .eq("id", agendamentoId)
-              .single() as any;
+              .single();
 
-            if (!ag) { toast.error("Agendamento não encontrado"); return; }
+            if (agError || !ag) { 
+              toast.error("Agendamento não encontrado"); 
+              setLoading(false);
+              return; 
+            }
+
+            // Check if it's too early for patient
+            if (!isProfOrAdmin) {
+              const appointmentTime = new Date(ag.data_horario).getTime();
+              const now = new Date().getTime();
+              const diffMs = appointmentTime - now;
+              const tenMinutesMs = 10 * 60 * 1000;
+
+              if (diffMs > tenMinutesMs) {
+                const waitMin = Math.ceil((diffMs - tenMinutesMs) / (60 * 1000));
+                toast.error(`A sala estará disponível apenas 10 minutos antes do horário. Tente novamente em ${waitMin} minutos.`);
+                navigate("/teleconsulta-hub");
+                return;
+              }
+            }
+
+            // Fetch professional name separately since join might fail
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("nome")
+              .eq("id", ag.profissional_id)
+              .maybeSingle();
 
             const roomId = `essencial-fisio-${agendamentoId.slice(0, 8)}`;
             const { data: newSession, error } = await supabase
@@ -152,19 +190,31 @@ export default function Teleconsulta() {
             setSession({
               ...(newSession as any),
               paciente_nome: ag.pacientes?.nome,
-              profissional_nome: ag.profiles?.nome,
+              profissional_nome: prof?.nome || "Profissional",
             });
           }
         } else if (roomParam) {
           const { data: existing } = await supabase
             .from("teleconsulta_sessions")
-            .select("*")
+            .select("*, pacientes(nome)")
             .eq("room_id", roomParam)
             .in("status", ["aguardando", "em_andamento"])
             .maybeSingle();
           if (existing) {
-            setSession(existing as any);
-            if ((existing as any).status === "em_andamento") setCallActive(true);
+            const s = existing as any;
+            
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("nome")
+              .eq("id", s.profissional_id)
+              .maybeSingle();
+
+            setSession({
+              ...s,
+              paciente_nome: s.pacientes?.nome,
+              profissional_nome: prof?.nome || "Profissional",
+            });
+            if (s.status === "em_andamento") setCallActive(true);
           }
         } else if (params.get("nova") === "1" && isProfOrAdmin) {
           const roomId = `essencial-fisio-${Math.random().toString(36).substring(2, 10)}`;
@@ -208,7 +258,8 @@ export default function Teleconsulta() {
   // ─── Start Jitsi + Auto start transcription ───
   useEffect(() => {
     if (!callActive || !jitsiLoaded || !session || !jitsiContainerRef.current) return;
-    if (jitsiApiRef.current) return;
+    // Patients can only start if admitted
+    if (!isProfOrAdmin && !session.admitted_at) return;
 
     const api = new (window as any).JitsiMeetExternalAPI("meet.jit.si", {
       roomName: session.room_id,

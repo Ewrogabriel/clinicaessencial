@@ -184,6 +184,9 @@ const ClinicSettings = () => {
           <TabsTrigger value="backup" className="gap-2">
             <Database className="h-4 w-4" /> Backup
           </TabsTrigger>
+          <TabsTrigger value="integracoes" className="gap-2">
+            <Settings2 className="h-4 w-4" /> Integrações
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -314,6 +317,10 @@ const ClinicSettings = () => {
         <TabsContent value="backup">
           <BackupExport />
         </TabsContent>
+
+        <TabsContent value="integracoes">
+          <IntegracoesTab clinicId={settings?.id || ""} />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -429,6 +436,128 @@ const NfeConfigTab = () => {
         <p className="text-xs text-muted-foreground mt-2">
           💡 Após salvar, adicione seu token da Focus NFe nos segredos do projeto para ativar a emissão automática.
         </p>
+      </div>
+    </div>
+  );
+};
+
+const IntegracoesTab = ({ clinicId }: { clinicId: string }) => {
+  const queryClient = useQueryClient();
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [configForm, setConfigForm] = useState({
+    nibo_api_key: "",
+    inter_client_id: "",
+    inter_client_secret: "",
+    transmitenota_token: "",
+  });
+
+  const { data: config, isLoading } = useQuery({
+    queryKey: ["config-integracoes", clinicId],
+    queryFn: async () => {
+      if (!clinicId) return null;
+      const { data } = await supabase.from("config_integracoes").select("*").eq("clinic_id", clinicId).maybeSingle();
+      return data;
+    },
+    enabled: !!clinicId,
+  });
+
+  useEffect(() => {
+    if (config) {
+      setConfigForm({
+        nibo_api_key: config.nibo_api_key || "",
+        inter_client_id: config.inter_client_id || "",
+        inter_client_secret: config.inter_client_secret || "",
+        transmitenota_token: config.transmitenota_token || "",
+      });
+    }
+  }, [config]);
+
+  const saveConfig = useMutation({
+    mutationFn: async () => {
+      const payload = { ...configForm, clinic_id: clinicId };
+      if (config?.id) {
+        const { error } = await supabase.from("config_integracoes").update(payload).eq("id", config.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("config_integracoes").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["config-integracoes"] });
+      toast({ title: "Configurações de integração salvas!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
+  });
+
+  const handleNiboAction = async (action: "import-clients" | "export-patient") => {
+    setLoadingAction(action);
+    try {
+      const { data, error } = await supabase.functions.invoke("nibo-sync", {
+        body: { action, clinicId }
+      });
+      if (error) throw error;
+      toast({ title: "Sincronização Nibo finalizada", description: `Importados: ${data.importedCount || 0}` });
+    } catch (err: any) {
+      toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const setConfig = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setConfigForm((f) => ({ ...f, [field]: e.target.value }));
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary" /> Nibo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>API Token (Nibo)</Label><Input type="password" value={configForm.nibo_api_key} onChange={setConfig("nibo_api_key")} /></div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleNiboAction("import-clients")} disabled={!!loadingAction}>
+              {loadingAction === "import-clients" ? "Importando..." : "Importar Clientes do Nibo"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" /> Banco Inter
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>Client ID</Label><Input value={configForm.inter_client_id} onChange={setConfig("inter_client_id")} /></div>
+          <div><Label>Client Secret</Label><Input type="password" value={configForm.inter_client_secret} onChange={setConfig("inter_client_secret")} /></div>
+          <p className="text-xs text-muted-foreground">
+            Os certificados (.crt e .key) devem estar configurados nos Segredos do Supabase para o funcionamento do extrato.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" /> TransmiteNota
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div><Label>API Token (TransmiteNota)</Label><Input type="password" value={configForm.transmitenota_token} onChange={setConfig("transmitenota_token")} /></div>
+        </CardContent>
+      </Card>
+
+      <div className="md:col-span-2">
+        <Button onClick={() => saveConfig.mutate()} disabled={saveConfig.isPending} className="gap-2">
+          <Save className="h-4 w-4" /> Salvar Configurações de Integração
+        </Button>
       </div>
     </div>
   );

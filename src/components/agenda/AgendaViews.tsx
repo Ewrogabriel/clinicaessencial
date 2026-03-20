@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, RotateCcw, XCircle } from "lucide-react";
 import {
   format,
   startOfWeek,
@@ -41,6 +41,7 @@ interface ViewProps {
   onCancel?: (id: string) => void;
   onCheckin?: (id: string, type: "paciente" | "profissional") => void;
   onReschedule?: (ag: Agendamento) => void;
+  onUpdateStatus?: (id: string, status: string) => void;
   onAppointmentClick?: (ag: Agendamento) => void;
   profColors?: Record<string, string>;
   onDrop?: (agId: string, newDate: Date) => void;
@@ -109,6 +110,7 @@ function AppointmentCard({
   onCancel,
   onCheckin,
   onReschedule,
+  onUpdateStatus,
   onAppointmentClick,
   profColor,
 }: {
@@ -117,6 +119,7 @@ function AppointmentCard({
   onCancel?: (id: string) => void;
   onCheckin?: (id: string, type: "paciente" | "profissional") => void;
   onReschedule?: (ag: Agendamento) => void;
+  onUpdateStatus?: (id: string, status: string) => void;
   onAppointmentClick?: (ag: Agendamento) => void;
   profColor?: string;
 }) {
@@ -215,37 +218,48 @@ function AppointmentCard({
               {ag.status}
             </Badge>
           </div>
-          <div className="flex items-center gap-1">
-            {canCheckin && !checkedIn && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCheckin?.(ag.id, isPatient ? "paciente" : "profissional");
-                }}
-                className="text-[10px] text-primary hover:underline font-medium"
-              >
-                Check-in
-              </button>
-            )}
-            {isPatient && ag.status !== "cancelado" && (
+          <div className="flex items-center gap-1.5 mt-1 border-t pt-1 border-border/40">
+            {ag.status !== "realizado" && ag.status !== "cancelado" && ag.status !== "falta" && (
               <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateStatus?.(ag.id, "realizado");
+                  }}
+                  className="p-1 rounded-md hover:bg-emerald-50 text-emerald-600 transition-colors"
+                  title="Marcar como Realizado"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateStatus?.(ag.id, "falta");
+                  }}
+                  className="p-1 rounded-md hover:bg-amber-50 text-amber-600 transition-colors"
+                  title="Marcar Falta"
+                >
+                  <AlertCircle className="h-3.5 w-3.5" />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onReschedule?.(ag);
                   }}
-                  className="text-[10px] text-amber-600 hover:underline font-medium"
+                  className="p-1 rounded-md hover:bg-blue-50 text-blue-600 transition-colors"
+                  title="Remarcar"
                 >
-                  Remarcar
+                  <RotateCcw className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onCancel?.(ag.id);
                   }}
-                  className="text-[10px] text-destructive hover:underline font-medium"
+                  className="p-1 rounded-md hover:bg-red-50 text-destructive transition-colors"
+                  title="Cancelar"
                 >
-                  Cancelar
+                  <XCircle className="h-3.5 w-3.5" />
                 </button>
               </>
             )}
@@ -331,6 +345,7 @@ export function DailyView({
   onCancel,
   onCheckin,
   onReschedule,
+  onUpdateStatus,
   onAppointmentClick,
   profColors = {},
   onDrop,
@@ -427,6 +442,7 @@ export function DailyView({
                     onCancel={onCancel}
                     onCheckin={onCheckin}
                     onReschedule={onReschedule}
+                    onUpdateStatus={onUpdateStatus}
                     onAppointmentClick={onAppointmentClick}
                     profColor={profColors[ag.profissional_id]}
                   />
@@ -450,6 +466,7 @@ export function WeeklyView({
   onCancel,
   onCheckin,
   onReschedule,
+  onUpdateStatus,
   onAppointmentClick,
   profColors = {},
   onDrop,
@@ -507,16 +524,17 @@ export function WeeklyView({
             </div>
             <div className="space-y-1 flex-1 overflow-y-auto max-h-[320px]">
               {dayAgs.map((ag) => (
-                <AppointmentCard
-                  key={ag.id}
-                  ag={ag}
-                  isPatient={isPatient}
-                  onCancel={onCancel}
-                  onCheckin={onCheckin}
-                  onReschedule={onReschedule}
-                  onAppointmentClick={onAppointmentClick}
-                  profColor={profColors[ag.profissional_id]}
-                />
+                  <AppointmentCard
+                    key={ag.id}
+                    ag={ag}
+                    isPatient={isPatient}
+                    onCancel={onCancel}
+                    onCheckin={onCheckin}
+                    onReschedule={onReschedule}
+                    onUpdateStatus={onUpdateStatus}
+                    onAppointmentClick={onAppointmentClick}
+                    profColor={profColors[ag.profissional_id]}
+                  />
               ))}
             </div>
           </div>
@@ -535,6 +553,7 @@ export function MonthlyView({
   onCancel,
   onCheckin,
   onReschedule,
+  onUpdateStatus,
   onAppointmentClick,
   profColors = {},
   onDrop,

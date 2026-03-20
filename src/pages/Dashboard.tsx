@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { format, startOfDay, endOfDay, eachDayOfInterval, getDay, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfDay, endOfDay, eachDayOfInterval, getDay, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Dialog,
@@ -37,13 +37,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { UserCheck } from "lucide-react";
+import { UserCheck, Plus, Package, FileText, CalendarPlus, WhatsApp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { ClinicReportButton } from "@/components/reports/ClinicReportButton";
 import { AIKpiInsights } from "@/components/reports/AIKpiInsights";
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
+import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
+import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
+import { EnrollmentForm, EnrollmentFormData } from "@/components/matriculas/EnrollmentForm";
+import { useModalidades } from "@/modules/appointments/hooks/useModalidades";
+import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
 
 const ADMIN_DEFAULT_CARDS: DashboardCard[] = [
   { id: "today-agenda", label: "Agenda de Hoje", visible: true },
@@ -81,6 +86,27 @@ const Dashboard = () => {
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { visibleCards, cards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("admin", ADMIN_DEFAULT_CARDS);
+
+  // Quick Action Forms State
+  const [newAgendamentoOpen, setNewAgendamentoOpen] = useState(false);
+  const [newPlanoOpen, setNewPlanoOpen] = useState(false);
+  const [newEnrollmentOpen, setNewEnrollmentOpen] = useState(false);
+
+  // Enrollment Form Data
+  const getEmptyEnrollmentForm = (): EnrollmentFormData => ({
+    paciente_id: "",
+    monthly_value: "",
+    due_day: "10",
+    start_date: format(new Date(), "yyyy-MM-dd"),
+    auto_renew: true,
+    tipo_atendimento: "pilates",
+    desconto: "0",
+    desconto_tipo: "percentual",
+    observacoes: "",
+    weekly_schedules: [],
+  });
+
+  const [enrollmentFormData, setEnrollmentFormData] = useState<EnrollmentFormData>(getEmptyEnrollmentForm());
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -319,8 +345,105 @@ const Dashboard = () => {
     },
   });
 
-  // Professionals for the re-assignment dialog
+  // Professionals and Modalities
   const { profissionais, isLoading: isLoadingProfissionais } = useProfissionais();
+  const { data: modalidades = [] } = useModalidades();
+
+  // Enrollment Mutation
+  const createMatricula = useMutation({
+    mutationFn: async () => {
+      if (!profile) throw new Error("Não autenticado");
+
+      const monthly = parseFloat(enrollmentFormData.monthly_value) || 0;
+      const desc = parseFloat(enrollmentFormData.desconto) || 0;
+      const descValue = enrollmentFormData.desconto_tipo === "percentual" ? (monthly * desc) / 100 : desc;
+      const finalValue = monthly - descValue;
+
+      const dueDayNum = Math.min(parseInt(enrollmentFormData.due_day) || 10, 31);
+      const startDateObj = new Date(enrollmentFormData.start_date + "T12:00:00");
+      const nextMonthDate = addMonths(startDateObj, 1);
+      const nmYear = nextMonthDate.getFullYear();
+      const nmMonth = nextMonthDate.getMonth();
+      const lastDayOfNextMonth = new Date(nmYear, nmMonth + 1, 0).getDate();
+      const actualDueDay = Math.min(dueDayNum, lastDayOfNextMonth);
+      const dueDate = format(new Date(nmYear, nmMonth, actualDueDay), "yyyy-MM-dd");
+
+      const { data: mat, error } = await supabase
+        .from("matriculas")
+        .insert({
+          paciente_id: enrollmentFormData.paciente_id,
+          profissional_id: profile.user_id,
+          tipo: "mensal",
+          tipo_atendimento: enrollmentFormData.tipo_atendimento,
+          valor_mensal: finalValue,
+          data_inicio: enrollmentFormData.start_date,
+          data_vencimento: dueDate,
+          due_day: dueDayNum,
+          auto_renew: enrollmentFormData.auto_renew,
+          observacoes: enrollmentFormData.observacoes || null,
+          desconto: descValue,
+          criada_por: profile.user_id,
+          status: "ativa",
+          clinic_id: activeClinicId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (enrollmentFormData.weekly_schedules.length > 0) {
+        const schedInserts = enrollmentFormData.weekly_schedules.map((s) => ({
+          enrollment_id: mat.id,
+          weekday: s.weekday,
+          time: s.time,
+          professional_id: s.professional_id,
+          session_duration: s.session_duration,
+        }));
+        const { error: schedsErr } = await supabase.from("weekly_schedules").insert(schedInserts);
+        if (schedsErr) throw schedsErr;
+
+        const endDate = format(addMonths(new Date(enrollmentFormData.start_date), 6), "yyyy-MM-dd");
+        
+        await enrollmentService.generateSessions({
+          enrollmentId: mat.id,
+          pacienteId: enrollmentFormData.paciente_id,
+          weeklySchedules: enrollmentFormData.weekly_schedules,
+          startDate: enrollmentFormData.start_date,
+          endDate: endDate,
+          tipoAtendimento: enrollmentFormData.tipo_atendimento,
+          monthlyValue: finalValue,
+          clinicId: activeClinicId || "",
+          userId: profile.user_id
+        });
+      }
+
+      if (finalValue > 0) {
+        const mesReferencia = format(addMonths(new Date(enrollmentFormData.start_date), 1), "yyyy-MM-01");
+        await (supabase.from("pagamentos_mensalidade").insert({
+          paciente_id: enrollmentFormData.paciente_id,
+          matricula_id: mat.id,
+          mes_referencia: mesReferencia,
+          data_vencimento: dueDate,
+          valor: finalValue,
+          status: "aberto",
+          observacoes: `Mensalidade ${enrollmentFormData.tipo_atendimento}`,
+          clinic_id: activeClinicId,
+        }) as any);
+      }
+
+      return mat;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+      setNewEnrollmentOpen(false);
+      setEnrollmentFormData(getEmptyEnrollmentForm());
+      toast({ title: "✅ Matrícula criada com sucesso!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao criar matrícula", description: err.message, variant: "destructive" });
+    },
+  });
 
   // Quick Action Mutations
   const updateStatus = useMutation({
@@ -572,6 +695,30 @@ const Dashboard = () => {
             size="sm"
             variant="outline"
             className="gap-2"
+            onClick={() => setNewAgendamentoOpen(true)}
+          >
+            <CalendarPlus className="h-4 w-4" /> Novo Agendamento
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() => setNewPlanoOpen(true)}
+          >
+            <FileText className="h-4 w-4" /> Novo Plano
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() => setNewEnrollmentOpen(true)}
+          >
+            <Package className="h-4 w-4" /> Nova Matrícula
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
             onClick={() => {
               const link = `${window.location.origin}/pre-cadastro`;
               const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
@@ -660,6 +807,49 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Quick Action Dialogs */}
+      <AgendamentoForm 
+        open={newAgendamentoOpen} 
+        onOpenChange={setNewAgendamentoOpen} 
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-today-agenda"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-today-stats"] });
+        }} 
+      />
+
+      <PlanoFormDialog 
+        open={newPlanoOpen} 
+        onOpenChange={setNewPlanoOpen} 
+        editPlano={null} 
+        pacientes={pacientes as any[]} 
+        modalidades={modalidades} 
+        userId={profile?.user_id || ""} 
+      />
+
+      <Dialog open={newEnrollmentOpen} onOpenChange={setNewEnrollmentOpen}>
+        <DialogContent className="sm:max-w-[640px] max-h-[92vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Nova Matrícula Recorrente</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <EnrollmentForm
+              formData={enrollmentFormData}
+              setFormData={setEnrollmentFormData}
+              pacientes={pacientes as { id: string; nome: string }[]}
+              profissionais={profissionais.map(p => ({ user_id: p.user_id, nome: p.nome }))}
+            />
+          </div>
+          <div className="shrink-0 flex justify-end gap-3 pt-4 border-t mt-2">
+            <Button variant="outline" onClick={() => setNewEnrollmentOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createMatricula.mutate()}
+              disabled={!enrollmentFormData.paciente_id || !enrollmentFormData.monthly_value || createMatricula.isPending}
+            >
+              {createMatricula.isPending ? "Criando..." : "Criar Matrícula"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

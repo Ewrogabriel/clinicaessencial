@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Download, Send, Users, Signature } from "lucide-react";
+import { FileText, Download, Send, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
@@ -17,10 +17,8 @@ import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateContractPDF } from "@/lib/generateContractPDF";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
-import { DigitalContractDialog } from "@/components/contracts/DigitalContractDialog";
 
 const Contratos = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
   const { activeClinicId } = useClinic();
   const { data: clinicSettings } = useClinicSettings();
@@ -349,20 +347,6 @@ const Contratos = () => {
                     <Button onClick={handleDownload} disabled={!paciente} className="w-full">
                       <Download className="h-4 w-4 mr-2" /> Baixar PDF
                     </Button>
-                    {!isPatient && (
-                      <Button variant="secondary" onClick={() => setIsDialogOpen(true)} disabled={!paciente} className="w-full bg-green-50 text-green-700 hover:bg-green-100 border-green-200">
-                        <Signature className="h-4 w-4 mr-2" /> Assinatura Digital
-                      </Button>
-                    )}
-                    {!isPatient && (
-                      <DigitalContractDialog 
-                        pacienteId={paciente?.id || ""} 
-                        pacienteNome={paciente?.nome || ""} 
-                        pacienteCpf={paciente?.cpf}
-                        open={isDialogOpen}
-                        onOpenChange={setIsDialogOpen}
-                      />
-                    )}
                     {!isPatient && <Button variant="outline" onClick={handleWhatsAppSend} disabled={!paciente} className="w-full"><Send className="h-4 w-4 mr-2" /> Enviar via WhatsApp</Button>}
                   </div>
               </CardContent>
