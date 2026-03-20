@@ -100,12 +100,18 @@ Deno.serve(async (req) => {
 
       for (const client of (clients.items || [])) {
         try {
-          // Upsert logic: match by CPF (document) or Email
-          const { data: existing } = await supabase
+          // Upsert logic: match by CPF (document) or Email using safe parameterized queries
+          const { data: byDoc } = await supabase
             .from("pacientes")
             .select("id")
-            .or(`cpf.eq.${String(client.document).replace(/[^a-zA-Z0-9.@_-]/g, "")},email.eq.${String(client.email).replace(/[^a-zA-Z0-9.@_-]/g, "")}`)
+            .eq("cpf", String(client.document))
             .maybeSingle();
+          const { data: byEmail } = !byDoc ? await supabase
+            .from("pacientes")
+            .select("id")
+            .eq("email", String(client.email))
+            .maybeSingle() : { data: null };
+          const existing = byDoc || byEmail;
 
           if (existing) {
             await supabase
