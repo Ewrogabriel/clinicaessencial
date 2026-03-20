@@ -16,6 +16,8 @@ export interface ClinicSettings {
   email: string | null;
   instagram: string | null;
   logo_url: string | null;
+  assinatura_url: string | null;
+  rubrica_url: string | null;
 }
 
 export function useClinicSettings() {
@@ -24,7 +26,7 @@ export function useClinicSettings() {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("clinic_settings")
-        .select("id, nome, cnpj, endereco, numero, bairro, cidade, estado, cep, telefone, whatsapp, email, instagram, logo_url")
+        .select("id, nome, cnpj, endereco, numero, bairro, cidade, estado, cep, telefone, whatsapp, email, instagram, logo_url, assinatura_url, rubrica_url")
         .limit(1)
         .maybeSingle() as any);
       if (error) throw error;
