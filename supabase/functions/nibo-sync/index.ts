@@ -91,11 +91,18 @@ Deno.serve(async (req) => {
 
       for (const client of (clients.items || [])) {
         try {
-          const { data: existing } = await supabase
+          // Upsert logic: match by CPF (document) or Email using safe parameterized queries
+          const { data: byDoc } = await supabase
             .from("pacientes")
             .select("id")
-            .or(`cpf.eq.${client.document},email.eq.${client.email}`)
+            .eq("cpf", String(client.document))
             .maybeSingle();
+          const { data: byEmail } = !byDoc ? await supabase
+            .from("pacientes")
+            .select("id")
+            .eq("email", String(client.email))
+            .maybeSingle() : { data: null };
+          const existing = byDoc || byEmail;
 
           if (existing) {
             await supabase.from("pacientes").update({ nibo_client_id: client.id }).eq("id", existing.id);
