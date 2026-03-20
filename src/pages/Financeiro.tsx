@@ -393,6 +393,17 @@ const Financeiro = () => {
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const refundPayment = useMutation({
+    mutationFn: async (id: string) => {
+      await financeService.refundPayment(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      toast({ title: "Pagamento reembolsado!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   const syncInter = async () => {
     toast({ title: "Sincronizando...", description: "Buscando extrato do Banco Inter" });
     const { data, error } = await supabase.functions.invoke("inter-sync", {

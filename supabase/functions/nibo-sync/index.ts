@@ -23,7 +23,6 @@ Deno.serve(async (req) => {
       throw new Error("clinicId is required");
     }
 
-    // Fetch Nibo credentials for this clinic
     const { data: config, error: configErr } = await supabase
       .from("config_integracoes")
       .select("nibo_api_key")
@@ -48,12 +47,11 @@ Deno.serve(async (req) => {
 
       if (pErr || !patient) throw new Error("Patient not found");
 
-      // Construct Nibo payload
       const payload = {
         name: patient.nome,
         email: patient.email,
         phone: patient.telefone,
-        document: patient.cpf?.replace(/\D/g, ""), // Remove formatting
+        document: patient.cpf?.replace(/\D/g, ""),
         address: {
           zipCode: patient.cep,
           street: patient.endereco,
@@ -66,21 +64,14 @@ Deno.serve(async (req) => {
 
       const response = await fetch(`${niboBaseUrl}/customers`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apitoken": niboKey
-        },
+        headers: { "Content-Type": "application/json", "apitoken": niboKey },
         body: JSON.stringify(payload)
       });
 
       const result = await response.json();
       if (!response.ok) throw new Error(`Nibo error: ${JSON.stringify(result)}`);
 
-      // Update patient with Nibo Client ID
-      await supabase
-        .from("pacientes")
-        .update({ nibo_client_id: result.id })
-        .eq("id", patientId);
+      await supabase.from("pacientes").update({ nibo_client_id: result.id }).eq("id", patientId);
 
       return new Response(JSON.stringify({ success: true, niboId: result.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -114,12 +105,8 @@ Deno.serve(async (req) => {
           const existing = byDoc || byEmail;
 
           if (existing) {
-            await supabase
-              .from("pacientes")
-              .update({ nibo_client_id: client.id })
-              .eq("id", existing.id);
+            await supabase.from("pacientes").update({ nibo_client_id: client.id }).eq("id", existing.id);
           } else {
-            // Create new patient
             const { data: newP } = await supabase
               .from("pacientes")
               .insert({
@@ -164,25 +151,19 @@ Deno.serve(async (req) => {
         value: payment.valor,
         dueDate: payment.data_vencimento || payment.created_at,
         customer: { id: payment.pacientes.nibo_client_id },
-        category: "Atendimento" // Default category
+        category: "Atendimento"
       };
 
       const response = await fetch(`${niboBaseUrl}/receipts`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apitoken": niboKey
-        },
+        headers: { "Content-Type": "application/json", "apitoken": niboKey },
         body: JSON.stringify(payload)
       });
 
       const result = await response.json();
       if (!response.ok) throw new Error(`Nibo error syncing payment: ${JSON.stringify(result)}`);
 
-      await supabase
-        .from("pagamentos")
-        .update({ nibo_id: result.id })
-        .eq("id", financialId);
+      await supabase.from("pagamentos").update({ nibo_id: result.id }).eq("id", financialId);
 
       return new Response(JSON.stringify({ success: true, niboId: result.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
