@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Users, UserX, Download, FileSpreadsheet, MessageCircle, Copy } from "lucide-react";
+import { Plus, Search, Users, UserX, Download, FileSpreadsheet, MessageCircle, Copy, RefreshCw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -174,6 +174,19 @@ const Pacientes = () => {
     }
   }, [deleteId, updateStatus]);
 
+  const syncNibo = async () => {
+    toast({ title: "Sincronizando...", description: "Buscando pacientes no Nibo" });
+    const { error } = await supabase.functions.invoke("nibo-sync", {
+      body: { action: "import-clients", clinicId: activeClinicId }
+    });
+    if (error) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Sincronizado!", description: "Lista de pacientes atualizada" });
+      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+    }
+  };
+
   const rowData = useMemo<RowItemData>(() => ({
     items: filtrados,
     onNavigate: handleNavigate,
@@ -191,6 +204,11 @@ const Pacientes = () => {
           <p className="text-sm text-muted-foreground">Gerencie os pacientes da clínica</p>
         </div>
         <div className="flex gap-2">
+          {!isProfissional && (
+            <Button variant="outline" size="sm" onClick={syncNibo}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Sincronizar Nibo
+            </Button>
+          )}
           {!isProfissional && (
             <Button size="sm" onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
               <Plus className="h-4 w-4 mr-1" /> Novo Paciente
