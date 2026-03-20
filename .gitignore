@@ -28,3 +28,5 @@ coverage/
 .idea/
 .vscode/settings.json
 .vercel
+supabase/.temp/
+.tmp_staging_schema.sql
