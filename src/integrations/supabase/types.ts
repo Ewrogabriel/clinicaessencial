@@ -3483,33 +3483,33 @@ export type Database = {
       }
       recesso_clinica: {
         Row: {
-          clinic_id: string | null
+          ativo: boolean
+          clinic_id: string
           created_at: string | null
-          created_by: string
           data_fim: string
           data_inicio: string
+          descricao: string | null
           id: string
-          motivo: string | null
           updated_at: string | null
         }
         Insert: {
-          clinic_id?: string | null
+          ativo?: boolean
+          clinic_id: string
           created_at?: string | null
-          created_by: string
           data_fim: string
           data_inicio: string
+          descricao?: string | null
           id?: string
-          motivo?: string | null
           updated_at?: string | null
         }
         Update: {
-          clinic_id?: string | null
+          ativo?: boolean
+          clinic_id?: string
           created_at?: string | null
-          created_by?: string
           data_fim?: string
           data_inicio?: string
+          descricao?: string | null
           id?: string
-          motivo?: string | null
           updated_at?: string | null
         }
         Relationships: [
