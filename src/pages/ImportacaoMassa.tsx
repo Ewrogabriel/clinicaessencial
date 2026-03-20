@@ -35,7 +35,7 @@ const REQUIRED_FIELDS: Record<ImportType, string[]> = {
 };
 
 const EXAMPLE_HEADERS: Record<ImportType, string[]> = {
-  pacientes: ["nome", "telefone", "email", "cpf", "data_nascimento", "tipo_atendimento", "observacoes"],
+  pacientes: ["nome", "telefone", "email", "cpf", "data_nascimento", "tipo_atendimento", "observacoes", "cep", "rua", "numero", "bairro", "cidade", "estado", "complemento"],
   agendamentos: ["paciente_nome", "profissional_nome", "data_horario", "duracao_minutos", "tipo_atendimento", "observacoes"],
   pagamentos: ["paciente_nome", "valor", "data_pagamento", "forma_pagamento", "descricao", "status"],
 };
