@@ -572,6 +572,30 @@ const Dashboard = () => {
             size="sm"
             variant="outline"
             className="gap-2"
+            onClick={() => navigate("/agenda")}
+          >
+            <CalendarCheck className="h-4 w-4" /> Novo Agendamento
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() => navigate("/planos")}
+          >
+            <Activity className="h-4 w-4" /> Novo Plano
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() => navigate("/matriculas")}
+          >
+            <Users className="h-4 w-4" /> Nova Matrícula
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
             onClick={() => {
               const link = `${window.location.origin}/pre-cadastro`;
               const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
