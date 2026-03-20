@@ -141,7 +141,29 @@ export const appointmentService = {
                     p_clinic_id: params.clinic_id,
                 });
                 if (error) throw error;
-                return { id: data } as { id: string };
+
+                const agendamentoId = data as string;
+
+                // Create financial record for slot-based bookings too
+                if (params.valor_sessao && params.valor_sessao > 0 && agendamentoId) {
+                    await supabase.from("pagamentos_sessoes").insert({
+                        paciente_id: params.paciente_id,
+                        agendamento_id: agendamentoId,
+                        valor: params.valor_sessao,
+                        status: "pendente",
+                        data_pagamento: params.data_vencimento || params.data_horario,
+                        forma_pagamento_id: params.forma_pagamento_id || null,
+                        observacoes: `Agendamento: ${params.tipo_atendimento}`,
+                        clinic_id: params.clinic_id,
+                    });
+                }
+
+                // Update valor_sessao on the agendamento
+                if (params.valor_sessao && params.valor_sessao > 0) {
+                    await supabase.from("agendamentos").update({ valor_sessao: params.valor_sessao }).eq("id", agendamentoId);
+                }
+
+                return { id: agendamentoId } as { id: string };
             }
 
             // Legacy path (no slot_id): client-side double-booking guard + insert.

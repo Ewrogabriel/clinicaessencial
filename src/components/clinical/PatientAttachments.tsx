@@ -105,7 +105,9 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
       for (const file of Array.from(files)) {
         const sanitizedFileName = file.name
           .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
-          .replace(/[^a-zA-Z0-9.-]/g, '_');                  // subs especial por _
+          .replace(/[^a-zA-Z0-9._-]/g, '_')                 // subs especial por _
+          .replace(/_+/g, '_')                               // collapse multiple underscores
+          .replace(/^_|_$/g, '');                             // trim leading/trailing underscores
 
         const filePath = `${pid}/${Date.now()}_${sanitizedFileName}`;
 
