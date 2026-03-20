@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, MessageSquare, Calendar } from "lucide-react";
 import { format, addDays } from "date-fns";
@@ -12,8 +12,8 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 const ConfirmacoesDia = () => {
   const { user } = useAuth();
   const tomorrow = addDays(new Date(), 1);
-  const tomorrowStart = new Date(tomorrow.setHours(0, 0, 0, 0)).toISOString();
-  const tomorrowEnd = new Date(tomorrow.setHours(23, 59, 59, 999)).toISOString();
+  const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0, 0, 0).toISOString();
+  const tomorrowEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59, 999).toISOString();
 
   const { data: agendamentos, isLoading, refetch } = useQuery({
     queryKey: ["confirmacoes-amanha", tomorrowStart],
@@ -23,12 +23,12 @@ const ConfirmacoesDia = () => {
         .select(`
           *,
           pacientes(*),
-          profissionais:profiles!inner(nome)
+          profissionais:profiles!agendamentos_profissional_id_fkey(nome)
         `)
         .gte("data_horario", tomorrowStart)
         .lt("data_horario", tomorrowEnd)
         .order("data_horario");
-      
+
       if (error) throw error;
       return data as any[];
     },
@@ -44,15 +44,15 @@ const ConfirmacoesDia = () => {
     const publicUrl = `${window.location.origin}/confirmar-agendamento/${agendamento.id}`;
     const profNome = agendamento.profissionais?.nome || "seu profissional";
     const hora = format(new Date(agendamento.data_horario), "HH:mm");
-    
-    const mensagem = `Olá ${paciente.nome}, confirmamos sua sessão amanhã (${format(tomorrow, "dd/MM")}) às ${hora} com ${profNome}. Por favor, confirme sua presença no link: ${publicUrl}`;
-    
+    const dataFormatada = format(tomorrow, "dd/MM");
+
+    const mensagem = `Olá ${paciente.nome}, confirmamos sua sessão amanhã (${dataFormatada}) às ${hora} com ${profNome}. Por favor, confirme sua presença no link: ${publicUrl}`;
+
     const whatsappUrl = `https://wa.me/55${paciente.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(mensagem)}`;
-    
-    // Update confirmation sent timestamp
+
     await supabase
       .from("agendamentos")
-      .update({ confirmacao_enviada_at: new Date().toISOString() })
+      .update({ confirmacao_enviada_at: new Date().toISOString() } as any)
       .eq("id", agendamento.id);
 
     window.open(whatsappUrl, "_blank");
@@ -78,7 +78,7 @@ const ConfirmacoesDia = () => {
             <Card key={ag.id} className="overflow-hidden">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
                     {format(new Date(ag.data_horario), "HH:mm")}
                   </div>
                   <div>
@@ -90,24 +90,30 @@ const ConfirmacoesDia = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {ag.confirmacao_presenca === "confirmado" && (
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 gap-1"><Check className="h-3 w-3" /> Confirmado</Badge>
+                  {(ag as any).confirmacao_presenca === "confirmado" && (
+                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 gap-1">
+                      <Check className="h-3 w-3" /> Confirmado
+                    </Badge>
                   )}
-                  {ag.confirmacao_presenca === "cancelado" && (
-                    <Badge className="bg-red-100 text-red-700 hover:bg-red-100 gap-1"><X className="h-3 w-3" /> Não virá</Badge>
+                  {(ag as any).confirmacao_presenca === "cancelado" && (
+                    <Badge className="bg-red-100 text-red-700 hover:bg-red-100 gap-1">
+                      <X className="h-3 w-3" /> Não virá
+                    </Badge>
                   )}
-                  {!ag.confirmacao_presenca && (
-                    <Badge variant="outline" className="gap-1 animate-pulse"><Calendar className="h-3 w-3" /> Aguardando</Badge>
+                  {!(ag as any).confirmacao_presenca && (
+                    <Badge variant="outline" className="gap-1 animate-pulse">
+                      <Calendar className="h-3 w-3" /> Aguardando
+                    </Badge>
                   )}
 
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="gap-2"
                     onClick={() => enviarConfirmacao(ag)}
                   >
-                    <MessageSquare className="h-4 w-4" /> 
-                    {ag.confirmacao_enviada_at ? "Reenviar link" : "Enviar link"}
+                    <MessageSquare className="h-4 w-4" />
+                    {(ag as any).confirmacao_enviada_at ? "Reenviar link" : "Enviar link"}
                   </Button>
                 </div>
               </CardContent>

@@ -18,14 +18,15 @@ const ConfirmarAgendamento = () => {
       if (!id) return;
       const { data, error } = await supabase
         .from("agendamentos")
-        .select("*, pacientes(*), profissionais:profiles(nome), clinicas(*)")
+        .select("*, pacientes(*), profissionais:profiles!agendamentos_profissional_id_fkey(nome), clinicas(*)")
         .eq("id", id)
         .single();
-      
+
       if (!error && data) {
         setAgendamento(data);
-        if (data.confirmacao_presenca === "confirmado") setStatus("confirmed");
-        else if (data.confirmacao_presenca === "cancelado") setStatus("denied");
+        const confirmacao = (data as any).confirmacao_presenca;
+        if (confirmacao === "confirmado") setStatus("confirmed");
+        else if (confirmacao === "cancelado") setStatus("denied");
       }
       setLoading(false);
     };
@@ -37,8 +38,8 @@ const ConfirmarAgendamento = () => {
     const feedback = confirmed ? "confirmado" : "cancelado";
     const { error } = await supabase
       .from("agendamentos")
-      .update({ confirmacao_presenca: feedback })
-      .eq("id", id);
+      .update({ confirmacao_presenca: feedback } as any)
+      .eq("id", id!);
 
     if (!error) {
       setStatus(confirmed ? "confirmed" : "denied");
@@ -52,11 +53,11 @@ const ConfirmarAgendamento = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
         <CardHeader className="text-center pb-2">
-          {agendamento.clinicas?.logo_url && (
-            <img src={agendamento.clinicas.logo_url} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
+          {(agendamento.clinicas as any)?.logo_url && (
+            <img src={(agendamento.clinicas as any).logo_url} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
           )}
           <CardTitle className="text-2xl font-bold">Confirmação de Consulta</CardTitle>
-          <p className="text-muted-foreground">{agendamento.clinicas?.nome}</p>
+          <p className="text-muted-foreground">{(agendamento.clinicas as any)?.nome}</p>
         </CardHeader>
         <CardContent className="space-y-6 pt-4 text-center">
           {status === "pending" ? (
@@ -83,15 +84,15 @@ const ConfirmarAgendamento = () => {
               <p className="text-slate-600">Você poderá comparecer a este atendimento?</p>
 
               <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  onClick={() => handleConfirm(true)} 
+                <Button
+                  onClick={() => handleConfirm(true)}
                   className="bg-green-600 hover:bg-green-700 h-12 gap-2"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Sim, confirmo
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleConfirm(false)} 
+                <Button
+                  variant="outline"
+                  onClick={() => handleConfirm(false)}
                   className="border-red-200 text-red-600 hover:bg-red-50 h-12 gap-2"
                 >
                   <XCircle className="h-5 w-5" /> Não poderei ir

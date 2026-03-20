@@ -4,7 +4,7 @@ import {
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   FileCheck, Handshake, Video,
   Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
-  Clock, Settings2,
+  Clock, Settings2, CheckCheck,
 } from "lucide-react";
 import { memo } from "react";
 import { NavLink } from "@/components/NavLink";
@@ -83,7 +83,7 @@ export const AppSidebar = memo(function AppSidebar() {
   const menuAgendamentos = [
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
     { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
-    { title: "Confirmações", url: "/confirmacoes-dia", icon: FileCheck },
+    { title: "Confirmações", url: "/confirmacoes-dia", icon: CheckCheck },
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
     { title: t("nav.modalities"), url: "/modalidades", icon: Layers },
     { title: t("nav.availability"), url: "/disponibilidade", icon: Clock },
@@ -165,7 +165,6 @@ export const AppSidebar = memo(function AppSidebar() {
   const menuProfissionalClinico = [
     { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
-    { title: "Confirmações", url: "/confirmacoes-dia", icon: FileCheck },
     { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },

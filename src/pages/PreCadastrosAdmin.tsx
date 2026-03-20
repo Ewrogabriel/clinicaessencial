@@ -113,10 +113,8 @@ const PreCadastrosAdmin = () => {
   };
 
   const filtered = preCadastros.filter((p: any) =>
-    (p.status === "pendente") && (
-      p.nome?.toLowerCase().includes(search.toLowerCase()) ||
-      p.telefone?.includes(search)
-    )
+    p.nome?.toLowerCase().includes(search.toLowerCase()) ||
+    p.telefone?.includes(search)
   );
 
   const statusBadge = (status: string) => {

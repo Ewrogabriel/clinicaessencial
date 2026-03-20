@@ -319,9 +319,7 @@ Analise as linhas fornecidas extraídas de uma planilha e identifique/corrija os
 - Telefone/WhatsApp: remover caracteres não numéricos e formatar se for BR (ex: 32999999999).
 - CPF: formatar para o padrão XXX.XXX.XXX-XX, se houver.
 - E-mail: remover espaços adicionais, garantir lower case.
-- CEP e Endereço: Identificar e separar componentes de endereço (CEP, rua, número, bairro, cidade, estado). 
-- EXTRAÇÃO DE CEP: O CEP é prioritário. Procure por padrões de 8 dígitos (com ou sem hífen) em qualquer campo (mesmo em 'observações' ou 'nome') e extraia para a coluna 'cep'.
-- Mapeie a saída para o formato exato esperado.`;
+Mapeie a saída para o formato exato esperado.`;
         userPrompt = `Campos esperados: ${JSON.stringify(context.expectedFields)}
 Linhas fornecidas (JSON original bruto da planilha não estruturado): ${JSON.stringify(context.rows)}
 

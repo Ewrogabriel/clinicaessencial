@@ -128,27 +128,9 @@ export default function TeleconsultaHub() {
                   <ExternalLink className="h-3 w-3" /> Enviar WhatsApp
                 </Button>
               )}
-              {(() => {
-                const canEnter = (() => {
-                  if (isProfOrAdmin || session.status === "em_andamento") return true;
-                  if (!session.agendamentos?.data_horario) return true; // Fallback
-                  const appointmentTime = new Date(session.agendamentos.data_horario).getTime();
-                  const now = new Date().getTime();
-                  return (appointmentTime - now) <= 10 * 60 * 1000;
-                })();
-
-                return (
-                  <Button 
-                    size="sm" 
-                    className="gap-1.5 text-xs" 
-                    disabled={!canEnter}
-                    onClick={() => navigate(`/teleconsulta?session=${session.id}`)}
-                  >
-                    <Video className="h-3 w-3" /> 
-                    {!canEnter ? "Aguarde (10 min antes)" : "Entrar"}
-                  </Button>
-                );
-              })()}
+              <Button size="sm" className="gap-1.5 text-xs" onClick={() => navigate(`/teleconsulta?session=${session.id}`)}>
+                <Video className="h-3 w-3" /> Entrar
+              </Button>
             </div>
           )}
         </CardContent>
