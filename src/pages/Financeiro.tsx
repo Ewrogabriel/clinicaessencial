@@ -395,7 +395,9 @@ const Financeiro = () => {
 
   const syncInter = async () => {
     toast({ title: "Sincronizando...", description: "Buscando extrato do Banco Inter" });
-    const { data, error } = await supabase.functions.invoke("inter-sync");
+    const { data, error } = await supabase.functions.invoke("inter-sync", {
+      body: { action: "fetch-extrato", clinicId: activeClinicId }
+    });
     if (error) {
       toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
     } else {

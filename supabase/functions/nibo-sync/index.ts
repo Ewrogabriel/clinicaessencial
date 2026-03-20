@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
           const { data: existing } = await supabase
             .from("pacientes")
             .select("id")
-            .or(`cpf.eq.${client.document},email.eq.${client.email}`)
+            .or(`cpf.eq.${String(client.document).replace(/[^a-zA-Z0-9.@_-]/g, "")},email.eq.${String(client.email).replace(/[^a-zA-Z0-9.@_-]/g, "")}`)
             .maybeSingle();
 
           if (existing) {

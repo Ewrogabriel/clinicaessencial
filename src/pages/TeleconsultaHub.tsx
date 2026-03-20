@@ -35,6 +35,7 @@ export default function TeleconsultaHub() {
     queryKey: ["teleconsulta-sessions", activeClinicId, user?.id],
     queryFn: async () => {
       let query = supabase
+        .from("teleconsulta_sessions")
         .select("*, pacientes(nome, telefone), agendamentos(data_horario)")
         .order("created_at", { ascending: false })
         .limit(50);
