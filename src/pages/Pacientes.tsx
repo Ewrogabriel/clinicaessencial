@@ -174,6 +174,19 @@ const Pacientes = () => {
     }
   }, [deleteId, updateStatus]);
 
+  const syncNibo = async () => {
+    toast({ title: "Sincronizando...", description: "Buscando pacientes no Nibo" });
+    const { data, error } = await supabase.functions.invoke("nibo-sync", {
+      body: { action: "import-clients", clinicId: activeClinicId }
+    });
+    if (error) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Sincronizado!", description: "Lista de pacientes atualizada" });
+      queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+    }
+  };
+
   const rowData = useMemo<RowItemData>(() => ({
     items: filtrados,
     onNavigate: handleNavigate,

@@ -69,11 +69,11 @@ const ConfirmarAgendamento = () => {
                 </div>
                 <div className="flex items-center gap-3 text-slate-700">
                   <Calendar className="h-5 w-5" />
-                  <span>{format(new Date(agendamento.data_horario), "eeee, dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span>{agendamento.data_horario ? (() => { try { return format(new Date(agendamento.data_horario), "eeee, dd 'de' MMMM", { locale: ptBR }); } catch { return agendamento.data_horario; } })() : ""}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-700">
                   <Clock className="h-5 w-5" />
-                  <span>{format(new Date(agendamento.data_horario), "HH:mm")}</span>
+                  <span>{agendamento.data_horario ? (() => { try { return format(new Date(agendamento.data_horario), "HH:mm"); } catch { return ""; } })() : ""}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-700">
                   <User className="h-5 w-5" />
