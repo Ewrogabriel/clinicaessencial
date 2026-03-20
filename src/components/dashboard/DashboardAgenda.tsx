@@ -134,7 +134,7 @@ export function DashboardAgenda({ isAdmin, defaultProfissionalId }: DashboardAge
             onSlotClick={(d) => { setSelectedDate(d); setFormOpen(true); }}
             isPatient={false}
             onCancel={handleCancelAppointment}
-            onCheckin={(id, type) => checkinMutation.mutate({ id, type }, { onSuccess: refetchAgendamentos })}
+            onCheckin={(id, type) => checkinMutation.mutate({ id, type }, { onSuccess: () => { refetchAgendamentos(); } })}
             onReschedule={(ag) => { setRescheduleAg(ag); setRescheduleOpen(true); }}
             onAppointmentClick={(ag) => { setDetailAg(ag); setDetailOpen(true); }}
             profColors={profColors}
