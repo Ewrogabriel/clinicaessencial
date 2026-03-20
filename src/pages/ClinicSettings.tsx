@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText } from "lucide-react";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import FormasPagamento from "./FormasPagamento";
 import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
+import { IntegrationTabs } from "@/components/settings/IntegrationTabs";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
 import { Calendar } from "lucide-react";
@@ -178,6 +179,9 @@ const ClinicSettings = () => {
           <TabsTrigger value="nfe" className="gap-2">
             <FileText className="h-4 w-4" /> Nota Fiscal
           </TabsTrigger>
+          <TabsTrigger value="integracao" className="gap-2">
+            <Zap className="h-4 w-4" /> Integrações
+          </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <Shield className="h-4 w-4" /> Logs
           </TabsTrigger>
@@ -300,6 +304,10 @@ const ClinicSettings = () => {
 
         <TabsContent value="nfe">
           <NfeConfigTab />
+        </TabsContent>
+
+        <TabsContent value="integracao">
+          <IntegrationTabs clinicId={settings?.id || ""} />
         </TabsContent>
 
         <TabsContent value="logs">

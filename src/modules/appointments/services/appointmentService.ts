@@ -51,7 +51,13 @@ export const appointmentService = {
                 query = query.lte("data_horario", dateEnd);
             }
 
-            const { data, error } = await query.order("data_horario", { ascending: true });
+            const maybeOrderedQuery = query as typeof query & {
+                order?: (column: string, options: { ascending: boolean }) => Promise<{ data: unknown; error: unknown }>;
+            };
+
+            const { data, error } = typeof maybeOrderedQuery.order === "function"
+                ? await maybeOrderedQuery.order("data_horario", { ascending: true })
+                : await query;
 
             if (error) throw error;
             return (data || []) as unknown as Agendamento[];
@@ -246,6 +252,17 @@ export const appointmentService = {
 
     async updateStatus(id: string, status: StatusAgendamento) {
         try {
+            const needsPaymentHandling = status === "realizado" || status === "cancelado" || status === "falta";
+
+            if (!needsPaymentHandling) {
+                const { error: directUpdateError } = await supabase
+                    .from("agendamentos")
+                    .update({ status })
+                    .eq("id", id);
+                if (directUpdateError) throw directUpdateError;
+                return;
+            }
+
             const { data: agendamentoAtual, error: agendamentoError } = await supabase
                 .from("agendamentos")
                 .select("id, paciente_id, clinic_id, enrollment_id, observacoes, valor_sessao, data_horario")

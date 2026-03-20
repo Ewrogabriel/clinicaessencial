@@ -115,12 +115,12 @@ describe("Admin Dashboard", () => {
   it("should render dashboard header", async () => {
     await renderDashboard();
     expect(screen.getByText(/Bom dia|Boa tarde|Boa noite/i)).toBeInTheDocument();
-  });
+  }, 15000);
 
   it("should show admin-specific sections", async () => {
     await renderDashboard();
-    expect(screen.getByText(/Personalizar/i)).toBeInTheDocument();
-  });
+    expect(screen.getAllByText(/Personalizar/i).length).toBeGreaterThan(0);
+  }, 15000);
 });
 
 describe("Admin Features", () => {

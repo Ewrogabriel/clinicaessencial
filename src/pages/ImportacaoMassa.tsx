@@ -47,6 +47,57 @@ function generateAccessCode(): string {
   return code;
 }
 
+interface CEPData {
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+  uf?: string;
+  ddd?: string;
+}
+
+// Validate CEP via ViaCEP API
+async function validateCEP(cep: string): Promise<CEPData | null> {
+  if (!cep || String(cep).trim().length === 0) return null;
+  
+  const cleanCEP = String(cep).replace(/\D/g, "");
+  if (cleanCEP.length !== 8) return null;
+
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+    const data = await response.json();
+    
+    if (data.erro) return null; // CEP not found
+    
+    return {
+      logradouro: data.logradouro || "",
+      bairro: data.bairro || "",
+      localidade: data.localidade || "",
+      uf: data.uf || "",
+      ddd: data.ddd || "",
+    };
+  } catch (error) {
+    console.error("CEP validation error:", error);
+    return null;
+  }
+}
+
+// Enrich row with address data from CEP
+async function enrichRowWithCEP(row: ImportRow): Promise<ImportRow> {
+  if (!row.cep || !String(row.cep).trim()) return row;
+  
+  const cepData = await validateCEP(row.cep);
+  if (!cepData) return row;
+  
+  // Only fill if not already provided
+  return {
+    ...row,
+    rua: row.rua || cepData.logradouro,
+    bairro: row.bairro || cepData.bairro,
+    cidade: row.cidade || cepData.localidade,
+    estado: row.estado || cepData.uf,
+  };
+}
+
 const ImportacaoMassa = () => {
   const { user } = useAuth();
   const { activeClinicId } = useClinic();
@@ -177,13 +228,26 @@ const ImportacaoMassa = () => {
     setAnalyzingAI(true);
     setErrors([]);
     try {
+      const context: any = {
+        expectedFields: EXAMPLE_HEADERS[activeTab],
+        rows: (step === "mapping" ? rawRows : rows).slice(0, 50),
+      };
+
+      // Add address extraction context for patient imports
+      if (activeTab === "pacientes") {
+        context.extractAddressData = true;
+        context.instructions = `Ao analisar dados de pacientes:
+1. Procure por CEP em QUALQUER campo de texto (observações, notas, campos não estruturados)
+2. Separe o endereço em componentes: rua, número, bairro, cidade, estado
+3. Normalize os dados: remova acentos de campos de endereço onde necessário
+4. Complete campos faltantes com base em contexto (ex: CEP → buscar cidade/estado)
+5. Mapeie corretamente para: cep, rua, numero, complemento, bairro, cidade, estado`;
+      }
+
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           action: "analyze_import",
-          context: {
-            expectedFields: EXAMPLE_HEADERS[activeTab],
-            rows: (step === "mapping" ? rawRows : rows).slice(0, 50),
-          },
+          context,
         },
       });
       if (error) throw error;
@@ -241,19 +305,31 @@ const ImportacaoMassa = () => {
 
     if (activeTab === "pacientes") {
       for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
+        let row = rows[i];
         const nomeKey = Object.keys(row).find((k) => k.toLowerCase().includes("nome")) || "nome";
         const telefoneKey = Object.keys(row).find((k) => k.toLowerCase().includes("tele")) || "telefone";
         const emailKey = Object.keys(row).find((k) => k.toLowerCase().includes("email")) || "email";
         const cpfKey = Object.keys(row).find((k) => k.toLowerCase().includes("cpf")) || "cpf";
 
         try {
+          // Enrich with CEP data if present
+          if (row.cep) {
+            row = await enrichRowWithCEP(row);
+          }
+
           const { error } = await (supabase.from("pre_cadastros") as any).insert({
             nome: String(row[nomeKey] || "").trim(),
             telefone: String(row[telefoneKey] || "").trim(),
             email: row[emailKey] ? (String(row[emailKey]).trim() || null) : null,
             cpf: row[cpfKey] ? (String(row[cpfKey]).trim() || null) : null,
             data_nascimento: row.data_nascimento || null,
+            cep: row.cep || null,
+            rua: row.rua || null,
+            numero: row.numero || null,
+            bairro: row.bairro || null,
+            cidade: row.cidade || null,
+            estado: row.estado || null,
+            complemento: row.complemento || null,
             tipo_atendimento: row.tipo_atendimento || "fisioterapia",
             observacoes: row.observacoes || "Importado em lote",
             status: "pendente",

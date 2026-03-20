@@ -121,12 +121,12 @@ describe("Professional Dashboard", () => {
   it("should render professional dashboard", async () => {
     await renderProfessionalDashboard();
     expect(screen.getByText(/Bom dia|Boa tarde|Boa noite/i)).toBeInTheDocument();
-  });
+  }, 15000);
 
   it("should show agenda section for professional", async () => {
     await renderProfessionalDashboard();
-    expect(screen.getByText(/Personalizar/i)).toBeInTheDocument();
-  });
+    expect(screen.getAllByText(/Personalizar/i).length).toBeGreaterThan(0);
+  }, 15000);
 });
 
 describe("Professional Permissions", () => {

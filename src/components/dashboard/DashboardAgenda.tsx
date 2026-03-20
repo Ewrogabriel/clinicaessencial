@@ -55,12 +55,23 @@ export function DashboardAgenda({ isAdmin, defaultProfissionalId }: DashboardAge
   });
 
   useEffect(() => {
-    const channel = supabase
-      .channel('dashboard-agenda-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_slots' }, () => { refetchSlots(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => { refetchAgendamentos(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channel = supabase.channel("dashboard-agenda-realtime");
+
+    channel.on("postgres_changes", { event: "*", schema: "public", table: "schedule_slots" }, () => {
+      refetchSlots();
+    });
+
+    channel.on("postgres_changes", { event: "*", schema: "public", table: "agendamentos" }, () => {
+      refetchAgendamentos();
+    });
+
+    if (typeof channel.subscribe === "function") {
+      channel.subscribe();
+    }
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [refetchSlots, refetchAgendamentos]);
 
   const agendamentos: Agendamento[] = useMemo(() => {

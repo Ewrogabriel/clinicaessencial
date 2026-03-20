@@ -313,17 +313,26 @@ Gere o documento completo e profissional.`;
       }
 
       case "analyze_import":
-        systemPrompt = `Você é um assistente de validação de dados para clínicas de saúde.
+        systemPrompt = `Você é um assistente de validação e extração de dados para clínicas de saúde.
 Analise as linhas fornecidas extraídas de uma planilha e identifique/corrija os principais erros de formatação usando as regras abaixo:
 - Nome: capitalizar adequadamente (Primeira Letra Maiúscula).
 - Telefone/WhatsApp: remover caracteres não numéricos e formatar se for BR (ex: 32999999999).
 - CPF: formatar para o padrão XXX.XXX.XXX-XX, se houver.
 - E-mail: remover espaços adicionais, garantir lower case.
+- CEP: procure por CEP em QUALQUER campo de texto, extraia o padrão numerado (8 dígitos) e coloque no campo 'cep'.
+- Endereço: separe em componentes - rua (logradouro), número, bairro, cidade, estado, complemento.
+- Se encontrar endereço completo em um único campo, divida-o:
+  * "Rua das Flores, 123, Apto 45, Centro, Belo Horizonte, MG, 30140-010" →
+    { rua: "Rua das Flores", numero: "123", complemento: "Apto 45", bairro: "Centro", cidade: "Belo Horizonte", estado: "MG", cep: "30140010" }
 Mapeie a saída para o formato exato esperado.`;
         userPrompt = `Campos esperados: ${JSON.stringify(context.expectedFields)}
 Linhas fornecidas (JSON original bruto da planilha não estruturado): ${JSON.stringify(context.rows)}
 
-Por favor, para as ${context.rows?.length || 0} linhas fornecidas, tente mapear os valores corretamente para os Campos esperados, adivinhando a intenção das colunas mal nomeadas da planilha original, e aplique as correções de formato.
+Por favor, para as ${context.rows?.length || 0} linhas fornecidas, tente mapear os valores corretamente para os campos esperados, adivinhando a intenção das colunas mal nomeadas da planilha original, e aplique as correções de formato.
+${context.extractAddressData ? `
+IMPORTANTE: As instruções especiais fornecidas são:
+${context.instructions || 'Extraia dados de endereço com prioridade alta.'}
+` : ''}
 Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Campos Esperados.`;
         tools = [{
           type: "function",

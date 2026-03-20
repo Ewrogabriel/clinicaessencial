@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock, Zap, Loader2 } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import Despesas from "./Despesas";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { FinanceDashboard } from "@/components/reports/FinanceDashboard";
+import { IntegrationStatus } from "@/components/reports/IntegrationStatus";
 import { lazy, Suspense } from "react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import { financeService } from "@/modules/finance/services/financeService";
@@ -463,6 +464,9 @@ const Financeiro = () => {
             <TabsTrigger value="despesas">Despesas</TabsTrigger>
             <TabsTrigger value="comissoes">Comissões</TabsTrigger>
             <TabsTrigger value="notas-fiscais">Notas Fiscais</TabsTrigger>
+            <TabsTrigger value="integracao" className="gap-2">
+              <Zap className="h-4 w-4" /> Integrações
+            </TabsTrigger>
             <TabsTrigger value="dre">DRE</TabsTrigger>
           </TabsList>
         )}
@@ -753,6 +757,13 @@ const Financeiro = () => {
         <TabsContent value="despesas"><Despesas /></TabsContent>
         <TabsContent value="comissoes"><Suspense fallback={<LazyLoadFallback />}><Comissoes /></Suspense></TabsContent>
         <TabsContent value="notas-fiscais"><Suspense fallback={<LazyLoadFallback />}><NotasFiscais /></Suspense></TabsContent>
+
+        <TabsContent value="integracao" className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Status de Integrações</h2>
+            <IntegrationStatus clinicId={activeClinicId} />
+          </div>
+        </TabsContent>
       </Tabs>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

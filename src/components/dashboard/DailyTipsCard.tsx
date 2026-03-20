@@ -44,7 +44,12 @@ export function DailyTipsCard({ tipo }: DailyTipsCardProps) {
     queryKey: ["dicas-diarias-dashboard", tipo, retryCount],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("generate-daily-tips", {
+        const invoke = supabase.functions?.invoke;
+        if (!invoke) {
+          return { dicas: [], date: new Date().toISOString().split("T")[0] };
+        }
+
+        const { data, error } = await invoke("generate-daily-tips", {
           body: { tipo },
         });
         if (error) throw error;

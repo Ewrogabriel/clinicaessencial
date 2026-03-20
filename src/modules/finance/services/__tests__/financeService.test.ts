@@ -189,7 +189,7 @@ describe("financeService", () => {
             supabase.from.mockReturnValueOnce(chain({ data: [{ id: "pay-001" }], error: null }));
 
             await expect(financeService.createSessaoAvulsaPayment(params)).resolves.toBeUndefined();
-            expect(supabase.from).toHaveBeenCalledWith("pagamentos");
+            expect(supabase.from).toHaveBeenCalledWith("pagamentos_sessoes");
         });
 
         it("throws when insert fails", async () => {
