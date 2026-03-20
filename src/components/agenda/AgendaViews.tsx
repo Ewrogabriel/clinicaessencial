@@ -281,7 +281,7 @@ function AppointmentCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/prontuarios?paciente=${ag.paciente_id}&tab=evolucoes&new=1`);
+                navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=evolucoes&new=1`);
               }}
               className="flex items-center gap-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded px-1 py-0.5 transition-colors ml-auto"
               title="Nova Evolução"

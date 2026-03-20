@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Stethoscope, User, ChevronRight, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,9 +21,25 @@ import { format } from "date-fns";
 
 const Prontuarios = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { activeClinicId } = useClinic();
     const { isAdmin, isProfissional } = useAuth();
     const [busca, setBusca] = useState("");
+
+    // If navigated with ?paciente=<id>, redirect to the patient detail page
+    // preserving tab and new query params (e.g. from AppointmentDetailDialog / AgendaViews)
+    useEffect(() => {
+        const pacienteId = searchParams.get("paciente");
+        if (pacienteId) {
+            const tab = searchParams.get("tab");
+            const isNew = searchParams.get("new");
+            const params = new URLSearchParams();
+            if (tab) params.set("tab", tab);
+            if (isNew) params.set("new", isNew);
+            const qs = params.toString();
+            navigate(`/pacientes/${pacienteId}/detalhes${qs ? `?${qs}` : ""}`, { replace: true });
+        }
+    }, [searchParams, navigate]);
 
     const { data: pacientes = [], isLoading } = useQuery({
         queryKey: ["prontuarios-list", activeClinicId],

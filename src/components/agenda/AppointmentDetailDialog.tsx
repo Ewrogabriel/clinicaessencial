@@ -176,17 +176,17 @@ export function AppointmentDetailDialog({
 
   const goToProntuario = () => {
     onOpenChange(false);
-    navigate(`/prontuarios?paciente=${ag.paciente_id}`);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=prontuario`);
   };
 
   const goToEvolution = () => {
     onOpenChange(false);
-    navigate(`/prontuarios?paciente=${ag.paciente_id}&tab=evolucoes`);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=evolucoes`);
   };
 
   const goToNewEvolution = () => {
     onOpenChange(false);
-    navigate(`/prontuarios?paciente=${ag.paciente_id}&tab=evolucoes&new=1`);
+    navigate(`/pacientes/${ag.paciente_id}/detalhes?tab=evolucoes&new=1`);
   };
 
   const handleMarkStatus = async (newStatus: string, label: string) => {
