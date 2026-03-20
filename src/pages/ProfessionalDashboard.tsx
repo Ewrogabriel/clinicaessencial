@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   UserPlus, Clock, Calendar, Users, ClipboardList, DollarSign,
   Calculator, MessageSquare, FileText, Handshake, Video, Tag,
-  FileCheck, Stethoscope, Dumbbell, Gift, ChevronRight, Phone,
+  Stethoscope, Dumbbell, Gift, ChevronRight, Phone,
   CheckCircle2, XCircle, AlertCircle, Play, Pause, RotateCcw
 } from "lucide-react";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -145,7 +145,6 @@ const ProfessionalDashboard = () => {
   const quickActions = [
     { label: "Agendar Sessão", icon: Calendar, route: "/agenda", color: "text-primary", bg: "bg-primary/10" },
     { label: "Nova Matrícula", icon: UserPlus, route: "/matriculas", color: "text-emerald-600", bg: "bg-emerald-600/10" },
-    { label: "Check-in", icon: FileCheck, route: "/check-in", color: "text-blue-600", bg: "bg-blue-600/10" },
     { label: "Pacientes", icon: Users, route: "/pacientes", color: "text-purple-600", bg: "bg-purple-600/10" },
     { label: "Prontuários", icon: ClipboardList, route: "/prontuarios", color: "text-amber-600", bg: "bg-amber-600/10" },
     { label: "Documentos", icon: Stethoscope, route: "/documentos-clinicos", color: "text-teal-600", bg: "bg-teal-600/10" },
