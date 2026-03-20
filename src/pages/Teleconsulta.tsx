@@ -127,13 +127,22 @@ export default function Teleconsulta() {
             if (s.status === "em_andamento") setCallActive(true);
             if (s.transcricao_bruta) setTranscriptLines(s.transcricao_bruta.split("\n").filter(Boolean));
           } else {
-            const { data: ag } = await supabase
+            const { data: ag, error: agError } = await supabase
               .from("agendamentos")
-              .select("*, pacientes(nome), profiles(nome)")
+              .select("*, pacientes(nome)")
               .eq("id", agendamentoId)
               .single() as any;
 
-            if (!ag) { toast.error("Agendamento não encontrado"); return; }
+            if (agError || !ag) { toast.error("Agendamento não encontrado"); console.error("Agendamento error:", agError); return; }
+
+            // Fetch professional name separately
+            let profNome = "Profissional";
+            const { data: profProfile } = await supabase
+              .from("profiles")
+              .select("nome")
+              .eq("user_id", ag.profissional_id)
+              .single();
+            if (profProfile) profNome = profProfile.nome;
 
             const roomId = `essencial-fisio-${agendamentoId.slice(0, 8)}`;
             const { data: newSession, error } = await supabase
