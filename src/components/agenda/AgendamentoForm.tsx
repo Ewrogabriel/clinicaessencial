@@ -78,6 +78,20 @@ const formSchema = z.object({
   repetir: z.boolean().default(false),
   repetir_tipo: z.enum(["vezes", "semanas"]).default("vezes"),
   repetir_quantidade: z.number().min(1).max(52).default(4),
+}).superRefine((values, ctx) => {
+  if (values.data_vencimento && values.data) {
+    const [year, month, day] = values.data_vencimento.split("-").map(Number);
+    const vencimento = new Date(year, month - 1, day);
+    const appointmentDate = new Date(values.data);
+    appointmentDate.setHours(0, 0, 0, 0);
+    if (vencimento < appointmentDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Data de vencimento não pode ser anterior à data do agendamento.",
+        path: ["data_vencimento"],
+      });
+    }
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -332,6 +346,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             created_by: user.id,
             clinic_id: activeClinicId,
             valor_sessao: values.valor_sessao,
+            forma_pagamento: values.forma_pagamento,
             forma_pagamento_id: formaPagamentoId,
             data_vencimento: values.data_vencimento,
             slot_id: undefined,
@@ -358,6 +373,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
             created_by: user.id,
             clinic_id: activeClinicId,
             valor_sessao: values.valor_sessao,
+            forma_pagamento: values.forma_pagamento,
             forma_pagamento_id: formaPagamentoId,
             data_vencimento: values.data_vencimento,
             slot_id: undefined,
@@ -381,6 +397,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           clinic_id: activeClinicId,
           slot_id: undefined,
           valor_sessao: values.valor_sessao,
+          forma_pagamento: values.forma_pagamento,
           forma_pagamento_id: formaPagamentoId,
           data_vencimento: values.data_vencimento,
         } as any);
