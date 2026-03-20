@@ -20,6 +20,7 @@ ALTER TABLE public.vendas_produtos
     USING (data_venda AT TIME ZONE 'UTC')::date;
 
 -- Align the column default so new rows inserted without an explicit
--- data_venda value also receive the current UTC date.
+-- data_venda value receive today's date in UTC, matching Supabase's
+-- default session timezone and keeping inserts consistent.
 ALTER TABLE public.vendas_produtos
-    ALTER COLUMN data_venda SET DEFAULT CURRENT_DATE;
+    ALTER COLUMN data_venda SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date;
