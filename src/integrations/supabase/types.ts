@@ -4030,7 +4030,7 @@ export type Database = {
           evolution_id: string | null
           id: string
           notas_pos_consulta: string | null
-          paciente_id: string
+          paciente_id: string | null
           profissional_id: string
           resumo_clinico: string | null
           resumo_gerado_em: string | null
@@ -4051,7 +4051,7 @@ export type Database = {
           evolution_id?: string | null
           id?: string
           notas_pos_consulta?: string | null
-          paciente_id: string
+          paciente_id?: string | null
           profissional_id: string
           resumo_clinico?: string | null
           resumo_gerado_em?: string | null
@@ -4072,7 +4072,7 @@ export type Database = {
           evolution_id?: string | null
           id?: string
           notas_pos_consulta?: string | null
-          paciente_id?: string
+          paciente_id?: string | null
           profissional_id?: string
           resumo_clinico?: string | null
           resumo_gerado_em?: string | null
