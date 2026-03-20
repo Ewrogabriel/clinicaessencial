@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, MessageSquare, Calendar } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/modules/shared/hooks/use-toast";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 
 const ConfirmacoesDia = () => {
