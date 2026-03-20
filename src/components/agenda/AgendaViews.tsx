@@ -108,7 +108,6 @@ function AppointmentCard({
   ag,
   isPatient,
   onCancel,
-  onCheckin,
   onReschedule,
   onAppointmentClick,
   profColor,
@@ -118,7 +117,6 @@ function AppointmentCard({
   ag: Agendamento;
   isPatient?: boolean;
   onCancel?: (id: string) => void;
-  onCheckin?: (id: string, type: "paciente" | "profissional") => void;
   onReschedule?: (ag: Agendamento) => void;
   onAppointmentClick?: (ag: Agendamento) => void;
   profColor?: string;
@@ -128,8 +126,6 @@ function AppointmentCard({
   const navigate = useNavigate();
   const time = format(new Date(ag.data_horario), "HH:mm");
   const pacienteNome = ag.pacientes?.nome ?? "Paciente";
-  const checkedIn = isPatient ? ag.checkin_paciente : ag.checkin_profissional;
-  const canCheckin = ag.status !== "cancelado" && ag.status !== "falta";
   const isCancelled = ag.status === "cancelado" || ag.status === "falta";
   const canAct = !isPatient && showActions && ag.status !== "realizado" && ag.status !== "falta" && ag.status !== "cancelado";
 
@@ -180,12 +176,6 @@ function AppointmentCard({
           >
             {pacienteNome}
           </span>
-          {ag.checkin_paciente && (
-            <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />
-          )}
-          {ag.checkin_profissional && (
-            <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" />
-          )}
         </div>
 
         {/* Time + duration row */}
@@ -222,17 +212,6 @@ function AppointmentCard({
             </Badge>
           </div>
           <div className="flex items-center gap-1">
-            {canCheckin && !checkedIn && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCheckin?.(ag.id, isPatient ? "paciente" : "profissional");
-                }}
-                className="text-[10px] text-primary hover:underline font-medium"
-              >
-                Check-in
-              </button>
-            )}
             {isPatient && ag.status !== "cancelado" && (
               <>
                 <button
@@ -368,7 +347,6 @@ export function DailyView({
   onSlotClick,
   isPatient,
   onCancel,
-  onCheckin,
   onReschedule,
   onAppointmentClick,
   profColors = {},
@@ -465,7 +443,6 @@ export function DailyView({
                     ag={ag}
                     isPatient={isPatient}
                     onCancel={onCancel}
-                    onCheckin={onCheckin}
                     onReschedule={onReschedule}
                     onAppointmentClick={onAppointmentClick}
                     profColor={profColors[ag.profissional_id]}
@@ -490,7 +467,6 @@ export function WeeklyView({
   onSlotClick,
   isPatient,
   onCancel,
-  onCheckin,
   onReschedule,
   onAppointmentClick,
   profColors = {},
@@ -554,7 +530,6 @@ export function WeeklyView({
                   ag={ag}
                   isPatient={isPatient}
                   onCancel={onCancel}
-                  onCheckin={onCheckin}
                   onReschedule={onReschedule}
                   onAppointmentClick={onAppointmentClick}
                   profColor={profColors[ag.profissional_id]}
@@ -575,7 +550,6 @@ export function MonthlyView({
   onSlotClick,
   isPatient,
   onCancel,
-  onCheckin,
   onReschedule,
   onAppointmentClick,
   profColors = {},

@@ -255,8 +255,6 @@ export function AppointmentDetailDialog({
           <div className="flex items-center gap-3">
             <Badge variant={statusCfg.variant} className={statusCfg.className}>{statusCfg.label}</Badge>
             <span className="text-xs text-muted-foreground capitalize">{ag.tipo_atendimento} • {ag.tipo_sessao}</span>
-            {ag.checkin_paciente && <span title="Check-in paciente"><CheckCircle2 className="h-4 w-4 text-green-500" /></span>}
-            {ag.checkin_profissional && <span title="Check-in profissional"><CheckCircle2 className="h-4 w-4 text-primary" /></span>}
           </div>
 
           {ag.observacoes && (
