@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   MessageSquare, Ban, RotateCcw, CheckCircle2, Send, Calendar, Clock,
   User, Activity, FileText, Phone, ClipboardList, Stethoscope, StickyNote, Video,
-  XCircle, Plus, AlertCircle,
+  XCircle, Plus, AlertCircle, ChevronDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -26,12 +32,12 @@ import type { Agendamento } from "./AgendaViews";
 
 const APP_URL = window.location.origin;
 
-const statusColors: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const statusColors: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   agendado: { label: "Agendado", variant: "outline" },
   confirmado: { label: "Confirmado", variant: "default" },
-  realizado: { label: "Realizado", variant: "secondary" },
+  realizado: { label: "Realizado", variant: "outline", className: "bg-emerald-100 text-emerald-700 border-emerald-300" },
   cancelado: { label: "Cancelado", variant: "destructive" },
-  falta: { label: "Falta", variant: "destructive" },
+  falta: { label: "Faltou", variant: "outline", className: "bg-amber-100 text-amber-700 border-amber-300" },
 };
 
 interface AppointmentDetailDialogProps {
@@ -247,7 +253,7 @@ export function AppointmentDetailDialog({
           </div>
 
           <div className="flex items-center gap-3">
-            <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+            <Badge variant={statusCfg.variant} className={statusCfg.className}>{statusCfg.label}</Badge>
             <span className="text-xs text-muted-foreground capitalize">{ag.tipo_atendimento} • {ag.tipo_sessao}</span>
             {ag.checkin_paciente && <span title="Check-in paciente"><CheckCircle2 className="h-4 w-4 text-green-500" /></span>}
             {ag.checkin_profissional && <span title="Check-in profissional"><CheckCircle2 className="h-4 w-4 text-primary" /></span>}
@@ -302,46 +308,45 @@ export function AppointmentDetailDialog({
               </Button>
             </div>
 
-            {/* Session status actions — clear text labels */}
+            {/* Session status actions — 2 primary actions + secondary dropdown */}
             {canAct && (
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Button
-                  size="lg"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 text-base shadow-md"
-                  onClick={() => handleMarkStatus("realizado", "Realizado")}
-                >
-                  <CheckCircle2 className="h-5 w-5 mr-2" /> Realizado
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-amber-700 border-amber-300 hover:bg-amber-50 font-bold h-12 text-base shadow-sm"
-                  onClick={() => handleMarkStatus("falta", "Faltou")}
-                >
-                  <AlertCircle className="h-5 w-5 mr-2" /> Faltou
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50 h-12"
-                  onClick={() => { onReschedule(ag); onOpenChange(false); }}
-                >
-                  <RotateCcw className="h-5 w-5 mr-2" /> Remarcar
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10 h-12"
-                  onClick={() => setActionMode("cancelar")}
-                >
-                  <XCircle className="h-5 w-5 mr-2" /> Cancelar
-                </Button>
+              <div className="space-y-2 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    size="lg"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 text-base shadow-md"
+                    onClick={() => handleMarkStatus("realizado", "Realizado")}
+                  >
+                    <CheckCircle2 className="h-5 w-5 mr-2" /> Realizado
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="font-bold h-12 text-base shadow-md"
+                    onClick={() => handleMarkStatus("falta", "Faltou")}
+                  >
+                    <AlertCircle className="h-5 w-5 mr-2" /> Faltou
+                  </Button>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <ChevronDown className="h-4 w-4 mr-2" /> Mais opções
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => { onReschedule(ag); onOpenChange(false); }}>
+                      <RotateCcw className="h-4 w-4 mr-2 text-blue-600" /> Remarcar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setActionMode("cancelar")}>
+                      <XCircle className="h-4 w-4 mr-2" /> Cancelar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )}
           </div>
         )}
-
-        {!isPatient && <Separator />}
 
         {!isPatient && <Separator />}
 
