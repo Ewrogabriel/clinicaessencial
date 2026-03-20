@@ -404,30 +404,6 @@ const Financeiro = () => {
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const syncInter = async () => {
-    toast({ title: "Sincronizando...", description: "Buscando extrato do Banco Inter" });
-    const { data, error } = await supabase.functions.invoke("inter-sync", {
-      body: { action: "fetch-extrato", clinicId: activeClinicId }
-    });
-    if (error) {
-      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Sincronizado!", description: "Extrato processado com sucesso" });
-      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-    }
-  };
-
-  const refundPayment = useMutation({
-    mutationFn: async (id: string) => {
-      await financeService.refundPayment(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-      toast({ title: "Pagamento reembolsado!" });
-    },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
-  });
-
   const formatDate = (d: string | null) => {
     if (!d) return "—";
     try { return format(new Date(d), "dd/MM/yyyy"); } catch { return "—"; }
