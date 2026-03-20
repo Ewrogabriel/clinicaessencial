@@ -196,7 +196,7 @@ const SolicitacoesAlteracao = () => {
       if (agendError) throw agendError;
 
       const { error } = await supabase.from("solicitacoes_remarcacao")
-        .update({ status: "aprovado", respondido_por: user?.id, respondido_at: new Date().toISOString() } as any)
+        .update({ status: "aprovada", respondido_por: user?.id, respondido_at: new Date().toISOString() } as any)
         .eq("id", solicitacao.id);
       if (error) throw error;
 
