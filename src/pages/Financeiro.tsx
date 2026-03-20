@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock, RefreshCw, FileText as FileTextIcon } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -393,29 +393,16 @@ const Financeiro = () => {
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const syncInter = async () => {
-    toast({ title: "Sincronizando...", description: "Buscando extrato do Banco Inter" });
-    const { data, error } = await supabase.functions.invoke("inter-sync");
-    if (error) {
-      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Sincronizado!", description: "Extrato processado com sucesso" });
+  const refundPayment = useMutation({
+    mutationFn: async (id: string) => {
+      await financeService.refundPayment(id);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-    }
-  };
-
-  const emitirNota = async (paymentId: string) => {
-    toast({ title: "Emitindo Nota...", description: "Enviando dados para TransmiteNota" });
-    const { data, error } = await supabase.functions.invoke("transmitenota-emit", {
-      body: { paymentId }
-    });
-    if (error) {
-      toast({ title: "Erro na emissão", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Nota Emitida!", description: "O processamento foi iniciado" });
-      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-    }
-  };
+      toast({ title: "Pagamento reembolsado!" });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
@@ -427,11 +414,6 @@ const Financeiro = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
         <div className="flex gap-2 flex-wrap">
-          {!isPatient && (
-            <Button variant="outline" onClick={syncInter}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Sincronizar Banco
-            </Button>
-          )}
           {!isPatient && <FinanceExportButton pagamentos={allPayments as any} />}
           {!isPatient && (
             <Button onClick={() => setFormOpen(true)}><Plus className="mr-2 h-4 w-4" /> Novo Pagamento</Button>
@@ -588,17 +570,6 @@ const Financeiro = () => {
                                   toast({ title: "Recibo gerado!" });
                                 }}>
                                   <Download className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {isPaid && pagamento.source_table === "pagamentos" && !isPatient && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 text-blue-600 hover:text-blue-700"
-                                  title="Emitir Nota Fiscal"
-                                  onClick={() => emitirNota(pagamento.id)}
-                                >
-                                  <FileTextIcon className="h-4 w-4" />
                                 </Button>
                               )}
                               {isPaid && pagamento.source_table === "pagamentos" && !isPatient && (

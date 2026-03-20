@@ -27,7 +27,7 @@ const Pacientes = lazy(() => import("./pages/Pacientes"));
 const PacienteForm = lazy(() => import("./pages/PacienteForm"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const Matriculas = lazy(() => import("./pages/Matriculas"));
-const CheckInProfissional = lazy(() => import("./pages/CheckInProfissional"));
+// CheckInProfissional removed
 const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
 const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
@@ -70,8 +70,6 @@ const TeleconsultaHub = lazy(() => import("./pages/TeleconsultaHub"));
 const PlanosExercicios = lazy(() => import("./pages/PlanosExercicios"));
 const Planos = lazy(() => import("./pages/Planos"));
 const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
-const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
-const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 
 
 
@@ -109,7 +107,6 @@ const App = () => (
                       <Route path="/onboarding/:id" element={<PatientOnboarding />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/pre-cadastro" element={<PreCadastro />} />
-                      <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
                       <Route path="/site" element={<LandingPage />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
@@ -130,7 +127,7 @@ const App = () => (
                         <Route path="/prontuarios" element={<Prontuarios />} />
                         <Route path="/agenda" element={<Agenda />} />
                         <Route path="/minha-agenda" element={<MinhaAgenda />} />
-                        <Route path="/check-in" element={<CheckInProfissional />} />
+                        {/* check-in route removed */}
                         <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
                         <Route path="/meus-planos" element={<MeusPlanos />} />
                         <Route path="/meu-perfil" element={<MeuPerfilToggle />} />
@@ -163,8 +160,7 @@ const App = () => (
                         <Route path="/teleconsulta" element={<Teleconsulta />} />
                         <Route path="/teleconsulta-hub" element={<TeleconsultaHub />} />
                         <Route path="/planos-exercicios" element={<PlanosExercicios />} />
-                         <Route path="/planos" element={<Planos />} />
-                        <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
+                        <Route path="/planos" element={<Planos />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>

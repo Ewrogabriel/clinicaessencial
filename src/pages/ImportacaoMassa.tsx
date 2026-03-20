@@ -27,7 +27,7 @@ const REQUIRED_FIELDS: Record<ImportType, string[]> = {
 };
 
 const EXAMPLE_HEADERS: Record<ImportType, string[]> = {
-  pacientes: ["nome", "telefone", "email", "cpf", "data_nascimento", "cep", "rua", "numero", "bairro", "cidade", "estado", "tipo_atendimento", "observacoes"],
+  pacientes: ["nome", "telefone", "email", "cpf", "data_nascimento", "tipo_atendimento", "observacoes"],
   agendamentos: ["paciente_nome", "profissional_nome", "data_horario", "duracao_minutos", "tipo_atendimento", "observacoes"],
   pagamentos: ["paciente_nome", "valor", "data_pagamento", "forma_pagamento", "descricao", "status"],
 };
@@ -132,12 +132,6 @@ const ImportacaoMassa = () => {
             email: row[emailKey] || row.email ? String(row[emailKey] || row.email).trim() : null,
             cpf: row[cpfKey] || row.cpf ? String(row[cpfKey] || row.cpf).trim() : null,
             data_nascimento: row.data_nascimento || null,
-            cep: row.cep || null,
-            rua: row.rua || null,
-            numero: row.numero || null,
-            bairro: row.bairro || null,
-            cidade: row.cidade || null,
-            estado: row.estado || null,
             tipo_atendimento: row.tipo_atendimento || "fisioterapia",
             observacoes: row.observacoes || "Importado em massa",
             status: "pendente",
