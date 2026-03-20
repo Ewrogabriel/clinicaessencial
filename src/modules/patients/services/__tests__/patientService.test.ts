@@ -209,4 +209,134 @@ describe("patientService", () => {
             expect(result).toBeNull();
         });
     });
+
+    // ── approvePreCadastro ────────────────────────────────────────────────────
+
+    const PRE_CADASTRO_DATA = {
+        nome: "Carlos Souza",
+        cpf: "123.456.789-00",
+        rg: null,
+        telefone: "(11) 99999-1234",
+        email: "carlos@example.com",
+        data_nascimento: "1990-05-15",
+        cep: null,
+        rua: null,
+        numero: null,
+        complemento: null,
+        bairro: null,
+        cidade: null,
+        estado: null,
+        tipo_atendimento: "fisioterapia",
+        observacoes: null,
+        tem_responsavel_legal: false,
+        responsavel_nome: null,
+        responsavel_cpf: null,
+        responsavel_telefone: null,
+        responsavel_email: null,
+        responsavel_parentesco: null,
+    };
+
+    describe("approvePreCadastro", () => {
+        it("creates patient, links to clinic, marks pre-cadastro approved, and returns codigo", async () => {
+            const newPatient = { ...PATIENT_1, id: "p-new", nome: "Carlos Souza" };
+
+            // pacientes insert → success
+            supabase.from
+                .mockReturnValueOnce(chain({ data: newPatient, error: null }))
+                // clinic_pacientes insert → success
+                .mockReturnValueOnce(chain({ data: null, error: null }))
+                // pre_cadastros update → success
+                .mockReturnValueOnce(chain({ data: null, error: null }));
+
+            const result = await patientService.approvePreCadastro({
+                preCadastroId: "pc-1",
+                preCadastroData: PRE_CADASTRO_DATA,
+                activeClinicId: CLINIC_ID,
+                createdBy: "user-admin",
+                revisadoPor: "user-admin",
+            });
+
+            expect(result.patient.id).toBe("p-new");
+            expect(result.codigoAcesso).toHaveLength(8);
+            expect(/^[A-Z0-9]{8}$/.test(result.codigoAcesso)).toBe(true);
+            expect(supabase.from).toHaveBeenCalledWith("pacientes");
+            expect(supabase.from).toHaveBeenCalledWith("clinic_pacientes");
+            expect(supabase.from).toHaveBeenCalledWith("pre_cadastros");
+        });
+
+        it("skips clinic link when activeClinicId is null", async () => {
+            const newPatient = { ...PATIENT_1, id: "p-new2" };
+
+            // pacientes insert → success
+            supabase.from
+                .mockReturnValueOnce(chain({ data: newPatient, error: null }))
+                // pre_cadastros update → success
+                .mockReturnValueOnce(chain({ data: null, error: null }));
+
+            const result = await patientService.approvePreCadastro({
+                preCadastroId: "pc-2",
+                preCadastroData: PRE_CADASTRO_DATA,
+                activeClinicId: null,
+                createdBy: "user-admin",
+                revisadoPor: "user-admin",
+            });
+
+            expect(result.patient.id).toBe("p-new2");
+            // clinic_pacientes should NOT be called
+            expect(supabase.from).not.toHaveBeenCalledWith("clinic_pacientes");
+        });
+
+        it("throws when patient insert fails", async () => {
+            supabase.from.mockReturnValueOnce(
+                chain({ data: null, error: { message: "insert failed" } })
+            );
+
+            await expect(
+                patientService.approvePreCadastro({
+                    preCadastroId: "pc-3",
+                    preCadastroData: PRE_CADASTRO_DATA,
+                    activeClinicId: CLINIC_ID,
+                    createdBy: "user-admin",
+                    revisadoPor: "user-admin",
+                })
+            ).rejects.toMatchObject({ message: "insert failed" });
+        });
+
+        it("throws when clinic link fails", async () => {
+            const newPatient = { ...PATIENT_1, id: "p-new3" };
+
+            supabase.from
+                .mockReturnValueOnce(chain({ data: newPatient, error: null }))
+                .mockReturnValueOnce(chain({ data: null, error: { message: "link error" } }));
+
+            await expect(
+                patientService.approvePreCadastro({
+                    preCadastroId: "pc-4",
+                    preCadastroData: PRE_CADASTRO_DATA,
+                    activeClinicId: CLINIC_ID,
+                    createdBy: "user-admin",
+                    revisadoPor: "user-admin",
+                })
+            ).rejects.toThrow("Erro ao vincular paciente à clínica: link error");
+        });
+
+        it("throws when pre_cadastros update fails", async () => {
+            const newPatient = { ...PATIENT_1, id: "p-new4" };
+
+            supabase.from
+                .mockReturnValueOnce(chain({ data: newPatient, error: null }))
+                .mockReturnValueOnce(chain({ data: null, error: null }))
+                .mockReturnValueOnce(chain({ data: null, error: { message: "update failed" } }));
+
+            await expect(
+                patientService.approvePreCadastro({
+                    preCadastroId: "pc-5",
+                    preCadastroData: PRE_CADASTRO_DATA,
+                    activeClinicId: CLINIC_ID,
+                    createdBy: "user-admin",
+                    revisadoPor: "user-admin",
+                })
+            ).rejects.toMatchObject({ message: "update failed" });
+        });
+    });
 });
