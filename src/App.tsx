@@ -127,7 +127,7 @@ const App = () => (
                         <Route path="/prontuarios" element={<Prontuarios />} />
                         <Route path="/agenda" element={<Agenda />} />
                         <Route path="/minha-agenda" element={<MinhaAgenda />} />
-                        <Route path="/check-in" element={<CheckInProfissional />} />
+                        {/* check-in route removed */}
                         <Route path="/meus-pagamentos" element={<MeusPagamentos />} />
                         <Route path="/meus-planos" element={<MeusPlanos />} />
                         <Route path="/meu-perfil" element={<MeuPerfilToggle />} />

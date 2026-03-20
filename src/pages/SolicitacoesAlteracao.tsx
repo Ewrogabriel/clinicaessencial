@@ -219,7 +219,7 @@ const SolicitacoesAlteracao = () => {
   const rejeitarRemarcacaoMutation = useMutation({
     mutationFn: async ({ solicitacao, motivo }: { solicitacao: any; motivo: string }) => {
       const { error } = await supabase.from("solicitacoes_remarcacao")
-        .update({ status: "rejeitado", respondido_por: user?.id, respondido_at: new Date().toISOString() } as any)
+        .update({ status: "recusada", respondido_por: user?.id, respondido_at: new Date().toISOString() } as any)
         .eq("id", solicitacao.id);
       if (error) throw error;
 

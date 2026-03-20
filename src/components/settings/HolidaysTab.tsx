@@ -67,6 +67,10 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   });
 
   const fetchHolidaysAI = async () => {
+    if (!clinicId) {
+      toast({ title: "Selecione uma clínica primeiro", variant: "destructive" });
+      return;
+    }
     toast({ title: "🤖 Buscando feriados nacionais..." });
     try {
       const year = new Date().getFullYear();
