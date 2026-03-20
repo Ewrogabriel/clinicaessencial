@@ -17,6 +17,29 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // --- Authentication: verify caller identity ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Autenticação necessária" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: { user: caller }, error: authError } = await anonClient.auth.getUser();
+    if (authError || !caller) {
+      return new Response(
+        JSON.stringify({ error: "Token inválido ou expirado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { cpf, nome, paciente_id } = await req.json();
 
     if (!cpf || !nome) {
@@ -35,7 +58,11 @@ Deno.serve(async (req) => {
     }
 
     const email = `${cleanCpf}@paciente.essencial.com`;
-    const defaultPassword = cleanCpf;
+
+    // Generate a cryptographically random password instead of using the CPF
+    const randomBytes = new Uint8Array(16);
+    crypto.getRandomValues(randomBytes);
+    const defaultPassword = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Check if user already exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
@@ -92,7 +119,11 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ message: "Conta criada com sucesso", user_id: newUser.user.id }),
+      JSON.stringify({
+        message: "Conta criada com sucesso",
+        user_id: newUser.user.id,
+        tempPassword: defaultPassword,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

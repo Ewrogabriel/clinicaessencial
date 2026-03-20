@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -17,6 +17,43 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // --- Authentication: verify caller identity ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticação necessária' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const anonClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: { user: caller }, error: authError } = await anonClient.auth.getUser();
+    if (authError || !caller) {
+      return new Response(
+        JSON.stringify({ error: 'Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // --- Authorization: caller must be master or admin ---
+    const { data: callerRoles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', caller.id);
+
+    const roles = (callerRoles || []).map((r: { role: string }) => r.role);
+    if (!roles.includes('master') && !roles.includes('admin')) {
+      return new Response(
+        JSON.stringify({ error: 'Permissão negada. Apenas master ou admin podem criar administradores.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { clinic_id, admin_email, admin_nome, clinic_nome } = await req.json();
 
     if (!clinic_id || !admin_email || !admin_nome) {
@@ -26,11 +63,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    // If caller is admin (not master), verify they belong to this clinic
+    if (!roles.includes('master')) {
+      const { data: clinicAccess } = await supabaseAdmin
+        .from('clinic_users')
+        .select('id')
+        .eq('user_id', caller.id)
+        .eq('clinic_id', clinic_id)
+        .single();
+
+      if (!clinicAccess) {
+        return new Response(
+          JSON.stringify({ error: 'Você não tem acesso a esta clínica.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Generate temporary password
-    const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase();
+    const randomBytes = new Uint8Array(16);
+    crypto.getRandomValues(randomBytes);
+    const tempPassword = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Create user in auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email: admin_email,
       password: tempPassword,
       email_confirm: true,
@@ -39,10 +95,10 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (authError) {
-      console.error('Error creating auth user:', authError);
+    if (createAuthError) {
+      console.error('Error creating auth user:', createAuthError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao criar usuário de autenticação', details: authError.message }),
+        JSON.stringify({ error: 'Erro ao criar usuário de autenticação' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -74,7 +130,7 @@ Deno.serve(async (req) => {
     if (clinicUserError) {
       console.error('Error adding to clinic_users:', clinicUserError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao vincular admin à clínica', details: clinicUserError.message }),
+        JSON.stringify({ error: 'Erro ao vincular admin à clínica' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -105,9 +161,9 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error:', msg);
     return new Response(
-      JSON.stringify({ error: 'Erro inesperado', details: msg }),
+      JSON.stringify({ error: 'Erro inesperado' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
