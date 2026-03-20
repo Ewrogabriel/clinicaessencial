@@ -98,6 +98,11 @@ interface Modalidade {
   nome: string;
 }
 
+interface FormaPagamento {
+  id: string;
+  nome: string;
+}
+
 interface AgendamentoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -111,6 +116,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [modalidades, setModalidades] = useState<Modalidade[]>([]);
+  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
@@ -208,6 +214,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       fetchPacientes();
       fetchProfissionais();
       fetchModalidades();
+      fetchFormasPagamento();
     }
   }, [open]);
 
@@ -236,6 +243,15 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       .eq("ativo", true)
       .order("nome");
     setModalidades(data ?? []);
+  };
+
+  const fetchFormasPagamento = async () => {
+    const { data } = await supabase
+      .from("formas_pagamento")
+      .select("id, nome")
+      .eq("ativo", true)
+      .order("nome");
+    setFormasPagamento(data ?? []);
   };
 
   const toggleDia = (dia: number) => {
@@ -291,42 +307,92 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     setLoading(true);
 
     try {
-      if (values.recorrente) {
-        toast.info("A funcionalidade recorrente está sendo migrada para o novo modelo de slots. Use agendamentos individuais por enquanto para controle de capacidade.");
-        // TODO: Implementar loop de agendamento por slots para recorrência
-      } else {
-        const [hours, minutes] = values.horario.split(":").map(Number);
-        const dataHorario = new Date(values.data);
-        dataHorario.setHours(hours, minutes, 0, 0);
+      const formaPagamentoId = formasPagamento.find(
+        f => f.nome.toLowerCase() === values.forma_pagamento?.toLowerCase()
+      )?.id;
 
-        if (values.repetir && values.repetir_quantidade > 1) {
-          toast.info("A repetição simples será migrada para o modelo de slots em breve.");
-        } else {
+      if (values.recorrente) {
+        const dates = generateRecurringDates(values);
+        if (dates.length === 0) {
+          toast.error("Nenhuma data gerada para a recorrência.");
+          setLoading(false);
+          return;
+        }
+
+        toast.info(`Agendando ${dates.length} sessões...`);
+        for (const dt of dates) {
           await bookAppointmentMutation.mutateAsync({
             paciente_id: values.paciente_id,
             profissional_id: values.profissional_id,
-            data_horario: dataHorario.toISOString(),
+            data_horario: dt.toISOString(),
             duracao_minutos: values.duracao_minutos,
             tipo_atendimento: values.tipo_atendimento,
             tipo_sessao: values.tipo_sessao,
             observacoes: values.observacoes,
             created_by: user.id,
             clinic_id: activeClinicId,
-            // slot_id is from disponibilidade_profissional, not schedule_slots table
-            // so we must NOT pass it to the RPC book_appointment which queries schedule_slots
-            slot_id: undefined,
             valor_sessao: values.valor_sessao,
-            forma_pagamento: values.forma_pagamento,
+            forma_pagamento_id: formaPagamentoId,
             data_vencimento: values.data_vencimento,
+            slot_id: undefined,
           } as any);
         }
+        toast.success(`${dates.length} sessões agendadas com sucesso!`);
+      } else if (values.repetir && values.repetir_quantidade > 1) {
+        // Simple repetition loop
+        const [hours, minutes] = values.horario.split(":").map(Number);
+        const startDate = new Date(values.data);
+        startDate.setHours(hours, minutes, 0, 0);
+
+        toast.info(`Agendando ${values.repetir_quantidade} sessões repetidas...`);
+        for (let i = 0; i < values.repetir_quantidade; i++) {
+          const targetDate = addWeeks(startDate, i);
+          await bookAppointmentMutation.mutateAsync({
+            paciente_id: values.paciente_id,
+            profissional_id: values.profissional_id,
+            data_horario: targetDate.toISOString(),
+            duracao_minutos: values.duracao_minutos,
+            tipo_atendimento: values.tipo_atendimento,
+            tipo_sessao: values.tipo_sessao,
+            observacoes: values.observacoes,
+            created_by: user.id,
+            clinic_id: activeClinicId,
+            valor_sessao: values.valor_sessao,
+            forma_pagamento_id: formaPagamentoId,
+            data_vencimento: values.data_vencimento,
+            slot_id: undefined,
+          } as any);
+        }
+        toast.success(`${values.repetir_quantidade} sessões agendadas com sucesso!`);
+      } else {
+        const [hours, minutes] = values.horario.split(":").map(Number);
+        const dataHorario = new Date(values.data);
+        dataHorario.setHours(hours, minutes, 0, 0);
+
+        await bookAppointmentMutation.mutateAsync({
+          paciente_id: values.paciente_id,
+          profissional_id: values.profissional_id,
+          data_horario: dataHorario.toISOString(),
+          duracao_minutos: values.duracao_minutos,
+          tipo_atendimento: values.tipo_atendimento,
+          tipo_sessao: values.tipo_sessao,
+          observacoes: values.observacoes,
+          created_by: user.id,
+          clinic_id: activeClinicId,
+          slot_id: undefined,
+          valor_sessao: values.valor_sessao,
+          forma_pagamento_id: formaPagamentoId,
+          data_vencimento: values.data_vencimento,
+        } as any);
+        toast.success("Agendamento realizado com sucesso!");
       }
 
       form.reset();
       onOpenChange(false);
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar agendamento:", error);
+      toast.error("Erro ao salvar agendamento: " + (error.message || "Tente novamente mais tarde"));
     } finally {
       setLoading(false);
     }
@@ -756,13 +822,20 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="pix">PIX</SelectItem>
-                          <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                          <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                          <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                          <SelectItem value="transferencia">Transferência Bancária</SelectItem>
-                          <SelectItem value="convenio">Convênio</SelectItem>
-                          <SelectItem value="boleto">Boleto</SelectItem>
+                          {formasPagamento.map((f) => (
+                            <SelectItem key={f.id} value={f.nome.toLowerCase()}>{f.nome}</SelectItem>
+                          ))}
+                          {formasPagamento.length === 0 && (
+                            <>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                              <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                              <SelectItem value="transferencia">Transferência Bancária</SelectItem>
+                              <SelectItem value="convenio">Convênio</SelectItem>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -983,41 +1056,41 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => {
-                                field.onChange(date);
-                                if (date) setCurrentMonth(date);
-                              }}
-                              onMonthChange={setCurrentMonth}
-                              locale={ptBR}
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0
-                              }
-                              className="rounded-md border shadow-sm"
-                              components={{
-                                Day: ({ date, ...props }) => {
-                                  const vacancies = monthlyAvail[date.getDate()];
-                                  const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                                  const isSunday = date.getDay() === 0;
+                               mode="single"
+                               selected={field.value}
+                               onSelect={(date) => {
+                                 field.onChange(date);
+                                 if (date) setCurrentMonth(date);
+                               }}
+                               onMonthChange={setCurrentMonth}
+                               locale={ptBR}
+                               disabled={(date) =>
+                                 date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0
+                               }
+                               className="rounded-md border shadow-sm"
+                               components={{
+                                 Day: ({ date, ...props }: any) => {
+                                   const vacancies = monthlyAvail[date.getDate()];
+                                   const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                                   const isSunday = date.getDay() === 0;
 
-                                  return (
-                                    <div {...props} className="relative w-full h-full flex flex-col items-center justify-center pt-1">
-                                      <span>{date.getDate()}</span>
-                                      {watchedProfId && !isPast && !isSunday && (
-                                        <span className={cn(
-                                          "text-[9px] mt-0.5 px-1 rounded-full",
-                                          vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
-                                        )}>
-                                          {vacancies}v
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                }
-                              }}
-                              initialFocus
-                            />
+                                   return (
+                                     <div {...props} className="relative w-full h-full flex flex-col items-center justify-center pt-1">
+                                       <span>{date.getDate()}</span>
+                                       {watchedProfId && !isPast && !isSunday && (
+                                         <span className={cn(
+                                           "text-[9px] mt-0.5 px-1 rounded-full",
+                                           vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
+                                         )}>
+                                           {vacancies}v
+                                         </span>
+                                       )}
+                                     </div>
+                                   );
+                                 }
+                               }}
+                               initialFocus
+                             />
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -1025,38 +1098,110 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
                     )}
                   />
 
-                  {/* Valor mensal */}
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  {/* Valor Sessão e Pagamento Mensal */}
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <Label className="font-medium text-sm">Pagamento Mensal</Label>
+                      <Label className="font-medium">Financeiro Recorrente</Label>
                     </div>
-                    <FormField
-                      control={form.control}
-                      name="valor_mensal"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="Ex: 180,00"
-                                className="pl-10"
-                                value={field.value ?? ""}
-                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                              />
-                            </div>
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            Valor mensal do pacote (ex: Pilates {freqLabel}/semana)
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="valor_sessao"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Valor p/ Sessão (R$)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0,00"
+                                  className="pl-10"
+                                  value={field.value ?? ""}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="valor_mensal"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Valor Mensal (Pacote)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="Opcional"
+                                  className="pl-10"
+                                  value={field.value ?? ""}
+                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="data_vencimento"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Data de Vencimento</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="forma_pagamento"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {formasPagamento.map((f) => (
+                                  <SelectItem key={f.id} value={f.nome.toLowerCase()}>{f.nome}</SelectItem>
+                                ))}
+                                {formasPagamento.length === 0 && (
+                                  <>
+                                    <SelectItem value="pix">PIX</SelectItem>
+                                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                                    <SelectItem value="transferencia">Transferência Bancária</SelectItem>
+                                    <SelectItem value="convenio">Convênio</SelectItem>
+                                    <SelectItem value="boleto">Boleto</SelectItem>
+                                  </>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
                   {/* Preview - tempo indeterminado */}

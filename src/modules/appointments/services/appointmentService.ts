@@ -119,6 +119,9 @@ export const appointmentService = {
         created_by: string;
         clinic_id: string;
         slot_id?: string;
+        valor_sessao?: number;
+        forma_pagamento_id?: string;
+        data_vencimento?: string;
     }) {
         try {
             // When a slot_id is provided, use the atomic book_appointment RPC which
@@ -157,11 +160,27 @@ export const appointmentService = {
                     observacoes: params.observacoes || null,
                     created_by: params.created_by,
                     clinic_id: params.clinic_id,
+                    valor_sessao: params.valor_sessao || 0,
                 })
                 .select()
                 .single();
 
             if (error) throw error;
+
+            // Immediately create a pending financial record if there's a value
+            if (params.valor_sessao && params.valor_sessao > 0) {
+                await supabase.from("pagamentos_sessoes").insert({
+                    paciente_id: params.paciente_id,
+                    agendamento_id: data.id,
+                    valor: params.valor_sessao,
+                    status: "pendente",
+                    data_pagamento: params.data_vencimento || params.data_horario,
+                    forma_pagamento_id: params.forma_pagamento_id || null,
+                    observacoes: `Agendamento: ${params.tipo_atendimento}`,
+                    clinic_id: params.clinic_id,
+                });
+            }
+
             return data;
         } catch (error) {
             handleError(error, "Erro ao realizar agendamento.");
@@ -215,8 +234,8 @@ export const appointmentService = {
             const isMatriculaSessao = !!agendamentoAtual.enrollment_id;
             const valorSessao = Number(agendamentoAtual.valor_sessao || 0);
 
-            // Sessão avulsa realizada gera cobrança pendente automaticamente no Financeiro
-            if (status === "realizado" && !isPlanoSessao && !isMatriculaSessao && valorSessao > 0) {
+            // Sessão realizada gera cobrança pendente automaticamente no Financeiro se não existir
+            if (status === "realizado" && valorSessao > 0) {
                 const { data: existing, error: existingError } = await supabase
                     .from("pagamentos_sessoes")
                     .select("id")

@@ -17,6 +17,8 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
+import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
 
 // ─────────────────────────────────────────────────────────────
 // CANCELLATION POLICY EDITOR
@@ -163,16 +165,69 @@ function EnrollmentBlockManager() {
         },
     });
 
+    const { user } = useAuth();
+    const { activeClinicId } = useClinic();
+
     const generateSessions = useMutation({
         mutationFn: async (enrollmentId: string) => {
-            // TODO: implement generate_monthly_sessions RPC
-            toast({ title: "Funcionalidade ainda não implementada", variant: "destructive" });
-            return 0;
+            if (!user) throw new Error("Não autenticado");
+
+            // 1. Fetch enrollment details and its weekly schedules
+            const { data: enrollment, error: matErr } = await supabase
+                .from("matriculas")
+                .select("*, weekly_schedules(*)")
+                .eq("id", enrollmentId)
+                .single();
+
+            if (matErr || !enrollment) throw new Error("Matrícula não encontrada");
+
+            // 2. Determine target range (next month)
+            // Strategy: Find the last generated session date for this enrollment, start from there + 1 day
+            const { data: lastAgend } = await supabase
+                .from("agendamentos")
+                .select("data_horario")
+                .eq("enrollment_id", enrollmentId)
+                .order("data_horario", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            const startFrom = lastAgend 
+                ? format(addMonths(new Date(lastAgend.data_horario), 0), "yyyy-MM-dd") // Actually we want AFTER the last one
+                : format(new Date(), "yyyy-MM-dd");
+
+            // If we have a last session, we start generating from the beginning of its NEXT month
+            const nextMonth = lastAgend 
+                ? addMonths(new Date(lastAgend.data_horario), 1)
+                : addMonths(new Date(), 1);
+            
+            const startDate = format(startOfMonth(nextMonth), "yyyy-MM-dd");
+            const endDate = format(endOfMonth(nextMonth), "yyyy-MM-dd");
+
+            const count = await enrollmentService.generateSessions({
+                enrollmentId: enrollment.id,
+                pacienteId: enrollment.paciente_id,
+                weeklySchedules: enrollment.weekly_schedules.map((s: any) => ({
+                    weekday: s.weekday,
+                    time: s.time,
+                    professional_id: s.professional_id,
+                    session_duration: s.session_duration
+                })),
+                startDate,
+                endDate,
+                tipoAtendimento: enrollment.tipo_atendimento || "Pilates",
+                monthlyValue: Number(enrollment.valor_mensal || 0),
+                clinicId: enrollment.clinic_id || activeClinicId || "",
+                userId: user.id
+            });
+
+            return count;
         },
         onSuccess: (count) => {
             if (count > 0) {
                 queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
                 toast({ title: `✅ ${count} sessões geradas para o próximo mês!` });
+            } else {
+                toast({ title: "Nenhuma sessão nova necessária para este período." });
             }
         },
         onError: (err) => {

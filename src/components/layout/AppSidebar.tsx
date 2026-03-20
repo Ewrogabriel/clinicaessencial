@@ -28,7 +28,7 @@ const RESOURCE_ROUTES: Record<string, string> = {
   contratos: "/contratos", relatorios: "/relatorios",
   avisos: "/avisos", mensagens: "/mensagens", aniversariantes: "/aniversariantes",
   clinica: "/clinica", dicas_diarias: "/dicas-diarias",
-  automacoes: "/automacoes", check_in: "/check-in",
+  automacoes: "/automacoes",
   precos_planos: "/precos-planos", produtos: "/produtos",
 };
 
@@ -38,7 +38,7 @@ const RESOURCE_ICONS: Record<string, any> = {
   financeiro: DollarSign, matriculas: Receipt, comissoes: Calculator,
   contratos: FileText, relatorios: BarChart3, avisos: Megaphone,
   mensagens: MessageSquare, aniversariantes: Users, clinica: Activity,
-  dicas_diarias: Activity, automacoes: Send, check_in: Users,
+  dicas_diarias: Activity, automacoes: Send,
   precos_planos: Tag, produtos: Tag,
 };
 
@@ -50,7 +50,7 @@ const RESOURCE_I18N_KEYS: Record<string, string> = {
   contratos: "nav.contracts", relatorios: "nav.reports", avisos: "nav.notices",
   mensagens: "nav.messages", aniversariantes: "nav.birthdays",
   clinica: "nav.clinic_data", dicas_diarias: "nav.daily_tips",
-  automacoes: "nav.automations", check_in: "nav.check_in",
+  automacoes: "nav.automations",
   precos_planos: "nav.prices", produtos: "nav.products",
 };
 
@@ -82,6 +82,7 @@ export const AppSidebar = memo(function AppSidebar() {
   // Scheduling group
   const menuAgendamentos = [
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
+    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
     { title: t("nav.modalities"), url: "/modalidades", icon: Layers },
     { title: t("nav.availability"), url: "/disponibilidade", icon: Clock },

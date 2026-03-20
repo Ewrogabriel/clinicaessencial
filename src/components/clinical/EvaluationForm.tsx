@@ -85,7 +85,10 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                 } as any)
                 .eq("id", pacienteId);
             
-            if (patientErr) console.error("Erro ao atualizar status do paciente:", patientErr);
+            if (patientErr) {
+                console.error("Erro ao atualizar status do paciente:", patientErr);
+                throw patientErr;
+            }
             
             return evaluation;
         },

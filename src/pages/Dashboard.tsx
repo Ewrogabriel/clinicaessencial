@@ -46,14 +46,14 @@ import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
 
 const ADMIN_DEFAULT_CARDS: DashboardCard[] = [
+  { id: "today-agenda", label: "Agenda de Hoje", visible: true },
   { id: "tips", label: "Dicas do Dia", visible: true },
-  { id: "convenios", label: "Convênios & Parceiros", visible: true },
-  { id: "birthdays", label: "Aniversariantes", visible: true },
   { id: "stats", label: "Indicadores (KPIs)", visible: true },
-  { id: "chart", label: "Gráfico Mensal", visible: true },
   { id: "ai-insights", label: "Insights IA", visible: true },
   { id: "requests", label: "Solicitações", visible: true },
-  { id: "today-agenda", label: "Agenda de Hoje", visible: true },
+  { id: "convenios", label: "Convênios & Parceiros", visible: true },
+  { id: "birthdays", label: "Aniversariantes", visible: true },
+  { id: "chart", label: "Gráfico Mensal", visible: true },
   { id: "past-agenda", label: "Sessões Anteriores", visible: true },
   { id: "recent-patients", label: "Pacientes Recentes", visible: true },
 ];

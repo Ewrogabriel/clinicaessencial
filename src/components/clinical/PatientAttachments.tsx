@@ -93,25 +93,33 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user) return;
 
+    const pid = pacienteId.trim();
+    if (!pid || pid.length < 30) {
+      toast.error("ID do paciente inválido para upload.");
+      console.error("[PatientAttachments] Invalid pacienteId:", pid);
+      return;
+    }
+
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop();
         const sanitizedFileName = file.name
           .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
-          .replace(/[^a-zA-Z0-9.-]/g, '_');                  // substitui caracteres especiais por underline
+          .replace(/[^a-zA-Z0-9.-]/g, '_');                  // subs especial por _
 
-        const filePath = `${pacienteId}/${Date.now()}_${sanitizedFileName}`;
+        const filePath = `${pid}/${Date.now()}_${sanitizedFileName}`;
 
+        console.log("[PatientAttachments] Uploading to storage:", filePath);
         const { error: uploadError } = await supabase.storage
           .from("patient-documents")
           .upload(filePath, file);
         if (uploadError) throw uploadError;
 
+        console.log("[PatientAttachments] Inserting to DB for paciente:", pid);
         const { error: dbError } = await supabase
           .from("patient_attachments")
           .insert({
-            paciente_id: pacienteId,
+            paciente_id: pid,
             uploaded_by: user.id,
             file_name: file.name,
             file_path: filePath,
@@ -119,13 +127,18 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
             file_size: file.size,
             descricao: descricao.trim() || null,
           });
-        if (dbError) throw dbError;
+
+        if (dbError) {
+          console.error("[PatientAttachments] Database insert error:", dbError, "Value used:", pid);
+          throw new Error(`Erro ao registrar anexo: ${dbError.message} (ID: ${pid})`);
+        }
       }
 
-      queryClient.invalidateQueries({ queryKey: ["patient-attachments", pacienteId] });
+      queryClient.invalidateQueries({ queryKey: ["patient-attachments", pid] });
       toast.success("Arquivo(s) anexado(s) com sucesso!");
       setDescricao("");
     } catch (err: any) {
+      console.error("[PatientAttachments] Catch error:", err);
       toast.error("Erro no upload: " + err.message);
     } finally {
       setUploading(false);

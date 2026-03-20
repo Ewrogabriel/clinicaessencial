@@ -124,6 +124,7 @@ const PatientOnboarding = () => {
             
           if (updateError) {
               console.error("Erro ao vincular paciente", updateError);
+              throw updateError;
           }
       }
 

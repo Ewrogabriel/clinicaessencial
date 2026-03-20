@@ -37,6 +37,7 @@ import {
 import { EnrollmentDetails } from "@/components/matriculas/EnrollmentDetails";
 import { EnrollmentAdminPanel } from "@/components/matriculas/EnrollmentAdminPanel";
 import { CancellationPolicies } from "@/components/matriculas/CancellationPolicies";
+import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
 import Planos from "./Planos";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -221,52 +222,22 @@ const Matriculas = () => {
       const validFrom = editData.valid_from;
 
       // Delete future sessions from this enrollment (agendado/confirmado only)
-      await supabase
-        .from("agendamentos")
-        .delete()
-        .eq("enrollment_id", editingId)
-        .gte("data_horario", `${validFrom}T00:00:00`)
-        .in("status", ["agendado", "confirmado"]);
+      await enrollmentService.deleteFutureSessions(editingId, validFrom);
 
       // Generate new sessions from validFrom to next 6 months
       const endDate = format(addMonths(new Date(validFrom), 6), "yyyy-MM-dd");
-      const groupId = crypto.randomUUID();
-      const toInsert: any[] = [];
-
-      for (const s of editData.weekly_schedules) {
-        const dates = getDatesForWeekday(validFrom, endDate, s.weekday);
-        for (const dt of dates) {
-          const monthRef = dt.substring(0, 7);
-          const sessionsInMonth = getDatesForWeekday(
-            `${monthRef}-01`, 
-            format(new Date(new Date(monthRef + "-01").getFullYear(), new Date(monthRef + "-01").getMonth() + 1, 0), "yyyy-MM-dd"),
-            s.weekday
-          ).length;
-
-          toInsert.push({
-            paciente_id: editData.paciente_id,
-            profissional_id: s.professional_id,
-            data_horario: `${dt}T${s.time}:00${getLocalTZOffset(dt, s.time)}`,
-            duracao_minutos: s.session_duration,
-            tipo_atendimento: editData.tipo_atendimento,
-            status: "agendado",
-            recorrente: true,
-            recorrencia_grupo_id: groupId,
-            recorrencia_fim: endDate,
-            enrollment_id: editingId,
-            valor_sessao: finalValue > 0 && sessionsInMonth > 0
-              ? parseFloat((finalValue / sessionsInMonth).toFixed(2))
-              : 0,
-            created_by: user.id,
-            clinic_id: activeClinicId,
-          });
-        }
-      }
-
-      if (toInsert.length > 0) {
-        const { error: agErr } = await supabase.from("agendamentos").insert(toInsert);
-        if (agErr) throw agErr;
-      }
+      
+      await enrollmentService.generateSessions({
+        enrollmentId: editingId,
+        pacienteId: editData.paciente_id,
+        weeklySchedules: editData.weekly_schedules,
+        startDate: validFrom,
+        endDate: endDate,
+        tipoAtendimento: editData.tipo_atendimento,
+        monthlyValue: finalValue,
+        clinicId: activeClinicId || "",
+        userId: user.id
+      });
 
       return true;
     },
@@ -340,43 +311,18 @@ const Matriculas = () => {
 
         // Generate sessions for the next 6 months
         const endDate = format(addMonths(new Date(formData.start_date), 6), "yyyy-MM-dd");
-        const groupId = crypto.randomUUID();
-        const toInsert: any[] = [];
-
-        for (const s of formData.weekly_schedules) {
-          const dates = getDatesForWeekday(formData.start_date, endDate, s.weekday);
-          for (const dt of dates) {
-            const monthRef = dt.substring(0, 7);
-            const sessionsInMonth = getDatesForWeekday(
-              `${monthRef}-01`, 
-              format(new Date(new Date(monthRef + "-01").getFullYear(), new Date(monthRef + "-01").getMonth() + 1, 0), "yyyy-MM-dd"),
-              s.weekday
-            ).length;
-
-            toInsert.push({
-              paciente_id: formData.paciente_id,
-              profissional_id: s.professional_id,
-              data_horario: `${dt}T${s.time}:00${getLocalTZOffset(dt, s.time)}`,
-              duracao_minutos: s.session_duration,
-              tipo_atendimento: formData.tipo_atendimento,
-              status: "agendado",
-              recorrente: true,
-              recorrencia_grupo_id: groupId,
-              recorrencia_fim: endDate,
-              enrollment_id: mat.id,
-              valor_sessao: finalValue > 0 && sessionsInMonth > 0
-                ? parseFloat((finalValue / sessionsInMonth).toFixed(2))
-                : 0,
-              created_by: user.id,
-              clinic_id: activeClinicId,
-            });
-          }
-        }
-
-        if (toInsert.length > 0) {
-          const { error: agErr } = await supabase.from("agendamentos").insert(toInsert);
-          if (agErr) throw agErr;
-        }
+        
+        await enrollmentService.generateSessions({
+          enrollmentId: mat.id,
+          pacienteId: formData.paciente_id,
+          weeklySchedules: formData.weekly_schedules,
+          startDate: formData.start_date,
+          endDate: endDate,
+          tipoAtendimento: formData.tipo_atendimento,
+          monthlyValue: finalValue,
+          clinicId: activeClinicId || "",
+          userId: user.id
+        });
       }
 
       // Create initial monthly receivable for Financeiro (single source: pagamentos_mensalidade)

@@ -304,37 +304,37 @@ export function AppointmentDetailDialog({
 
             {/* Session status actions — clear text labels */}
             {canAct && (
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <Button
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  size="lg"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 text-base shadow-md"
                   onClick={() => handleMarkStatus("realizado", "Realizado")}
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-1.5" /> ✅ Realizado
+                  <CheckCircle2 className="h-5 w-5 mr-2" /> Realizado
                 </Button>
                 <Button
-                  size="sm"
+                  size="lg"
                   variant="outline"
-                  className="text-amber-700 border-amber-300 hover:bg-amber-50 font-semibold"
+                  className="text-amber-700 border-amber-300 hover:bg-amber-50 font-bold h-12 text-base shadow-sm"
                   onClick={() => handleMarkStatus("falta", "Faltou")}
                 >
-                  <AlertCircle className="h-4 w-4 mr-1.5" /> ❌ Faltou
+                  <AlertCircle className="h-5 w-5 mr-2" /> Faltou
                 </Button>
                 <Button
-                  size="sm"
+                  size="lg"
                   variant="outline"
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50 h-12"
                   onClick={() => { onReschedule(ag); onOpenChange(false); }}
                 >
-                  <RotateCcw className="h-4 w-4 mr-1" /> 🔄 Remarcar
+                  <RotateCcw className="h-5 w-5 mr-2" /> Remarcar
                 </Button>
                 <Button
-                  size="sm"
+                  size="lg"
                   variant="outline"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                  className="text-destructive border-destructive/20 hover:bg-destructive/10 h-12"
                   onClick={() => setActionMode("cancelar")}
                 >
-                  <XCircle className="h-4 w-4 mr-1" /> 🚫 Cancelar
+                  <XCircle className="h-5 w-5 mr-2" /> Cancelar
                 </Button>
               </div>
             )}
@@ -394,19 +394,19 @@ export function AppointmentDetailDialog({
 
         {/* Action Buttons */}
         {!actionMode && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-2">
             {!isPatient && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="border-primary/20"
+                className="w-full text-muted-foreground hover:text-primary"
                 onClick={() => setActionMode("nota_interna")}
               >
-                <StickyNote className="h-4 w-4 mr-1" /> Nota Interna
+                <StickyNote className="h-4 w-4 mr-2" /> Adicionar Nota Interna
               </Button>
             )}
             {canAct && !isPatient && (
-              <>
+              <div className="grid grid-cols-2 gap-2 mt-1">
                 <Button
                   variant="outline"
                   size="sm"
@@ -418,57 +418,12 @@ export function AppointmentDetailDialog({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onCheckin(ag.id, isPatient ? "paciente" : "profissional")}
-                  disabled={isPatient ? !!ag.checkin_paciente : !!ag.checkin_profissional}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-1" /> Check-in
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-amber-600 border-amber-200 hover:bg-amber-50"
-                  onClick={() => {
-                    onReschedule(ag);
-                    onOpenChange(false);
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4 mr-1" /> Remarcar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  onClick={() => setActionMode("cancelar")}
-                >
-                  <Ban className="h-4 w-4 mr-1" /> Cancelar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   className="text-amber-600 border-amber-200 hover:bg-amber-50"
                   onClick={() => setActionMode("aviso_remarcacao")}
                 >
-                  <Send className="h-4 w-4 mr-1" /> Aviso Remarcação
+                  <Send className="h-4 w-4 mr-1" /> Aviso Remarcar
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  onClick={() => setActionMode("aviso_cancelamento")}
-                >
-                  <Send className="h-4 w-4 mr-1" /> Aviso Cancelamento
-                </Button>
-              </>
-            )}
-            {isCanceled && !isPatient && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                onClick={() => setActionMode("aviso_cancelamento")}
-              >
-                <Send className="h-4 w-4 mr-1" /> Aviso Cancelamento
-              </Button>
+              </div>
             )}
           </div>
         )}

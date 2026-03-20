@@ -129,7 +129,7 @@ export default function Teleconsulta() {
           } else {
             const { data: ag } = await supabase
               .from("agendamentos")
-              .select("*, pacientes(nome), profiles:profissional_id(nome)")
+              .select("*, pacientes(nome), profiles(nome)")
               .eq("id", agendamentoId)
               .single() as any;
 

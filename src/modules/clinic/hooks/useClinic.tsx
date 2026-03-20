@@ -40,35 +40,46 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const { data: clinics = [], isLoading } = useQuery({
     queryKey: ["user-clinics", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      try {
+        if (!user?.id) return [];
 
-      // Fetch clinics the user has access to
-      const { data: userClinics } = await (supabase
-        .from("clinic_users") as any)
-        .select("clinic_id")
-        .eq("user_id", user.id);
+        // Fetch clinics the user has access to
+        const { data: userClinics, error: junctionError } = await supabase
+          .from("clinic_users")
+          .select("clinic_id")
+          .eq("user_id", user.id);
 
-      if (!userClinics?.length) {
-        // Fallback: fetch all clinics (for admin or if no junction data yet)
-        const { data } = await (supabase
-          .from("clinicas") as any)
+        if (junctionError) throw junctionError;
+
+        if (!userClinics?.length) {
+          // Fallback: fetch all clinics (for admin or if no junction data yet)
+          const { data, error: fallbackError } = await supabase
+            .from("clinicas")
+            .select("id, nome, cnpj, logo_url, cidade, estado, ativo")
+            .eq("ativo", true)
+            .order("nome");
+          
+          if (fallbackError) throw fallbackError;
+          return (data || []) as Clinica[];
+        }
+
+        const ids = userClinics.map((uc: any) => uc.clinic_id);
+        const { data, error: clinicError } = await supabase
+          .from("clinicas")
           .select("id, nome, cnpj, logo_url, cidade, estado, ativo")
+          .in("id", ids)
           .eq("ativo", true)
           .order("nome");
+
+        if (clinicError) throw clinicError;
         return (data || []) as Clinica[];
+      } catch (err) {
+        console.error("[ClinicProvider] Error fetching clinics:", err);
+        return [];
       }
-
-      const ids = userClinics.map((uc: any) => uc.clinic_id);
-      const { data } = await (supabase
-        .from("clinicas") as any)
-        .select("id, nome, cnpj, logo_url, cidade, estado, ativo")
-        .in("id", ids)
-        .eq("ativo", true)
-        .order("nome");
-
-      return (data || []) as Clinica[];
     },
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   // Auto-select first clinic if none selected
