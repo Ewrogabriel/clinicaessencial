@@ -120,6 +120,7 @@ export const appointmentService = {
         clinic_id: string;
         slot_id?: string;
         valor_sessao?: number;
+        forma_pagamento?: string;
         forma_pagamento_id?: string;
         data_vencimento?: string;
     }) {
@@ -158,9 +159,13 @@ export const appointmentService = {
                     });
                 }
 
-                // Update valor_sessao on the agendamento
+                // Update valor_sessao, forma_pagamento and data_vencimento on the agendamento
                 if (params.valor_sessao && params.valor_sessao > 0) {
-                    await supabase.from("agendamentos").update({ valor_sessao: params.valor_sessao }).eq("id", agendamentoId);
+                    await supabase.from("agendamentos").update({
+                        valor_sessao: params.valor_sessao,
+                        forma_pagamento: params.forma_pagamento || null,
+                        data_vencimento: params.data_vencimento || null,
+                    }).eq("id", agendamentoId);
                 }
 
                 return { id: agendamentoId } as { id: string };
@@ -183,6 +188,8 @@ export const appointmentService = {
                     created_by: params.created_by,
                     clinic_id: params.clinic_id,
                     valor_sessao: params.valor_sessao || 0,
+                    forma_pagamento: params.forma_pagamento || null,
+                    data_vencimento: params.data_vencimento || null,
                 })
                 .select()
                 .single();

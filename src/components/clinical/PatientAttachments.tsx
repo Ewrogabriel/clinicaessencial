@@ -44,6 +44,38 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Sanitizes a filename so it is safe for use as a Supabase Storage key.
+ * - Removes accents/diacritics (e.g. "João" → "Joao")
+ * - Replaces any remaining non-alphanumeric characters (only _ and - are kept) with underscores
+ * - Collapses consecutive underscores
+ * - Trims leading/trailing underscores from the base name
+ * - Falls back to "arquivo" if the base name becomes empty
+ * - Lowercases the file extension and keeps only alphanumeric characters after the dot
+ */
+function sanitizeFileName(fileName: string): string {
+  const lastDot = fileName.lastIndexOf(".");
+  const baseName = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
+  const rawExt = lastDot > 0 ? fileName.slice(lastDot) : "";
+
+  const sanitizedBase = baseName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")   // strip diacritics / accents
+    .replace(/[^a-zA-Z0-9_-]/g, "_")   // replace unsafe chars with underscore
+    .replace(/_+/g, "_")               // collapse consecutive underscores
+    .replace(/^_+|_+$/g, "");          // trim leading/trailing underscores
+
+  // Fallback so the storage key never ends with just a timestamp and underscore
+  const finalBase = sanitizedBase || "arquivo";
+
+  // Keep exactly one leading dot followed by lowercase alphanumeric characters only
+  const sanitizedExt = rawExt
+    ? "." + rawExt.slice(1).toLowerCase().replace(/[^a-z0-9]/g, "")
+    : "";
+
+  return finalBase + sanitizedExt;
+}
+
 export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -103,19 +135,24 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const sanitizedFileName = file.name
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
-          .replace(/[^a-zA-Z0-9._-]/g, '_')                 // subs especial por _
-          .replace(/_+/g, '_')                               // collapse multiple underscores
-          .replace(/^_|_$/g, '');                             // trim leading/trailing underscores
-
+        const sanitizedFileName = sanitizeFileName(file.name);
         const filePath = `${pid}/${Date.now()}_${sanitizedFileName}`;
+
+        // Guard: verify the key contains only safe characters before sending to Storage
+        if (!/^[a-zA-Z0-9._/-]+$/.test(filePath)) {
+          throw new Error(
+            `Nome de arquivo inválido após sanitização: "${file.name}" → "${sanitizedFileName}". Renomeie o arquivo e tente novamente.`
+          );
+        }
 
         console.log("[PatientAttachments] Uploading to storage:", filePath);
         const { error: uploadError } = await supabase.storage
           .from("patient-documents")
           .upload(filePath, file);
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("[PatientAttachments] Storage upload error:", uploadError, "Path:", filePath);
+          throw new Error(`Erro ao enviar arquivo "${file.name}": ${uploadError.message}`);
+        }
 
         console.log("[PatientAttachments] Inserting to DB for paciente:", pid);
         const { error: dbError } = await supabase
@@ -131,16 +168,16 @@ export const PatientAttachments = ({ pacienteId }: PatientAttachmentsProps) => {
           });
 
         if (dbError) {
-          console.error("[PatientAttachments] Database insert error:", dbError, "Value used:", pid);
-          throw new Error(`Erro ao registrar anexo: ${dbError.message} (ID: ${pid})`);
+          console.error("[PatientAttachments] Database insert error:", dbError, "pacienteId:", pid, "filePath:", filePath);
+          throw new Error(`Erro ao registrar anexo "${file.name}": ${dbError.message}`);
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ["patient-attachments", pid] });
+      queryClient.invalidateQueries({ queryKey: ["patient-attachments", pacienteId] });
       toast.success("Arquivo(s) anexado(s) com sucesso!");
       setDescricao("");
     } catch (err: any) {
-      console.error("[PatientAttachments] Catch error:", err);
+      console.error("[PatientAttachments] Upload failed:", err);
       toast.error("Erro no upload: " + err.message);
     } finally {
       setUploading(false);

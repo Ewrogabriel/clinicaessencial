@@ -67,6 +67,7 @@ export default function Teleconsulta() {
 
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState<{ message: string; canCreateAvulsa?: boolean } | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [transcriptionOpen, setTranscriptionOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -114,6 +115,16 @@ export default function Teleconsulta() {
             if (s.resumo_clinico) setClinicalSummary(s.resumo_clinico);
           }
         } else if (agendamentoId) {
+          // Validate that agendamentoId looks like a UUID before querying
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(agendamentoId)) {
+            console.warn("[Teleconsulta] agendamentoId inválido:", agendamentoId);
+            const msg = "Parâmetro de agendamento inválido. Verifique o link e tente novamente.";
+            toast.error(msg);
+            setErrorState({ message: msg, canCreateAvulsa: isProfOrAdmin });
+            return;
+          }
+
           const { data: existing } = await supabase
             .from("teleconsulta_sessions")
             .select("*")
@@ -127,13 +138,20 @@ export default function Teleconsulta() {
             if (s.status === "em_andamento") setCallActive(true);
             if (s.transcricao_bruta) setTranscriptLines(s.transcricao_bruta.split("\n").filter(Boolean));
           } else {
+            console.log("[Teleconsulta] Buscando agendamento ID:", agendamentoId);
             const { data: ag, error: agError } = await supabase
               .from("agendamentos")
               .select("*, pacientes(nome)")
               .eq("id", agendamentoId)
               .single() as any;
 
-            if (agError || !ag) { toast.error("Agendamento não encontrado"); console.error("Agendamento error:", agError); return; }
+            if (agError || !ag) {
+              console.error("[Teleconsulta] Agendamento error:", agError, "ID:", agendamentoId);
+              const msg = "Agendamento não encontrado. Verifique se o link está correto ou se o agendamento ainda existe.";
+              toast.error(msg);
+              setErrorState({ message: msg, canCreateAvulsa: isProfOrAdmin });
+              return;
+            }
 
             // Fetch professional name separately
             let profNome = "Profissional";
@@ -627,6 +645,39 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
     if (callActive) { endCall().then(() => navigate(-1)); } else { navigate(-1); }
   };
 
+  const createAvulsaSession = async () => {
+    if (!activeClinicId || !user?.id) {
+      toast.error("Clínica ou usuário não identificado. Tente novamente.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const roomId = `essencial-fisio-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+      console.log("[Teleconsulta] Criando sessão avulsa, room_id:", roomId);
+      const { data: newSession, error } = await supabase
+        .from("teleconsulta_sessions")
+        .insert({
+          clinic_id: activeClinicId,
+          profissional_id: user.id,
+          room_id: roomId,
+          status: "aguardando",
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      setErrorState(null);
+      setSession({
+        ...(newSession as any),
+        profissional_nome: userName,
+      });
+    } catch (e: any) {
+      console.error("[Teleconsulta] Erro ao criar sessão avulsa:", e);
+      toast.error("Erro ao criar sessão avulsa: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ─── Render ───
   if (loading) {
     return (
@@ -642,12 +693,21 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
   if (!session) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-4 max-w-md px-4">
           <VideoOff className="h-10 w-10 text-muted-foreground mx-auto" />
-          <p className="text-muted-foreground">Sessão não encontrada</p>
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
-          </Button>
+          <p className="text-muted-foreground">
+            {errorState?.message || "Sessão não encontrada"}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            {errorState?.canCreateAvulsa && (
+              <Button onClick={createAvulsaSession} className="gap-2">
+                <Video className="h-4 w-4" /> Criar Sessão Avulsa
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+            </Button>
+          </div>
         </div>
       </div>
     );

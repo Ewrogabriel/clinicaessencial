@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,11 +26,21 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { isAdmin, isProfissional } = useAuth();
-    const [activeTab, setActiveTab] = useState("prontuario");
+    const initialTab = searchParams.get("tab") ?? "prontuario";
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [evolutionOpen, setEvolutionOpen] = useState(false);
     const [evaluationOpen, setEvaluationOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+
+    // Auto-open new evolution form when navigated with ?new=1
+    useEffect(() => {
+        if (searchParams.get("new") === "1" && searchParams.get("tab") === "evolucoes") {
+            setActiveTab("evolucoes");
+            setEvolutionOpen(true);
+        }
+    }, [searchParams]);
 
     const canAccess = isAdmin || isProfissional;
 

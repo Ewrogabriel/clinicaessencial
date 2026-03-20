@@ -130,8 +130,8 @@ const Contratos = () => {
   const matricula = (matriculas as any[]).find((m: any) => m.id === selectedMatricula);
 
   const getContractData = () => {
-    const sigUrl = usarAssinaturaClinica ? (clinicSettings as any)?.assinatura_url : currentUserProfile?.assinatura_url;
-    const rubUrl = usarAssinaturaClinica ? (clinicSettings as any)?.rubrica_url : currentUserProfile?.rubrica_url;
+    const sigUrl = usarAssinaturaClinica ? clinicSettings?.assinatura_url : currentUserProfile?.assinatura_url;
+    const rubUrl = usarAssinaturaClinica ? clinicSettings?.rubrica_url : currentUserProfile?.rubrica_url;
 
     return {
       pacienteNome: paciente?.nome || "",

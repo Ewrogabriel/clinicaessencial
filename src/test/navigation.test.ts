@@ -27,7 +27,6 @@ const menuAgendamentos = [
 
 const menuProfissionais = [
   { url: "/profissionais" },
-  { url: "/check-in" },
 ];
 
 const menuFinanceiro = [
@@ -111,11 +110,11 @@ describe("Navigation structure – admin groups", () => {
     expect(urlsInGroup(menuProfissionais)).not.toContain("/disponibilidade");
   });
 
-  it("Profissionais group contains team list and check-in", () => {
+  it("Profissionais group contains team list only", () => {
     const urls = urlsInGroup(menuProfissionais);
     expect(urls).toContain("/profissionais");
-    expect(urls).toContain("/check-in");
-    expect(urls).toHaveLength(2);
+    expect(urls).not.toContain("/check-in");
+    expect(urls).toHaveLength(1);
   });
 
   it("Financeiro group contains payments, commissions and reports", () => {

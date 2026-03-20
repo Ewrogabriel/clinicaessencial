@@ -37,14 +37,13 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
   const saveMutation = useMutation({
     mutationFn: async (h: typeof newEvent) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      if (!clinicId) throw new Error("Selecione uma clínica antes de salvar.");
       const { error } = await supabase.from("recesso_clinica").insert({
         clinic_id: clinicId,
-        motivo: h.nome,
+        descricao: h.nome,
         data_inicio: h.data_inicio,
         data_fim: h.data_fim || h.data_inicio,
-        created_by: user?.id || "",
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -79,16 +78,14 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const { data: { user } } = await supabase.auth.getUser();
         const toInsert = data.map((f: any) => ({
           clinic_id: clinicId,
-          motivo: f.name,
+          descricao: f.name,
           data_inicio: f.date,
           data_fim: f.date,
-          created_by: user?.id || "",
-        })) as any[];
+        }));
 
-        const { error } = await supabase.from("recesso_clinica").insert(toInsert as any);
+        const { error } = await supabase.from("recesso_clinica").insert(toInsert);
         if (error) throw error;
 
         queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
@@ -171,7 +168,7 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
               eventos.map((h: any) => (
                 <tr key={h.id} className="border-t">
                   <td className="p-3 font-medium">
-                    {h.motivo || h.descricao}
+                    {h.descricao}
                     {h.data_inicio !== h.data_fim && (
                       <Badge variant="outline" className="ml-2 text-xs">Recesso</Badge>
                     )}
