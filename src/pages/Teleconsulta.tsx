@@ -168,8 +168,8 @@ export default function Teleconsulta() {
           }
         } else if (params.get("nova") === "1" && isProfOrAdmin) {
           const roomId = `essencial-fisio-${Math.random().toString(36).substring(2, 10)}`;
-          const { data: newSession, error } = await supabase
-            .from("teleconsulta_sessions")
+          const { data: newSession, error } = await (supabase
+            .from("teleconsulta_sessions") as any)
             .insert({
               clinic_id: activeClinicId,
               profissional_id: user?.id,

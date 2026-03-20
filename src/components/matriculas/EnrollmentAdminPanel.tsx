@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings, Shield, Lock, Unlock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";

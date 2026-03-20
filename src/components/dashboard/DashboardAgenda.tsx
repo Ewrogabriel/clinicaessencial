@@ -145,7 +145,7 @@ export function DashboardAgenda({ isAdmin, defaultProfissionalId }: DashboardAge
 
       <AgendamentoForm open={formOpen} onOpenChange={setFormOpen} onSuccess={refetchAgendamentos} defaultDate={selectedDate} />
       <RescheduleDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} agendamento={rescheduleAg} onSuccess={refetchAgendamentos} />
-      <AppointmentDetailDialog open={detailOpen} onOpenChange={setDetailOpen} agendamento={detailAg} onCancel={handleCancelAppointment} onCheckin={(id, type) => checkinMutation.mutate({ id, type }, { onSuccess: refetchAgendamentos })} onReschedule={(ag) => { setRescheduleAg(ag); setRescheduleOpen(true); }} isPatient={false} />
+      <AppointmentDetailDialog open={detailOpen} onOpenChange={setDetailOpen} agendamento={detailAg} onCancel={handleCancelAppointment} onCheckin={(id, type) => checkinMutation.mutate({ id, type }, { onSuccess: () => { refetchAgendamentos(); } })} onReschedule={(ag) => { setRescheduleAg(ag); setRescheduleOpen(true); }} isPatient={false} />
     </Card>
   );
 }
