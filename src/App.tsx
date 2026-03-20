@@ -70,7 +70,8 @@ const TeleconsultaHub = lazy(() => import("./pages/TeleconsultaHub"));
 const PlanosExercicios = lazy(() => import("./pages/PlanosExercicios"));
 const Planos = lazy(() => import("./pages/Planos"));
 const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
-
+const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
+const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 
 
 const DashboardToggle = () => {
@@ -108,6 +109,7 @@ const App = () => (
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/pre-cadastro" element={<PreCadastro />} />
                       <Route path="/site" element={<LandingPage />} />
+                      <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
                         <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
@@ -161,6 +163,7 @@ const App = () => (
                         <Route path="/teleconsulta-hub" element={<TeleconsultaHub />} />
                         <Route path="/planos-exercicios" element={<PlanosExercicios />} />
                         <Route path="/planos" element={<Planos />} />
+                        <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
