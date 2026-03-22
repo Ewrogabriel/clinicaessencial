@@ -11,12 +11,13 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 
 const ConfirmacoesDia = () => {
   const { user } = useAuth();
-  const tomorrow = addDays(new Date(), 1);
-  const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0, 0, 0).toISOString();
-  const tomorrowEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59, 999).toISOString();
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0).toISOString();
+  const sevenDaysFromNow = addDays(today, 7);
+  const sevenDaysEnd = new Date(sevenDaysFromNow.getFullYear(), sevenDaysFromNow.getMonth(), sevenDaysFromNow.getDate(), 23, 59, 59, 999).toISOString();
 
   const { data: agendamentos, isLoading, refetch } = useQuery({
-    queryKey: ["confirmacoes-amanha", tomorrowStart],
+    queryKey: ["confirmacoes-proximos-7-dias", todayStart],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agendamentos")
@@ -25,8 +26,9 @@ const ConfirmacoesDia = () => {
           pacientes(*),
           profissionais:profiles!agendamentos_profissional_id_fkey(nome)
         `)
-        .gte("data_horario", tomorrowStart)
-        .lt("data_horario", tomorrowEnd)
+        .gte("data_horario", todayStart)
+        .lt("data_horario", sevenDaysEnd)
+        .is("confirmacao_presenca", null)
         .order("data_horario");
 
       if (error) throw error;
@@ -44,7 +46,7 @@ const ConfirmacoesDia = () => {
     const publicUrl = `${window.location.origin}/confirmar-agendamento/${agendamento.id}`;
     const profNome = agendamento.profissionais?.nome || "seu profissional";
     const hora = format(new Date(agendamento.data_horario), "HH:mm");
-    const dataFormatada = format(tomorrow, "dd/MM");
+    const dataFormatada = format(new Date(agendamento.data_horario), "dd/MM");
 
     const mensagem = `Olá ${paciente.nome}, confirmamos sua sessão amanhã (${dataFormatada}) às ${hora} com ${profNome}. Por favor, confirme sua presença no link: ${publicUrl}`;
 
@@ -65,14 +67,14 @@ const ConfirmacoesDia = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Confirmações para Amanhã</h1>
-          <p className="text-muted-foreground">{format(tomorrow, "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
+          <h1 className="text-2xl font-bold tracking-tight">Confirmações - Próximos 7 Dias</h1>
+          <p className="text-muted-foreground">Agendamentos pendentes de confirmação</p>
         </div>
       </div>
 
       <div className="grid gap-4">
         {agendamentos?.length === 0 ? (
-          <p className="text-center py-10 text-muted-foreground">Nenhum agendamento para amanhã.</p>
+          <p className="text-center py-10 text-muted-foreground">Nenhum agendamento pendente de confirmação nos próximos 7 dias.</p>
         ) : (
           agendamentos?.map((ag) => (
             <Card key={ag.id} className="overflow-hidden">
