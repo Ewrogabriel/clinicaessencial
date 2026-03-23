@@ -7,7 +7,10 @@ import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface SearchResult {
   type: "paciente" | "agendamento" | "pagamento";
@@ -125,6 +128,11 @@ export function GlobalSearch() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[520px] p-0 gap-0">
+          <DialogHeader>
+            <VisuallyHidden asChild>
+              <DialogTitle>Busca Global</DialogTitle>
+            </VisuallyHidden>
+          </DialogHeader>
           <div className="flex items-center border-b px-3">
             <Search className="h-4 w-4 text-muted-foreground mr-2" />
             <Input
