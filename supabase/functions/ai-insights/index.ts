@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createValidationError, handleAiGatewayError, validateApiKey, AI_GATEWAY_URL } from "../_shared/ai-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,13 +37,14 @@ Deno.serve(async (req) => {
 
     const { context } = await req.json();
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API key not configured" }), {
-        status: 500,
+    if (!context) {
+      return new Response(JSON.stringify(createValidationError("O campo 'context' é obrigatório.")), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const apiKey = validateApiKey();
 
     const systemPrompt = `Você é um consultor especialista em gestão de clínicas de saúde multiespecialidade. 
 Analise os dados fornecidos e gere insights acionáveis em português brasileiro.
@@ -56,7 +58,7 @@ Formate a resposta em markdown com seções claras:
 Considere métricas como: taxa de ocupação, inadimplência, evasão de pacientes, produtividade por profissional, ticket médio, e sazonalidade.`;
 
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      AI_GATEWAY_URL,
       {
         method: "POST",
         headers: {
@@ -78,6 +80,15 @@ Considere métricas como: taxa de ocupação, inadimplência, evasão de pacient
       }
     );
 
+    if (!response.ok) {
+      const errText = await response.text();
+      const errorData = handleAiGatewayError(response.status, errText);
+      return new Response(JSON.stringify(errorData), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const result = await response.json();
     const aiContent =
       result.choices?.[0]?.message?.content || "Sem insights disponíveis.";
@@ -86,6 +97,7 @@ Considere métricas como: taxa de ocupação, inadimplência, evasão de pacient
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("ai-insights error:", error);
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       {

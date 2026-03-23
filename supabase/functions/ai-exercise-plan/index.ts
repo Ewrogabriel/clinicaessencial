@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { handleAiGatewayError, validateApiKey, AI_GATEWAY_URL } from "../_shared/ai-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,8 +21,7 @@ serve(async (req) => {
 
   try {
     const { objetivo, condicao, nivel, semanas, observacoes, tipo_plano } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const LOVABLE_API_KEY = validateApiKey();
 
     const tipoDesc = TIPO_PLANO_DESCRIPTIONS[tipo_plano || "fisioterapia"] || "exercícios terapêuticos";
 
@@ -66,7 +66,7 @@ Crie entre 6 e 10 exercícios adequados ao perfil informado, em ordem progressiv
 - Duração do plano: ${semanas || 4} semanas
 - Observações do profissional: ${observacoes || "Nenhuma"}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -83,9 +83,12 @@ Crie entre 6 e 10 exercícios adequados ao perfil informado, em ordem progressiv
     });
 
     if (!response.ok) {
-      if (response.status === 429) return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (response.status === 402) return new Response(JSON.stringify({ error: "Créditos insuficientes." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error("Erro no gateway de IA");
+      const errText = await response.text();
+      const errorData = handleAiGatewayError(response.status, errText);
+      return new Response(JSON.stringify(errorData), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();

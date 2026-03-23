@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handleAiGatewayError, validateApiKey, AI_GATEWAY_URL } from "../_shared/ai-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,11 +14,7 @@ serve(async (req) => {
 
   try {
     const { clinicId } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    const LOVABLE_API_KEY = validateApiKey();
 
     // Get some context from the database
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -54,7 +51,7 @@ Responda APENAS com um JSON válido no formato:
 
 Não inclua explicações, apenas o JSON.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -71,8 +68,11 @@ Não inclua explicações, apenas o JSON.`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("Falha ao gerar sugestões");
+      const errorData = handleAiGatewayError(response.status, errorText);
+      return new Response(JSON.stringify(errorData), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();

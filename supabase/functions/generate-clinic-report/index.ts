@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handleAiGatewayError, validateApiKey, AI_GATEWAY_URL } from "../_shared/ai-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -182,13 +183,7 @@ ${Object.entries(serviceTypes).map(([k, v]) => `- ${k}: ${v} sessões`).join("\n
 - Taxa de churn: ${churnRate}%
 `;
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API key not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const apiKey = validateApiKey();
 
     const systemPrompt = `Você é um consultor de gestão de clínicas de fisioterapia e pilates. 
 Gere um relatório executivo detalhado em formato estruturado JSON para ser convertido em PDF profissional.
@@ -216,7 +211,7 @@ A notaGeral deve ser de 0 a 10, representando a saúde geral da clínica.
 Seja específico com números e porcentagens. Use linguagem profissional mas acessível.`;
 
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      AI_GATEWAY_URL,
       {
         method: "POST",
         headers: {
@@ -237,21 +232,9 @@ Seja específico com números e porcentagens. Use linguagem profissional mas ace
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Tente novamente em alguns instantes." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos AI insuficientes." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "Erro ao gerar relatório" }), {
-        status: 500,
+      const errorData = handleAiGatewayError(response.status, errText);
+      return new Response(JSON.stringify(errorData), {
+        status: response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

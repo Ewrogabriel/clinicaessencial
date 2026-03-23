@@ -1,4 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { handleAiGatewayError, validateApiKey } from "../_shared/ai-utils.ts";
+
+const LOVABLE_API_URL = "https://api.lovable.dev/v1/chat/completions";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,9 +37,9 @@ ${JSON.stringify(trends)}
 Responda APENAS com um array JSON no formato:
 [{"tipo": "positivo|atencao|oportunidade|estrategia", "titulo": "título curto", "descricao": "insight acionável em 1-2 frases", "metrica": "dado relevante"}]`;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = validateApiKey();
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch(LOVABLE_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -49,6 +52,15 @@ Responda APENAS com um array JSON no formato:
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      const errorData = handleAiGatewayError(response.status, errorText);
+      return new Response(JSON.stringify({ ...errorData, insights: [] }), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content || "[]";
 
@@ -60,6 +72,7 @@ Responda APENAS com um array JSON no formato:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
+    console.error("professional-insights error:", error);
     const msg = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ error: msg, insights: [] }), {
       status: 500,
