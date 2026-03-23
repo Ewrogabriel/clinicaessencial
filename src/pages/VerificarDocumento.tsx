@@ -4,7 +4,7 @@ import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, FileText, Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Loader2, ShieldCheck, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -107,6 +107,30 @@ const VerificarDocumento = () => {
           <ShieldCheck className="h-6 w-6 text-green-400 ml-auto shrink-0" />
         </div>
 
+        {/* Professional Card */}
+        <Card className="shadow-md border-blue-100 bg-blue-50/40" data-testid="verify-professional-card">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-blue-900 text-base leading-tight">{profissional?.nome || "—"}</p>
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs gap-1 font-medium">
+                    <UserCheck className="h-3 w-3" /> Profissional Verificado
+                  </Badge>
+                </div>
+                {profissional?.registro_profissional && (
+                  <p className="text-sm text-blue-700 mt-0.5 font-medium">
+                    Registro: {profissional.registro_profissional}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Document Info */}
         <Card className="shadow-md" data-testid="verify-document-info">
           <CardHeader className="pb-3">
@@ -126,16 +150,6 @@ const VerificarDocumento = () => {
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">CPF</p>
                   <p className="font-semibold">{(doc.pacientes as any)?.cpf}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Profissional</p>
-                <p className="font-semibold">{profissional?.nome || "—"}</p>
-              </div>
-              {profissional?.registro_profissional && (
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Registro</p>
-                  <p className="font-semibold">{profissional.registro_profissional}</p>
                 </div>
               )}
               <div>

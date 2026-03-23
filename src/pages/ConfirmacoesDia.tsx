@@ -53,7 +53,7 @@ const ConfirmacoesDia = () => {
         .select("*, pacientes(id, nome, telefone, whatsapp)")
         .gte("data_horario", rangeStart)
         .lte("data_horario", rangeEnd)
-        .not("status", "eq", "cancelado")
+        .in("status", ["agendado", "confirmado", "realizado"])
         .order("data_horario", { ascending: true });
 
       if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
@@ -73,7 +73,7 @@ const ConfirmacoesDia = () => {
 
       return (data || []).map((a) => ({
         ...a,
-        profissional_nome: profMap[a.profissional_id] || "Profissional",
+        profissional_nome: profMap[a.profissional_id] || "Profissional não encontrado",
       })) as any[];
     },
   });
