@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { handleAiGatewayError, validateApiKey, AI_GATEWAY_URL } from "../_shared/ai-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,11 +13,10 @@ serve(async (req) => {
 
   try {
     const { action, productName, productCategory, currentDescription } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const LOVABLE_API_KEY = validateApiKey();
 
     if (action === "suggest_description") {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -45,17 +45,12 @@ Retorne JSON: {"suggestions": ["descrição 1", "descrição 2", "descrição 3"
       });
 
       if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error("AI gateway error");
+        const errText = await response.text();
+        const errorData = handleAiGatewayError(response.status, errText);
+        return new Response(JSON.stringify(errorData), {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const data = await response.json();
@@ -69,7 +64,7 @@ Retorne JSON: {"suggestions": ["descrição 1", "descrição 2", "descrição 3"
     }
 
     if (action === "generate_image") {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -88,17 +83,12 @@ Retorne JSON: {"suggestions": ["descrição 1", "descrição 2", "descrição 3"
       });
 
       if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error("AI image generation error");
+        const errText = await response.text();
+        const errorData = handleAiGatewayError(response.status, errText);
+        return new Response(JSON.stringify(errorData), {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const data = await response.json();
