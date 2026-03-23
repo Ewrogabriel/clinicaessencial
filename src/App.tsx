@@ -72,6 +72,7 @@ const Planos = lazy(() => import("./pages/Planos"));
 const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
 const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
 const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
+const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
 
 
 const DashboardToggle = () => {
@@ -110,6 +111,7 @@ const App = () => (
                       <Route path="/pre-cadastro" element={<PreCadastro />} />
                       <Route path="/site" element={<LandingPage />} />
                       <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
+                      <Route path="/verificar-documento/:id" element={<VerificarDocumento />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
                         <ProtectedRoute><SelecionarClinica /></ProtectedRoute>

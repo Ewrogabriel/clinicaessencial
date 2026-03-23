@@ -14,10 +14,11 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp } from "lucide-react";
+import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
+import DocumentShareDialog from "@/components/clinical/DocumentShareDialog";
 
 const tipoLabels: Record<string, string> = {
   receituario: "Receituário",
@@ -50,6 +51,7 @@ const DocumentosClinicos = () => {
   const [pacienteId, setPacienteId] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [shareDoc, setShareDoc] = useState<any>(null);
   const [incluirCarimbo, setIncluirCarimbo] = useState(true);
   const [incluirAssinatura, setIncluirAssinatura] = useState(false);
   const [incluirRubrica, setIncluirRubrica] = useState(false);
@@ -261,6 +263,7 @@ const DocumentosClinicos = () => {
       profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profile?.assinatura_url : undefined,
       profissionalRubrica: (doc.dados_extras as any)?.rubrica_no_carimbo || (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
       rubricaNoCarimbo: (doc.dados_extras as any)?.rubrica_no_carimbo === true,
+      documentId: doc.id,
     });
   };
 
@@ -313,6 +316,16 @@ const DocumentosClinicos = () => {
                   <Button variant="outline" size="sm" className="gap-1 flex-1" onClick={() => handleGeneratePDF(doc)}>
                     <Download className="h-3 w-3" /> PDF
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                    onClick={() => setShareDoc(doc)}
+                    title="Compartilhar documento"
+                    data-testid={`share-doc-btn-${doc.id}`}
+                  >
+                    <Share2 className="h-3 w-3" />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(doc)}>
                     <Pencil className="h-3 w-3" />
                   </Button>
@@ -324,6 +337,17 @@ const DocumentosClinicos = () => {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Share Dialog */}
+      {shareDoc && (
+        <DocumentShareDialog
+          open={!!shareDoc}
+          onOpenChange={(o) => { if (!o) setShareDoc(null); }}
+          documentId={shareDoc.id}
+          documentTitle={shareDoc.titulo || tipoLabels[shareDoc.tipo] || shareDoc.tipo}
+          pacienteNome={(shareDoc.pacientes as any)?.nome || "Paciente"}
+        />
       )}
 
       {/* Form Dialog */}
