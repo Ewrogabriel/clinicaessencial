@@ -19,6 +19,12 @@ const ConfirmacoesDia = () => {
 
   const { data: agendamentos, isLoading, refetch } = useQuery({
     queryKey: ["confirmacoes-proximos-7-dias", sevenDaysStart],
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0).toISOString();
+  const sevenDaysFromNow = addDays(today, 7);
+  const sevenDaysEnd = new Date(sevenDaysFromNow.getFullYear(), sevenDaysFromNow.getMonth(), sevenDaysFromNow.getDate(), 23, 59, 59, 999).toISOString();
+
+  const { data: agendamentos, isLoading, refetch } = useQuery({
+    queryKey: ["confirmacoes-proximos-7-dias", todayStart],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agendamentos")
@@ -28,6 +34,9 @@ const ConfirmacoesDia = () => {
         `)
         .gte("data_horario", sevenDaysStart)
         .lte("data_horario", sevenDaysEnd)
+        .gte("data_horario", todayStart)
+        .lt("data_horario", sevenDaysEnd)
+        .is("confirmacao_presenca", null)
         .order("data_horario");
 
       if (error) throw error;
@@ -76,6 +85,8 @@ const ConfirmacoesDia = () => {
     const profNome = agendamento.profissionais?.nome || "seu profissional";
     const hora = format(parseISO(agendamento.data_horario), "HH:mm");
     const dataFormatada = format(parseISO(agendamento.data_horario), "dd/MM/yyyy");
+    const hora = format(new Date(agendamento.data_horario), "HH:mm");
+    const dataFormatada = format(new Date(agendamento.data_horario), "dd/MM");
 
     const mensagem = `Olá ${paciente.nome}, confirmamos sua sessão para ${dataFormatada} às ${hora} com ${profNome}. Por favor, confirme sua presença no link: ${publicUrl}`;
 
@@ -130,6 +141,29 @@ const ConfirmacoesDia = () => {
                             </p>
                           </div>
                         </div>
+          <h1 className="text-2xl font-bold tracking-tight">Confirmações - Próximos 7 Dias</h1>
+          <p className="text-muted-foreground">Agendamentos pendentes de confirmação</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {agendamentos?.length === 0 ? (
+          <p className="text-center py-10 text-muted-foreground">Nenhum agendamento pendente de confirmação nos próximos 7 dias.</p>
+        ) : (
+          agendamentos?.map((ag) => (
+            <Card key={ag.id} className="overflow-hidden">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {format(new Date(ag.data_horario), "HH:mm")}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{ag.pacientes?.nome}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      Profissional: {ag.profissionais?.nome} | {ag.tipo_atendimento || "Sessão"}
+                    </p>
+                  </div>
+                </div>
 
                         <div className="flex items-center gap-2 ml-2">
                           {(ag as any).confirmacao_presenca === "confirmado" && (
