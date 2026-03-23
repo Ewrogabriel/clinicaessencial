@@ -13,7 +13,6 @@ interface ClinicSettings {
   instagram: string | null;
   email: string | null;
   telefone: string | null;
-  assinatura_url?: string | null;
   rubrica_url?: string | null;
 }
 
@@ -24,7 +23,7 @@ export async function getClinicSettings(): Promise<ClinicSettings> {
   
   const { data } = await supabase
     .from("clinic_settings")
-    .select("logo_url, nome, cnpj, endereco, numero, bairro, cidade, estado, whatsapp, instagram, email, telefone, assinatura_url, rubrica_url")
+    .select("logo_url, nome, cnpj, endereco, numero, bairro, cidade, estado, whatsapp, instagram, email, telefone, rubrica_url")
     .limit(1)
     .single();
   

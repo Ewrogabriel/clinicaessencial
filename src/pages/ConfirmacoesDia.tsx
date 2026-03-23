@@ -24,15 +24,34 @@ const ConfirmacoesDia = () => {
         .from("agendamentos")
         .select(`
           *,
-          pacientes(*),
-          profissionais:profiles!agendamentos_profissional_id_fkey(nome)
+          pacientes(*)
         `)
         .gte("data_horario", sevenDaysStart)
         .lte("data_horario", sevenDaysEnd)
         .order("data_horario");
 
       if (error) throw error;
-      return data as any[];
+
+      // Fetch professional names separately
+      const profIds = [...new Set((data || []).map((a) => a.profissional_id))];
+      const profMap: Record<string, { nome: string }> = {};
+
+      if (profIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, nome")
+          .in("user_id", profIds);
+
+        (profs || []).forEach((p) => {
+          profMap[p.user_id] = { nome: p.nome };
+        });
+      }
+
+      // Add professional data to appointments
+      return (data || []).map((a) => ({
+        ...a,
+        profissionais: profMap[a.profissional_id] || { nome: "Profissional" }
+      })) as any[];
     },
   });
 

@@ -374,6 +374,8 @@ Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Cam
       body.tool_choice = toolChoice;
     }
 
+    console.log(`AI Assistant request for action: ${action}`);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -385,6 +387,9 @@ Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Cam
 
     if (!response.ok) {
       const status = response.status;
+      const errorText = await response.text();
+      console.error(`AI Gateway error: ${status}`, errorText);
+
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
@@ -397,7 +402,13 @@ Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Cam
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-      throw new Error("AI gateway error");
+      if (status === 401) {
+        return new Response(JSON.stringify({ error: "LOVABLE_API_KEY inválida ou não configurada" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      throw new Error(`AI gateway error: ${status} - ${errorText}`);
     }
 
     const data = await response.json();

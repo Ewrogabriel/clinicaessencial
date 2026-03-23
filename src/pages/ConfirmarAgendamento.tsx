@@ -18,13 +18,25 @@ const ConfirmarAgendamento = () => {
       if (!id) return;
       const { data, error } = await supabase
         .from("agendamentos")
-        .select("*, pacientes(*), profissionais:profiles!agendamentos_profissional_id_fkey(nome), clinicas(*)")
+        .select("*, pacientes(*), clinicas(*)")
         .eq("id", id)
         .single();
 
       if (!error && data) {
-        setAgendamento(data);
-        const confirmacao = (data as any).confirmacao_presenca;
+        // Fetch professional data separately
+        const { data: profData } = await supabase
+          .from("profiles")
+          .select("user_id, nome")
+          .eq("user_id", data.profissional_id)
+          .single();
+
+        const agendamentoComProf = {
+          ...data,
+          profissionais: profData ? { nome: profData.nome } : { nome: "Profissional" }
+        };
+
+        setAgendamento(agendamentoComProf);
+        const confirmacao = (agendamentoComProf as any).confirmacao_presenca;
         if (confirmacao === "confirmado") setStatus("confirmed");
         else if (confirmacao === "cancelado") setStatus("denied");
       }
