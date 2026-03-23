@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 import { addLogoToPDF, addWatermarkToAllPages, getClinicSettings, formatClinicAddress } from "@/lib/pdfLogo";
 
 interface DocumentData {
@@ -15,6 +16,7 @@ interface DocumentData {
   profissionalSignature?: string;
   profissionalRubrica?: string;
   rubricaNoCarimbo?: boolean;
+  documentId?: string;
 }
 
 const tipoLabels: Record<string, string> = {
@@ -220,6 +222,51 @@ export async function generateDocumentPDF(docData: DocumentData) {
   // Watermark with professional profile for automatic rubrica
   if (docData.incluirRubrica) {
     await addWatermarkToAllPages(doc, { rubrica_url: docData.profissionalRubrica });
+  }
+
+  // QR Code for authenticity (always included when documentId is provided)
+  if (docData.documentId) {
+    try {
+      const verifyUrl = `${window.location.origin}/verificar-documento/${docData.documentId}`;
+      const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+        width: 80,
+        margin: 1,
+        color: { dark: "#000000", light: "#ffffff" },
+      });
+
+      const totalPages = doc.getNumberOfPages();
+      doc.setPage(totalPages);
+
+      const qrSize = 22;
+      const qrX = margin;
+      const qrY = doc.internal.pageSize.getHeight() - qrSize - 12;
+
+      // QR container background
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(200, 210, 220);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(qrX - 2, qrY - 2, qrSize + 60, qrSize + 4, 2, 2, "FD");
+
+      // QR image
+      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+
+      // Label next to QR
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50, 80, 120);
+      doc.text("Verificação de Autenticidade", qrX + qrSize + 3, qrY + 4);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(5.5);
+      doc.setTextColor(80, 100, 130);
+      doc.text("Escaneie o QR Code para verificar a", qrX + qrSize + 3, qrY + 8.5);
+      doc.text("autenticidade e validade deste documento.", qrX + qrSize + 3, qrY + 12.5);
+      doc.setFontSize(5);
+      doc.setTextColor(120, 140, 160);
+      doc.text(`ID: ${docData.documentId}`, qrX + qrSize + 3, qrY + 17);
+      doc.setTextColor(0);
+    } catch (e) {
+      console.error("Erro ao gerar QR Code no PDF:", e);
+    }
   }
 
   const fileName = (tipoLabels[docData.tipo] || docData.titulo || docData.tipo).toLowerCase().replace(/\s+/g, "_");
