@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, FileText, Loader2, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, XCircle, Loader2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
 
 const tipoLabels: Record<string, string> = {
   receituario: "Receituário",
@@ -23,6 +23,7 @@ const VerificarDocumento = () => {
   const [doc, setDoc] = useState<any>(null);
   const [profissional, setProfissional] = useState<any>(null);
   const [notFound, setNotFound] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchDoc = async () => {
@@ -37,10 +38,10 @@ const VerificarDocumento = () => {
         if (error || !data) { setNotFound(true); setLoading(false); return; }
         setDoc(data);
 
-        // Fetch professional profile
+        // Fetch professional profile including signature and rubrica
         const { data: prof } = await supabase
           .from("profiles")
-          .select("nome, registro_profissional")
+          .select("nome, registro_profissional, assinatura_url, rubrica_url")
           .eq("id", data.profissional_id)
           .maybeSingle();
 
@@ -54,7 +55,31 @@ const VerificarDocumento = () => {
     fetchDoc();
   }, [id]);
 
-  const verifyUrl = `${window.location.origin}/verificar-documento/${id}`;
+  const handleDownload = async () => {
+    if (!doc) return;
+    setDownloading(true);
+    try {
+      await generateDocumentPDF({
+        tipo: doc.tipo,
+        titulo: doc.titulo,
+        conteudo: doc.conteudo,
+        profissionalNome: profissional?.nome || "Profissional",
+        profissionalRegistro: profissional?.registro_profissional || undefined,
+        pacienteNome: (doc.pacientes as any)?.nome || "Paciente",
+        pacienteCpf: (doc.pacientes as any)?.cpf || undefined,
+        data: format(new Date(doc.created_at), "dd/MM/yyyy"),
+        incluirCarimbo: (doc.dados_extras as any)?.incluir_carimbo !== false,
+        profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profissional?.assinatura_url : undefined,
+        profissionalRubrica: (doc.dados_extras as any)?.rubrica_no_carimbo || (doc.dados_extras as any)?.incluir_rubrica ? profissional?.rubrica_url : undefined,
+        rubricaNoCarimbo: (doc.dados_extras as any)?.rubrica_no_carimbo === true,
+        documentId: doc.id,
+      });
+    } catch (error) {
+      console.error("Erro ao baixar documento:", error);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -88,98 +113,77 @@ const VerificarDocumento = () => {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-4 flex items-start justify-center pt-10"
+      className="min-h-screen bg-gray-50 p-4 flex flex-col items-center pt-12"
       data-testid="verify-document-page"
     >
-      <div className="max-w-lg w-full space-y-5">
-        {/* Authenticity header */}
-        <div
-          className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4"
-          data-testid="verify-status-badge"
-        >
-          <CheckCircle2 className="h-7 w-7 text-green-600 shrink-0" />
-          <div>
-            <p className="font-semibold text-green-800">Documento Autêntico</p>
-            <p className="text-xs text-green-700">
-              A autenticidade deste documento foi verificada com sucesso.
-            </p>
-          </div>
-          <ShieldCheck className="h-6 w-6 text-green-400 ml-auto shrink-0" />
+      <div className="max-w-md w-full space-y-6 flex flex-col items-center">
+        
+        {/* Header Icon */}
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-2">
+          <CheckCircle2 className="h-12 w-12 text-green-600" />
         </div>
 
-        {/* Document Info */}
-        <Card className="shadow-md" data-testid="verify-document-info">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">{doc.titulo || tipoLabels[doc.tipo] || doc.tipo}</CardTitle>
-            </div>
-            <Badge className="w-fit mt-1">{tipoLabels[doc.tipo] || doc.tipo}</Badge>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Paciente</p>
-                <p className="font-semibold">{(doc.pacientes as any)?.nome || "—"}</p>
-              </div>
-              {(doc.pacientes as any)?.cpf && (
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">CPF</p>
-                  <p className="font-semibold">{(doc.pacientes as any)?.cpf}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Profissional</p>
-                <p className="font-semibold">{profissional?.nome || "—"}</p>
-              </div>
-              {profissional?.registro_profissional && (
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Registro</p>
-                  <p className="font-semibold">{profissional.registro_profissional}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Data de emissão</p>
-                <p className="font-semibold">
-                  {format(new Date(doc.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">ID do documento</p>
-                <p className="font-mono text-xs text-muted-foreground break-all">{doc.id}</p>
-              </div>
-            </div>
+        {/* Title */}
+        <h1 className="text-3xl font-bold text-green-600 text-center">
+          Documento válido
+        </h1>
 
-            <div className="border-t pt-3">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Conteúdo resumido</p>
-              <p className="text-sm text-gray-700 line-clamp-4">{doc.conteudo}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* QR Code */}
-        <Card className="shadow-md" data-testid="verify-qrcode-card">
-          <CardContent className="py-5 flex flex-col items-center gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              QR Code de Autenticidade
-            </p>
-            <div className="bg-white p-4 rounded-xl border shadow-sm">
-              <QRCode
-                value={verifyUrl}
-                size={140}
-                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                viewBox="0 0 256 256"
-              />
-            </div>
-            <p className="text-xs text-center text-muted-foreground max-w-xs">
-              Este QR Code é único para este documento e pode ser usado para verificar sua autenticidade a qualquer momento.
-            </p>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-xs text-muted-foreground pb-6">
-          Verificação realizada em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+        {/* Description */}
+        <p className="text-center text-gray-600 text-sm px-4">
+          Este documento foi assinado digitalmente e sua validade pode ser confirmada pelos dados abaixo:
         </p>
+
+        {/* Document Info Card */}
+        <Card className="w-full shadow-sm border-gray-200" data-testid="verify-document-info">
+          <CardHeader className="bg-gray-100/50 border-b border-gray-100 pb-3 pt-4">
+            <CardTitle className="text-base font-semibold text-gray-800">Dados do Documento</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4">
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">Tipo:</p>
+              <p className="text-sm font-semibold text-gray-900">{doc.titulo || tipoLabels[doc.tipo] || doc.tipo}</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">Data de emissão:</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {format(new Date(doc.created_at), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">Paciente:</p>
+              <p className="text-sm font-semibold text-gray-900">{(doc.pacientes as any)?.nome || "—"}</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">Profissional:</p>
+              <p className="text-sm font-semibold text-gray-900">{profissional?.nome || "—"}</p>
+            </div>
+
+            {profissional?.registro_profissional && (
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 font-medium">Registro:</p>
+                <p className="text-sm font-semibold text-gray-900">{profissional.registro_profissional}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Download Button */}
+        <Button 
+          className="w-full bg-primary hover:bg-primary/90 text-white py-6 text-base font-medium rounded-xl shadow-sm"
+          onClick={handleDownload}
+          disabled={downloading}
+        >
+          {downloading ? (
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          ) : (
+            <Download className="h-5 w-5 mr-2" />
+          )}
+          Baixar documento original
+        </Button>
+
       </div>
     </div>
   );
