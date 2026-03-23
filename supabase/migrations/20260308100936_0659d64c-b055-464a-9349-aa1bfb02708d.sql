@@ -1,3 +1,0 @@
-
-ALTER TABLE public.user_permissions 
-ADD COLUMN IF NOT EXISTS access_level text NOT NULL DEFAULT 'edit';

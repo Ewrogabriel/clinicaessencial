@@ -1,1 +1,0 @@
-ALTER TYPE public.status_agendamento ADD VALUE IF NOT EXISTS 'pendente';
