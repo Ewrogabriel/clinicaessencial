@@ -272,7 +272,27 @@ const ImportacaoMassa = () => {
         throw new Error("Resposta inválida da IA");
       }
     } catch (err: any) {
-      setErrors(["Erro na análise por IA: " + err.message]);
+      const errorMsg = err.message || "Erro desconhecido";
+      console.error("AI analysis error:", err);
+
+      // Friendly error messages
+      let userMessage = "Erro na análise por IA: ";
+      if (errorMsg.includes("LOVABLE_API_KEY")) {
+        userMessage += "Chave de API não configurada. Continue com mapeamento manual ou contate o administrador.";
+      } else if (errorMsg.includes("rate limit") || errorMsg.includes("429")) {
+        userMessage += "Limite de requisições atingido. Tente novamente em alguns minutos.";
+      } else if (errorMsg.includes("non-2xx")) {
+        userMessage += "Serviço de IA indisponível no momento. Você pode continuar com mapeamento manual.";
+      } else {
+        userMessage += errorMsg;
+      }
+
+      setErrors([userMessage]);
+      toast({
+        title: "Aviso",
+        description: "Você pode continuar mapeando manualmente ou tente novamente depois.",
+        variant: "destructive"
+      });
     } finally {
       setAnalyzingAI(false);
     }
