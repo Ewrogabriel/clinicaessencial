@@ -1,1 +1,0 @@
-ALTER TABLE public.emissoes_nf ADD COLUMN IF NOT EXISTS nf_pdf_url text;
