@@ -1,0 +1,96 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\agenda\AgendamentoForm.tsx
+  238:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  250:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\hooks\useAuth.tsx
+   16:65  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   17:79  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  118:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Agenda.tsx
+  27:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Financeiro.tsx
+   58:50   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:18   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:47   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:100  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:47   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:104  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:48   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:39   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  210:38   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Modalidades.tsx
+  50:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  81:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  96:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Planos.tsx
+   50:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  214:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  223:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Profissionais.tsx
+  77:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\src\pages\Relatorios.tsx
+  15:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:98  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  75:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ewro_\OneDrive\Área de Trabalho\app essencial\fisio-flow-care\tailwind.config.ts
+  90:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 53 problems (45 errors, 8 warnings)
+
