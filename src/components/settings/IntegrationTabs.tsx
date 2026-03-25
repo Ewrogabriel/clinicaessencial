@@ -54,8 +54,8 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
   const { data: configs, isLoading } = useQuery({
     queryKey: ["integration-configs", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("config_integracoes")
+      const { data, error } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("*")
         .eq("clinic_id", clinicId);
       if (error) throw error;
