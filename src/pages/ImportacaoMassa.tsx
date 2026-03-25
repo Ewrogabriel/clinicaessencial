@@ -430,7 +430,7 @@ const ImportacaoMassa = () => {
 
     // Log the import
     try {
-      await (supabase.from("importacao_logs") as any).insert({
+      await (supabase.from("importacao_logs" as any) as any).insert({
         batch_id: batchId,
         clinic_id: activeClinicId,
         created_by: user.id,

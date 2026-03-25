@@ -85,7 +85,7 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
           data_fim: f.date,
         }));
 
-        const { error } = await supabase.from("recesso_clinica").insert(toInsert);
+        const { error } = await (supabase.from("recesso_clinica" as any) as any).insert(toInsert);
         if (error) throw error;
 
         queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });

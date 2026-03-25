@@ -24,7 +24,7 @@ export async function getClinicSettings(): Promise<ClinicSettings> {
   
   const { data } = await supabase
     .from("clinic_settings")
-    .select("logo_url, nome, cnpj, endereco, numero, bairro, cidade, estado, whatsapp, instagram, email, telefone, rubrica_url")
+    .select("logo_url, nome, cnpj, endereco, numero, bairro, cidade, estado, whatsapp, instagram, email, telefone")
     .limit(1)
     .single();
   

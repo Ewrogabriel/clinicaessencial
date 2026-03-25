@@ -94,7 +94,7 @@ const ClinicSettings = () => {
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const assinatura_url = urlData.publicUrl;
       setForm(f => ({ ...f, assinatura_url }));
-      updateMutation.mutate({ id: settings.id, assinatura_url }, {
+      updateMutation.mutate({ id: settings.id, assinatura_url } as any, {
         onSuccess: () => toast({ title: "Assinatura atualizada!" }),
         onError: (err: any) => toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" }),
       });
