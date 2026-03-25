@@ -45,8 +45,8 @@ const ClinicSettings = () => {
         email: settings.email || "",
         instagram: settings.instagram || "",
         logo_url: settings.logo_url || "",
-        assinatura_url: settings.assinatura_url || "",
-        rubrica_url: settings.rubrica_url || "",
+        assinatura_url: (settings as any).assinatura_url || "",
+        rubrica_url: (settings as any).rubrica_url || "",
       });
     }
   }, [settings]);
