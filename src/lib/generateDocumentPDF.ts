@@ -229,7 +229,7 @@ export async function generateDocumentPDF(docData: DocumentData) {
     try {
       const verifyUrl = `${window.location.origin}/verificar-documento/${docData.documentId}`;
       const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
-        width: 80,
+        width: 120,
         margin: 1,
         color: { dark: "#000000", light: "#ffffff" },
       });
@@ -237,32 +237,103 @@ export async function generateDocumentPDF(docData: DocumentData) {
       const totalPages = doc.getNumberOfPages();
       doc.setPage(totalPages);
 
-      const qrSize = 22;
-      const qrX = margin;
-      const qrY = doc.internal.pageSize.getHeight() - qrSize - 12;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const qrSize = 26;
 
-      // QR container background
-      doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(200, 210, 220);
+      // ── Bloco principal (QR + info) ──────────────────────────────────────
+      const blockH = qrSize + 4;
+      const blockY = pageHeight - blockH - 14;
+
+      // Linha separadora acima do bloco
+      doc.setDrawColor(180);
       doc.setLineWidth(0.3);
-      doc.roundedRect(qrX - 2, qrY - 2, qrSize + 60, qrSize + 4, 2, 2, "FD");
+      doc.line(margin, blockY - 3, pageWidth - margin, blockY - 3);
 
-      // QR image
+      // QR code
+      const qrX = margin;
+      const qrY = blockY;
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
 
-      // Label next to QR
-      doc.setFontSize(6.5);
+      // Textos ao lado do QR
+      const textX = qrX + qrSize + 4;
+      let ty = qrY + 5;
+
+      // Linha 1: Nome da clínica em negrito + descrição
+      const clinicName = settings.nome || "Essencial Clínicas";
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(50, 80, 120);
-      doc.text("Verificação de Autenticidade", qrX + qrSize + 3, qrY + 4);
+      doc.setTextColor(0);
+      doc.text(`${clinicName}`, textX, ty);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(5.5);
-      doc.setTextColor(80, 100, 130);
-      doc.text("Escaneie o QR Code para verificar a", qrX + qrSize + 3, qrY + 8.5);
-      doc.text("autenticidade e validade deste documento.", qrX + qrSize + 3, qrY + 12.5);
-      doc.setFontSize(5);
-      doc.setTextColor(120, 140, 160);
-      doc.text(`ID: ${docData.documentId}`, qrX + qrSize + 3, qrY + 17);
+      doc.text(" - Acesso à verificação de autenticidade via QR Code", textX + doc.getTextWidth(`${clinicName}`), ty);
+      ty += 5;
+
+      // Linha 2: Endereço
+      const addr2 = formatClinicAddress(settings);
+      if (addr2) {
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0);
+        doc.text(`Endereço: ${addr2}`, textX, ty);
+        ty += 5;
+      }
+
+      // Linha 3: Assinado digitalmente por (nome em negrito)
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0);
+      doc.text("Assinado digitalmente por ", textX, ty);
+      const prefixW = doc.getTextWidth("Assinado digitalmente por ");
+      doc.setFont("helvetica", "bold");
+      const assinadoTxt = docData.profissionalRegistro
+        ? `${docData.profissionalNome} - ${docData.profissionalRegistro}`
+        : docData.profissionalNome;
+      doc.text(assinadoTxt, textX + prefixW, ty);
+      ty += 5;
+
+      // Linha 4: Código de autenticidade em negrito
+      const shortCode = docData.documentId.substring(0, 8).toUpperCase();
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0);
+      doc.text("Código de Autenticidade: ", textX, ty);
+      const codePrefix = doc.getTextWidth("Código de Autenticidade: ");
+      doc.setFont("helvetica", "bold");
+      doc.text(shortCode, textX + codePrefix, ty);
+
+      // ── Rodapé de validação (linha abaixo) ──────────────────────────────
+      const footerY = pageHeight - 8;
+
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4);
+
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(60);
+      doc.text(
+        `*Para validar a autenticidade deste documento, acesse `,
+        margin,
+        footerY
+      );
+      const baseText = "*Para validar a autenticidade deste documento, acesse ";
+      const baseW = doc.getTextWidth(baseText);
+
+      // Link sublinhado em azul
+      doc.setTextColor(0, 80, 200);
+      doc.setFont("helvetica", "italic");
+      doc.text(verifyUrl, margin + baseW, footerY);
+      const linkW = doc.getTextWidth(verifyUrl);
+      doc.setDrawColor(0, 80, 200);
+      doc.setLineWidth(0.2);
+      doc.line(margin + baseW, footerY + 0.5, margin + baseW + linkW, footerY + 0.5);
+
+      // " | Código: XXXXXXXX"
+      doc.setTextColor(60);
+      doc.setDrawColor(0);
+      doc.setFont("helvetica", "italic");
+      doc.text(` | Código: ${shortCode}`, margin + baseW + linkW, footerY);
+
       doc.setTextColor(0);
     } catch (e) {
       console.error("Erro ao gerar QR Code no PDF:", e);
