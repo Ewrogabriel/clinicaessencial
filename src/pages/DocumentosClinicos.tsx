@@ -248,6 +248,7 @@ const DocumentosClinicos = () => {
     setIncluirAssinatura((doc.dados_extras as any)?.incluir_assinatura === true);
     setIncluirRubrica((doc.dados_extras as any)?.incluir_rubrica === true);
     setRubricaNoCarimbo((doc.dados_extras as any)?.rubrica_no_carimbo === true);
+    setApenasQrCode((doc.dados_extras as any)?.apenas_qr_code === true);
     setIsFormOpen(true);
   };
 
