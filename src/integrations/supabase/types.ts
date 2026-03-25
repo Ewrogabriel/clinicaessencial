@@ -104,9 +104,11 @@ export type Database = {
           created_at: string
           created_by: string
           data_horario: string
+          data_vencimento: string | null
           dias_semana: number[] | null
           duracao_minutos: number
           enrollment_id: string | null
+          forma_pagamento: string | null
           frequencia_semanal: number | null
           id: string
           observacoes: string | null
@@ -131,9 +133,11 @@ export type Database = {
           created_at?: string
           created_by: string
           data_horario: string
+          data_vencimento?: string | null
           dias_semana?: number[] | null
           duracao_minutos?: number
           enrollment_id?: string | null
+          forma_pagamento?: string | null
           frequencia_semanal?: number | null
           id?: string
           observacoes?: string | null
@@ -158,9 +162,11 @@ export type Database = {
           created_at?: string
           created_by?: string
           data_horario?: string
+          data_vencimento?: string | null
           dias_semana?: number[] | null
           duracao_minutos?: number
           enrollment_id?: string | null
+          forma_pagamento?: string | null
           frequencia_semanal?: number | null
           id?: string
           observacoes?: string | null

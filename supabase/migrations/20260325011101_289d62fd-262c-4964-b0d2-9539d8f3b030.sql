@@ -1,0 +1,1 @@
+ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS data_vencimento DATE; ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS forma_pagamento TEXT;
