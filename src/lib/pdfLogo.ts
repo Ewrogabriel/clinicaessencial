@@ -14,6 +14,7 @@ interface ClinicSettings {
   email: string | null;
   telefone: string | null;
   rubrica_url?: string | null;
+  assinatura_url?: string | null;
 }
 
 let cachedSettings: ClinicSettings | null = null;
