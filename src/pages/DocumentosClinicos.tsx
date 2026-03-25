@@ -265,6 +265,7 @@ const DocumentosClinicos = () => {
       profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profile?.assinatura_url : undefined,
       profissionalRubrica: (doc.dados_extras as any)?.rubrica_no_carimbo || (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
       rubricaNoCarimbo: (doc.dados_extras as any)?.rubrica_no_carimbo === true,
+      apenasQrCode: (doc.dados_extras as any)?.apenas_qr_code === true,
       documentId: doc.id,
     });
   };
