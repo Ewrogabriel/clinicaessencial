@@ -504,6 +504,29 @@ const DocumentosClinicos = () => {
               )}
             </div>
 
+              {/* QR Code only authentication option */}
+              <div className="flex items-center justify-between rounded-lg border p-3 border-primary/20 bg-primary/5">
+                <div className="space-y-0.5">
+                  <Label className="font-medium flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" /> Apenas Autenticação por QR Code
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Remove assinatura e carimbo, mantendo apenas o QR Code de verificação
+                  </p>
+                </div>
+                <Switch 
+                  checked={apenasQrCode} 
+                  onCheckedChange={(v) => {
+                    setApenasQrCode(v);
+                    if (v) {
+                      setIncluirCarimbo(false);
+                      setIncluirAssinatura(false);
+                      setIncluirRubrica(false);
+                    }
+                  }} 
+                />
+              </div>
+
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={resetForm}>{t("common.cancel")}</Button>
               <Button
