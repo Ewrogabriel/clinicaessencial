@@ -30,8 +30,8 @@ export const IntegrationStatus = ({ clinicId }: { clinicId: string }) => {
   const { data: configs, isLoading: configsLoading } = useQuery({
     queryKey: ["integration-configs", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("config_integracoes")
+      const { data, error } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("*")
         .eq("clinic_id", clinicId);
       if (error) throw error;
@@ -43,8 +43,8 @@ export const IntegrationStatus = ({ clinicId }: { clinicId: string }) => {
   const { data: syncLogs, isLoading: logsLoading } = useQuery({
     queryKey: ["integracao-sync-logs", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integracao_sync_logs")
+      const { data, error } = await (supabase
+        .from("integracao_sync_logs" as any) as any)
         .select("*")
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false })

@@ -54,8 +54,8 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
   const { data: configs, isLoading } = useQuery({
     queryKey: ["integration-configs", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("config_integracoes")
+      const { data, error } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("*")
         .eq("clinic_id", clinicId);
       if (error) throw error;
@@ -101,22 +101,22 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
   // Save mutations
   const saveInterMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase
-        .from("config_integracoes")
+      const { data: existing } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("id")
         .eq("clinic_id", clinicId)
         .eq("tipo", "banco_inter")
         .single();
 
       if (existing) {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .update({ config: interConfig, ativo: interConfig.ativo })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .insert({
             clinic_id: clinicId,
             tipo: "banco_inter",
@@ -136,22 +136,22 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
 
   const saveNiboMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase
-        .from("config_integracoes")
+      const { data: existing } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("id")
         .eq("clinic_id", clinicId)
         .eq("tipo", "nibo")
         .single();
 
       if (existing) {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .update({ config: niboConfig, ativo: niboConfig.ativo })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .insert({
             clinic_id: clinicId,
             tipo: "nibo",
@@ -171,22 +171,22 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
 
   const saveTransmiteMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase
-        .from("config_integracoes")
+      const { data: existing } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("id")
         .eq("clinic_id", clinicId)
         .eq("tipo", "transmitenota")
         .single();
 
       if (existing) {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .update({ config: transmiteConfig, ativo: transmiteConfig.ativo })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .insert({
             clinic_id: clinicId,
             tipo: "transmitenota",
