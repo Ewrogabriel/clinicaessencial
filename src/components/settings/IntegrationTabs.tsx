@@ -144,8 +144,8 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
         .single();
 
       if (existing) {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .update({ config: niboConfig, ativo: niboConfig.ativo })
           .eq("id", existing.id);
         if (error) throw error;
