@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp, Share2 } from "lucide-react";
+import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp, Share2, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
