@@ -115,8 +115,8 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("config_integracoes")
+        const { error } = await (supabase
+          .from("config_integracoes" as any) as any)
           .insert({
             clinic_id: clinicId,
             tipo: "banco_inter",
