@@ -103,7 +103,8 @@ const DocumentosClinicos = () => {
           incluir_carimbo: incluirCarimbo,
           incluir_assinatura: incluirAssinatura,
           incluir_rubrica: incluirRubrica,
-          rubrica_no_carimbo: rubricaNoCarimbo
+          rubrica_no_carimbo: rubricaNoCarimbo,
+          apenas_qr_code: apenasQrCode,
         },
       };
       if (editingDoc) {
