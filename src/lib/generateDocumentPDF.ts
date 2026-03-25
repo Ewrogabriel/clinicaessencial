@@ -177,7 +177,8 @@ export async function generateDocumentPDF(docData: DocumentData) {
     y += 15;
     y = ensureSpace(doc, y, 45, margin);
 
-    const showSignature = !docData.incluirCarimbo || docData.incluirCarimbo === false;
+    // When stamp is active, skip separate signature to avoid duplication
+    const showSignature = docData.incluirCarimbo === false || !docData.incluirCarimbo;
 
     if (showSignature) {
       // Real Signature Image if available
