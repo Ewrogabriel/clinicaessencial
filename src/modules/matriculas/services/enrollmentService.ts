@@ -86,7 +86,7 @@ export const enrollmentService = {
           tipo_atendimento: tipoAtendimento,
           status: "agendado",
           recorrente: true,
-          recorrencia_group_id: groupId,
+          recorrencia_grupo_id: groupId,
           recorrencia_fim: endDate,
           enrollment_id: enrollmentId,
           valor_sessao: monthlyValue > 0 && sessionsInMonth > 0
