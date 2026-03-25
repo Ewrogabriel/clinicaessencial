@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp, Share2 } from "lucide-react";
+import { FileText, Plus, Sparkles, Download, Pencil, Trash2, Stamp, Share2, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
@@ -56,6 +56,7 @@ const DocumentosClinicos = () => {
   const [incluirAssinatura, setIncluirAssinatura] = useState(false);
   const [incluirRubrica, setIncluirRubrica] = useState(false);
   const [rubricaNoCarimbo, setRubricaNoCarimbo] = useState(false);
+  const [apenasQrCode, setApenasQrCode] = useState(false);
 
   // Fetch documents
   const { data: documentos = [], isLoading } = useQuery({
@@ -102,7 +103,8 @@ const DocumentosClinicos = () => {
           incluir_carimbo: incluirCarimbo,
           incluir_assinatura: incluirAssinatura,
           incluir_rubrica: incluirRubrica,
-          rubrica_no_carimbo: rubricaNoCarimbo
+          rubrica_no_carimbo: rubricaNoCarimbo,
+          apenas_qr_code: apenasQrCode,
         },
       };
       if (editingDoc) {
@@ -233,6 +235,7 @@ const DocumentosClinicos = () => {
     setIncluirAssinatura(false);
     setIncluirRubrica(false);
     setRubricaNoCarimbo(false);
+    setApenasQrCode(false);
   };
 
   const openEdit = (doc: any) => {
@@ -245,6 +248,7 @@ const DocumentosClinicos = () => {
     setIncluirAssinatura((doc.dados_extras as any)?.incluir_assinatura === true);
     setIncluirRubrica((doc.dados_extras as any)?.incluir_rubrica === true);
     setRubricaNoCarimbo((doc.dados_extras as any)?.rubrica_no_carimbo === true);
+    setApenasQrCode((doc.dados_extras as any)?.apenas_qr_code === true);
     setIsFormOpen(true);
   };
 
@@ -263,6 +267,7 @@ const DocumentosClinicos = () => {
       profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profile?.assinatura_url : undefined,
       profissionalRubrica: (doc.dados_extras as any)?.rubrica_no_carimbo || (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
       rubricaNoCarimbo: (doc.dados_extras as any)?.rubrica_no_carimbo === true,
+      apenasQrCode: (doc.dados_extras as any)?.apenas_qr_code === true,
       documentId: doc.id,
     });
   };
@@ -498,6 +503,29 @@ const DocumentosClinicos = () => {
                 </p>
               )}
             </div>
+
+              {/* QR Code only authentication option */}
+              <div className="flex items-center justify-between rounded-lg border p-3 border-primary/20 bg-primary/5">
+                <div className="space-y-0.5">
+                  <Label className="font-medium flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" /> Apenas Autenticação por QR Code
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Remove assinatura e carimbo, mantendo apenas o QR Code de verificação
+                  </p>
+                </div>
+                <Switch 
+                  checked={apenasQrCode} 
+                  onCheckedChange={(v) => {
+                    setApenasQrCode(v);
+                    if (v) {
+                      setIncluirCarimbo(false);
+                      setIncluirAssinatura(false);
+                      setIncluirRubrica(false);
+                    }
+                  }} 
+                />
+              </div>
 
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={resetForm}>{t("common.cancel")}</Button>

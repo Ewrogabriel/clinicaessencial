@@ -112,6 +112,7 @@ const App = () => (
                       <Route path="/site" element={<LandingPage />} />
                       <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
                       <Route path="/verificar-documento/:id" element={<VerificarDocumento />} />
+                      <Route path="/verificar-documento" element={<VerificarDocumento />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
                         <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
