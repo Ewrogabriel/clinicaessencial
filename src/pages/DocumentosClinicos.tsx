@@ -56,6 +56,7 @@ const DocumentosClinicos = () => {
   const [incluirAssinatura, setIncluirAssinatura] = useState(false);
   const [incluirRubrica, setIncluirRubrica] = useState(false);
   const [rubricaNoCarimbo, setRubricaNoCarimbo] = useState(false);
+  const [apenasQrCode, setApenasQrCode] = useState(false);
 
   // Fetch documents
   const { data: documentos = [], isLoading } = useQuery({
