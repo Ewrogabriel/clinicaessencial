@@ -38,7 +38,7 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const saveMutation = useMutation({
     mutationFn: async (h: typeof newEvent) => {
       if (!clinicId) throw new Error("Selecione uma clínica antes de salvar.");
-      const { error } = await supabase.from("recesso_clinica").insert({
+      const { error } = await (supabase.from("recesso_clinica" as any) as any).insert({
         clinic_id: clinicId,
         descricao: h.nome,
         data_inicio: h.data_inicio,
