@@ -235,6 +235,7 @@ const DocumentosClinicos = () => {
     setIncluirAssinatura(false);
     setIncluirRubrica(false);
     setRubricaNoCarimbo(false);
+    setApenasQrCode(false);
   };
 
   const openEdit = (doc: any) => {
