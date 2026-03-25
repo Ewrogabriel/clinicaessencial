@@ -101,8 +101,8 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
   // Save mutations
   const saveInterMutation = useMutation({
     mutationFn: async () => {
-      const { data: existing } = await supabase
-        .from("config_integracoes")
+      const { data: existing } = await (supabase
+        .from("config_integracoes" as any) as any)
         .select("id")
         .eq("clinic_id", clinicId)
         .eq("tipo", "banco_inter")
