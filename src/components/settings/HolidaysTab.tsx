@@ -60,7 +60,7 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("recesso_clinica").delete().eq("id", id);
+      const { error } = await (supabase.from("recesso_clinica") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
