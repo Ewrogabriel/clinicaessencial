@@ -24,8 +24,8 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const { data: eventos = [], isLoading } = useQuery({
     queryKey: ["clinic-holidays", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("recesso_clinica")
+      const { data, error } = await (supabase
+        .from("recesso_clinica") as any)
         .select("*")
         .eq("clinic_id", clinicId)
         .order("data_inicio");
