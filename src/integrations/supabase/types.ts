@@ -500,6 +500,7 @@ export type Database = {
       }
       clinic_settings: {
         Row: {
+          assinatura_url: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -513,11 +514,13 @@ export type Database = {
           logo_url: string | null
           nome: string
           numero: string | null
+          rubrica_url: string | null
           telefone: string | null
           updated_at: string
           whatsapp: string | null
         }
         Insert: {
+          assinatura_url?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -531,11 +534,13 @@ export type Database = {
           logo_url?: string | null
           nome?: string
           numero?: string | null
+          rubrica_url?: string | null
           telefone?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
         Update: {
+          assinatura_url?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -549,6 +554,7 @@ export type Database = {
           logo_url?: string | null
           nome?: string
           numero?: string | null
+          rubrica_url?: string | null
           telefone?: string | null
           updated_at?: string
           whatsapp?: string | null
@@ -844,6 +850,27 @@ export type Database = {
           },
         ]
       }
+      conselhos_profissionais: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          sigla: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          sigla: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          sigla?: string
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string | null
@@ -1132,6 +1159,7 @@ export type Database = {
       }
       documentos_clinicos: {
         Row: {
+          cid: string | null
           clinic_id: string | null
           conteudo: string
           created_at: string
@@ -1144,6 +1172,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cid?: string | null
           clinic_id?: string | null
           conteudo?: string
           created_at?: string
@@ -1156,6 +1185,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cid?: string | null
           clinic_id?: string | null
           conteudo?: string
           created_at?: string
@@ -1377,6 +1407,7 @@ export type Database = {
       evaluations: {
         Row: {
           antecedentes_pessoais: string | null
+          cid: string | null
           clinic_id: string
           conduta_inicial: string | null
           created_at: string
@@ -1391,6 +1422,7 @@ export type Database = {
         }
         Insert: {
           antecedentes_pessoais?: string | null
+          cid?: string | null
           clinic_id: string
           conduta_inicial?: string | null
           created_at?: string
@@ -1405,6 +1437,7 @@ export type Database = {
         }
         Update: {
           antecedentes_pessoais?: string | null
+          cid?: string | null
           clinic_id?: string
           conduta_inicial?: string | null
           created_at?: string
@@ -3051,6 +3084,7 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          clinic_id: string | null
           complemento: string | null
           cpf: string | null
           created_at: string
@@ -3058,6 +3092,7 @@ export type Database = {
           email: string | null
           estado: string | null
           id: string
+          importacao_batch_id: string | null
           nome: string
           numero: string | null
           observacoes: string | null
@@ -3079,6 +3114,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          clinic_id?: string | null
           complemento?: string | null
           cpf?: string | null
           created_at?: string
@@ -3086,6 +3122,7 @@ export type Database = {
           email?: string | null
           estado?: string | null
           id?: string
+          importacao_batch_id?: string | null
           nome: string
           numero?: string | null
           observacoes?: string | null
@@ -3107,6 +3144,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          clinic_id?: string | null
           complemento?: string | null
           cpf?: string | null
           created_at?: string
@@ -3114,6 +3152,7 @@ export type Database = {
           email?: string | null
           estado?: string | null
           id?: string
+          importacao_batch_id?: string | null
           nome?: string
           numero?: string | null
           observacoes?: string | null
@@ -3131,7 +3170,15 @@ export type Database = {
           tipo_atendimento?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pre_cadastros_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       precos_planos: {
         Row: {
@@ -3334,6 +3381,7 @@ export type Database = {
           cnpj: string | null
           commission_fixed: number | null
           commission_rate: number | null
+          conselho_profissional: string | null
           cor_agenda: string | null
           cpf: string | null
           created_at: string
@@ -3374,6 +3422,7 @@ export type Database = {
           cnpj?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
+          conselho_profissional?: string | null
           cor_agenda?: string | null
           cpf?: string | null
           created_at?: string
@@ -3414,6 +3463,7 @@ export type Database = {
           cnpj?: string | null
           commission_fixed?: number | null
           commission_rate?: number | null
+          conselho_profissional?: string | null
           cor_agenda?: string | null
           cpf?: string | null
           created_at?: string
@@ -3494,6 +3544,7 @@ export type Database = {
           created_by: string
           data_fim: string
           data_inicio: string
+          descricao: string | null
           id: string
           motivo: string | null
           updated_at: string | null
@@ -3504,6 +3555,7 @@ export type Database = {
           created_by: string
           data_fim: string
           data_inicio: string
+          descricao?: string | null
           id?: string
           motivo?: string | null
           updated_at?: string | null
@@ -3514,6 +3566,7 @@ export type Database = {
           created_by?: string
           data_fim?: string
           data_inicio?: string
+          descricao?: string | null
           id?: string
           motivo?: string | null
           updated_at?: string | null
