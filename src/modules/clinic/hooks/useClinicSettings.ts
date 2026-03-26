@@ -17,6 +17,7 @@ export interface ClinicSettings {
   instagram: string | null;
   logo_url: string | null;
   rubrica_url: string | null;
+  assinatura_url: string | null;
 }
 
 export function useClinicSettings() {
