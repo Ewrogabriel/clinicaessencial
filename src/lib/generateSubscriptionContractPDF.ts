@@ -160,9 +160,9 @@ export async function generateSubscriptionContractPDF(data: SubscriptionContract
   y += 5;
 
   // CONTRATADA signature (clinic)
-  if ((clinicSettings as any).assinatura_url) {
+  if (clinicSettings.assinatura_url) {
     try {
-      const response = await fetch((clinicSettings as any).assinatura_url);
+      const response = await fetch(clinicSettings.assinatura_url);
       const blob = await response.blob();
       const base64: string = await new Promise((resolve, reject) => {
         const reader = new FileReader();
