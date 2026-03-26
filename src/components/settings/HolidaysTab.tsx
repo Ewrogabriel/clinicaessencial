@@ -82,11 +82,14 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
         const toInsert = data.map((f: any) => ({
           clinic_id: clinicId,
           descricao: f.name,
+          motivo: f.name,
           data_inicio: f.date,
           data_fim: f.date,
+          created_by: currentUser?.id || clinicId,
         }));
 
         const { error } = await (supabase.from("recesso_clinica" as any) as any).insert(toInsert);
