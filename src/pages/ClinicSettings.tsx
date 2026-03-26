@@ -45,8 +45,8 @@ const ClinicSettings = () => {
         email: settings.email || "",
         instagram: settings.instagram || "",
         logo_url: settings.logo_url || "",
-        assinatura_url: (settings as any).assinatura_url || "",
-        rubrica_url: (settings as any).rubrica_url || "",
+        assinatura_url: settings.assinatura_url || "",
+        rubrica_url: settings.rubrica_url || "",
       });
     }
   }, [settings]);
@@ -94,7 +94,7 @@ const ClinicSettings = () => {
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const assinatura_url = urlData.publicUrl;
       setForm(f => ({ ...f, assinatura_url }));
-      updateMutation.mutate({ id: settings.id, assinatura_url } as any, {
+      updateMutation.mutate({ id: settings.id, assinatura_url }, {
         onSuccess: () => toast({ title: "Assinatura atualizada!" }),
         onError: (err: any) => toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" }),
       });

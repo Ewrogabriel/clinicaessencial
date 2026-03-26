@@ -61,7 +61,18 @@ const MensagensInternas = () => {
                  roleMap[p.user_id]?.includes("paciente") ? "Paciente" : "Usuário",
         }));
 
-      return profileRecipients;
+      // Also get patients with user_id
+      const { data: allPacientes } = await supabase.from("pacientes").select("id, nome, user_id").not("user_id", "is", null);
+      const pacienteRecipients = (allPacientes || [])
+        .filter((p: any) => p.user_id && p.user_id !== user.id)
+        .filter((p: any) => !profileRecipients.some((pr: any) => pr.user_id === p.user_id))
+        .map((p: any) => ({
+          user_id: p.user_id,
+          nome: p.nome,
+          label: "Paciente",
+        }));
+
+      return [...profileRecipients, ...pacienteRecipients].sort((a, b) => a.nome.localeCompare(b.nome));
     },
     enabled: !!user,
   });

@@ -24,8 +24,8 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const { data: eventos = [], isLoading } = useQuery({
     queryKey: ["clinic-holidays", clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("recesso_clinica")
+      const { data, error } = await (supabase
+        .from("recesso_clinica") as any)
         .select("*")
         .eq("clinic_id", clinicId)
         .order("data_inicio");
@@ -38,11 +38,15 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const saveMutation = useMutation({
     mutationFn: async (h: typeof newEvent) => {
       if (!clinicId) throw new Error("Selecione uma clínica antes de salvar.");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado.");
       const { error } = await (supabase.from("recesso_clinica" as any) as any).insert({
         clinic_id: clinicId,
         descricao: h.nome,
+        motivo: h.nome,
         data_inicio: h.data_inicio,
         data_fim: h.data_fim || h.data_inicio,
+        created_by: user.id,
       });
       if (error) throw error;
     },
@@ -56,7 +60,7 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("recesso_clinica").delete().eq("id", id);
+      const { error } = await (supabase.from("recesso_clinica") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -78,11 +82,14 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
         const toInsert = data.map((f: any) => ({
           clinic_id: clinicId,
           descricao: f.name,
+          motivo: f.name,
           data_inicio: f.date,
           data_fim: f.date,
+          created_by: currentUser?.id || clinicId,
         }));
 
         const { error } = await (supabase.from("recesso_clinica" as any) as any).insert(toInsert);
