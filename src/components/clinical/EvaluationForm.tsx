@@ -5,6 +5,7 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { PenLine } from "lucide-react";
 import { SignaturePad } from "./SignaturePad";
+import { CidCombobox } from "@/components/ui/cid-combobox";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
