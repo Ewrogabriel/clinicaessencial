@@ -405,10 +405,9 @@ const DocumentosClinicos = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>CID-10 (Opcional)</Label>
-                <Input 
-                  value={cid} 
-                  onChange={e => setCid(e.target.value)} 
-                  placeholder="Ex: M54.5" 
+                <CidCombobox
+                  value={cid}
+                  onValueChange={setCid}
                 />
               </div>
               <div>
