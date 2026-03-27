@@ -71,8 +71,11 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                     antecedentes_pessoais: formData.antecedentes_pessoais,
                     objetivos_tratamento: formData.objetivos_tratamento,
                     conduta_inicial: formData.conduta_inicial,
+                    cid: formData.cid || null,
                     data_avaliacao: new Date().toISOString().split("T")[0]
-                })
+                } as any)
+                .select()
+                .single();
                 .select()
                 .single();
 
