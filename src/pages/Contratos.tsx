@@ -17,6 +17,7 @@ import { generateContractPDF } from "@/lib/generateContractPDF";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const Contratos = () => {
