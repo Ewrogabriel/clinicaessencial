@@ -345,10 +345,10 @@ const ImportacaoMassa = () => {
 
     if (activeTab === "pacientes") {
       // Fetch existing records for duplicate check
-      const [{ data: existingPacientes }, { data: existingPreCadastros }] = await Promise.all([
-        supabase.from("pacientes").select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId),
-        supabase.from("pre_cadastros").select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId)
-      ]);
+      const existingPacientesRes = await (supabase.from("pacientes") as any).select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId);
+      const existingPreCadastrosRes = await (supabase.from("pre_cadastros") as any).select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId);
+      const existingPacientes = existingPacientesRes.data;
+      const existingPreCadastros = existingPreCadastrosRes.data;
 
       const existingCPFs = new Set([
         ...(existingPacientes?.map(p => p.cpf?.replace(/\D/g, "")) || []),

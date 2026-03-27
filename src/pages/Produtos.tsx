@@ -518,8 +518,8 @@ const Produtos = () => {
             <div>
               <Label>Paciente</Label>
               <PatientCombobox
-                selectedPatientId={saleData.paciente_id}
-                onSelect={(id) => setSaleData({ ...saleData, paciente_id: id })}
+                value={saleData.paciente_id}
+                onValueChange={(id) => setSaleData({ ...saleData, paciente_id: id })}
                 placeholder="Selecione (opcional)"
               />
             </div>

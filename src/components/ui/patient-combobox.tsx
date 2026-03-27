@@ -1,9 +1,12 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 interface PatientOption {
   id: string;
@@ -11,25 +14,44 @@ interface PatientOption {
   cpf?: string | null;
 }
 
-interface PatientComboboxProps {
-  patients: PatientOption[];
+export interface PatientComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
+  patients?: PatientOption[];
   placeholder?: string;
   className?: string;
   disabled?: boolean;
 }
 
 export function PatientCombobox({
-  patients,
   value,
   onValueChange,
+  patients: externalPatients,
   placeholder = "Buscar paciente...",
   className,
   disabled,
 }: PatientComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const { activeClinicId } = useClinic();
+
+  const { data: fetchedPatients } = useQuery({
+    queryKey: ["combobox-patients", activeClinicId],
+    queryFn: async () => {
+      if (activeClinicId) {
+        const { data: cp } = await supabase.from("clinic_pacientes").select("paciente_id").eq("clinic_id", activeClinicId);
+        const ids = (cp || []).map(c => c.paciente_id);
+        if (!ids.length) return [];
+        const { data } = await supabase.from("pacientes").select("id, nome, cpf").in("id", ids).order("nome");
+        return data || [];
+      }
+      const { data } = await supabase.from("pacientes").select("id, nome, cpf").order("nome");
+      return data || [];
+    },
+    enabled: !externalPatients,
+  });
+
+  const patients = externalPatients || fetchedPatients || [];
 
   const filtered = useMemo(() => {
     if (!search.trim()) return patients.slice(0, 50);

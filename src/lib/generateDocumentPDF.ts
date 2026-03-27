@@ -20,6 +20,7 @@ interface DocumentData {
   documentId?: string;
   /** When true, only QR code authentication is shown (no signature/stamp) */
   apenasQrCode?: boolean;
+  cid?: string;
 }
 
 const tipoLabels: Record<string, string> = {

@@ -103,7 +103,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
       if (!plano.profissional_id || !activeClinicId) return [];
       const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-      const { data } = await supabase.rpc("get_professional_vacancies", {
+      const { data } = await (supabase.rpc as any)("get_professional_vacancies", {
         p_professional_id: plano.profissional_id,
         p_clinic_id: activeClinicId,
         p_start_date: format(start, "yyyy-MM-dd"),
@@ -117,7 +117,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
   useEffect(() => {
     if (monthSlots) {
       const availMap: Record<number, number> = {};
-      monthSlots.forEach((s: any) => {
+      (monthSlots as any[]).forEach((s: any) => {
         const d = new Date(s.date);
         const day = new Date(d.getTime() + (d.getTimezoneOffset() * 60000)).getUTCDate();
         availMap[day] = s.total_vacancies;
