@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
 import DocumentShareDialog from "@/components/clinical/DocumentShareDialog";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
+import { CidCombobox } from "@/components/ui/cid-combobox";
 
 
 const tipoLabels: Record<string, string> = {
