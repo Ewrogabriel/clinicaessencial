@@ -3,19 +3,10 @@ import { Download } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import * as XLSX from "xlsx";
 
-interface PagamentoExport {
-  id: string;
-  valor: number;
-  data_pagamento: string;
-  data_vencimento: string | null;
-  status: string;
-  forma_pagamento: string | null;
-  descricao: string | null;
-  pacientes: { nome: string } | null;
-}
+import { UnifiedPayment } from "@/types/database.types";
 
 interface FinanceExportButtonProps {
-  pagamentos: PagamentoExport[];
+  pagamentos: UnifiedPayment[];
 }
 
 const formaLabel: Record<string, string> = {
@@ -41,7 +32,7 @@ export const FinanceExportButton = ({ pagamentos }: FinanceExportButtonProps) =>
     }
 
     const rows = pagamentos.map((p) => ({
-      "Paciente": p.pacientes?.nome || "—",
+      "Paciente": p.paciente_nome || "—",
       "Valor (R$)": Number(p.valor).toFixed(2),
       "Data Pagamento": p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString("pt-BR") : "—",
       "Vencimento": p.data_vencimento ? new Date(p.data_vencimento).toLocaleDateString("pt-BR") : "—",

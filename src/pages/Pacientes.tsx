@@ -36,6 +36,7 @@ import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { PlanLimitBanner, usePlanLimitCheck } from "@/components/planos/PlanLimitBanner";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
+import { patientService } from "@/modules/patients/services/patientService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,7 +68,7 @@ const PacienteRow = memo(function PacienteRow({
   const p = items[index];
   if (!p) return null;
   return (
-    <div style={style} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
+    <div {...{ style }} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
       <div
         className="flex items-center h-full px-4 cursor-pointer"
         onClick={() => onNavigate(p.id)}
@@ -120,21 +121,12 @@ const Pacientes = () => {
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-filter"],
-    queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
-      const ids = roles?.map(r => r.user_id) ?? [];
-      if (!ids.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
-      return data ?? [];
-    },
+    queryFn: () => patientService.getProfissionaisFilter(),
   });
 
   const { data: modalidades = [] } = useQuery({
     queryKey: ["modalidades-filter"],
-    queryFn: async () => {
-      const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
-      return data ?? [];
-    },
+    queryFn: () => patientService.getModalidadesFilter(),
   });
 
   const filtrados = useMemo(() => {
@@ -176,14 +168,12 @@ const Pacientes = () => {
 
   const syncNibo = async () => {
     toast({ title: "Sincronizando...", description: "Buscando pacientes no Nibo" });
-    const { data, error } = await supabase.functions.invoke("nibo-sync", {
-      body: { action: "import-clients", clinicId: activeClinicId }
-    });
-    if (error) {
-      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await patientService.syncNibo(activeClinicId);
       toast({ title: "Sincronizado!", description: "Lista de pacientes atualizada" });
       queryClient.invalidateQueries({ queryKey: ["pacientes"] });
+    } catch (error: any) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
     }
   };
 

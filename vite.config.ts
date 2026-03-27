@@ -18,4 +18,20 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-icons', 'lucide-react', 'clsx', 'tailwind-merge'],
+          supabase: ['@supabase/supabase-js'],
+          charts: ['recharts'],
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          query: ['@tanstack/react-query'],
+          date: ['date-fns'],
+          exports: ['xlsx', 'jspdf', 'jspdf-autotable']
+        }
+      }
+    }
+  }
 }));

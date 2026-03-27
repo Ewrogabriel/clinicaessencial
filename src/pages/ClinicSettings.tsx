@@ -214,7 +214,7 @@ const ClinicSettings = () => {
                         <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Alterar Logo"}</span>
                       </Button>
                     </Label>
-                    <input id="logo" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    <input id="logo" title="Upload Logo" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                   </div>
                 </div>
                 <div><Label>Nome da Clínica</Label><Input value={form.nome} onChange={set("nome")} /></div>
@@ -335,7 +335,7 @@ const ClinicSettings = () => {
                           <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Upload Assinatura"}</span>
                         </Button>
                       </Label>
-                      <input id="assinatura" type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
+                      <input id="assinatura" title="Upload Assinatura" type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Usada como assinatura principal em contratos e documentos da clínica.</p>
@@ -355,7 +355,7 @@ const ClinicSettings = () => {
                           <span><Upload className="h-3 w-3 mr-1" />{uploading ? "Enviando..." : "Upload Rubrica"}</span>
                         </Button>
                       </Label>
-                      <input id="rubrica" type="file" accept="image/*" className="hidden" onChange={handleRubricaUpload} />
+                      <input id="rubrica" title="Upload Rubrica" type="file" accept="image/*" className="hidden" onChange={handleRubricaUpload} />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Símbolo curto ou rubrica anexado ao carimbo da clínica.</p>

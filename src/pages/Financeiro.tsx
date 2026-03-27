@@ -6,6 +6,7 @@ import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filte
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { UnifiedPayment, Enums } from "@/types/database.types";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,20 +55,7 @@ const formaLabel: Record<string, string> = {
   transferencia: "Transferência",
 };
 
-/** Unified payment row for display */
-interface UnifiedPayment {
-  id: string;
-  valor: number;
-  data_pagamento: string | null;
-  data_vencimento: string | null;
-  status: string;
-  forma_pagamento: string | null;
-  descricao: string | null;
-  created_at: string;
-  paciente_nome: string;
-  origem_tipo: "plano" | "mensalidade" | "sessao" | "manual";
-  source_table: "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
-}
+// Removido UnifiedPayment local para usar o global de database.types.ts
 
 const origemConfig: Record<string, { label: string; className: string }> = {
   mensalidade: { label: "Mensalidade", className: "bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200" },
@@ -116,88 +104,11 @@ const Financeiro = () => {
     return map;
   }, [formasPagamentoList]);
 
-  // ── Fetch all 3 payment tables in parallel ──
+  // ── Fetch all 3 payment tables in parallel via Service Layer ──
   const { data: allPayments = [], isLoading } = useQuery<UnifiedPayment[]>({
     queryKey: ["all-payments-unified", activeClinicId],
-    queryFn: async () => {
-      const results: UnifiedPayment[] = [];
-
-      // 1. pagamentos (manual / plano)
-      let q1 = supabase
-        .from("pagamentos")
-        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, pacientes(nome)")
-        .order("created_at", { ascending: false });
-      if (activeClinicId) q1 = q1.eq("clinic_id", activeClinicId);
-      const { data: pgtos } = await q1;
-
-      (pgtos || []).forEach((p: any) => {
-        const origemTipo: UnifiedPayment["origem_tipo"] = p.plano_id ? "plano" : "manual";
-
-        results.push({
-          id: p.id,
-          valor: Number(p.valor),
-          data_pagamento: p.data_pagamento,
-          data_vencimento: p.data_vencimento,
-          status: p.status,
-          forma_pagamento: p.forma_pagamento ? (formaLabel[p.forma_pagamento] || p.forma_pagamento) : null,
-          descricao: p.descricao,
-          created_at: p.created_at,
-          paciente_nome: p.pacientes?.nome ?? "—",
-          origem_tipo: origemTipo,
-          source_table: "pagamentos",
-        });
-      });
-
-      // 2. pagamentos_mensalidade
-      let q2 = supabase
-        .from("pagamentos_mensalidade")
-        .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome)")
-        .order("created_at", { ascending: false });
-      if (activeClinicId) q2 = q2.eq("clinic_id", activeClinicId);
-      const { data: mensalidades } = await q2;
-
-      (mensalidades || []).forEach((m: any) => {
-        results.push({
-          id: m.id,
-          valor: Number(m.valor),
-          data_pagamento: m.data_pagamento,
-          data_vencimento: m.mes_referencia ?? null,
-          status: m.status ?? "aberto",
-          forma_pagamento: m.forma_pagamento_id ? (formasPagamentoMap[m.forma_pagamento_id] || null) : null,
-          descricao: `Mensalidade - ${m.mes_referencia}`,
-          created_at: m.created_at ?? "",
-          paciente_nome: m.pacientes?.nome ?? "—",
-          origem_tipo: "mensalidade",
-          source_table: "pagamentos_mensalidade",
-        });
-      });
-
-      // 3. pagamentos_sessoes
-      let q3 = supabase
-        .from("pagamentos_sessoes")
-        .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome)")
-        .order("created_at", { ascending: false });
-      if (activeClinicId) q3 = q3.eq("clinic_id", activeClinicId);
-      const { data: sessoes } = await q3;
-
-      (sessoes || []).forEach((s: any) => {
-        results.push({
-          id: s.id,
-          valor: Number(s.valor),
-          data_pagamento: s.data_pagamento,
-          data_vencimento: s.status === "pago" ? null : s.data_pagamento,
-          status: s.status ?? "aberto",
-          forma_pagamento: s.forma_pagamento_id ? (formasPagamentoMap[s.forma_pagamento_id] || null) : null,
-          descricao: s.observacoes || "Sessão avulsa",
-          created_at: s.created_at ?? "",
-          paciente_nome: s.pacientes?.nome ?? "—",
-          origem_tipo: "sessao",
-          source_table: "pagamentos_sessoes",
-        });
-      });
-
-      // Sort by date desc
-      results.sort((a, b) => {
+    queryFn: () => financeService.getUnifiedPayments(activeClinicId),
+  });
         const da = a.data_pagamento || a.created_at || "";
         const db = b.data_pagamento || b.created_at || "";
         return db.localeCompare(da);
@@ -255,8 +166,8 @@ const Financeiro = () => {
         valor: valorNum,
         data_pagamento: formData.data_pagamento,
         data_vencimento: formData.data_vencimento || null,
-        forma_pagamento: formData.forma_pagamento as any,
-        status: formData.status as any,
+        forma_pagamento: formData.forma_pagamento as Enums<"forma_pagamento">,
+        status: formData.status as Enums<"status_pagamento">,
         descricao: formData.descricao || null,
         observacoes: formData.observacoes || null,
         created_by: user.id,
@@ -379,7 +290,7 @@ const Financeiro = () => {
       if (table === "pagamentos") {
         const tipo = formasPagamentoList.find(f => f.id === forma_pagamento_id)?.tipo ?? "pix";
         const formaEnum = TIPO_TO_FORMA_ENUM[tipo] ?? "pix";
-        const { error } = await supabase.from("pagamentos").update({ status: "pago" as any, data_pagamento, forma_pagamento: formaEnum } as any).eq("id", id);
+        const { error } = await supabase.from("pagamentos").update({ status: "pago", data_pagamento, forma_pagamento: formaEnum as Enums<"forma_pagamento"> }).eq("id", id);
         if (error) throw error;
       } else if (table === "pagamentos_mensalidade") {
         const { error } = await supabase.from("pagamentos_mensalidade").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", id);
@@ -418,7 +329,7 @@ const Financeiro = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
         <div className="flex gap-2 flex-wrap">
-          {!isPatient && <FinanceExportButton pagamentos={allPayments as any} />}
+          {!isPatient && <FinanceExportButton pagamentos={allPayments} />}
           {!isPatient && (
             <Button onClick={() => setFormOpen(true)}><Plus className="mr-2 h-4 w-4" /> Novo Pagamento</Button>
           )}

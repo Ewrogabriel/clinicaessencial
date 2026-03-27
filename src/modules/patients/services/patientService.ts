@@ -150,7 +150,7 @@ export const patientService = {
         for (let i = 0; i < 8; i++) codigoAcesso += chars.charAt(Math.floor(Math.random() * chars.length));
 
         // Create patient record
-        const { data: newPatient, error: patientError } = await (supabase.from("pacientes") as any).insert({
+        const { data: newPatient, error: patientError } = await supabase.from("pacientes").insert({
             nome: preCadastroData.nome,
             cpf: preCadastroData.cpf || null,
             rg: preCadastroData.rg || null,
@@ -191,7 +191,7 @@ export const patientService = {
         }
 
         // Mark pre-cadastro as approved
-        const { error: updateError } = await (supabase.from("pre_cadastros") as any)
+        const { error: updateError } = await supabase.from("pre_cadastros")
             .update({ status: "aprovado", revisado_por: revisadoPor })
             .eq("id", preCadastroId);
 
@@ -215,4 +215,37 @@ export const patientService = {
             return null;
         }
     },
+
+    async getProfissionaisFilter(): Promise<{ user_id: string; nome: string }[]> {
+        try {
+            const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+            const ids = roles?.map(r => r.user_id) ?? [];
+            if (!ids.length) return [];
+            const { data, error } = await supabase.from("profiles").select("user_id, nome").in("user_id", ids).order("nome");
+            if (error) throw error;
+            return data ?? [];
+        } catch (error) {
+            handleError(error, "Erro ao buscar profissionais");
+            return [];
+        }
+    },
+
+    async getModalidadesFilter(): Promise<{ id: string; nome: string }[]> {
+        try {
+            const { data, error } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
+            if (error) throw error;
+            return data ?? [];
+        } catch (error) {
+            handleError(error, "Erro ao buscar modalidades");
+            return [];
+        }
+    },
+
+    async syncNibo(activeClinicId: string | null): Promise<void> {
+        if (!activeClinicId) throw new Error("Clínica não selecionada");
+        const { error } = await supabase.functions.invoke("nibo-sync", {
+            body: { action: "import-clients", clinicId: activeClinicId }
+        });
+        if (error) throw error;
+    }
 };

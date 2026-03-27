@@ -191,71 +191,14 @@ const Dashboard = () => {
   const { data: monthlyChart = [] } = useQuery({
     queryKey: ["dashboard-monthly-chart", activeClinicId],
     queryFn: async () => {
-      const months: { label: string; start: string; end: string }[] = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        months.push({
-          label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
-          start: d.toISOString().split("T")[0],
-          end: end.toISOString().split("T")[0],
-        });
-      }
-      // Run all 6 month queries in parallel instead of sequentially
-      const rows = await Promise.all(
-        months.map(async (m) => {
-          let q = supabase.from("agendamentos")
-            .select("status")
-            .gte("data_horario", `${m.start}T00:00:00`)
-            .lte("data_horario", `${m.end}T23:59:59`);
-          if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
-          const { data } = await q;
-          const all = data || [];
-          return {
-            mes: m.label,
-            realizadas: all.filter((a) => a.status === "realizado").length,
-            faltas: all.filter((a) => a.status === "falta").length,
-            canceladas: all.filter((a) => a.status === "cancelado").length,
-          };
-        })
-      );
-      return rows;
-    },
-  });
-  // Ranking de frequência - pacientes que menos cancelam
-  const { data: frequencyRanking = [] } = useQuery({
-    queryKey: ["dashboard-frequency-ranking", activeClinicId],
-    queryFn: async () => {
-      let q = supabase.from("agendamentos")
-        .select("paciente_id, status, pacientes(nome)");
-      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
-      const { data: agendamentos } = await q;
-      if (!agendamentos) return [];
-
-      const stats: Record<string, { nome: string; total: number; cancelados: number; realizados: number; checkins: number }> = {};
-      agendamentos.forEach((ag) => {
-        const pid = ag.paciente_id;
-        if (!stats[pid]) {
-          const pacNome = ag.pacientes && typeof ag.pacientes === 'object' && 'nome' in ag.pacientes
-            ? (ag.pacientes as { nome: string }).nome : "?";
-          stats[pid] = { nome: pacNome, total: 0, cancelados: 0, realizados: 0, checkins: 0 };
-        }
-        stats[pid].total++;
-        if (ag.status === "cancelado" || ag.status === "falta") stats[pid].cancelados++;
-        if (ag.status === "realizado") stats[pid].realizados++;
+      const { data, error } = await supabase.rpc("get_dashboard_monthly_chart", {
+        p_clinic_id: activeClinicId || null
       });
-
-      return Object.entries(stats)
-        .map(([id, s]) => ({
-          id,
-          nome: s.nome,
-          total: s.total,
-          cancelados: s.cancelados,
-          realizados: s.realizados,
-          taxa: s.total > 0 ? Math.round(((s.total - s.cancelados) / s.total) * 100) : 0,
-        }))
-        .sort((a, b) => b.taxa - a.taxa || b.realizados - a.realizados)
-        .slice(0, 10);
+      if (error) {
+        console.error("Error fetching monthly chart:", error);
+        return [];
+      }
+      return data || [];
     },
   });
 

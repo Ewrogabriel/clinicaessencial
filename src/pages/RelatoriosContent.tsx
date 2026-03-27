@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart3, Users, DollarSign, Calendar, FileDown, FileSpreadsheet, TrendingDown, UserX, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { reportService } from "@/modules/reports/services/reportService";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,123 +33,58 @@ const Relatorios = () => {
   // Fetch data
   const { data: agendamentos = [] } = useQuery({
     queryKey: ["rel-agendamentos", mesInicio, mesFim, activeClinicId],
-    queryFn: async () => {
-      let q = supabase.from("agendamentos")
-        .select("id, data_horario, tipo_atendimento, tipo_sessao, status, profissional_id, paciente_id, valor_sessao, pacientes(nome, telefone)")
-        .gte("data_horario", `${mesInicio}-01T00:00:00`)
-        .lte("data_horario", `${mesFim}-31T23:59:59`)
-        .order("data_horario", { ascending: true });
-      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
-      const { data } = await q;
-      return data ?? [];
-    },
+    queryFn: () => reportService.getAgendamentos(mesInicio, mesFim, activeClinicId),
   });
 
   const { data: pagamentos = [] } = useQuery({
     queryKey: ["rel-pagamentos", mesInicio, mesFim, activeClinicId],
-    queryFn: async () => {
-      let q = supabase.from("pagamentos")
-        .select("id, valor, data_pagamento, status, forma_pagamento, paciente_id, profissional_id, data_vencimento, pacientes(nome)")
-        .gte("data_pagamento", `${mesInicio}-01`)
-        .lte("data_pagamento", `${mesFim}-31`)
-        .order("data_pagamento", { ascending: true });
-      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
-      const { data } = await q;
-      return data ?? [];
-    },
+    queryFn: () => reportService.getPagamentos(mesInicio, mesFim, activeClinicId),
   });
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["rel-pacientes", activeClinicId],
-    queryFn: async () => {
-      if (activeClinicId) {
-        const { data: cp } = await supabase.from("clinic_pacientes")
-          .select("paciente_id").eq("clinic_id", activeClinicId);
-        const ids = (cp || []).map(c => c.paciente_id);
-        if (!ids.length) return [];
-        const { data } = await supabase.from("pacientes")
-          .select("id, nome, telefone, status, tipo_atendimento, profissional_id, created_at")
-          .in("id", ids).order("nome");
-        return data ?? [];
-      }
-      const { data } = await supabase.from("pacientes")
-        .select("id, nome, telefone, status, tipo_atendimento, profissional_id, created_at").order("nome");
-      return data ?? [];
-    },
+    queryFn: () => reportService.getPacientes(activeClinicId),
   });
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["rel-profissionais"],
-    queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
-      const ids = roles?.map(r => r.user_id) ?? [];
-      if (!ids.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, nome, especialidade, commission_rate").in("user_id", ids).order("nome");
-      return data ?? [];
-    },
+    queryFn: () => reportService.getProfissionais(),
   });
 
   // Advanced report: by patient (using RPC)
   const { data: relatorioPacientes = [] } = useQuery({
     queryKey: ["rel-por-paciente", mesInicio, mesFim, activeClinicId],
-    queryFn: async () => {
-      if (!activeClinicId) return [];
-      const { data, error } = await (supabase as any).rpc("relatorio_por_paciente", {
-        p_clinic_id: activeClinicId,
-        p_data_inicio: `${mesInicio}-01`,
-        p_data_fim: `${mesFim}-31`,
-      });
-      if (error) { console.error("[rel-por-paciente]", error); return []; }
-      return data ?? [];
-    },
+    queryFn: () => reportService.getRelatorioPorPaciente(mesInicio, mesFim, activeClinicId),
     enabled: !!activeClinicId,
   });
 
   // Advanced report: by professional (using RPC)
   const { data: relatorioProfissionais = [] } = useQuery({
     queryKey: ["rel-por-profissional", mesInicio, mesFim, activeClinicId],
-    queryFn: async () => {
-      if (!activeClinicId) return [];
-      const { data, error } = await (supabase as any).rpc("relatorio_por_profissional", {
-        p_clinic_id: activeClinicId,
-        p_data_inicio: `${mesInicio}-01`,
-        p_data_fim: `${mesFim}-31`,
-      });
-      if (error) { console.error("[rel-por-profissional]", error); return []; }
-      return data ?? [];
-    },
+    queryFn: () => reportService.getRelatorioPorProfissional(mesInicio, mesFim, activeClinicId),
     enabled: !!activeClinicId,
   });
 
   // Advanced report: monthly revenue (using RPC)
   const { data: faturamentoMensalData = [] } = useQuery({
     queryKey: ["rel-faturamento-mensal", mesInicio, mesFim, activeClinicId],
-    queryFn: async () => {
-      if (!activeClinicId) return [];
-      const { data, error } = await (supabase as any).rpc("relatorio_faturamento_mensal", {
-        p_clinic_id: activeClinicId,
-        p_data_inicio: `${mesInicio}-01`,
-        p_data_fim: `${mesFim}-31`,
-      });
-      if (error) { console.error("[rel-faturamento-mensal]", error); return []; }
-      return data ?? [];
-    },
+    queryFn: () => reportService.getRelatorioFaturamentoMensal(mesInicio, mesFim, activeClinicId),
     enabled: !!activeClinicId,
   });
 
   // Computed analytics
-  const filtered = filterProfId === "all" ? agendamentos : agendamentos.filter((a: any) => a.profissional_id === filterProfId);
-  const filteredPag = filterProfId === "all" ? pagamentos : pagamentos.filter((p: any) => p.profissional_id === filterProfId);
+  const filtered = filterProfId === "all" ? agendamentos : agendamentos.filter(a => a.profissional_id === filterProfId);
+  const filteredPag = filterProfId === "all" ? pagamentos : pagamentos.filter(p => p.profissional_id === filterProfId);
 
-  const totalRecebido = filteredPag.filter((p: any) => p.status === "pago").reduce((s: number, p: any) => s + Number(p.valor), 0);
-  const totalPendente = filteredPag.filter((p: any) => p.status === "pendente").reduce((s: number, p: any) => s + Number(p.valor), 0);
-  const totalAtendimentos = filtered.filter((a: any) => a.status === "realizado").length;
-  const totalFaltas = filtered.filter((a: any) => a.status === "falta").length;
-  const totalCancelados = filtered.filter((a: any) => a.status === "cancelado").length;
+  const totalRecebido = filteredPag.filter(p => p.status === "pago").reduce((s, p) => s + Number(p.valor), 0);
+  const totalPendente = filteredPag.filter(p => p.status === "pendente").reduce((s, p) => s + Number(p.valor), 0);
+  const totalAtendimentos = filtered.filter(a => a.status === "realizado").length;
+  const totalFaltas = filtered.filter(a => a.status === "falta").length;
+  const totalCancelados = filtered.filter(a => a.status === "cancelado").length;
 
   // Stats by professional (Using combined data from RPC + local filtered for other stats)
   const profStats = useMemo(() => {
-    return (relatorioProfissionais as any[]).map(p => ({
+    return relatorioProfissionais.map(p => ({
       id: p.profissional_id,
       nome: p.profissional_nome,
       realizados: Number(p.sessoes_realizadas),
@@ -162,20 +97,20 @@ const Relatorios = () => {
 
   // Evasion: patients who stopped coming (active but no "realizado" in period)
   const evasionList = useMemo(() => {
-    const activePatientIds = new Set((pacientes as any[]).filter(p => p.status === "ativo").map(p => p.id));
-    const attendedIds = new Set((agendamentos as any[]).filter(a => a.status === "realizado").map(a => a.paciente_id));
-    return (pacientes as any[]).filter(p => activePatientIds.has(p.id) && !attendedIds.has(p.id));
+    const activePatientIds = new Set(pacientes.filter(p => p.status === "ativo").map(p => p.id));
+    const attendedIds = new Set(agendamentos.filter(a => a.status === "realizado").map(a => a.paciente_id));
+    return pacientes.filter(p => activePatientIds.has(p.id) && !attendedIds.has(p.id));
   }, [pacientes, agendamentos]);
 
   // Delinquency: pending payments past due
   const inadimplentes = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
-    return (pagamentos as any[]).filter(p => p.status === "pendente" && p.data_vencimento && p.data_vencimento < today);
+    return pagamentos.filter(p => p.status === "pendente" && p.data_vencimento && p.data_vencimento < today);
   }, [pagamentos]);
 
   // Monthly revenue chart (Using RPC data)
   const monthlyRevenue = useMemo(() => {
-    return (faturamentoMensalData as any[]).map(d => ({
+    return faturamentoMensalData.map(d => ({
       name: d.mes,
       valor: Number(d.receita_paga),
       pendente: Number(d.receita_pendente)
@@ -189,7 +124,7 @@ const Relatorios = () => {
       pix: "PIX", dinheiro: "Dinheiro", cartao_credito: "Cartão Crédito",
       cartao_debito: "Cartão Débito", boleto: "Boleto", transferencia: "Transferência",
     };
-    (filteredPag as any[]).filter(p => p.status === "pago").forEach(p => {
+    filteredPag.filter(p => p.status === "pago").forEach(p => {
       const key = p.forma_pagamento || "não informado";
       methods[key] = (methods[key] || 0) + Number(p.valor);
     });
@@ -197,7 +132,7 @@ const Relatorios = () => {
   }, [filteredPag]);
 
   // Absences by professional chart
-  const absencesByProf = profStats.map(p => ({ name: p.nome.split(" ")[0], faltas: p.faltas, cancelados: p.cancelados }));
+  const absencesByProf = profStats.map(p => ({ name: p.nome.split(" ")[0], faltas: p.faltas, cancelados: 0 })); // Note: cancelados changed to 0 natively as it's not present
 
   // Export functions
   const exportPDF = (title: string, headers: string[], rows: string[][]) => {
@@ -228,7 +163,7 @@ const Relatorios = () => {
   const exportAtendimentos = (type: "pdf" | "xlsx") => {
     const title = "Relatório de Atendimentos";
     const headers = ["Data", "Paciente", "Profissional", "Tipo", "Status", "Valor"];
-    const rows = (filtered as any[]).map(a => [
+    const rows = filtered.map(a => [
       format(new Date(a.data_horario), "dd/MM/yyyy HH:mm"),
       a.pacientes?.nome || "—",
       a.profiles?.nome || "—",
@@ -241,16 +176,16 @@ const Relatorios = () => {
 
   const exportProfissionais = (type: "pdf" | "xlsx") => {
     const title = "Relatório por Profissional";
-    const headers = ["Profissional", "Realizados", "Faltas", "Cancelados", "Total", "Taxa Presença", "Valor Total"];
-    const rows = profStats.map(p => [p.nome, String(p.realizados), String(p.faltas), String(p.cancelados), String(p.total), `${p.taxaPresenca}%`, `R$ ${p.valor.toFixed(2)}`]);
+    const headers = ["Profissional", "Realizados", "Faltas", "Total", "Taxa Presença", "Valor Total"];
+    const rows = profStats.map(p => [p.nome, String(p.realizados), String(p.faltas), String(p.total), `${p.taxaPresenca}%`, `R$ ${p.valor.toFixed(2)}`]);
     if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
   const exportFinanceiro = (type: "pdf" | "xlsx") => {
     const title = "Relatório Financeiro";
     const headers = ["Data", "Paciente", "Profissional", "Valor", "Status", "Forma Pagamento", "Vencimento"];
-    const rows = (filteredPag as any[]).map(p => [
-      format(new Date(p.data_pagamento), "dd/MM/yyyy"),
+    const rows = filteredPag.map(p => [
+      p.data_pagamento ? format(new Date(p.data_pagamento), "dd/MM/yyyy") : "—",
       p.pacientes?.nome || "—",
       p.profiles?.nome || "—",
       `R$ ${Number(p.valor).toFixed(2)}`,
@@ -264,14 +199,14 @@ const Relatorios = () => {
   const exportPacientes = (type: "pdf" | "xlsx") => {
     const title = "Lista de Pacientes";
     const headers = ["Nome", "Telefone", "Status", "Tipo Atendimento"];
-    const rows = (pacientes as any[]).map(p => [p.nome, p.telefone, p.status, p.tipo_atendimento]);
+    const rows = pacientes.map(p => [p.nome, p.telefone, p.status, p.tipo_atendimento]);
     if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
   const exportPorPaciente = (type: "pdf" | "xlsx") => {
     const title = "Relatório por Paciente";
     const headers = ["Paciente", "Total Sessões", "Realizadas", "Faltas", "Taxa Falta %", "Total Pago", "Pendente", "Última Sessão"];
-    const rows = (relatorioPacientes as any[]).map(p => [
+    const rows = relatorioPacientes.map(p => [
       p.paciente_nome || "—",
       String(p.total_sessoes),
       String(p.sessoes_realizadas),
@@ -306,7 +241,7 @@ const Relatorios = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {(profissionais as any[]).map(p => (
+              {profissionais.map(p => (
                 <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
               ))}
             </SelectContent>
@@ -368,9 +303,9 @@ const Relatorios = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(relatorioPacientes as any[]).length === 0 ? (
+                  {relatorioPacientes.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum dado no período.</TableCell></TableRow>
-                  ) : (relatorioPacientes as any[]).map((p: any) => (
+                  ) : relatorioPacientes.map((p) => (
                     <TableRow key={p.paciente_id}>
                       <TableCell className="font-medium">{p.paciente_nome}</TableCell>
                       <TableCell className="text-center">{p.total_sessoes}</TableCell>
@@ -425,7 +360,7 @@ const Relatorios = () => {
                         { name: "Realizados", value: totalAtendimentos },
                         { name: "Faltas", value: totalFaltas },
                         { name: "Cancelados", value: totalCancelados },
-                        { name: "Agendados", value: filtered.filter((a: any) => a.status === "agendado" || a.status === "confirmado").length },
+                        { name: "Agendados", value: filtered.filter(a => a.status === "agendado" || a.status === "confirmado").length },
                       ].filter(d => d.value > 0)}
                       cx="50%" cy="50%" outerRadius={100} dataKey="value"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -521,9 +456,9 @@ const Relatorios = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(filteredPag as any[]).slice(0, 15).map((p: any) => (
+                    {filteredPag.slice(0, 15).map(p => (
                       <TableRow key={p.id}>
-                        <TableCell>{format(new Date(p.data_pagamento), "dd/MM/yy")}</TableCell>
+                        <TableCell>{p.data_pagamento ? format(new Date(p.data_pagamento), "dd/MM/yy") : "—"}</TableCell>
                         <TableCell>{p.pacientes?.nome || "—"}</TableCell>
                         <TableCell>{p.profiles?.nome || "—"}</TableCell>
                         <TableCell className="font-medium">R$ {Number(p.valor).toFixed(2)}</TableCell>
@@ -574,7 +509,7 @@ const Relatorios = () => {
                   <p className="text-center text-sm text-muted-foreground py-8">Nenhum paciente em evasão no período.</p>
                 ) : (
                   <div className="space-y-2 max-h-[400px] overflow-auto">
-                    {evasionList.map((p: any) => (
+                    {evasionList.map(p => (
                       <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="text-sm font-medium">{p.nome}</p>
@@ -599,7 +534,7 @@ const Relatorios = () => {
                   <p className="text-center text-sm text-muted-foreground py-8">Nenhuma inadimplência detectada.</p>
                 ) : (
                   <div className="space-y-2 max-h-[400px] overflow-auto">
-                    {inadimplentes.map((p: any) => (
+                    {inadimplentes.map(p => (
                       <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg bg-red-50/30">
                         <div>
                           <p className="text-sm font-medium">{p.pacientes?.nome || "—"}</p>

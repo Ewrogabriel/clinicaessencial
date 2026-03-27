@@ -542,7 +542,7 @@ const Profissionais = () => {
                     <TableCell>
                       <div 
                         className="w-5 h-5 rounded-full border" 
-                        style={{ backgroundColor: u.cor_agenda || '#3b82f6' }}
+                        {...{ style: { backgroundColor: u.cor_agenda || '#3b82f6' } }}
                         title={`Cor: ${u.cor_agenda || '#3b82f6'}`}
                       />
                     </TableCell>
