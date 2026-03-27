@@ -109,6 +109,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                 antecedentes_pessoais: "",
                 objetivos_tratamento: "",
                 conduta_inicial: "",
+                cid: "",
             });
         },
         onError: (error: any) => {
