@@ -3401,6 +3401,7 @@ export type Database = {
           id: string
           nome: string
           numero: string | null
+          registro_conselho: string | null
           registro_profissional: string | null
           rg: string | null
           rubrica_url: string | null
@@ -3442,6 +3443,7 @@ export type Database = {
           id?: string
           nome: string
           numero?: string | null
+          registro_conselho?: string | null
           registro_profissional?: string | null
           rg?: string | null
           rubrica_url?: string | null
@@ -3483,6 +3485,7 @@ export type Database = {
           id?: string
           nome?: string
           numero?: string | null
+          registro_conselho?: string | null
           registro_profissional?: string | null
           rg?: string | null
           rubrica_url?: string | null
