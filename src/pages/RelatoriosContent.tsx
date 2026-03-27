@@ -89,6 +89,54 @@ const Relatorios = () => {
     },
   });
 
+  // Advanced report: by patient (using RPC)
+  const { data: relatorioPacientes = [] } = useQuery({
+    queryKey: ["rel-por-paciente", mesInicio, mesFim, activeClinicId],
+    queryFn: async () => {
+      if (!activeClinicId) return [];
+      const { data, error } = await (supabase as any).rpc("relatorio_por_paciente", {
+        p_clinic_id: activeClinicId,
+        p_data_inicio: `${mesInicio}-01`,
+        p_data_fim: `${mesFim}-31`,
+      });
+      if (error) { console.error("[rel-por-paciente]", error); return []; }
+      return data ?? [];
+    },
+    enabled: !!activeClinicId,
+  });
+
+  // Advanced report: by professional (using RPC)
+  const { data: relatorioProfissionais = [] } = useQuery({
+    queryKey: ["rel-por-profissional", mesInicio, mesFim, activeClinicId],
+    queryFn: async () => {
+      if (!activeClinicId) return [];
+      const { data, error } = await (supabase as any).rpc("relatorio_por_profissional", {
+        p_clinic_id: activeClinicId,
+        p_data_inicio: `${mesInicio}-01`,
+        p_data_fim: `${mesFim}-31`,
+      });
+      if (error) { console.error("[rel-por-profissional]", error); return []; }
+      return data ?? [];
+    },
+    enabled: !!activeClinicId,
+  });
+
+  // Advanced report: monthly revenue (using RPC)
+  const { data: faturamentoMensalData = [] } = useQuery({
+    queryKey: ["rel-faturamento-mensal", mesInicio, mesFim, activeClinicId],
+    queryFn: async () => {
+      if (!activeClinicId) return [];
+      const { data, error } = await (supabase as any).rpc("relatorio_faturamento_mensal", {
+        p_clinic_id: activeClinicId,
+        p_data_inicio: `${mesInicio}-01`,
+        p_data_fim: `${mesFim}-31`,
+      });
+      if (error) { console.error("[rel-faturamento-mensal]", error); return []; }
+      return data ?? [];
+    },
+    enabled: !!activeClinicId,
+  });
+
   // Computed analytics
   const filtered = filterProfId === "all" ? agendamentos : agendamentos.filter((a: any) => a.profissional_id === filterProfId);
   const filteredPag = filterProfId === "all" ? pagamentos : pagamentos.filter((p: any) => p.profissional_id === filterProfId);
@@ -99,19 +147,18 @@ const Relatorios = () => {
   const totalFaltas = filtered.filter((a: any) => a.status === "falta").length;
   const totalCancelados = filtered.filter((a: any) => a.status === "cancelado").length;
 
-  // Stats by professional
+  // Stats by professional (Using combined data from RPC + local filtered for other stats)
   const profStats = useMemo(() => {
-    const stats: Record<string, { nome: string; realizados: number; faltas: number; cancelados: number; total: number; valor: number }> = {};
-    (agendamentos as any[]).forEach(a => {
-      const pid = a.profissional_id;
-      if (!stats[pid]) stats[pid] = { nome: a.profiles?.nome || "—", realizados: 0, faltas: 0, cancelados: 0, total: 0, valor: 0 };
-      stats[pid].total++;
-      if (a.status === "realizado") { stats[pid].realizados++; stats[pid].valor += Number(a.valor_sessao || 0); }
-      if (a.status === "falta") stats[pid].faltas++;
-      if (a.status === "cancelado") stats[pid].cancelados++;
-    });
-    return Object.entries(stats).map(([id, s]) => ({ id, ...s, taxaPresenca: s.total > 0 ? Math.round((s.realizados / s.total) * 100) : 0 }));
-  }, [agendamentos]);
+    return (relatorioProfissionais as any[]).map(p => ({
+      id: p.profissional_id,
+      nome: p.profissional_nome,
+      realizados: Number(p.sessoes_realizadas),
+      faltas: Number(p.total_sessoes - p.sessoes_realizadas),
+      total: Number(p.total_sessoes),
+      valor: Number(p.faturamento_recebido),
+      taxaPresenca: Number(p.sessoes_realizadas) > 0 ? Math.round((Number(p.sessoes_realizadas) / Number(p.total_sessoes)) * 100) : 0
+    }));
+  }, [relatorioProfissionais]);
 
   // Evasion: patients who stopped coming (active but no "realizado" in period)
   const evasionList = useMemo(() => {
@@ -126,15 +173,14 @@ const Relatorios = () => {
     return (pagamentos as any[]).filter(p => p.status === "pendente" && p.data_vencimento && p.data_vencimento < today);
   }, [pagamentos]);
 
-  // Monthly revenue chart
+  // Monthly revenue chart (Using RPC data)
   const monthlyRevenue = useMemo(() => {
-    const months: Record<string, number> = {};
-    (filteredPag as any[]).filter(p => p.status === "pago").forEach(p => {
-      const key = format(new Date(p.data_pagamento), "MMM/yy", { locale: ptBR });
-      months[key] = (months[key] || 0) + Number(p.valor);
-    });
-    return Object.entries(months).map(([name, valor]) => ({ name, valor }));
-  }, [filteredPag]);
+    return (faturamentoMensalData as any[]).map(d => ({
+      name: d.mes,
+      valor: Number(d.receita_paga),
+      pendente: Number(d.receita_pendente)
+    }));
+  }, [faturamentoMensalData]);
 
   // Payment method breakdown
   const paymentMethodBreakdown = useMemo(() => {
@@ -222,6 +268,22 @@ const Relatorios = () => {
     if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
   };
 
+  const exportPorPaciente = (type: "pdf" | "xlsx") => {
+    const title = "Relatório por Paciente";
+    const headers = ["Paciente", "Total Sessões", "Realizadas", "Faltas", "Taxa Falta %", "Total Pago", "Pendente", "Última Sessão"];
+    const rows = (relatorioPacientes as any[]).map(p => [
+      p.paciente_nome || "—",
+      String(p.total_sessoes),
+      String(p.sessoes_realizadas),
+      String(p.sessoes_falta),
+      `${p.taxa_faltas ?? 0}%`,
+      `R$ ${Number(p.total_pago ?? 0).toFixed(2)}`,
+      `R$ ${Number(p.total_pendente ?? 0).toFixed(2)}`,
+      p.ultima_sessao ? format(new Date(p.ultima_sessao), "dd/MM/yyyy") : "—",
+    ]);
+    if (type === "pdf") { exportPDF(title, headers, rows); } else { exportExcel(title, headers, rows); }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -277,10 +339,58 @@ const Relatorios = () => {
       <Tabs defaultValue="atendimentos" className="space-y-4">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="atendimentos">Atendimentos</TabsTrigger>
+          <TabsTrigger value="pacientes">Por Paciente</TabsTrigger>
           <TabsTrigger value="profissionais">Por Profissional</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="evasao">Evasão & Inadimplência</TabsTrigger>
         </TabsList>
+
+        {/* Por Paciente Tab */}
+        <TabsContent value="pacientes" className="space-y-4">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportPorPaciente("pdf")}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => exportPorPaciente("xlsx")}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
+          </div>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Relatório por Paciente ({relatorioPacientes.length})</CardTitle></CardHeader>
+            <CardContent className="p-0 overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Paciente</TableHead>
+                    <TableHead className="text-center">Sessões</TableHead>
+                    <TableHead className="text-center">Realizadas</TableHead>
+                    <TableHead className="text-center">Faltas</TableHead>
+                    <TableHead className="text-center">Taxa Falta</TableHead>
+                    <TableHead className="text-right">Total Pago</TableHead>
+                    <TableHead className="text-right">Pendente</TableHead>
+                    <TableHead>Última Sessão</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(relatorioPacientes as any[]).length === 0 ? (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum dado no período.</TableCell></TableRow>
+                  ) : (relatorioPacientes as any[]).map((p: any) => (
+                    <TableRow key={p.paciente_id}>
+                      <TableCell className="font-medium">{p.paciente_nome}</TableCell>
+                      <TableCell className="text-center">{p.total_sessoes}</TableCell>
+                      <TableCell className="text-center text-green-600 font-medium">{p.sessoes_realizadas}</TableCell>
+                      <TableCell className="text-center text-red-600">{p.sessoes_falta}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={Number(p.taxa_faltas) >= 30 ? "destructive" : Number(p.taxa_faltas) >= 15 ? "secondary" : "default"}>
+                          {p.taxa_faltas ?? 0}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-emerald-600">R$ {Number(p.total_pago ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-amber-600">R$ {Number(p.total_pendente ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.ultima_sessao ? format(new Date(p.ultima_sessao), "dd/MM/yyyy") : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Atendimentos Tab */}
         <TabsContent value="atendimentos" className="space-y-4">
@@ -297,8 +407,10 @@ const Relatorios = () => {
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis dataKey="name" className="text-xs" />
                     <YAxis className="text-xs" tickFormatter={v => `R$${v}`} />
-                    <Tooltip formatter={(v: number) => [`R$ ${v.toFixed(2)}`, "Faturamento"]} />
-                    <Bar dataKey="valor" fill="hsl(168, 65%, 38%)" radius={[4, 4, 0, 0]} />
+                    <Tooltip formatter={(v: number) => [`R$ ${v.toFixed(2)}`]} />
+                    <Legend />
+                    <Bar dataKey="valor" fill="hsl(168, 65%, 38%)" name="Receita Paga" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="pendente" fill="hsl(38, 92%, 50%)" name="Pendente" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

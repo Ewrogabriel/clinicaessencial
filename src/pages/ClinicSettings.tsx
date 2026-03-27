@@ -17,10 +17,12 @@ import { BackupExport } from "@/components/settings/BackupExport";
 import { IntegrationTabs } from "@/components/settings/IntegrationTabs";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
-import { Calendar } from "lucide-react";
+import { Calendar, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { useSaaS } from "@/modules/shared/hooks/useSaaS";
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
+  const { saasStatus, isLoading: loadingSaaS } = useSaaS();
   const updateMutation = useUpdateClinicSettings();
   const [form, setForm] = useState({
     nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
@@ -167,6 +169,9 @@ const ClinicSettings = () => {
           <TabsTrigger value="dados" className="gap-2">
             <Settings2 className="h-4 w-4" /> Dados
           </TabsTrigger>
+          <TabsTrigger value="plano" className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> Meu Plano
+          </TabsTrigger>
           <TabsTrigger value="assinaturas" className="gap-2">
             <Settings2 className="h-4 w-4" /> Assinaturas
           </TabsTrigger>
@@ -245,6 +250,68 @@ const ClinicSettings = () => {
           <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 mt-4">
             <Save className="h-4 w-4" /> Salvar Alterações
           </Button>
+        </TabsContent>
+
+        <TabsContent value="plano">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    Plano Atual: <Badge className="text-lg px-4 py-1">{saasStatus?.plan_name || "Básico"}</Badge>
+                  </CardTitle>
+                  <CardDescription>Status da assinatura e limites do sistema</CardDescription>
+                </div>
+                {saasStatus?.subscription_status === 'active' && (
+                  <Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">Ativa</Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Limite de Pacientes</p>
+                  <p className="text-2xl font-bold">{saasStatus?.max_patients === 999999 ? "Ilimitado" : saasStatus?.max_patients}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Limite de Profissionais</p>
+                  <p className="text-2xl font-bold">{saasStatus?.max_professionals}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Renovação</p>
+                  <p className="text-2xl font-bold">
+                    {saasStatus?.current_period_end ? new Date(saasStatus.current_period_end).toLocaleDateString() : "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-6 border-t">
+                <h3 className="text-sm font-bold uppercase text-muted-foreground tracking-wider">Funcionalidades do Plano</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    {saasStatus?.has_premium_agenda ? <CheckCircle2 className="text-green-500 h-5 w-5" /> : <XCircle className="text-muted-foreground h-5 w-5" />}
+                    Agenda Premium (Multi-vagas e Overbooking)
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {saasStatus?.has_bi ? <CheckCircle2 className="text-green-500 h-5 w-5" /> : <XCircle className="text-muted-foreground h-5 w-5" />}
+                    Inteligência BI (LTV, Churn, CAC)
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {saasStatus?.has_api ? <CheckCircle2 className="text-green-500 h-5 w-5" /> : <XCircle className="text-muted-foreground h-5 w-5" />}
+                    Integração API (Z-API / WhatsApp)
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="text-green-500 h-5 w-5" />
+                    Contabilidade (DRE e Fluxo de Caixa)
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <Button variant="default" className="w-full sm:w-auto h-10 px-8">Fazer Upgrade de Plano</Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="assinaturas">

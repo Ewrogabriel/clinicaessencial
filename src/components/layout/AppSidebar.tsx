@@ -11,6 +11,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useI18n } from "@/modules/shared/hooks/useI18n";
+import { useSaaS } from "@/modules/shared/hooks/useSaaS";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -60,6 +61,7 @@ export const AppSidebar = memo(function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut, isAdmin, isGestor, isPatient, isProfissional, isSecretario, isMaster, hasPermission } = useAuth();
+  const { saasStatus } = useSaaS();
   const { t } = useI18n();
   const isStaff = isAdmin || isGestor || isProfissional || isSecretario || isMaster;
 
@@ -79,10 +81,10 @@ export const AppSidebar = memo(function AppSidebar() {
     { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
   ];
 
-  // Scheduling group
+  // Scheduling group (Filtered by SaaS)
   const menuAgendamentos = [
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
-    { title: "Agenda Premium", url: "/agenda-premium", icon: Sparkles },
+    ...(saasStatus?.has_premium_agenda ? [{ title: "Agenda Premium", url: "/agenda-premium", icon: Sparkles }] : []),
     { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
     { title: "Confirmações", url: "/confirmacoes-dia", icon: CheckCheck },
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
@@ -95,10 +97,11 @@ export const AppSidebar = memo(function AppSidebar() {
     { title: t("nav.team"), url: "/profissionais", icon: UserCog },
   ];
 
-  // Finance group
+  // Finance group (Filtered by SaaS)
   const menuFinanceiro = [
     { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
     { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
+    ...(saasStatus?.has_bi ? [{ title: "Inteligência BI", url: "/inteligencia-bi", icon: Activity }] : []),
     { title: t("nav.reports"), url: "/relatorios", icon: BarChart3 },
   ];
 
