@@ -19,9 +19,10 @@ interface ContractData {
   incluirCarimbo?: boolean;
   profissionalNome?: string;
   profissionalRegistro?: string;
+  conselhoProfissional?: string;
 }
 
-export async function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, rubricaUrl?: string) {
+export async function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, conselho?: string, rubricaUrl?: string) {
   const w = 70;
   const h = 28;
   const cx = x - w / 2;
@@ -58,7 +59,8 @@ export async function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 60, 120);
-    doc.text(registro, x, y + 15, { align: "center" });
+    const text = conselho ? `${conselho}: ${registro}` : registro;
+    doc.text(text, x, y + 15, { align: "center" });
   }
 
   // Professional label
@@ -232,6 +234,7 @@ export async function generateContractPDF(data: ContractData) {
       y, 
       data.profissionalNome || settings.nome, 
       data.profissionalRegistro || undefined, 
+      data.conselhoProfissional || undefined,
       data.rubricaNoCarimbo ? data.profissionalRubrica : undefined
     );
     y += 32;

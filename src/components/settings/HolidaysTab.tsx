@@ -24,8 +24,9 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const { data: eventos = [], isLoading } = useQuery({
     queryKey: ["clinic-holidays", clinicId],
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("recesso_clinica") as any)
+      if (!clinicId) return [];
+      const { data, error } = await supabase
+        .from("recesso_clinica")
         .select("*")
         .eq("clinic_id", clinicId)
         .order("data_inicio");
@@ -37,7 +38,11 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
 
   const saveMutation = useMutation({
     mutationFn: async (h: typeof newEvent) => {
-      if (!clinicId) throw new Error("Selecione uma clínica antes de salvar.");
+      if (!clinicId) {
+        toast({ title: "Erro", description: "ID da clínica não identificado. Tente atualizar a página.", variant: "destructive" });
+        throw new Error("Clinic ID missing");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado.");
       const { error } = await (supabase.from("recesso_clinica" as any) as any).insert({

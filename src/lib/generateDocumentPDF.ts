@@ -8,6 +8,7 @@ interface DocumentData {
   conteudo: string;
   profissionalNome: string;
   profissionalRegistro?: string;
+  conselhoProfissional?: string;
   pacienteNome: string;
   pacienteCpf?: string;
   data: string;
@@ -29,7 +30,8 @@ const tipoLabels: Record<string, string> = {
   comparecimento: "COMPROVANTE DE COMPARECIMENTO",
 };
 
-function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, rubricaUrl?: string) {
+function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, conselho?: string, rubricaUrl?: string) {
+
   const w = 70;
   const h = 28;
   const cx = x - w / 2;
@@ -57,12 +59,9 @@ function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: 
   doc.setTextColor(0, 60, 120);
   doc.text(nome, x, y + 7, { align: "center" });
 
-  if (registro) {
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 60, 120);
-    doc.text(registro, x, y + 15, { align: "center" });
-  }
+    const text = conselho ? `${conselho}: ${registro}` : registro;
+    doc.text(text, x, y + 15, { align: "center" });
+
 
   doc.setFontSize(7);
   doc.setFont("helvetica", "italic");
@@ -204,9 +203,13 @@ export async function generateDocumentPDF(docData: DocumentData) {
       if (docData.profissionalRegistro) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        doc.text(docData.profissionalRegistro, pageWidth / 2, y, { align: "center" });
+        const text = docData.conselhoProfissional 
+          ? `${docData.conselhoProfissional}: ${docData.profissionalRegistro}` 
+          : docData.profissionalRegistro;
+        doc.text(text, pageWidth / 2, y, { align: "center" });
         y += 5;
       }
+
     }
 
     // Carimbo (stamp) - when stamp is active, signature line is skipped to avoid duplication
@@ -219,8 +222,10 @@ export async function generateDocumentPDF(docData: DocumentData) {
         y, 
         docData.profissionalNome, 
         docData.profissionalRegistro, 
+        docData.conselhoProfissional,
         docData.rubricaNoCarimbo ? docData.profissionalRubrica : undefined
       );
+
       y += 35;
     }
   }

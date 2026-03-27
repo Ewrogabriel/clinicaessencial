@@ -38,6 +38,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
+
 import {
   Popover,
   PopoverContent,
@@ -99,7 +101,9 @@ type FormData = z.infer<typeof formSchema>;
 interface Paciente {
   id: string;
   nome: string;
+  cpf?: string | null;
 }
+
 
 interface Profissional {
   id: string;
@@ -236,11 +240,12 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
 
   const fetchPacientes = async () => {
     const { data } = await supabase.from("pacientes")
-      .select("id, nome")
+      .select("id, nome, cpf")
       .eq("status", "ativo")
       .order("nome");
     setPacientes((data ?? []) as Paciente[]);
   };
+
 
   const fetchProfissionais = async () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
@@ -432,22 +437,18 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Paciente</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o paciente" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {pacientes.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <PatientCombobox
+                      patients={pacientes}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
 
             <FormField
               control={form.control}

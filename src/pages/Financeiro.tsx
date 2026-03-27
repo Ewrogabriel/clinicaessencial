@@ -19,7 +19,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import Despesas from "./Despesas";
@@ -209,11 +211,12 @@ const Financeiro = () => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-ativos"],
     queryFn: async () => {
-      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      const { data } = await supabase.from("pacientes").select("id, nome, cpf").eq("status", "ativo").order("nome");
       return data ?? [];
     },
     staleTime: 1000 * 60 * 10,
   });
+
 
   const { data: despesasForDre = [] } = useQuery({
     queryKey: ["despesas-dre", activeClinicId],
@@ -773,13 +776,13 @@ const Financeiro = () => {
             <div className="space-y-4 pr-4">
               <div>
                 <Label>Paciente</Label>
-                <Select value={formData.paciente_id} onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {pacientes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <PatientCombobox
+                  patients={pacientes}
+                  value={formData.paciente_id}
+                  onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}
+                />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Valor (R$)</Label>

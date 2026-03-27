@@ -362,7 +362,8 @@ Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Cam
     }
 
     const body: any = {
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-1.5-flash",
+
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

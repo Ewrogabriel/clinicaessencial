@@ -162,10 +162,11 @@ const Matriculas = () => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      const { data } = await supabase.from("pacientes").select("id, nome, cpf").eq("status", "ativo").order("nome");
       return data ?? [];
     },
   });
+
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-list"],

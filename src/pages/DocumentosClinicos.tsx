@@ -19,6 +19,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { generateDocumentPDF } from "@/lib/generateDocumentPDF";
 import DocumentShareDialog from "@/components/clinical/DocumentShareDialog";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
+
 
 const tipoLabels: Record<string, string> = {
   receituario: "Receituário",
@@ -49,6 +51,8 @@ const DocumentosClinicos = () => {
   const [titulo, setTitulo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [pacienteId, setPacienteId] = useState("");
+  const [cid, setCid] = useState("");
+
   const [aiLoading, setAiLoading] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [shareDoc, setShareDoc] = useState<any>(null);
@@ -99,6 +103,8 @@ const DocumentosClinicos = () => {
         paciente_id: pacienteId,
         profissional_id: user!.id,
         clinic_id: activeClinicId || null,
+        cid: cid || null,
+
         dados_extras: { 
           incluir_carimbo: incluirCarimbo,
           incluir_assinatura: incluirAssinatura,
@@ -203,7 +209,8 @@ const DocumentosClinicos = () => {
         paciente_nome: paciente?.nome || "Paciente",
         data: format(new Date(), "dd/MM/yyyy"),
         profissional_nome: profile?.nome || "Profissional",
-        profissional_registro: profile?.registro_profissional || "",
+        profissional_registro: profile?.registro_conselho || profile?.registro_profissional || "",
+        conselho_profissional: profile?.conselho_profissional || "",
         avaliacao: evaluations?.[0] ? `Queixa: ${evaluations[0].queixa_principal}. Objetivos: ${evaluations[0].objetivos_tratamento || "N/A"}` : "",
         ultima_evolucao: evolutions?.[0]?.descricao || "",
       };
@@ -231,6 +238,8 @@ const DocumentosClinicos = () => {
     setTitulo("");
     setConteudo("");
     setPacienteId("");
+    setCid("");
+
     setIncluirCarimbo(true);
     setIncluirAssinatura(false);
     setIncluirRubrica(false);
@@ -244,6 +253,8 @@ const DocumentosClinicos = () => {
     setTitulo(doc.titulo);
     setConteudo(doc.conteudo);
     setPacienteId(doc.paciente_id);
+    setCid(doc.cid || "");
+
     setIncluirCarimbo((doc.dados_extras as any)?.incluir_carimbo !== false);
     setIncluirAssinatura((doc.dados_extras as any)?.incluir_assinatura === true);
     setIncluirRubrica((doc.dados_extras as any)?.incluir_rubrica === true);
@@ -259,10 +270,13 @@ const DocumentosClinicos = () => {
       titulo: doc.titulo,
       conteudo: doc.conteudo,
       profissionalNome: profile?.nome || "Profissional",
-      profissionalRegistro: profile?.registro_profissional || undefined,
+      profissionalRegistro: profile?.registro_conselho || profile?.registro_profissional || undefined,
+      conselhoProfissional: profile?.conselho_profissional || undefined,
       pacienteNome: paciente?.nome || (doc.pacientes as any)?.nome || "Paciente",
       pacienteCpf: paciente?.cpf || (doc.pacientes as any)?.cpf || undefined,
       data: format(new Date(doc.created_at), "dd/MM/yyyy"),
+      cid: doc.cid || undefined,
+
       incluirCarimbo: (doc.dados_extras as any)?.incluir_carimbo !== false,
       profissionalSignature: (doc.dados_extras as any)?.incluir_assinatura ? profile?.assinatura_url : undefined,
       profissionalRubrica: (doc.dados_extras as any)?.rubrica_no_carimbo || (doc.dados_extras as any)?.incluir_rubrica ? profile?.rubrica_url : undefined,
@@ -378,36 +392,30 @@ const DocumentosClinicos = () => {
                 </Select>
               </div>
               <div>
-                <Label>{t("common.patient")}</Label>
-                <Select value={pacienteId} onValueChange={setPacienteId}>
-                  <SelectTrigger><SelectValue placeholder={t("docs.select_patient")} /></SelectTrigger>
-                  <SelectContent>
-                    {pacientes.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>{t("common.patient")} *</Label>
+                <PatientCombobox
+                  patients={pacientes}
+                  value={pacienteId}
+                  onValueChange={setPacienteId}
+                />
               </div>
             </div>
 
-            {tipo === "outros" && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>{t("docs.doc_type_name")} *</Label>
-                <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex: Declaração, Laudo, etc." />
+                <Label>CID-10 (Opcional)</Label>
+                <Input 
+                  value={cid} 
+                  onChange={e => setCid(e.target.value)} 
+                  placeholder="Ex: M54.5" 
+                />
               </div>
-            )}
-
-            {tipo !== "outros" && (
               <div>
-                <Label>{t("docs.title_optional")}</Label>
-                <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder={tipoLabels[tipo]} />
+                <Label>{t("common.professional")}</Label>
+                <Input value={profile?.nome || ""} disabled className="bg-muted" />
               </div>
-            )}
-
-            <div>
-              <Label>{t("common.professional")}</Label>
-              <Input value={profile?.nome || ""} disabled className="bg-muted" />
             </div>
+
 
             <div>
               <div className="flex items-center justify-between mb-1">

@@ -66,9 +66,10 @@ const VerificarDocumento = () => {
 
       const { data: prof } = await supabase
         .from("profiles")
-        .select("nome, registro_profissional")
+        .select("nome, registro_profissional, conselho_profissional, registro_conselho")
         .eq("id", data.profissional_id)
         .maybeSingle();
+
 
       setProfissional(prof);
     } catch {
@@ -103,9 +104,10 @@ const VerificarDocumento = () => {
 
       const { data: prof } = await supabase
         .from("profiles")
-        .select("nome, registro_profissional")
+        .select("nome, registro_profissional, conselho_profissional, registro_conselho")
         .eq("id", found.profissional_id)
         .maybeSingle();
+
 
       setProfissional(prof);
     } catch {
@@ -143,7 +145,9 @@ const VerificarDocumento = () => {
         titulo: doc.titulo,
         conteudo: doc.conteudo,
         profissionalNome: profissional.nome || "Profissional",
-        profissionalRegistro: profissional.registro_profissional,
+        profissionalRegistro: profissional.registro_conselho || profissional.registro_profissional,
+        conselhoProfissional: profissional.conselho_profissional,
+
         pacienteNome: (doc.pacientes as any)?.nome || "Paciente",
         pacienteCpf: (doc.pacientes as any)?.cpf,
         data: format(new Date(doc.created_at), "dd/MM/yyyy"),
@@ -293,11 +297,13 @@ const VerificarDocumento = () => {
                     <UserCheck className="h-3 w-3" /> Profissional Verificado
                   </Badge>
                 </div>
-                {profissional?.registro_profissional && (
+                {(profissional?.registro_conselho || profissional?.registro_profissional) && (
                   <p className="text-sm text-blue-700 mt-0.5 font-medium">
-                    Registro: {profissional.registro_profissional}
+                    {profissional.conselho_profissional ? `\${profissional.conselho_profissional}: ` : "Registro: "}
+                    {profissional.registro_conselho || profissional.registro_profissional}
                   </p>
                 )}
+
               </div>
             </div>
           </CardContent>

@@ -12,6 +12,7 @@ interface ProfessionalContractData {
   endereco?: string;
   estadoCivil?: string;
   telefone?: string;
+  conselhoProfissional?: string;
 }
 
 export async function generateProfessionalContractPDF(data: ProfessionalContractData) {
@@ -93,7 +94,7 @@ export async function generateProfessionalContractPDF(data: ProfessionalContract
     data.rg ? `, RG n ${data.rg}` : ", RG n _______________",
     data.endereco ? `, residente a ${data.endereco}` : "",
     data.telefone ? `, telefone ${data.telefone}` : "",
-    `, Registro Profissional: ${data.registroProfissional || "_______________"}`,
+    data.conselhoProfissional ? `, ${data.conselhoProfissional}: ${data.registroProfissional || "_______________"}` : `, Registro Profissional: ${data.registroProfissional || "_______________"}`,
     `, atuando como ${tipoLabel}`,
     data.tipoContratacao === "pj" && data.cnpj ? ` - CNPJ n ${data.cnpj}` : "",
     ", doravante denominado PROFISSIONAL.",
@@ -227,7 +228,10 @@ export async function generateProfessionalContractPDF(data: ProfessionalContract
   doc.line(margin, y, margin + 70, y);
   y += 5;
   addText(`PROFISSIONAL - ${data.profissionalNome}`, 9);
-  if (data.registroProfissional) addText(`Registro: ${data.registroProfissional}`, 9);
+  if (data.registroProfissional) {
+    const regText = data.conselhoProfissional ? `${data.conselhoProfissional}: ${data.registroProfissional}` : `Registro: ${data.registroProfissional}`;
+    addText(regText, 9);
+  }
   if (data.cpf) addText(`CPF: ${data.cpf}`, 9);
 
   await addWatermarkToAllPages(doc);

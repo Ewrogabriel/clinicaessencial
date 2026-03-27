@@ -152,6 +152,7 @@ const PreCadastrosAdmin = () => {
             responsavel_parentesco: preCadastro.responsavel_parentesco || null,
             created_by: user.id,
             profissional_id: user.id,
+            clinic_id: activeClinicId,
             codigo_acesso: code,
             status: "ativo",
           })

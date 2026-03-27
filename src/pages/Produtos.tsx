@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
 
 const Produtos = () => {
   const { user, isAdmin, isProfissional } = useAuth();
@@ -516,14 +517,11 @@ const Produtos = () => {
             </div>
             <div>
               <Label>Paciente</Label>
-              <Select value={saleData.paciente_id} onValueChange={(v) => setSaleData({ ...saleData, paciente_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
-                <SelectContent>
-                  {pacientes.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PatientCombobox
+                selectedPatientId={saleData.paciente_id}
+                onSelect={(id) => setSaleData({ ...saleData, paciente_id: id })}
+                placeholder="Selecione (opcional)"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Quantidade</Label><Input type="number" min="1" value={saleData.quantidade} onChange={(e) => setSaleData({ ...saleData, quantidade: e.target.value })} /></div>

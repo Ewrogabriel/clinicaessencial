@@ -119,12 +119,13 @@ const Planos = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("pacientes")
-        .select("id, nome")
+        .select("id, nome, cpf")
         .eq("status", "ativo")
         .order("nome");
       return data ?? [];
     },
   });
+
 
   const { data: modalidades = [] } = useQuery({
     queryKey: ["modalidades-ativas"],

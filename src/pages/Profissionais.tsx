@@ -62,6 +62,8 @@ interface UserRecord {
   cidade?: string | null;
   estado?: string | null;
   cep?: string | null;
+  conselho_profissional?: string | null;
+  registro_conselho?: string | null;
   permissions: PermissionEntry[];
 }
 
@@ -132,6 +134,8 @@ const Profissionais = () => {
   const [loading, setLoading] = useState(false);
   const [assinaturaUrl, setAssinaturaUrl] = useState("");
   const [rubricaUrl, setRubricaUrl] = useState("");
+  const [conselhoProfissional, setConselhoProfissional] = useState("");
+  const [registroConselho, setRegistroConselho] = useState("");
   const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
   const [cleaningRubrica, setCleaningRubrica] = useState(false);
 
@@ -184,6 +188,7 @@ const Profissionais = () => {
     setDataNascimento(""); setEstadoCivil(null);
     setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
     setAssinaturaUrl(""); setRubricaUrl("");
+    setConselhoProfissional(""); setRegistroConselho("");
   }, []);
 
   const openCreate = () => {
@@ -211,6 +216,8 @@ const Profissionais = () => {
     setEstado(u.estado || ""); setCep(u.cep || "");
     setAssinaturaUrl((u as any).assinatura_url || "");
     setRubricaUrl((u as any).rubrica_url || "");
+    setConselhoProfissional(u.conselho_profissional || "");
+    setRegistroConselho(u.registro_conselho || "");
     setDialogOpen(true);
   };
 
@@ -309,6 +316,8 @@ const Profissionais = () => {
           role: selectedRole,
           permissions: selectedRole === "admin" ? [] : selectedPermissions,
           clinic_id: activeClinicId || null,
+          conselho_profissional: conselhoProfissional || null,
+          registro_conselho: registroConselho || null,
         },
       });
 
@@ -351,6 +360,8 @@ const Profissionais = () => {
           estado: estado || null, cep: cep || null,
           assinatura_url: assinaturaUrl || null,
           rubrica_url: rubricaUrl || null,
+          conselho_profissional: conselhoProfissional || null,
+          registro_conselho: registroConselho || null,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
@@ -528,7 +539,11 @@ const Profissionais = () => {
                 {filtered.map(u => (
                   <TableRow key={u.id}>
                     <TableCell>
-                      <div className="w-5 h-5 rounded-full border" style={{ backgroundColor: u.cor_agenda || '#3b82f6' }} />
+                      <div 
+                        className="w-5 h-5 rounded-full border" 
+                        style={{ backgroundColor: u.cor_agenda || '#3b82f6' }}
+                        title={`Cor: ${u.cor_agenda || '#3b82f6'}`}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{u.nome}</div>
@@ -714,9 +729,27 @@ const Profissionais = () => {
                     placeholder="Ex: Fisioterapia, Psicologia, Nutrição, Pilates..."
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Conselho Profissional</Label>
+                    <Input 
+                      value={conselhoProfissional} 
+                      onChange={e => setConselhoProfissional(e.target.value)} 
+                      placeholder="Ex: CREFITO, CRM, CRP..." 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nº Registro no Conselho</Label>
+                    <Input 
+                      value={registroConselho} 
+                      onChange={e => setRegistroConselho(e.target.value)} 
+                      placeholder="Ex: 123456-F" 
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label>Registro Profissional</Label>
-                  <Input value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} placeholder="Ex: CREFITO, CRP, CRM, CRN..." />
+                  <Label>Registro Interno/Outros</Label>
+                  <Input value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} placeholder="Outros registros..." />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -750,8 +783,15 @@ const Profissionais = () => {
                 <div className="space-y-2">
                   <Label>Cor na Agenda</Label>
                   <div className="flex items-center gap-3">
-                    <input type="color" value={corAgenda} onChange={e => setCorAgenda(e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0 p-0" />
-                    <span className="text-sm text-muted-foreground">{corAgenda}</span>
+                    <input 
+                      id="cor-agenda"
+                      type="color" 
+                      value={corAgenda} 
+                      onChange={e => setCorAgenda(e.target.value)} 
+                      className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+                      title="Escolha a cor para a agenda"
+                    />
+                    <label htmlFor="cor-agenda" className="text-sm text-muted-foreground">{corAgenda}</label>
                   </div>
                 </div>
 

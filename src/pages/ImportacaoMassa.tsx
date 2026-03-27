@@ -24,6 +24,7 @@ interface ImportRow {
 interface ImportResult {
   success: number;
   errors: number;
+  duplicates?: number;
   batchId: string;
   timestamp: Date;
 }
@@ -233,6 +234,14 @@ const ImportacaoMassa = () => {
         rows: (step === "mapping" ? rawRows : rows).slice(0, 50),
       };
 
+      if ((step === "mapping" ? rawRows : rows).length > 50) {
+        toast({ 
+          title: "Aviso", 
+          description: "Analisando apenas as primeiras 50 linhas para garantir performance.",
+          variant: "default"
+        });
+      }
+
       // Add address extraction context for patient imports
       if (activeTab === "pacientes") {
         context.extractAddressData = true;
@@ -301,10 +310,21 @@ const ImportacaoMassa = () => {
   // --- Step 3: Import ---
   const handleImport = async () => {
     if (!user || rows.length === 0) return;
+    
+    if (!activeClinicId) {
+      toast({
+        title: "Erro de Clínica",
+        description: "Nenhuma clínica selecionada. Por favor, selecione uma clínica no menu superior.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setImporting(true);
     setErrors([]);
     let success = 0;
     let errorCount = 0;
+    let duplicateCount = 0;
     const importErrors: string[] = [];
     const batchId = crypto.randomUUID();
 
@@ -324,6 +344,27 @@ const ImportacaoMassa = () => {
     }
 
     if (activeTab === "pacientes") {
+      // Fetch existing records for duplicate check
+      const [{ data: existingPacientes }, { data: existingPreCadastros }] = await Promise.all([
+        supabase.from("pacientes").select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId),
+        supabase.from("pre_cadastros").select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId)
+      ]);
+
+      const existingCPFs = new Set([
+        ...(existingPacientes?.map(p => p.cpf?.replace(/\D/g, "")) || []),
+        ...(existingPreCadastros?.map(p => p.cpf?.replace(/\D/g, "")) || [])
+      ].filter(Boolean));
+
+      const existingEmails = new Set([
+        ...(existingPacientes?.map(p => p.email?.toLowerCase().trim()) || []),
+        ...(existingPreCadastros?.map(p => p.email?.toLowerCase().trim()) || [])
+      ].filter(Boolean));
+
+      const existingNamePhones = new Set([
+        ...(existingPacientes?.map(p => `${p.nome?.toLowerCase().trim()}_${p.telefone?.replace(/\D/g, "")}`) || []),
+        ...(existingPreCadastros?.map(p => `${p.nome?.toLowerCase().trim()}_${p.telefone?.replace(/\D/g, "")}`) || [])
+      ].filter(Boolean));
+
       for (let i = 0; i < rows.length; i++) {
         let row = rows[i];
         const nomeKey = Object.keys(row).find((k) => k.toLowerCase().includes("nome")) || "nome";
@@ -332,15 +373,32 @@ const ImportacaoMassa = () => {
         const cpfKey = Object.keys(row).find((k) => k.toLowerCase().includes("cpf")) || "cpf";
 
         try {
+          const nomeValue = String(row[nomeKey] || "").trim();
+          const telefoneValue = String(row[telefoneKey] || "").trim();
+          const emailValue = row[emailKey] ? String(row[emailKey]).toLowerCase().trim() : null;
+          const cpfValue = row[cpfKey] ? String(row[cpfKey]).replace(/\D/g, "") : null;
+          const namePhoneKey = `${nomeValue.toLowerCase()}_${telefoneValue.replace(/\D/g, "")}`;
+
+          // Duplicate check
+          const isDuplicate = 
+            (cpfValue && existingCPFs.has(cpfValue)) ||
+            (emailValue && existingEmails.has(emailValue)) ||
+            (nomeValue && telefoneValue && existingNamePhones.has(namePhoneKey));
+
+          if (isDuplicate) {
+            duplicateCount++;
+            continue;
+          }
+
           // Enrich with CEP data if present
           if (row.cep) {
             row = await enrichRowWithCEP(row);
           }
 
           const { error } = await (supabase.from("pre_cadastros") as any).insert({
-            nome: String(row[nomeKey] || "").trim(),
-            telefone: String(row[telefoneKey] || "").trim(),
-            email: row[emailKey] ? (String(row[emailKey]).trim() || null) : null,
+            nome: nomeValue,
+            telefone: telefoneValue,
+            email: emailValue || null,
             cpf: row[cpfKey] ? (String(row[cpfKey]).trim() || null) : null,
             data_nascimento: row.data_nascimento || null,
             cep: row.cep || null,
@@ -449,6 +507,7 @@ const ImportacaoMassa = () => {
     const importResult: ImportResult = {
       success,
       errors: errorCount,
+      duplicates: duplicateCount,
       batchId,
       timestamp: new Date(),
     };
@@ -760,6 +819,10 @@ const ImportacaoMassa = () => {
                     <div className="rounded-lg bg-destructive/5 p-3 text-center">
                       <p className="text-2xl font-bold text-destructive">{result.errors}</p>
                       <p className="text-xs text-destructive mt-1">Erros</p>
+                    </div>
+                    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-3 text-center">
+                      <p className="text-2xl font-bold text-amber-600">{result.duplicates || 0}</p>
+                      <p className="text-xs text-amber-600 mt-1">Duplicados</p>
                     </div>
                     <div className="rounded-lg bg-muted p-3 text-center">
                       <p className="text-xs font-mono break-all text-muted-foreground">{result.batchId.slice(0, 8)}...</p>

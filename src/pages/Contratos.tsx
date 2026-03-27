@@ -12,11 +12,11 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateContractPDF } from "@/lib/generateContractPDF";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
 
 
 const Contratos = () => {
@@ -84,7 +84,7 @@ const Contratos = () => {
   const { data: currentUserProfile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional").eq("id", user?.id).single();
+      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho").eq("id", user?.id).single();
       return data;
     },
     enabled: !!user?.id,
@@ -149,7 +149,8 @@ const Contratos = () => {
       rubricaNoCarimbo: incluirCarimbo && rubricaNoCarimbo,
       incluirRubrica: incluirRubrica,
       incluirCarimbo: incluirCarimbo,
-      profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : currentUserProfile?.registro_profissional,
+      profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : (currentUserProfile?.registro_conselho || currentUserProfile?.registro_profissional),
+      conselhoProfissional: usarAssinaturaClinica ? undefined : currentUserProfile?.conselho_profissional,
     };
   };
 
@@ -176,7 +177,8 @@ const Contratos = () => {
     const endParts = [profissional.endereco, profissional.numero ? `nº ${profissional.numero}` : "", profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ");
     const doc = await generateProfessionalContractPDF({
       profissionalNome: profissional.nome,
-      registroProfissional: profissional.registro_profissional || "",
+      registroProfissional: profissional.registro_conselho || profissional.registro_profissional || "",
+      conselhoProfissional: profissional.conselho_profissional || "",
       tipoContratacao: profissional.tipo_contratacao || "autonomo",
       cnpj: profissional.cnpj || "",
       commissionRate: profissional.commission_rate || 0,
@@ -226,11 +228,12 @@ const Contratos = () => {
               <CardContent className="space-y-4">
                 {!isPatient && (
                   <div>
-                    <Label>Paciente</Label>
-                    <Select value={selectedPaciente} onValueChange={setSelectedPaciente}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o paciente" /></SelectTrigger>
-                      <SelectContent>{(pacientes as any[]).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <PatientCombobox
+                      patients={pacientes as any[]}
+                      value={selectedPaciente}
+                      onValueChange={setSelectedPaciente}
+                      placeholder="Selecione o paciente"
+                    />
                   </div>
                 )}
                 <div>

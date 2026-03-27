@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { Textarea } from "@/components/ui/textarea";
+
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -61,9 +63,10 @@ const WEEKDAY_SHORT: Record<number, string> = {
 type Props = {
     formData: EnrollmentFormData;
     setFormData: (data: EnrollmentFormData) => void;
-    pacientes: { id: string; nome: string }[];
+    pacientes: { id: string; nome: string; cpf?: string | null }[];
     profissionais: { user_id: string; nome: string }[];
 };
+
 
 export function EnrollmentForm({ formData, setFormData, pacientes, profissionais }: Props) {
     const { activeClinicId } = useClinic();
@@ -208,17 +211,13 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
             {/* Paciente */}
             <div>
                 <Label>Paciente *</Label>
-                <Select value={formData.paciente_id} onValueChange={(v) => setFormData({ ...formData, paciente_id: v })}>
-                    <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Selecione um paciente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {pacientes.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <PatientCombobox
+                    patients={pacientes}
+                    value={formData.paciente_id}
+                    onValueChange={(v) => setFormData({ ...formData, paciente_id: v })}
+                />
             </div>
+
 
             {/* Plano selector removed - manual values only */}
 

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useModalidades } from "@/modules/appointments/hooks/useModalidades";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
 
 const ALL_HOURS: string[] = Array.from({ length: 17 }, (_, i) => {
   const h = 6 + i;
@@ -65,7 +66,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-lista-espera"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
+      const { data, error } = await supabase.from("pacientes").select("id, nome, cpf").eq("status", "ativo").order("nome");
       if (error) throw error;
       return data || [];
     },
@@ -181,14 +182,10 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
           {/* Paciente */}
           <div className="space-y-2">
             <Label>Paciente *</Label>
-            <Select value={form.paciente_id} onValueChange={(v) => setForm({ ...form, paciente_id: v, matricula_id: "" })}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {pacientes.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PatientCombobox
+              value={form.paciente_id}
+              onValueChange={(v) => setForm({ ...form, paciente_id: v, matricula_id: "" })}
+            />
           </div>
 
           {/* Matrícula ativa (apenas para interesse_mudanca) */}

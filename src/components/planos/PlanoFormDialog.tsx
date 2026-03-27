@@ -13,16 +13,19 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { toast } from "@/modules/shared/hooks/use-toast";
+
 
 interface PlanoFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editPlano: any | null;
-  pacientes: { id: string; nome: string }[];
+  pacientes: { id: string; nome: string; cpf?: string | null }[];
   modalidades: { id: string; nome: string }[];
   userId: string;
 }
+
 
 const defaultForm = {
   paciente_id: "",
@@ -124,19 +127,15 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
         <div className="space-y-4">
           <div>
             <Label>Paciente</Label>
-            <Select
+            <PatientCombobox
+              patients={pacientes}
               value={formData.paciente_id}
               onValueChange={(v) => setFormData(p => ({ ...p, paciente_id: v }))}
               disabled={isEdit}
-            >
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                {pacientes.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Selecionar paciente..."
+            />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Modalidade</Label>

@@ -42,7 +42,10 @@ const PerfilProfissional = () => {
   const [domiciliarObservacoes, setDomiciliarObservacoes] = useState("");
   const [assinaturaUrl, setAssinaturaUrl] = useState("");
   const [rubricaUrl, setRubricaUrl] = useState("");
+  const [conselhoProfissional, setConselhoProfissional] = useState("");
+  const [registroConselho, setRegistroConselho] = useState("");
   const [uploadingSignature, setUploadingSignature] = useState(false);
+
   const [uploadingRubrica, setUploadingRubrica] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -75,7 +78,10 @@ const PerfilProfissional = () => {
     setDomiciliarObservacoes(p.domiciliar_observacoes || "");
     setAssinaturaUrl(p.assinatura_url || "");
     setRubricaUrl(p.rubrica_url || "");
+    setConselhoProfissional(p.conselho_profissional || "");
+    setRegistroConselho(p.registro_conselho || "");
     setLoaded(true);
+
   }
 
   const { data: documents = [] } = useQuery({
@@ -105,6 +111,15 @@ const PerfilProfissional = () => {
     },
   });
 
+  const { data: conselhos = [] } = useQuery({
+    queryKey: ["conselhos-profissionais"],
+    queryFn: async () => {
+      const { data } = await supabase.from("conselhos_profissionais").select("*").order("sigla");
+      return data ?? [];
+    },
+  });
+
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user || !profileData) throw new Error("Perfil não encontrado");
@@ -123,7 +138,10 @@ const PerfilProfissional = () => {
         domiciliar_raio_km: domiciliarRaioKm ? parseFloat(domiciliarRaioKm) : null,
         domiciliar_valor_adicional: domiciliarValorAdicional ? parseFloat(domiciliarValorAdicional) : 0,
         domiciliar_observacoes: domiciliarObservacoes || null,
+        conselho_profissional: conselhoProfissional || null,
+        registro_conselho: registroConselho || null,
       } as any).eq("id", (profileData as any).id);
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -269,10 +287,39 @@ const PerfilProfissional = () => {
                 <Label>{t("profile.specialty")}</Label>
                 <Input value={especialidade} onChange={(e) => setEspecialidade(e.target.value)} placeholder="Ex: Fisioterapia, Pilates" />
               </div>
+               <div className="space-y-2">
+                 <Label>Conselho Profissional</Label>
+                 <Select value={conselhoProfissional} onValueChange={setConselhoProfissional}>
+                   <SelectTrigger><SelectValue placeholder="Selecione o Conselho" /></SelectTrigger>
+                   <SelectContent>
+                     {conselhos.map((c: any) => (
+                       <SelectItem key={c.id} value={c.sigla}>{c.sigla} - {c.nome}</SelectItem>
+                     ))}
+                     <SelectItem value="OUTRO">Outro (especificar)</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+               
+               {conselhoProfissional === "OUTRO" && (
+                 <div className="space-y-2">
+                   <Label>Especifique o Conselho</Label>
+                   <Input 
+                     value={especialidade} // reuse or use a new state if needed, but the user asked for a simple field
+                     placeholder="Ex: CRM, CREFITO, etc"
+                     onChange={(e) => setEspecialidade(e.target.value)}
+                   />
+                 </div>
+               )}
+
               <div className="space-y-2">
-                <Label>{t("profile.registration")}</Label>
+                <Label>Número de Registro no Conselho</Label>
+                <Input value={registroConselho} onChange={(e) => setRegistroConselho(e.target.value)} placeholder="Ex: 123456-F" />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("profile.registration")} (Interno/Outros)</Label>
                 <Input value={registroProfissional} onChange={(e) => setRegistroProfissional(e.target.value)} />
               </div>
+
               <div className="space-y-2 sm:col-span-2">
                 <Label>{t("profile.graduation")}</Label>
                 <Input value={graduacao} onChange={(e) => setGraduacao(e.target.value)} placeholder="Ex: Fisioterapia — UFJF 2018" />
