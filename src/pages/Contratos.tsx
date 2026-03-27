@@ -18,7 +18,9 @@ import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContr
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { PenTool } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SignaturePad } from "@/components/clinical/SignaturePad";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
@@ -33,7 +35,8 @@ const Contratos = () => {
   const [incluirRubrica, setIncluirRubrica] = useState(false);
   const [rubricaNoCarimbo, setRubricaNoCarimbo] = useState(false);
   const [usarAssinaturaClinica, setUsarAssinaturaClinica] = useState(false);
-
+  const [pacienteSignature, setPacienteSignature] = useState<string | null>(null);
+  const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
   const clinicNome = clinicSettings?.nome || "Essencial Fisio Pilates";
   const clinicCNPJ = clinicSettings?.cnpj || "";
   const clinicEnderecoFull = [clinicSettings?.endereco, clinicSettings?.numero ? `nº ${clinicSettings.numero}` : "", clinicSettings?.bairro, clinicSettings?.cidade ? `${clinicSettings.cidade}/${clinicSettings.estado}` : ""].filter(Boolean).join(", ");
@@ -145,6 +148,7 @@ const Contratos = () => {
       planoValor: matricula?.valor_mensal || plano?.valor || 0,
       desconto: desconto?.percentual_desconto || 0,
       dataContrato: format(new Date(), "dd/MM/yyyy"),
+      pacienteSignature: pacienteSignature || undefined,
       profissionalSignature: sigUrl || undefined,
       profissionalNome: usarAssinaturaClinica ? clinicNome : (prof?.nome || clinicNome),
       profissionalRubrica: (incluirRubrica || (incluirCarimbo && rubricaNoCarimbo)) ? rubUrl : undefined,
@@ -350,10 +354,14 @@ const Contratos = () => {
                 </div>
 
                   <div className="flex flex-col gap-2 pt-2">
-                    <Button onClick={handleDownload} disabled={!paciente} className="w-full">
-                      <Download className="h-4 w-4 mr-2" /> Baixar PDF
+                    <Button onClick={() => setIsSignatureDialogOpen(true)} variant="outline" disabled={!paciente} className="w-full border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700">
+                      <PenTool className="h-4 w-4 mr-2" /> 
+                      {pacienteSignature ? "Assinatura Capturada (Modificar)" : "Coletar Assinatura do Paciente"}
                     </Button>
-                    {!isPatient && <Button variant="outline" onClick={handleWhatsAppSend} disabled={!paciente} className="w-full"><Send className="h-4 w-4 mr-2" /> Enviar via WhatsApp</Button>}
+                    <Button onClick={handleDownload} disabled={!paciente} className="w-full">
+                      <Download className="h-4 w-4 mr-2" /> Gerar PDF do Contrato
+                    </Button>
+                    {!isPatient && <Button variant="outline" onClick={handleWhatsAppSend} disabled={!paciente} className="w-full"><Send className="h-4 w-4 mr-2" /> Enviar PDF via WhatsApp</Button>}
                   </div>
               </CardContent>
             </Card>
@@ -424,7 +432,15 @@ const Contratos = () => {
                     <p>Data: {format(new Date(), "dd/MM/yyyy")}</p>
                     <div className="grid grid-cols-2 gap-8 mt-8">
                       <div className="text-center"><div className="border-t border-foreground/40 pt-2">CONTRATADA</div><p className="text-xs text-muted-foreground">{clinicNome}</p></div>
-                      <div className="text-center"><div className="border-t border-foreground/40 pt-2">CONTRATANTE</div><p className="text-xs text-muted-foreground">{paciente?.nome || "_______________"}</p></div>
+                      <div className="text-center flex flex-col items-center">
+                        {pacienteSignature ? (
+                           <img src={pacienteSignature} alt="Assinatura Paciente" className="h-16 object-contain mb-2" />
+                        ) : (
+                           <div className="h-16 mb-2"></div>
+                        )}
+                        <div className="border-t border-foreground/40 pt-2 w-full">CONTRATANTE</div>
+                        <p className="text-xs text-muted-foreground">{paciente?.nome || "_______________"}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -558,6 +574,24 @@ const Contratos = () => {
           </TabsContent>
         )}
       </Tabs>
+
+      <Dialog open={isSignatureDialogOpen} onOpenChange={setIsSignatureDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assinatura do Paciente</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <SignaturePad
+              onSave={(dataUrl) => {
+                setPacienteSignature(dataUrl);
+                setIsSignatureDialogOpen(false);
+                toast({ title: "Assinatura capturada com sucesso!" });
+              }}
+              initialValue={pacienteSignature || undefined}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
