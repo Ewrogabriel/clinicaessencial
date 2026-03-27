@@ -76,8 +76,6 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                 } as any)
                 .select()
                 .single();
-                .select()
-                .single();
 
             if (evalError) throw evalError;
 
