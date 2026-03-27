@@ -5,6 +5,7 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { PenLine } from "lucide-react";
 import { SignaturePad } from "./SignaturePad";
+import { CidCombobox } from "@/components/ui/cid-combobox";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -52,6 +53,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
         antecedentes_pessoais: "",
         objetivos_tratamento: "",
         conduta_inicial: "",
+        cid: "",
     });
 
     const evaluationMutation = useMutation({
@@ -69,8 +71,9 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                     antecedentes_pessoais: formData.antecedentes_pessoais,
                     objetivos_tratamento: formData.objetivos_tratamento,
                     conduta_inicial: formData.conduta_inicial,
+                    cid: formData.cid || null,
                     data_avaliacao: new Date().toISOString().split("T")[0]
-                })
+                } as any)
                 .select()
                 .single();
 
@@ -104,6 +107,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                 antecedentes_pessoais: "",
                 objetivos_tratamento: "",
                 conduta_inicial: "",
+                cid: "",
             });
         },
         onError: (error: any) => {
@@ -141,6 +145,14 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                                 value={formData.queixa_principal}
                                 onChange={handleChange}
                                 required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>CID-10 (Opcional)</Label>
+                            <CidCombobox
+                                value={formData.cid}
+                                onValueChange={(v) => setFormData(prev => ({ ...prev, cid: v }))}
                             />
                         </div>
 

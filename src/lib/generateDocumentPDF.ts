@@ -291,7 +291,9 @@ export async function generateDocumentPDF(docData: DocumentData) {
       doc.text("Assinado digitalmente por ", textX, ty);
       const prefixW = doc.getTextWidth("Assinado digitalmente por ");
       doc.setFont("helvetica", "bold");
-      const assinadoTxt = docData.profissionalRegistro
+      const assinadoTxt = docData.conselhoProfissional && docData.profissionalRegistro
+        ? `${docData.profissionalNome} - ${docData.conselhoProfissional}: ${docData.profissionalRegistro}`
+        : docData.profissionalRegistro
         ? `${docData.profissionalNome} - ${docData.profissionalRegistro}`
         : docData.profissionalNome;
       doc.text(assinadoTxt, textX + prefixW, ty);

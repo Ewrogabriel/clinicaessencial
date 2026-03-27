@@ -41,7 +41,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { email, password, nome, telefone, especialidade, commission_rate, commission_fixed, cor_agenda, registro_profissional, tipo_contratacao, cnpj, cpf, rg, data_nascimento, estado_civil, endereco, numero, bairro, cidade, estado, cep, role, permissions, clinic_id } = body;
+    const { email, password, nome, telefone, especialidade, commission_rate, commission_fixed, cor_agenda, registro_profissional, tipo_contratacao, cnpj, cpf, rg, data_nascimento, estado_civil, endereco, numero, bairro, cidade, estado, cep, role, permissions, clinic_id, conselho_profissional, registro_conselho } = body;
 
     if (!email || !password || !nome) {
       return new Response(JSON.stringify({ error: "Email, senha e nome são obrigatórios" }), {
@@ -91,6 +91,8 @@ serve(async (req) => {
       endereco: endereco || null, numero: numero || null,
       bairro: bairro || null, cidade: cidade || null,
       estado: estado || null, cep: cep || null,
+      conselho_profissional: conselho_profissional || null,
+      registro_conselho: registro_conselho || null,
     }, { onConflict: "user_id" });
 
     await adminClient.from("user_roles").upsert({

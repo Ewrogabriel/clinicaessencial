@@ -32,6 +32,7 @@ import { ALL_RESOURCES, DEFAULT_PERMISSIONS } from "@/lib/resources";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { cleanSignatureImage } from "@/lib/imageUtils";
 import { Loader2, Sparkles } from "lucide-react";
+import { CouncilCombobox } from "@/components/ui/council-combobox";
 
 interface PermissionEntry {
   resource: string;
@@ -732,10 +733,9 @@ const Profissionais = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Conselho Profissional</Label>
-                    <Input 
-                      value={conselhoProfissional} 
-                      onChange={e => setConselhoProfissional(e.target.value)} 
-                      placeholder="Ex: CREFITO, CRM, CRP..." 
+                    <CouncilCombobox
+                      value={conselhoProfissional}
+                      onValueChange={setConselhoProfissional}
                     />
                   </div>
                   <div className="space-y-2">
