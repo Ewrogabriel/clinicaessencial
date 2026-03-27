@@ -117,7 +117,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
   useEffect(() => {
     if (monthSlots) {
       const availMap: Record<number, number> = {};
-      monthSlots.forEach((s: any) => {
+      (monthSlots as any[]).forEach((s: any) => {
         const d = new Date(s.date);
         const day = new Date(d.getTime() + (d.getTimezoneOffset() * 60000)).getUTCDate();
         availMap[day] = s.total_vacancies;
