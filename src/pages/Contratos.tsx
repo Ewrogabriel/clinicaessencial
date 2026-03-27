@@ -318,7 +318,7 @@ const Contratos = () => {
                     />
                   </div>
 
-                  {incluirCarimbo && currentUserProfile?.rubrica_url && (
+                  {incluirCarimbo && (currentUserProfile as any)?.rubrica_url && (
                     <div className="flex items-center justify-between p-2 rounded-md bg-blue-50/30 border border-blue-100 ml-2">
                       <Label className="text-[10px] font-medium cursor-pointer" htmlFor="rub-carimbo">Rubrica no Carimbo</Label>
                       <input

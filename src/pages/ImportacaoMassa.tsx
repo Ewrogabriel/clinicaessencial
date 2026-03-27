@@ -347,7 +347,7 @@ const ImportacaoMassa = () => {
       // Fetch existing records for duplicate check
       const [{ data: existingPacientes }, { data: existingPreCadastros }] = await Promise.all([
         supabase.from("pacientes").select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId),
-        supabase.from("pre_cadastros").select("nome, cpf, email, telefone").eq("clinic_id" as any, activeClinicId)
+        (supabase.from("pre_cadastros") as any).select("nome, cpf, email, telefone").eq("clinic_id", activeClinicId)
       ]);
 
       const existingCPFs = new Set([
