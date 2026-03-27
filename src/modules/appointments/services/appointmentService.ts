@@ -153,16 +153,16 @@ export const appointmentService = {
 
                 // Create financial record for slot-based bookings too
                 if (params.valor_sessao && params.valor_sessao > 0 && agendamentoId) {
-                    await supabase.from("pagamentos_sessoes").insert({
+                    await supabase.from("pagamentos").insert({
                         paciente_id: params.paciente_id,
                         agendamento_id: agendamentoId,
                         valor: params.valor_sessao,
                         status: "pendente",
-                        data_pagamento: params.data_vencimento || params.data_horario,
-                        forma_pagamento_id: params.forma_pagamento_id || null,
-                        observacoes: `Agendamento: ${params.tipo_atendimento}`,
+                        data_vencimento: params.data_vencimento ? new Date(params.data_vencimento).toISOString().split('T')[0] : new Date(params.data_horario).toISOString().split('T')[0],
+                        descricao: `Sessão: ${params.tipo_atendimento}`,
                         clinic_id: params.clinic_id,
-                    });
+                        tipo_lancamento: 'sessao',
+                    } as any);
                 }
 
                 // Update valor_sessao, forma_pagamento and data_vencimento on the agendamento
@@ -204,16 +204,19 @@ export const appointmentService = {
 
             // Immediately create a pending financial record if there's a value
             if (params.valor_sessao && params.valor_sessao > 0) {
-                await supabase.from("pagamentos_sessoes").insert({
+                const { error: pagError } = await supabase.from("pagamentos").insert({
                     paciente_id: params.paciente_id,
                     agendamento_id: data.id,
                     valor: params.valor_sessao,
                     status: "pendente",
-                    data_pagamento: params.data_vencimento || params.data_horario,
-                    forma_pagamento_id: params.forma_pagamento_id || null,
-                    observacoes: `Agendamento: ${params.tipo_atendimento}`,
+                    data_vencimento: params.data_vencimento
+                        ? new Date(params.data_vencimento).toISOString().split('T')[0]
+                        : new Date(params.data_horario).toISOString().split('T')[0],
+                    descricao: `Sessão: ${params.tipo_atendimento}`,
                     clinic_id: params.clinic_id,
-                });
+                    tipo_lancamento: 'sessao',
+                } as any);
+                if (pagError) console.error('[appointmentService] Erro ao criar pagamento:', pagError);
             }
 
             return data;
@@ -283,22 +286,23 @@ export const appointmentService = {
             // Sessão realizada gera cobrança pendente automaticamente no Financeiro se não existir
             if (status === "realizado" && valorSessao > 0) {
                 const { data: existing, error: existingError } = await supabase
-                    .from("pagamentos_sessoes")
+                    .from("pagamentos")
                     .select("id")
                     .eq("agendamento_id", id)
                     .maybeSingle();
                 if (existingError) throw existingError;
 
                 if (!existing) {
-                    const { error: insertError } = await supabase.from("pagamentos_sessoes").insert({
+                    const { error: insertError } = await supabase.from("pagamentos").insert({
                         paciente_id: agendamentoAtual.paciente_id,
                         agendamento_id: agendamentoAtual.id,
                         valor: valorSessao,
                         status: "pendente",
-                        data_pagamento: agendamentoAtual.data_horario,
-                        observacoes: "Sessão avulsa - pendente",
+                        data_vencimento: new Date(agendamentoAtual.data_horario).toISOString().split('T')[0],
+                        descricao: "Sessão avulsa - realizada",
                         clinic_id: agendamentoAtual.clinic_id,
-                    });
+                        tipo_lancamento: 'sessao',
+                    } as any);
                     if (insertError) throw insertError;
                 }
             }
@@ -306,7 +310,7 @@ export const appointmentService = {
             // Se a sessão foi cancelada/falta, a cobrança avulsa pendente é cancelada
             if ((status === "cancelado" || status === "falta") && !isPlanoSessao && !isMatriculaSessao) {
                 const { error: cancelPaymentError } = await supabase
-                    .from("pagamentos_sessoes")
+                    .from("pagamentos")
                     .update({ status: "cancelado" })
                     .eq("agendamento_id", id)
                     .in("status", ["pendente", "aberto", "vencido"]);
