@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-icons', 'lucide-react', 'clsx', 'tailwind-merge'],
+          ui: ['lucide-react', 'clsx', 'tailwind-merge'],
           supabase: ['@supabase/supabase-js'],
           charts: ['recharts'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],

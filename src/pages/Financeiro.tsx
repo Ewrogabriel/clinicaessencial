@@ -109,15 +109,6 @@ const Financeiro = () => {
     queryKey: ["all-payments-unified", activeClinicId],
     queryFn: () => financeService.getUnifiedPayments(activeClinicId),
   });
-        const da = a.data_pagamento || a.created_at || "";
-        const db = b.data_pagamento || b.created_at || "";
-        return db.localeCompare(da);
-      });
-
-      return results;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
 
   const { data: pacientes = [] } = useQuery({
     queryKey: ["pacientes-ativos"],
