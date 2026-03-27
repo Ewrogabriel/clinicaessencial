@@ -149,6 +149,14 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
                         </div>
 
                         <div className="space-y-2">
+                            <Label>CID-10 (Opcional)</Label>
+                            <CidCombobox
+                                value={formData.cid}
+                                onValueChange={(v) => setFormData(prev => ({ ...prev, cid: v }))}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
                             <Label htmlFor="historico_doenca">Histórico da Doença Atual (HDA)</Label>
                             <Textarea
                                 id="historico_doenca"
