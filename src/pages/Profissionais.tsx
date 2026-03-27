@@ -32,6 +32,7 @@ import { ALL_RESOURCES, DEFAULT_PERMISSIONS } from "@/lib/resources";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { cleanSignatureImage } from "@/lib/imageUtils";
 import { Loader2, Sparkles } from "lucide-react";
+import { CouncilCombobox } from "@/components/ui/council-combobox";
 
 interface PermissionEntry {
   resource: string;
