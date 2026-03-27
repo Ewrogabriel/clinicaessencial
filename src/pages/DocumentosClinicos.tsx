@@ -209,8 +209,8 @@ const DocumentosClinicos = () => {
         paciente_nome: paciente?.nome || "Paciente",
         data: format(new Date(), "dd/MM/yyyy"),
         profissional_nome: profile?.nome || "Profissional",
-        profissional_registro: profile?.registro_conselho || profile?.registro_profissional || "",
-        conselho_profissional: profile?.conselho_profissional || "",
+      profissional_registro: (profile as any)?.registro_conselho || profile?.registro_profissional || "",
+      conselho_profissional: (profile as any)?.conselho_profissional || "",
         avaliacao: evaluations?.[0] ? `Queixa: ${evaluations[0].queixa_principal}. Objetivos: ${evaluations[0].objetivos_tratamento || "N/A"}` : "",
         ultima_evolucao: evolutions?.[0]?.descricao || "",
       };
