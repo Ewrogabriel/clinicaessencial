@@ -131,8 +131,9 @@ const Contratos = () => {
   const matricula = (matriculas as any[]).find((m: any) => m.id === selectedMatricula);
 
   const getContractData = () => {
-    const sigUrl = usarAssinaturaClinica ? clinicSettings?.assinatura_url : currentUserProfile?.assinatura_url;
-    const rubUrl = usarAssinaturaClinica ? clinicSettings?.rubrica_url : currentUserProfile?.rubrica_url;
+    const prof = currentUserProfile as any;
+    const sigUrl = usarAssinaturaClinica ? clinicSettings?.assinatura_url : prof?.assinatura_url;
+    const rubUrl = usarAssinaturaClinica ? clinicSettings?.rubrica_url : prof?.rubrica_url;
 
     return {
       pacienteNome: paciente?.nome || "",
@@ -145,13 +146,13 @@ const Contratos = () => {
       desconto: desconto?.percentual_desconto || 0,
       dataContrato: format(new Date(), "dd/MM/yyyy"),
       profissionalSignature: sigUrl || undefined,
-      profissionalNome: usarAssinaturaClinica ? clinicNome : (currentUserProfile?.nome || clinicNome),
+      profissionalNome: usarAssinaturaClinica ? clinicNome : (prof?.nome || clinicNome),
       profissionalRubrica: (incluirRubrica || (incluirCarimbo && rubricaNoCarimbo)) ? rubUrl : undefined,
       rubricaNoCarimbo: incluirCarimbo && rubricaNoCarimbo,
       incluirRubrica: incluirRubrica,
       incluirCarimbo: incluirCarimbo,
-      profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : (currentUserProfile?.registro_conselho || currentUserProfile?.registro_profissional),
-      conselhoProfissional: usarAssinaturaClinica ? undefined : currentUserProfile?.conselho_profissional,
+      profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : (prof?.registro_conselho || prof?.registro_profissional),
+      conselhoProfissional: usarAssinaturaClinica ? undefined : prof?.conselho_profissional,
     };
   };
 
