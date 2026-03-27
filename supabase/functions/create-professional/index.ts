@@ -91,6 +91,8 @@ serve(async (req) => {
       endereco: endereco || null, numero: numero || null,
       bairro: bairro || null, cidade: cidade || null,
       estado: estado || null, cep: cep || null,
+      conselho_profissional: conselho_profissional || null,
+      registro_conselho: registro_conselho || null,
     }, { onConflict: "user_id" });
 
     await adminClient.from("user_roles").upsert({
