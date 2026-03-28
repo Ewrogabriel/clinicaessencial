@@ -25,6 +25,8 @@ export interface UnifiedPayment extends Payment {
   profissional_nome?: string;
   agendamento_data?: string;
   status_agendamento?: string;
+  origem_tipo?: string;
+  source_table?: string;
 }
 
 export interface BI_Metrics {

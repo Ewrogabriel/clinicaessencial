@@ -312,8 +312,8 @@ export const appointmentService = {
                 const { error: cancelPaymentError } = await supabase
                     .from("pagamentos")
                     .update({ status: "cancelado" })
-                    .eq("agendamento_id", id)
-                    .in("status", ["pendente", "aberto", "vencido"]);
+                    .eq("agendamento_id" as any, id)
+                    .in("status", ["pendente", "aberto", "vencido"] as any);
                 if (cancelPaymentError) throw cancelPaymentError;
             }
         } catch (error) {
