@@ -225,14 +225,29 @@ const Financeiro = () => {
   }, [allPayments, filterMes, filterForma, filterOrigem, filterPaciente]);
 
   const previsaoPagamentos = useMemo(() => {
-    return allPayments
-      .filter((p) => p.status === "pendente" || p.status === "aberto" || p.status === "vencido")
-      .sort((a, b) => {
+    let items = allPayments
+      .filter((p: any) => p.status === "pendente" || p.status === "aberto" || p.status === "vencido");
+    
+    if (prevFilterMes && prevFilterMes !== "all") {
+      items = items.filter((p: any) => {
+        const dateVenc = p.data_vencimento?.substring(0, 7);
+        const dateCreated = p.created_at?.substring(0, 7);
+        return dateVenc === prevFilterMes || dateCreated === prevFilterMes;
+      });
+    }
+    if (prevFilterOrigem && prevFilterOrigem !== "all") {
+      items = items.filter((p: any) => p.origem_tipo === prevFilterOrigem);
+    }
+    if (prevFilterPaciente && prevFilterPaciente !== "all") {
+      items = items.filter((p: any) => p.paciente_nome?.toLowerCase().includes(prevFilterPaciente.toLowerCase()));
+    }
+
+    return items.sort((a: any, b: any) => {
         const dateA = a.data_vencimento ? new Date(a.data_vencimento).getTime() : (a.data_pagamento ? new Date(a.data_pagamento).getTime() : Infinity);
         const dateB = b.data_vencimento ? new Date(b.data_vencimento).getTime() : (b.data_pagamento ? new Date(b.data_pagamento).getTime() : Infinity);
         return dateA - dateB;
       });
-  }, [allPayments]);
+  }, [allPayments, prevFilterMes, prevFilterOrigem, prevFilterPaciente]);
 
   const previsaoKpis = useMemo(() => {
     const today = startOfDay(new Date());
