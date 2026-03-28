@@ -75,7 +75,8 @@ const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
 const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
 const AgendaPremium = lazy(() => import("./pages/AgendaPremium"));
-
+const ConciliacaoBancaria = lazy(() => import("./pages/ConciliacaoBancaria"));
+const Investimentos = lazy(() => import("./pages/Investimentos"));
 
 const DashboardToggle = () => {
   const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
