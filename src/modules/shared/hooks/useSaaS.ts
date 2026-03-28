@@ -22,11 +22,11 @@ export const useSaaS = () => {
     queryKey: ["saas-status", activeClinicId],
     queryFn: async () => {
       if (!activeClinicId) return null;
-      const { data, error } = await supabase
-        .from("v_saas_status")
+      const { data, error } = await (supabase
+        .from("v_saas_status" as any)
         .select("*")
         .eq("clinic_id", activeClinicId)
-        .single();
+        .single() as any);
       
       if (error) {
         console.warn("Could not fetch SaaS status, defaulting to Basic", error);
@@ -60,16 +60,16 @@ export const useSaaS = () => {
     }
 
     if (type === 'professionals') {
-      const { data: roles } = await supabase
+      const { data: roles } = await (supabase as any)
         .from("user_roles")
         .select("user_id")
         .in("role", ["profissional", "admin"]);
       
-      const { count } = await supabase
+      const { count } = await (supabase as any)
         .from("profiles")
         .select("*", { count: 'exact', head: true })
-        .in("user_id", roles?.map(r => r.user_id) || [])
-        .eq("clinic_id", activeClinicId); // Assuming clinic_id in profile or relationship
+        .in("user_id", (roles || []).map((r: any) => r.user_id))
+        .eq("clinic_id", activeClinicId);
 
       return (count ?? 0) >= saasStatus.max_professionals;
     }

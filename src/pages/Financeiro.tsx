@@ -6,7 +6,7 @@ import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filte
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { UnifiedPayment, Enums } from "@/types/database.types";
+import { Enums } from "@/types/database.types";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +105,7 @@ const Financeiro = () => {
   }, [formasPagamentoList]);
 
   // ── Fetch all 3 payment tables in parallel via Service Layer ──
-  const { data: allPayments = [], isLoading } = useQuery<UnifiedPayment[]>({
+  const { data: allPayments = [], isLoading } = useQuery<any[]>({
     queryKey: ["all-payments-unified", activeClinicId],
     queryFn: () => financeService.getUnifiedPayments(activeClinicId),
   });

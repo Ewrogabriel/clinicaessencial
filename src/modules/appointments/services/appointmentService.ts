@@ -285,10 +285,10 @@ export const appointmentService = {
 
             // Sessão realizada gera cobrança pendente automaticamente no Financeiro se não existir
             if (status === "realizado" && valorSessao > 0) {
-                const { data: existing, error: existingError } = await supabase
-                    .from("pagamentos")
+                const { data: existing, error: existingError } = await (supabase
+                    .from("pagamentos") as any)
                     .select("id")
-                    .eq("agendamento_id", id)
+                    .eq("agendamento_id" as any, id)
                     .maybeSingle();
                 if (existingError) throw existingError;
 
@@ -309,8 +309,8 @@ export const appointmentService = {
 
             // Se a sessão foi cancelada/falta, a cobrança avulsa pendente é cancelada
             if ((status === "cancelado" || status === "falta") && !isPlanoSessao && !isMatriculaSessao) {
-                const { error: cancelPaymentError } = await supabase
-                    .from("pagamentos")
+                const { error: cancelPaymentError } = await (supabase
+                    .from("pagamentos") as any)
                     .update({ status: "cancelado" })
                     .eq("agendamento_id", id)
                     .in("status", ["pendente", "aberto", "vencido"]);
