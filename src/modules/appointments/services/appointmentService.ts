@@ -285,8 +285,8 @@ export const appointmentService = {
 
             // Sessão realizada gera cobrança pendente automaticamente no Financeiro se não existir
             if (status === "realizado" && valorSessao > 0) {
-                const { data: existing, error: existingError } = await supabase
-                    .from("pagamentos")
+                const { data: existing, error: existingError } = await (supabase
+                    .from("pagamentos") as any)
                     .select("id")
                     .eq("agendamento_id" as any, id)
                     .maybeSingle();

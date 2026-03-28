@@ -397,7 +397,7 @@ const Dashboard = () => {
           <CardHeader><CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Sessões por Mês (Últimos 6 meses)</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={monthlyChart}>
+              <BarChart data={monthlyChart as any[]}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="mes" className="text-xs" /><YAxis className="text-xs" /><Tooltip />
                 <Bar dataKey="realizadas" name="Realizadas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />

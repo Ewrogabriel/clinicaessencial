@@ -60,16 +60,16 @@ export const useSaaS = () => {
     }
 
     if (type === 'professionals') {
-      const { data: roles } = await supabase
+      const { data: roles } = await (supabase
         .from("user_roles")
         .select("user_id")
-        .in("role", ["profissional", "admin"]);
+        .in("role", ["profissional", "admin"]) as any);
       
-      const { count } = await supabase
+      const { count } = await (supabase
         .from("profiles")
         .select("*", { count: 'exact', head: true })
-        .in("user_id", roles?.map(r => r.user_id) || [])
-        .eq("clinic_id", activeClinicId); // Assuming clinic_id in profile or relationship
+        .in("user_id", (roles as any)?.map((r: any) => r.user_id) || [])
+        .eq("clinic_id" as any, activeClinicId) as any);
 
       return (count ?? 0) >= saasStatus.max_professionals;
     }

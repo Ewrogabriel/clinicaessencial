@@ -218,7 +218,7 @@ export const financeService = {
     },
 
     async getUnifiedPayments(clinicId: string | null): Promise<UnifiedPayment[]> {
-        const results: UnifiedPayment[] = [];
+        const results: any[] = [];
         try {
             // 1. pagamentos
             let q1 = supabase
