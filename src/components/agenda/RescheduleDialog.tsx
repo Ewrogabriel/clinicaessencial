@@ -40,7 +40,8 @@ interface RescheduleDialogProps {
 }
 
 export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }: RescheduleDialogProps) {
-  const { user } = useAuth();
+  const { user, isAdmin, isGestor, isProfissional, isSecretario } = useAuth();
+  const isStaff = isAdmin || isGestor || isProfissional || isSecretario;
   const queryClient = useQueryClient();
   const [profissionais, setProfissionais] = useState<any[]>([]);
   const [selectedProfId, setSelectedProfId] = useState<string>("");
