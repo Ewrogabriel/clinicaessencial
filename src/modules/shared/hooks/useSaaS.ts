@@ -22,11 +22,11 @@ export const useSaaS = () => {
     queryKey: ["saas-status", activeClinicId],
     queryFn: async () => {
       if (!activeClinicId) return null;
-      const { data, error } = await supabase
-        .from("v_saas_status")
+      const { data, error } = await (supabase
+        .from("v_saas_status" as any)
         .select("*")
         .eq("clinic_id", activeClinicId)
-        .single();
+        .single() as any);
       
       if (error) {
         console.warn("Could not fetch SaaS status, defaulting to Basic", error);
