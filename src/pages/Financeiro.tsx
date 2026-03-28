@@ -73,7 +73,9 @@ const Financeiro = () => {
   const [filterForma, setFilterForma] = useState("all");
   const [filterOrigem, setFilterOrigem] = useState("all");
   const [filterPaciente, setFilterPaciente] = useState("");
-  
+  const [prevFilterMes, setPrevFilterMes] = useState("all");
+  const [prevFilterOrigem, setPrevFilterOrigem] = useState("all");
+  const [prevFilterPaciente, setPrevFilterPaciente] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; source: string; open: boolean } | null>(null);
   const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
   const [formData, setFormData] = useState({
