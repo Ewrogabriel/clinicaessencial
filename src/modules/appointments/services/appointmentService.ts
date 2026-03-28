@@ -288,7 +288,7 @@ export const appointmentService = {
                 const { data: existing, error: existingError } = await supabase
                     .from("pagamentos")
                     .select("id")
-                    .eq("agendamento_id", id)
+                    .eq("agendamento_id" as any, id)
                     .maybeSingle();
                 if (existingError) throw existingError;
 
