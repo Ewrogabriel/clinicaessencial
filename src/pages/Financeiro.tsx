@@ -105,7 +105,7 @@ const Financeiro = () => {
   }, [formasPagamentoList]);
 
   // ── Fetch all 3 payment tables in parallel via Service Layer ──
-  const { data: allPayments = [], isLoading } = useQuery<UnifiedPayment[]>({
+  const { data: allPayments = [], isLoading } = useQuery<any[]>({
     queryKey: ["all-payments-unified", activeClinicId],
     queryFn: () => financeService.getUnifiedPayments(activeClinicId),
   });
