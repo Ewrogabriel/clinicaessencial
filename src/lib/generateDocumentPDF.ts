@@ -155,6 +155,14 @@ export async function generateDocumentPDF(docData: DocumentData) {
     y += 6;
   }
 
+  if (docData.cid) {
+    doc.setFont("helvetica", "bold");
+    doc.text("CID-10: ", margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(docData.cid, margin + doc.getTextWidth("CID-10: "), y);
+    y += 6;
+  }
+
   doc.setFont("helvetica", "bold");
   doc.text("Data: ", margin, y);
   doc.setFont("helvetica", "normal");
