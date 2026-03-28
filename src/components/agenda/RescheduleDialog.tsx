@@ -143,6 +143,24 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
         ? `[TROCA DE PROFISSIONAL PARA: ${requestedProf?.nome || selectedProfId}] ${motivo}`
         : motivo;
 
+      // Professionals/staff bypass approval - directly update the appointment
+      if (isStaff) {
+        const updatePayload: any = {
+          data_horario: novaData.toISOString(),
+          status: "agendado",
+          observacoes: motivoCompleto ? `${agendamento.observacoes || ""}\n[${tipoLabel}] ${motivoCompleto}`.trim() : agendamento.observacoes,
+        };
+        if (selectedProfId !== agendamento.profissional_id) {
+          updatePayload.profissional_id = selectedProfId;
+        }
+        const { error } = await supabase.from("agendamentos")
+          .update(updatePayload)
+          .eq("id", agendamento.id);
+        if (error) throw error;
+        return;
+      }
+
+      // Patients create a request for approval
       const { error } = await supabase
         .from("solicitacoes_remarcacao")
         .insert({
@@ -191,10 +209,13 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
     },
     onSuccess: () => {
       toast({
-        title: "Solicitação enviada!",
-        description: `Sua solicitação de ${tipoLabelLower} foi enviada para análise da clínica.`,
+        title: isStaff ? `${tipoLabel} realizado!` : "Solicitação enviada!",
+        description: isStaff
+          ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada"} com sucesso.`
+          : `Sua solicitação de ${tipoLabelLower} foi enviada para análise da clínica.`,
       });
       queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       onSuccess();
       onOpenChange(false);
     },
