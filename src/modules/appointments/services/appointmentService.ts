@@ -309,11 +309,11 @@ export const appointmentService = {
 
             // Se a sessão foi cancelada/falta, a cobrança avulsa pendente é cancelada
             if ((status === "cancelado" || status === "falta") && !isPlanoSessao && !isMatriculaSessao) {
-                const { error: cancelPaymentError } = await supabase
-                    .from("pagamentos")
+                const { error: cancelPaymentError } = await (supabase
+                    .from("pagamentos") as any)
                     .update({ status: "cancelado" })
-                    .eq("agendamento_id" as any, id)
-                    .in("status", ["pendente", "aberto", "vencido"] as any);
+                    .eq("agendamento_id", id)
+                    .in("status", ["pendente", "aberto", "vencido"]);
                 if (cancelPaymentError) throw cancelPaymentError;
             }
         } catch (error) {
