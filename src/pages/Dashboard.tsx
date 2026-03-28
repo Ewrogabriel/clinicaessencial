@@ -392,7 +392,7 @@ const Dashboard = () => {
           ))}
         </div>
       );
-      case "chart": return monthlyChart.length > 0 ? (
+      case "chart": return (monthlyChart as any[]).length > 0 ? (
         <Card key="chart">
           <CardHeader><CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Sessões por Mês (Últimos 6 meses)</CardTitle></CardHeader>
           <CardContent>
