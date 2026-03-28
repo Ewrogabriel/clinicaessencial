@@ -191,7 +191,7 @@ const Dashboard = () => {
   const { data: monthlyChart = [] } = useQuery({
     queryKey: ["dashboard-monthly-chart", activeClinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_dashboard_monthly_chart", {
+      const { data, error } = await (supabase.rpc as any)("get_dashboard_monthly_chart", {
         p_clinic_id: activeClinicId || null
       });
       if (error) {
