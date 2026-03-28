@@ -101,6 +101,8 @@ export const AppSidebar = memo(function AppSidebar() {
   const menuFinanceiro = [
     { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
     { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
+    { title: "Conciliação Bancária", url: "/conciliacao-bancaria", icon: CreditCard },
+    { title: "Investimentos", url: "/investimentos", icon: Activity },
     ...(saasStatus?.has_bi ? [{ title: "Inteligência BI", url: "/inteligencia-bi", icon: Activity }] : []),
     { title: t("nav.reports"), url: "/relatorios", icon: BarChart3 },
   ];

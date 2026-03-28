@@ -73,7 +73,9 @@ const Financeiro = () => {
   const [filterForma, setFilterForma] = useState("all");
   const [filterOrigem, setFilterOrigem] = useState("all");
   const [filterPaciente, setFilterPaciente] = useState("");
-  
+  const [prevFilterMes, setPrevFilterMes] = useState("all");
+  const [prevFilterOrigem, setPrevFilterOrigem] = useState("all");
+  const [prevFilterPaciente, setPrevFilterPaciente] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; source: string; open: boolean } | null>(null);
   const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
   const [formData, setFormData] = useState({
@@ -223,14 +225,29 @@ const Financeiro = () => {
   }, [allPayments, filterMes, filterForma, filterOrigem, filterPaciente]);
 
   const previsaoPagamentos = useMemo(() => {
-    return allPayments
-      .filter((p) => p.status === "pendente" || p.status === "aberto" || p.status === "vencido")
-      .sort((a, b) => {
+    let items = allPayments
+      .filter((p: any) => p.status === "pendente" || p.status === "aberto" || p.status === "vencido");
+    
+    if (prevFilterMes && prevFilterMes !== "all") {
+      items = items.filter((p: any) => {
+        const dateVenc = p.data_vencimento?.substring(0, 7);
+        const dateCreated = p.created_at?.substring(0, 7);
+        return dateVenc === prevFilterMes || dateCreated === prevFilterMes;
+      });
+    }
+    if (prevFilterOrigem && prevFilterOrigem !== "all") {
+      items = items.filter((p: any) => p.origem_tipo === prevFilterOrigem);
+    }
+    if (prevFilterPaciente && prevFilterPaciente !== "all") {
+      items = items.filter((p: any) => p.paciente_nome?.toLowerCase().includes(prevFilterPaciente.toLowerCase()));
+    }
+
+    return items.sort((a: any, b: any) => {
         const dateA = a.data_vencimento ? new Date(a.data_vencimento).getTime() : (a.data_pagamento ? new Date(a.data_pagamento).getTime() : Infinity);
         const dateB = b.data_vencimento ? new Date(b.data_vencimento).getTime() : (b.data_pagamento ? new Date(b.data_pagamento).getTime() : Infinity);
         return dateA - dateB;
       });
-  }, [allPayments]);
+  }, [allPayments, prevFilterMes, prevFilterOrigem, prevFilterPaciente]);
 
   const previsaoKpis = useMemo(() => {
     const today = startOfDay(new Date());
@@ -549,6 +566,46 @@ const Financeiro = () => {
                 <p className="text-xs text-muted-foreground mt-1">{previsaoKpis.countAVencer30} pagamento(s) nos próximos 30 dias</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Previsão Filters */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <Label className="text-xs text-muted-foreground">Mês</Label>
+              <Select value={prevFilterMes} onValueChange={setPrevFilterMes}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const d = subMonths(new Date(), i - 1);
+                    const val = format(d, "yyyy-MM");
+                    return <SelectItem key={val} value={val}>{format(d, "MMM/yyyy", { locale: ptBR })}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Select value={prevFilterOrigem} onValueChange={setPrevFilterOrigem}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="mensalidade">Mensalidade</SelectItem>
+                  <SelectItem value="plano">Plano</SelectItem>
+                  <SelectItem value="sessao">Sessão</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Paciente</Label>
+              <Input
+                className="w-[180px] h-9"
+                placeholder="Filtrar paciente..."
+                value={prevFilterPaciente}
+                onChange={(e) => setPrevFilterPaciente(e.target.value)}
+              />
+            </div>
           </div>
 
           <Card>
