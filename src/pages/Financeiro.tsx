@@ -568,6 +568,46 @@ const Financeiro = () => {
             </Card>
           </div>
 
+          {/* Previsão Filters */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <Label className="text-xs text-muted-foreground">Mês</Label>
+              <Select value={prevFilterMes} onValueChange={setPrevFilterMes}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const d = subMonths(new Date(), i - 1);
+                    const val = format(d, "yyyy-MM");
+                    return <SelectItem key={val} value={val}>{format(d, "MMM/yyyy", { locale: ptBR })}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Select value={prevFilterOrigem} onValueChange={setPrevFilterOrigem}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="mensalidade">Mensalidade</SelectItem>
+                  <SelectItem value="plano">Plano</SelectItem>
+                  <SelectItem value="sessao">Sessão</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Paciente</Label>
+              <Input
+                className="w-[180px] h-9"
+                placeholder="Filtrar paciente..."
+                value={prevFilterPaciente}
+                onChange={(e) => setPrevFilterPaciente(e.target.value)}
+              />
+            </div>
+          </div>
+
           <Card>
             <CardContent className="p-0">
               {isLoading ? (
