@@ -179,14 +179,13 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
 
         const { error } = await supabase.from("agendamentos").insert({
           paciente_id: plano.paciente_id,
-          profissional_id: plano.profissional_id,
+          profissional_id: selectedProfissionalId,
           data_horario: targetDate.toISOString(),
           duracao_minutos: parseInt(duracao),
           tipo_atendimento: selectedModality,
           tipo_sessao: tipoSessao as any,
           status: "agendado" as any,
           observacoes: `${finalObs} | plano:${plano.id}`.trim(),
-          forma_pagamento_id: formaPagamentoId || null,
           created_by: userId,
           clinic_id: activeClinicId,
         } as any);
