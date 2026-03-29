@@ -221,6 +221,7 @@ const Profissionais = () => {
     setRubricaUrl((u as any).rubrica_url || "");
     setConselhoProfissional(u.conselho_profissional || "");
     setRegistroConselho(u.registro_conselho || "");
+    setFotoUrl((u as any).foto_url || "");
     setDialogOpen(true);
   };
 
