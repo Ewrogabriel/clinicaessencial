@@ -92,7 +92,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
 
   const formattedDate = data ? format(data, "yyyy-MM-dd") : "";
   const { data: availableSlots, isLoading: isLoadingSlots } = useScheduleSlots({
-    professionalId: plano.profissional_id,
+    professionalId: selectedProfissionalId,
     date: formattedDate,
     clinicId: activeClinicId
   });
