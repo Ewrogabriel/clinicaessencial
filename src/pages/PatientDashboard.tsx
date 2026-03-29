@@ -170,7 +170,40 @@ export default function PatientDashboard() {
     enabled: !!paciente?.id,
   });
 
-  const { data: convenios = [] } = useQuery({
+  // Histórico de sessões passadas
+  const { data: pastSessions = [] } = useQuery({
+    queryKey: ["patient-past-sessions", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("agendamentos")
+        .select("id, data_horario, tipo_atendimento, status, duracao_minutos")
+        .eq("paciente_id", paciente.id)
+        .in("status", ["realizado", "falta", "cancelado"])
+        .order("data_horario", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  // Matrículas ativas
+  const { data: matriculasAtivas = [] } = useQuery({
+    queryKey: ["patient-matriculas", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("matriculas")
+        .select("id, modalidade_id, status, data_inicio, data_fim, dias_semana, horario")
+        .eq("paciente_id", paciente.id)
+        .eq("status", "ativa")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
     queryKey: ["convenios-ativos", activeClinicId],
     queryFn: async () => {
       const { data } = await supabase
