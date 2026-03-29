@@ -366,6 +366,7 @@ const Profissionais = () => {
           rubrica_url: rubricaUrl || null,
           conselho_profissional: conselhoProfissional || null,
           registro_conselho: registroConselho || null,
+          foto_url: fotoUrl || null,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
