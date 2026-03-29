@@ -111,7 +111,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
       });
       return data || [];
     },
-    enabled: !!plano.profissional_id && !!activeClinicId,
+    enabled: !!selectedProfissionalId && !!activeClinicId,
   });
 
   useEffect(() => {
