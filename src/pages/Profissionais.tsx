@@ -191,6 +191,7 @@ const Profissionais = () => {
     setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
     setAssinaturaUrl(""); setRubricaUrl("");
     setConselhoProfissional(""); setRegistroConselho("");
+    setFotoUrl("");
   }, []);
 
   const openCreate = () => {
