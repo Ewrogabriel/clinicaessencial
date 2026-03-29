@@ -38,6 +38,8 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
 const DEFAULT_CARDS: DashboardCard[] = [
   { id: "tips", label: "Dica do Dia", visible: true },
   { id: "sessoes", label: "Próximas Sessões", visible: true },
+  { id: "historico", label: "Histórico de Sessões", visible: true },
+  { id: "matriculas", label: "Matrículas", visible: true },
   { id: "exercicios", label: "Exercícios", visible: true },
   { id: "planos", label: "Meus Planos", visible: true },
   { id: "pagamentos", label: "Pagamentos", visible: true },
@@ -161,6 +163,40 @@ export default function PatientDashboard() {
         .from("contratos_digitais")
         .select("id, titulo, created_at")
         .eq("paciente_id", paciente.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  // Histórico de sessões passadas
+  const { data: pastSessions = [] } = useQuery({
+    queryKey: ["patient-past-sessions", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("agendamentos")
+        .select("id, data_horario, tipo_atendimento, status, duracao_minutos")
+        .eq("paciente_id", paciente.id)
+        .in("status", ["realizado", "falta", "cancelado"])
+        .order("data_horario", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!paciente?.id,
+  });
+
+  // Matrículas ativas
+  const { data: matriculasAtivas = [] } = useQuery({
+    queryKey: ["patient-matriculas", paciente?.id],
+    queryFn: async () => {
+      if (!paciente?.id) return [];
+      const { data } = await supabase
+        .from("matriculas")
+        .select("id, modalidade_id, status, data_inicio, data_fim, dias_semana, horario")
+        .eq("paciente_id", paciente.id)
+        .eq("status", "ativa")
         .order("created_at", { ascending: false })
         .limit(5);
       return data || [];
@@ -480,6 +516,104 @@ export default function PatientDashboard() {
                         </div>
                       </button>
                       {idx < nextAppointments.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Histórico de Sessões */}
+        {isCardVisible("historico") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-gray-600" />
+                Histórico de Sessões
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/historico-sessoes")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {pastSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <CalendarDays className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma sessão realizada ainda</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {pastSessions.map((s: any, idx: number) => {
+                    const statusColors: Record<string, string> = {
+                      realizado: "bg-green-50 text-green-700",
+                      falta: "bg-amber-50 text-amber-700",
+                      cancelado: "bg-red-50 text-red-700",
+                    };
+                    return (
+                      <div key={s.id}>
+                        <div className="flex items-center gap-3 p-3 rounded-lg">
+                          <div className="flex items-center justify-center w-10 h-10 bg-muted rounded-lg shrink-0">
+                            <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {format(new Date(s.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{s.tipo_atendimento} • {s.duracao_minutos}min</p>
+                          </div>
+                          <Badge variant="outline" className={`text-xs ${statusColors[s.status] || ""}`}>
+                            {s.status === "realizado" ? "Realizada" : s.status === "falta" ? "Falta" : "Cancelada"}
+                          </Badge>
+                        </div>
+                        {idx < pastSessions.length - 1 && <Separator />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Matrículas */}
+        {isCardVisible("matriculas") && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Star className="h-5 w-5 text-indigo-600" />
+                Matrículas Ativas
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/matriculas")} className="text-xs text-primary gap-1 h-7">
+                Ver tudo <ArrowRight className="h-3 w-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {matriculasAtivas.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Star className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma matrícula ativa</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {matriculasAtivas.map((m: any, idx: number) => (
+                    <div key={m.id}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg">
+                        <div className="flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-lg shrink-0">
+                          <Star className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {m.horario || "Matrícula"} {m.dias_semana?.length ? `• ${m.dias_semana.length}x/sem` : ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {m.data_inicio ? format(new Date(m.data_inicio), "dd/MM/yyyy") : ""} 
+                            {m.data_fim ? ` a ${format(new Date(m.data_fim), "dd/MM/yyyy")}` : ""}
+                          </p>
+                        </div>
+                        <Badge variant="default" className="text-xs shrink-0">Ativa</Badge>
+                      </div>
+                      {idx < matriculasAtivas.length - 1 && <Separator />}
                     </div>
                   ))}
                 </div>

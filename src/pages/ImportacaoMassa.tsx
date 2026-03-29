@@ -13,6 +13,7 @@ import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, Users, Calendar, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
+import { parseDateMultiFormat } from "@/lib/dateUtils";
 
 type ImportType = "pacientes" | "agendamentos" | "pagamentos";
 type Step = "upload" | "mapping" | "preview" | "result";
@@ -400,7 +401,7 @@ const ImportacaoMassa = () => {
             telefone: telefoneValue,
             email: emailValue || null,
             cpf: row[cpfKey] ? (String(row[cpfKey]).trim() || null) : null,
-            data_nascimento: row.data_nascimento || null,
+            data_nascimento: parseDateMultiFormat(row.data_nascimento) || null,
             cep: row.cep || null,
             rua: row.rua || null,
             numero: row.numero || null,
@@ -435,10 +436,12 @@ const ImportacaoMassa = () => {
           if (!pacId) throw new Error(`Paciente "${row.paciente_nome}" não encontrado`);
           if (!profId) throw new Error(`Profissional "${row.profissional_nome}" não encontrado`);
 
+          const parsedDate = parseDateMultiFormat(row.data_horario);
+          if (!parsedDate) throw new Error(`Data inválida: "${row.data_horario}"`);
           const { error } = await supabase.from("agendamentos").insert({
             paciente_id: pacId,
             profissional_id: profId,
-            data_horario: new Date(row.data_horario).toISOString(),
+            data_horario: new Date(parsedDate).toISOString(),
             duracao_minutos: row.duracao_minutos ? Number(row.duracao_minutos) : 50,
             tipo_atendimento: row.tipo_atendimento || "fisioterapia",
             observacoes: row.observacoes || null,
@@ -467,9 +470,7 @@ const ImportacaoMassa = () => {
             paciente_id: pacId,
             profissional_id: user.id,
             valor: Number(row.valor),
-            data_pagamento: row.data_pagamento
-              ? new Date(row.data_pagamento).toISOString()
-              : new Date().toISOString(),
+            data_pagamento: parseDateMultiFormat(row.data_pagamento) || new Date().toISOString().slice(0, 10),
             forma_pagamento: row.forma_pagamento || null,
             descricao: row.descricao || "Importado via planilha",
             status: row.status || "pago",

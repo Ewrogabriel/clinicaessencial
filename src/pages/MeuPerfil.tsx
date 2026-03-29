@@ -11,7 +11,8 @@ import { User, Phone, Mail, MapPin, FileText, Edit2, Save, X, AlertCircle, Check
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { maskCEP } from "@/lib/masks";
 import { Badge } from "@/components/ui/badge";
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -27,6 +28,27 @@ const MeuPerfil = () => {
   const [editData, setEditData] = useState<any>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [rescheduleSession, setRescheduleSession] = useState<any>(null);
+  const [fetchingCep, setFetchingCep] = useState(false);
+
+  const fetchCepAddress = useCallback(async (cepValue: string) => {
+    const clean = cepValue.replace(/\D/g, "");
+    if (clean.length !== 8) return;
+    setFetchingCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await res.json();
+      if (!data.erro && editData) {
+        setEditData((prev: any) => ({
+          ...prev,
+          rua: data.logradouro || prev.rua,
+          bairro: data.bairro || prev.bairro,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+        }));
+      }
+    } catch { /* ignore */ }
+    setFetchingCep(false);
+  }, [editData]);
 
   const { data: paciente, isLoading, refetch } = useQuery({
     queryKey: ["patient-profile-self", patientId],
@@ -412,8 +434,12 @@ const MeuPerfil = () => {
                   {editMode ? (
                     <Input
                       value={editData.cep || ""}
-                      onChange={(e) => setEditData({ ...editData, cep: e.target.value })}
-                      placeholder="CEP"
+                      onChange={(e) => {
+                        const masked = maskCEP(e.target.value);
+                        setEditData({ ...editData, cep: masked });
+                        fetchCepAddress(masked);
+                      }}
+                      placeholder="00000-000"
                       className="mt-1"
                     />
                   ) : (
