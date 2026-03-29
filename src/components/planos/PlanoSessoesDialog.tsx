@@ -104,7 +104,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
       const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
       const { data } = await (supabase.rpc as any)("get_professional_vacancies", {
-        p_professional_id: plano.profissional_id,
+        p_professional_id: selectedProfissionalId,
         p_clinic_id: activeClinicId,
         p_start_date: format(start, "yyyy-MM-dd"),
         p_end_date: format(end, "yyyy-MM-dd")
