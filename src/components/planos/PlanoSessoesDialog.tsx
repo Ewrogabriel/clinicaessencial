@@ -70,7 +70,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
   const [isTeleconsulta, setIsTeleconsulta] = useState(false);
   const [isDomiciliar, setIsDomiciliar] = useState(false);
   const [selectedModality, setSelectedModality] = useState(plano.tipo_atendimento);
-  const [formaPagamentoId, setFormaPagamentoId] = useState("");
+  const [selectedProfissionalId, setSelectedProfissionalId] = useState(plano.profissional_id);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
 
