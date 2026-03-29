@@ -13,6 +13,7 @@ import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, Users, Calendar, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
+import { parseDateMultiFormat } from "@/lib/dateUtils";
 
 type ImportType = "pacientes" | "agendamentos" | "pagamentos";
 type Step = "upload" | "mapping" | "preview" | "result";
