@@ -11,7 +11,8 @@ import { User, Phone, Mail, MapPin, FileText, Edit2, Save, X, AlertCircle, Check
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { toast } from "@/modules/shared/hooks/use-toast";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { maskCEP } from "@/lib/masks";
 import { Badge } from "@/components/ui/badge";
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
