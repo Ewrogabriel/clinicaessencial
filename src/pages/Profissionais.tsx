@@ -137,6 +137,7 @@ const Profissionais = () => {
   const [rubricaUrl, setRubricaUrl] = useState("");
   const [conselhoProfissional, setConselhoProfissional] = useState("");
   const [registroConselho, setRegistroConselho] = useState("");
+  const [fotoUrl, setFotoUrl] = useState("");
   const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
   const [cleaningRubrica, setCleaningRubrica] = useState(false);
 
