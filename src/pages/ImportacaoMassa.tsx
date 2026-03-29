@@ -436,10 +436,12 @@ const ImportacaoMassa = () => {
           if (!pacId) throw new Error(`Paciente "${row.paciente_nome}" não encontrado`);
           if (!profId) throw new Error(`Profissional "${row.profissional_nome}" não encontrado`);
 
+          const parsedDate = parseDateMultiFormat(row.data_horario);
+          if (!parsedDate) throw new Error(`Data inválida: "${row.data_horario}"`);
           const { error } = await supabase.from("agendamentos").insert({
             paciente_id: pacId,
             profissional_id: profId,
-            data_horario: new Date(row.data_horario).toISOString(),
+            data_horario: new Date(parsedDate).toISOString(),
             duracao_minutos: row.duracao_minutos ? Number(row.duracao_minutos) : 50,
             tipo_atendimento: row.tipo_atendimento || "fisioterapia",
             observacoes: row.observacoes || null,
