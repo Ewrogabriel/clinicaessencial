@@ -381,12 +381,17 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                             </SelectTrigger>
                             <SelectContent>
                                 {weekdaySlots.map((slot) => (
-                                    <SelectItem key={slot.time} value={slot.time}>
+                                    <SelectItem key={slot.time} value={slot.time} disabled={(slot as any).current_capacity >= slot.max_capacity}>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-3 w-3 text-muted-foreground" />
                                             <span className="font-medium">{slot.time}</span>
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-green-50 text-green-600 border-green-200">
-                                                até {slot.max_capacity} pacientes
+                                            <span className={cn(
+                                                "text-[10px] px-1.5 py-0.5 rounded-full border",
+                                                (slot as any).current_capacity >= slot.max_capacity
+                                                    ? "bg-red-50 text-red-600 border-red-200"
+                                                    : "bg-green-50 text-green-600 border-green-200"
+                                            )}>
+                                                {(slot as any).current_capacity || 0}/{slot.max_capacity} vagas
                                             </span>
                                         </div>
                                     </SelectItem>

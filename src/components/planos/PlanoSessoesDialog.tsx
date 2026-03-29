@@ -382,12 +382,12 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Forma de Pagamento (Ref.)</Label>
-                <Select value={formaPagamentoId} onValueChange={setFormaPagamentoId}>
+                <Label className="text-xs">Profissional</Label>
+                <Select value={selectedProfissionalId} onValueChange={(v) => { setSelectedProfissionalId(v); setSlotId(""); setHorario(""); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {formasPagamento.map((fp: any) => (
-                      <SelectItem key={fp.id} value={fp.id}>{fp.nome}</SelectItem>
+                    {profissionaisList.map((p: any) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

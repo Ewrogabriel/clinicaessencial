@@ -668,6 +668,16 @@ const Profissionais = () => {
                   </div>
                 )}
                 <div className="space-y-2">
+                  <Label>Foto de Perfil</Label>
+                  <ImageUpload
+                    value={(editingId ? (users.find(u => u.id === editingId) as any)?.foto_url : null) || fotoUrl}
+                    onChange={setFotoUrl}
+                    bucket="professional-documents"
+                    folder="profile-photos"
+                    className="w-24 h-24 rounded-full"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Nome *</Label>
                   <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" />
                 </div>
