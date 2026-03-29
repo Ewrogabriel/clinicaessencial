@@ -98,9 +98,9 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
   });
 
   const { data: monthSlots } = useQuery({
-    queryKey: ["professional-month-slots", plano.profissional_id, activeClinicId, format(currentMonth, "yyyy-MM")],
+    queryKey: ["professional-month-slots", selectedProfissionalId, activeClinicId, format(currentMonth, "yyyy-MM")],
     queryFn: async () => {
-      if (!plano.profissional_id || !activeClinicId) return [];
+      if (!selectedProfissionalId || !activeClinicId) return [];
       const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
       const { data } = await (supabase.rpc as any)("get_professional_vacancies", {
