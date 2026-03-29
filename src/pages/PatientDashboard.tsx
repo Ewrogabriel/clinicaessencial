@@ -204,6 +204,7 @@ export default function PatientDashboard() {
     enabled: !!paciente?.id,
   });
 
+  const { data: convenios = [] } = useQuery({
     queryKey: ["convenios-ativos", activeClinicId],
     queryFn: async () => {
       const { data } = await supabase
