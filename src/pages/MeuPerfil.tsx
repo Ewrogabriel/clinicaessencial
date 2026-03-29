@@ -28,6 +28,27 @@ const MeuPerfil = () => {
   const [editData, setEditData] = useState<any>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [rescheduleSession, setRescheduleSession] = useState<any>(null);
+  const [fetchingCep, setFetchingCep] = useState(false);
+
+  const fetchCepAddress = useCallback(async (cepValue: string) => {
+    const clean = cepValue.replace(/\D/g, "");
+    if (clean.length !== 8) return;
+    setFetchingCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await res.json();
+      if (!data.erro && editData) {
+        setEditData((prev: any) => ({
+          ...prev,
+          rua: data.logradouro || prev.rua,
+          bairro: data.bairro || prev.bairro,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+        }));
+      }
+    } catch { /* ignore */ }
+    setFetchingCep(false);
+  }, [editData]);
 
   const { data: paciente, isLoading, refetch } = useQuery({
     queryKey: ["patient-profile-self", patientId],
