@@ -401,7 +401,7 @@ const ImportacaoMassa = () => {
             telefone: telefoneValue,
             email: emailValue || null,
             cpf: row[cpfKey] ? (String(row[cpfKey]).trim() || null) : null,
-            data_nascimento: row.data_nascimento || null,
+            data_nascimento: parseDateMultiFormat(row.data_nascimento) || null,
             cep: row.cep || null,
             rua: row.rua || null,
             numero: row.numero || null,
