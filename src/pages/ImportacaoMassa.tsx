@@ -470,9 +470,7 @@ const ImportacaoMassa = () => {
             paciente_id: pacId,
             profissional_id: user.id,
             valor: Number(row.valor),
-            data_pagamento: row.data_pagamento
-              ? new Date(row.data_pagamento).toISOString()
-              : new Date().toISOString(),
+            data_pagamento: parseDateMultiFormat(row.data_pagamento) || new Date().toISOString().slice(0, 10),
             forma_pagamento: row.forma_pagamento || null,
             descricao: row.descricao || "Importado via planilha",
             status: row.status || "pago",
