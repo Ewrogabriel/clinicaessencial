@@ -82,10 +82,10 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
     }
   });
 
-  const { data: formasPagamento = [] } = useQuery({
-    queryKey: ["formas_pagamento"],
+  const { data: profissionaisList = [] } = useQuery({
+    queryKey: ["professionals-basic-plano"],
     queryFn: async () => {
-      const { data } = await supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("profiles").select("user_id, nome").order("nome");
       return data || [];
     }
   });
