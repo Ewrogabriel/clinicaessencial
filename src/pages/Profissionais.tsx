@@ -671,9 +671,8 @@ const Profissionais = () => {
                 <div className="space-y-2">
                   <Label>Foto de Perfil</Label>
                   <ImageUpload
-                    value={(editingId ? (users.find(u => u.id === editingId) as any)?.foto_url : null) || fotoUrl}
+                    value={fotoUrl}
                     onChange={setFotoUrl}
-                    bucket="professional-documents"
                     folder="profile-photos"
                     className="w-24 h-24 rounded-full"
                   />
