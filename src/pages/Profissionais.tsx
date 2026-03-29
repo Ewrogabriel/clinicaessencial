@@ -137,6 +137,7 @@ const Profissionais = () => {
   const [rubricaUrl, setRubricaUrl] = useState("");
   const [conselhoProfissional, setConselhoProfissional] = useState("");
   const [registroConselho, setRegistroConselho] = useState("");
+  const [fotoUrl, setFotoUrl] = useState("");
   const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
   const [cleaningRubrica, setCleaningRubrica] = useState(false);
 
@@ -190,6 +191,7 @@ const Profissionais = () => {
     setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
     setAssinaturaUrl(""); setRubricaUrl("");
     setConselhoProfissional(""); setRegistroConselho("");
+    setFotoUrl("");
   }, []);
 
   const openCreate = () => {
@@ -219,6 +221,7 @@ const Profissionais = () => {
     setRubricaUrl((u as any).rubrica_url || "");
     setConselhoProfissional(u.conselho_profissional || "");
     setRegistroConselho(u.registro_conselho || "");
+    setFotoUrl((u as any).foto_url || "");
     setDialogOpen(true);
   };
 
@@ -363,6 +366,7 @@ const Profissionais = () => {
           rubrica_url: rubricaUrl || null,
           conselho_profissional: conselhoProfissional || null,
           registro_conselho: registroConselho || null,
+          foto_url: fotoUrl || null,
         } as any)
         .eq("id", editingId);
       if (error) throw error;
@@ -667,6 +671,15 @@ const Profissionais = () => {
                     </Select>
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label>Foto de Perfil</Label>
+                  <ImageUpload
+                    value={fotoUrl}
+                    onChange={setFotoUrl}
+                    folder="profile-photos"
+                    className="w-24 h-24 rounded-full"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Nome *</Label>
                   <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" />

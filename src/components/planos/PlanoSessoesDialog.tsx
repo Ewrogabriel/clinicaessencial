@@ -70,7 +70,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
   const [isTeleconsulta, setIsTeleconsulta] = useState(false);
   const [isDomiciliar, setIsDomiciliar] = useState(false);
   const [selectedModality, setSelectedModality] = useState(plano.tipo_atendimento);
-  const [formaPagamentoId, setFormaPagamentoId] = useState("");
+  const [selectedProfissionalId, setSelectedProfissionalId] = useState(plano.profissional_id);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
 
@@ -82,36 +82,36 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
     }
   });
 
-  const { data: formasPagamento = [] } = useQuery({
-    queryKey: ["formas_pagamento"],
+  const { data: profissionaisList = [] } = useQuery({
+    queryKey: ["professionals-basic-plano"],
     queryFn: async () => {
-      const { data } = await supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("profiles").select("user_id, nome").order("nome");
       return data || [];
     }
   });
 
   const formattedDate = data ? format(data, "yyyy-MM-dd") : "";
   const { data: availableSlots, isLoading: isLoadingSlots } = useScheduleSlots({
-    professionalId: plano.profissional_id,
+    professionalId: selectedProfissionalId,
     date: formattedDate,
     clinicId: activeClinicId
   });
 
   const { data: monthSlots } = useQuery({
-    queryKey: ["professional-month-slots", plano.profissional_id, activeClinicId, format(currentMonth, "yyyy-MM")],
+    queryKey: ["professional-month-slots", selectedProfissionalId, activeClinicId, format(currentMonth, "yyyy-MM")],
     queryFn: async () => {
-      if (!plano.profissional_id || !activeClinicId) return [];
+      if (!selectedProfissionalId || !activeClinicId) return [];
       const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
       const { data } = await (supabase.rpc as any)("get_professional_vacancies", {
-        p_professional_id: plano.profissional_id,
+        p_professional_id: selectedProfissionalId,
         p_clinic_id: activeClinicId,
         p_start_date: format(start, "yyyy-MM-dd"),
         p_end_date: format(end, "yyyy-MM-dd")
       });
       return data || [];
     },
-    enabled: !!plano.profissional_id && !!activeClinicId,
+    enabled: !!selectedProfissionalId && !!activeClinicId,
   });
 
   useEffect(() => {
@@ -179,14 +179,13 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
 
         const { error } = await supabase.from("agendamentos").insert({
           paciente_id: plano.paciente_id,
-          profissional_id: plano.profissional_id,
+          profissional_id: selectedProfissionalId,
           data_horario: targetDate.toISOString(),
           duracao_minutos: parseInt(duracao),
           tipo_atendimento: selectedModality,
           tipo_sessao: tipoSessao as any,
           status: "agendado" as any,
           observacoes: `${finalObs} | plano:${plano.id}`.trim(),
-          forma_pagamento_id: formaPagamentoId || null,
           created_by: userId,
           clinic_id: activeClinicId,
         } as any);
@@ -383,12 +382,12 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Forma de Pagamento (Ref.)</Label>
-                <Select value={formaPagamentoId} onValueChange={setFormaPagamentoId}>
+                <Label className="text-xs">Profissional</Label>
+                <Select value={selectedProfissionalId} onValueChange={(v) => { setSelectedProfissionalId(v); setSlotId(""); setHorario(""); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {formasPagamento.map((fp: any) => (
-                      <SelectItem key={fp.id} value={fp.id}>{fp.nome}</SelectItem>
+                    {profissionaisList.map((p: any) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -53,7 +53,7 @@ const ConfirmacoesDia = () => {
         .select("*, pacientes(id, nome, telefone, whatsapp)")
         .gte("data_horario", rangeStart)
         .lte("data_horario", rangeEnd)
-        .in("status", ["agendado", "confirmado", "realizado"])
+        .in("status", ["agendado", "confirmado", "pendente", "realizado"])
         .order("data_horario", { ascending: true });
 
       if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
