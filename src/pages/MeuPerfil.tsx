@@ -434,8 +434,12 @@ const MeuPerfil = () => {
                   {editMode ? (
                     <Input
                       value={editData.cep || ""}
-                      onChange={(e) => setEditData({ ...editData, cep: e.target.value })}
-                      placeholder="CEP"
+                      onChange={(e) => {
+                        const masked = maskCEP(e.target.value);
+                        setEditData({ ...editData, cep: masked });
+                        fetchCepAddress(masked);
+                      }}
+                      placeholder="00000-000"
                       className="mt-1"
                     />
                   ) : (
