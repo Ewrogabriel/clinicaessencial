@@ -21,6 +21,8 @@ interface ContractData {
   profissionalNome?: string;
   profissionalRegistro?: string;
   conselhoProfissional?: string;
+  apenasQrCode?: boolean;
+  contractId?: string;
 }
 
 export async function drawCarimbo(doc: jsPDF, x: number, y: number, nome: string, registro?: string, conselho?: string, rubricaUrl?: string) {
