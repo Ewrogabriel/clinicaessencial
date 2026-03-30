@@ -309,7 +309,7 @@ const ClinicSettings = () => {
               </div>
 
               <div className="pt-6">
-                <Button variant="default" className="w-full sm:w-auto h-10 px-8">Fazer Upgrade de Plano</Button>
+                <UpgradePlanButton clinicId={settings?.id} currentPlan={saasStatus?.plan_name} />
               </div>
             </CardContent>
           </Card>
