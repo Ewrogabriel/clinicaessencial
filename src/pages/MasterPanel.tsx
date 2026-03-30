@@ -758,6 +758,117 @@ function MasterDashboardTab() {
   );
 }
 
+// ─── Upgrade Requests Tab ───────────────────────────────────
+function UpgradeRequestsTab() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: requests = [], isLoading } = useQuery({
+    queryKey: ["plan-upgrade-requests"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("plan_upgrade_requests") as any)
+        .select("*, clinicas(nome), current_plan:platform_plans!plan_upgrade_requests_current_plan_id_fkey(nome), requested_plan:platform_plans!plan_upgrade_requests_requested_plan_id_fkey(nome, valor_mensal)")
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const handleRequest = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: "aprovado" | "rejeitado" }) => {
+      const request = requests.find((r: any) => r.id === id);
+      if (!request) throw new Error("Solicitação não encontrada");
+
+      await (supabase.from("plan_upgrade_requests") as any)
+        .update({ status: action, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (action === "aprovado" && request.clinic_id && request.requested_plan_id) {
+        // Check if subscription exists
+        const { data: sub } = await (supabase.from("clinic_subscriptions") as any)
+          .select("id").eq("clinic_id", request.clinic_id).maybeSingle();
+
+        if (sub) {
+          await (supabase.from("clinic_subscriptions") as any)
+            .update({ plan_id: request.requested_plan_id })
+            .eq("id", sub.id);
+        } else {
+          const venc = new Date();
+          venc.setMonth(venc.getMonth() + 1);
+          await (supabase.from("clinic_subscriptions") as any).insert({
+            clinic_id: request.clinic_id,
+            plan_id: request.requested_plan_id,
+            data_vencimento: venc.toISOString().split("T")[0],
+          });
+        }
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Solicitação processada! ✅" });
+      queryClient.invalidateQueries({ queryKey: ["plan-upgrade-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["master-subscriptions"] });
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const pendentes = requests.filter((r: any) => r.status === "pendente");
+  const historico = requests.filter((r: any) => r.status !== "pendente");
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold">Solicitações de Upgrade</h2>
+
+      {pendentes.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">Pendentes ({pendentes.length})</h3>
+          {pendentes.map((r: any) => (
+            <Card key={r.id} className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{r.clinicas?.nome || "Clínica"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {r.current_plan?.nome || "Sem plano"} → <strong>{r.requested_plan?.nome}</strong> (R$ {Number(r.requested_plan?.valor_mensal || 0).toFixed(2)}/mês)
+                  </p>
+                  {r.motivo && <p className="text-xs text-muted-foreground mt-1">Motivo: {r.motivo}</p>}
+                  <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" onClick={() => handleRequest.mutate({ id: r.id, action: "aprovado" })} disabled={handleRequest.isPending}>
+                    <Check className="h-4 w-4 mr-1" /> Aprovar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleRequest.mutate({ id: r.id, action: "rejeitado" })} disabled={handleRequest.isPending}>
+                    <X className="h-4 w-4 mr-1" /> Rejeitar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {pendentes.length === 0 && !isLoading && (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">Nenhuma solicitação pendente.</CardContent></Card>
+      )}
+
+      {historico.length > 0 && (
+        <div className="space-y-3 pt-4 border-t">
+          <h3 className="text-sm font-semibold text-muted-foreground">Histórico</h3>
+          {historico.slice(0, 20).map((r: any) => (
+            <Card key={r.id}>
+              <CardContent className="p-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{r.clinicas?.nome} — {r.current_plan?.nome || "—"} → {r.requested_plan?.nome}</p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                </div>
+                <Badge variant={r.status === "aprovado" ? "default" : "destructive"}>{r.status}</Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ───────────────────────────────────────────────────
 export default function MasterPanel() {
   const { isMaster } = useAuth();
@@ -791,6 +902,7 @@ export default function MasterPanel() {
           <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Visão Geral</TabsTrigger>
           <TabsTrigger value="clinics" className="text-xs sm:text-sm">Clínicas</TabsTrigger>
           <TabsTrigger value="plans" className="text-xs sm:text-sm">Planos</TabsTrigger>
+          <TabsTrigger value="upgrades" className="text-xs sm:text-sm">Upgrades</TabsTrigger>
           <TabsTrigger value="payments" className="text-xs sm:text-sm">Pagamentos</TabsTrigger>
           <TabsTrigger value="groups" className="text-xs sm:text-sm">Grupos</TabsTrigger>
           <TabsTrigger value="marketing" className="gap-1 text-xs sm:text-sm">
@@ -803,6 +915,7 @@ export default function MasterPanel() {
         <TabsContent value="dashboard"><MasterDashboardTab /></TabsContent>
         <TabsContent value="clinics"><ClinicsTab /></TabsContent>
         <TabsContent value="plans"><PlansTab /></TabsContent>
+        <TabsContent value="upgrades"><UpgradeRequestsTab /></TabsContent>
         <TabsContent value="payments"><PaymentsTab /></TabsContent>
         <TabsContent value="groups"><GroupsTab /></TabsContent>
         <TabsContent value="marketing"><MasterMarketingTab /></TabsContent>

@@ -157,6 +157,7 @@ const Contratos = () => {
       incluirCarimbo: incluirCarimbo,
       profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : (prof?.registro_conselho || prof?.registro_profissional),
       conselhoProfissional: usarAssinaturaClinica ? undefined : prof?.conselho_profissional,
+      contractId: crypto.randomUUID(),
     };
   };
 

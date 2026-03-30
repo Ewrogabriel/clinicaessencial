@@ -50,19 +50,17 @@ export function clearSettingsCache() {
   cachedSettings = null;
 }
 
-// Cache logo base64 to avoid refetching
-let cachedLogoBase64: string | null = null;
-let cachedLogoFormat: string = "PNG";
+// Cache images by URL to avoid refetching
+const imageCache = new Map<string, { base64: string; format: string }>();
 
-async function loadLogoBase64(logoUrl: string): Promise<{ base64: string; format: string } | null> {
-  if (cachedLogoBase64) return { base64: cachedLogoBase64, format: cachedLogoFormat };
+export async function loadImageBase64(imageUrl: string): Promise<{ base64: string; format: string } | null> {
+  if (imageCache.has(imageUrl)) return imageCache.get(imageUrl)!;
   try {
-    const response = await fetch(logoUrl);
+    const response = await fetch(imageUrl);
     const blob = await response.blob();
     const base64 = await blobToBase64(blob);
     const format = blob.type.includes("png") ? "PNG" : "JPEG";
-    cachedLogoBase64 = base64;
-    cachedLogoFormat = format;
+    imageCache.set(imageUrl, { base64, format });
     return { base64, format };
   } catch {
     return null;
@@ -82,7 +80,7 @@ export async function addWatermarkToAllPages(doc: any, profissionalProfile?: any
 
   let logoData: { base64: string; format: string } | null = null;
   if (settings.logo_url) {
-    logoData = await loadLogoBase64(settings.logo_url);
+    logoData = await loadImageBase64(settings.logo_url);
   }
 
   for (let i = 1; i <= pageCount; i++) {
@@ -149,7 +147,7 @@ export async function addWatermarkToAllPages(doc: any, profissionalProfile?: any
     // 3. Rubrica no canto inferior direito (se existir e for solicitada - aqui colocamos padrão)
     if (profile?.rubrica_url) {
       try {
-        const rubricaData = await loadLogoBase64(profile.rubrica_url);
+        const rubricaData = await loadImageBase64(profile.rubrica_url);
         if (rubricaData) {
           doc.setGState(new doc.GState({ opacity: 0.8 })); // Rubrica mais visível
           doc.addImage(rubricaData.base64, rubricaData.format, pageWidth - 35, pageHeight - 25, 20, 10);
@@ -178,7 +176,7 @@ export async function addLogoToPDF(
   }
   
   try {
-    const logoData = await loadLogoBase64(settings.logo_url);
+    const logoData = await loadImageBase64(settings.logo_url);
     if (!logoData) return y;
     
     const img = new Image();
