@@ -50,19 +50,17 @@ export function clearSettingsCache() {
   cachedSettings = null;
 }
 
-// Cache logo base64 to avoid refetching
-let cachedLogoBase64: string | null = null;
-let cachedLogoFormat: string = "PNG";
+// Cache images by URL to avoid refetching
+const imageCache = new Map<string, { base64: string; format: string }>();
 
-async function loadLogoBase64(logoUrl: string): Promise<{ base64: string; format: string } | null> {
-  if (cachedLogoBase64) return { base64: cachedLogoBase64, format: cachedLogoFormat };
+export async function loadImageBase64(imageUrl: string): Promise<{ base64: string; format: string } | null> {
+  if (imageCache.has(imageUrl)) return imageCache.get(imageUrl)!;
   try {
-    const response = await fetch(logoUrl);
+    const response = await fetch(imageUrl);
     const blob = await response.blob();
     const base64 = await blobToBase64(blob);
     const format = blob.type.includes("png") ? "PNG" : "JPEG";
-    cachedLogoBase64 = base64;
-    cachedLogoFormat = format;
+    imageCache.set(imageUrl, { base64, format });
     return { base64, format };
   } catch {
     return null;
