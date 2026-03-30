@@ -345,6 +345,7 @@ export type Database = {
       bank_transactions: {
         Row: {
           bank_account_id: string | null
+          categoria: string | null
           clinic_id: string | null
           created_at: string | null
           dados_originais: Json | null
@@ -366,6 +367,7 @@ export type Database = {
         }
         Insert: {
           bank_account_id?: string | null
+          categoria?: string | null
           clinic_id?: string | null
           created_at?: string | null
           dados_originais?: Json | null
@@ -387,6 +389,7 @@ export type Database = {
         }
         Update: {
           bank_account_id?: string | null
+          categoria?: string | null
           clinic_id?: string | null
           created_at?: string | null
           dados_originais?: Json | null
@@ -3074,6 +3077,73 @@ export type Database = {
             columns: ["paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_upgrade_requests: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          current_plan_id: string | null
+          id: string
+          motivo: string | null
+          requested_by: string
+          requested_plan_id: string
+          resposta: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          current_plan_id?: string | null
+          id?: string
+          motivo?: string | null
+          requested_by: string
+          requested_plan_id: string
+          resposta?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          current_plan_id?: string | null
+          id?: string
+          motivo?: string | null
+          requested_by?: string
+          requested_plan_id?: string
+          resposta?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_upgrade_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_upgrade_requests_current_plan_id_fkey"
+            columns: ["current_plan_id"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_upgrade_requests_requested_plan_id_fkey"
+            columns: ["requested_plan_id"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
             referencedColumns: ["id"]
           },
         ]
