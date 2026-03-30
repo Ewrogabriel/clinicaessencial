@@ -18,8 +18,107 @@ import { BackupExport } from "@/components/settings/BackupExport";
 import { IntegrationTabs } from "@/components/settings/IntegrationTabs";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
-import { Calendar, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, ShieldCheck, CheckCircle2, XCircle, Rocket } from "lucide-react";
 import { useSaaS } from "@/modules/shared/hooks/useSaaS";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+function UpgradePlanButton({ clinicId, currentPlan }: { clinicId?: string; currentPlan?: string }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [motivo, setMotivo] = useState("");
+
+  const { data: plans = [] } = useQuery({
+    queryKey: ["platform-plans-upgrade"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("platform_plans") as any).select("*").eq("ativo", true).order("valor_mensal");
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  const requestUpgrade = useMutation({
+    mutationFn: async () => {
+      if (!clinicId || !selectedPlanId || !user?.id) throw new Error("Dados incompletos");
+      // Get current subscription
+      const { data: sub } = await (supabase.from("clinic_subscriptions") as any)
+        .select("plan_id").eq("clinic_id", clinicId).maybeSingle();
+      
+      const { error } = await (supabase.from("plan_upgrade_requests") as any).insert({
+        clinic_id: clinicId,
+        current_plan_id: sub?.plan_id || null,
+        requested_plan_id: selectedPlanId,
+        requested_by: user.id,
+        motivo: motivo || null,
+      });
+      if (error) throw error;
+
+      // Notify master admins
+      const { data: masters } = await supabase.from("user_roles").select("user_id").eq("role", "master");
+      if (masters?.length) {
+        const plan = plans.find((p: any) => p.id === selectedPlanId);
+        await supabase.from("notificacoes").insert(
+          masters.map((m) => ({
+            user_id: m.user_id,
+            tipo: "upgrade_plano",
+            titulo: "Solicitação de Upgrade de Plano",
+            resumo: `Clínica solicitou upgrade para o plano ${plan?.nome || "—"}`,
+            link: "/master",
+          }))
+        );
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Solicitação enviada!", description: "O administrador master será notificado para aprovar." });
+      setOpen(false);
+      setSelectedPlanId("");
+      setMotivo("");
+    },
+    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  return (
+    <>
+      <Button variant="default" className="w-full sm:w-auto h-10 px-8 gap-2" onClick={() => setOpen(true)}>
+        <Rocket className="h-4 w-4" /> Solicitar Upgrade de Plano
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar Upgrade de Plano</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Plano atual: <strong>{currentPlan || "Básico"}</strong>. Selecione o plano desejado abaixo. 
+              A solicitação será enviada ao administrador master para aprovação.
+            </p>
+            <div>
+              <Label>Novo Plano</Label>
+              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o plano" /></SelectTrigger>
+                <SelectContent>
+                  {plans.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome} — R$ {Number(p.valor_mensal).toFixed(2)}/mês
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Motivo (opcional)</Label>
+              <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex: Precisamos de mais pacientes" />
+            </div>
+            <Button className="w-full" onClick={() => requestUpgrade.mutate()} disabled={!selectedPlanId || requestUpgrade.isPending}>
+              {requestUpgrade.isPending ? "Enviando..." : "Enviar Solicitação"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
