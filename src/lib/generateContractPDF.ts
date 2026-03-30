@@ -258,9 +258,67 @@ export async function generateContractPDF(data: ContractData) {
   addText("CONTRATANTE", 9);
   addText(data.pacienteNome, 9);
 
-  // Aumentar marca d'água chamando a função com parâmetros se disponíveis (opcional aqui)
-  if (data.incluirRubrica) {
-    await addWatermarkToAllPages(doc, { rubrica_url: data.profissionalRubrica });
+  // Always add watermark to all pages
+  await addWatermarkToAllPages(doc, data.incluirRubrica ? { rubrica_url: data.profissionalRubrica } : undefined);
+
+  // QR Code for authenticity (same as documents)
+  if (data.contractId) {
+    try {
+      const verifyUrl = `${window.location.origin}/verificar-documento/${data.contractId}`;
+      const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+        width: 120, margin: 1, color: { dark: "#000000", light: "#ffffff" },
+      });
+
+      const totalPages = doc.getNumberOfPages();
+      doc.setPage(totalPages);
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const qrSize = 26;
+      const blockY = pageHeight - qrSize - 18;
+
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, blockY - 3, pageWidth - margin, blockY - 3);
+
+      doc.addImage(qrDataUrl, "PNG", margin, blockY, qrSize, qrSize);
+
+      const textX = margin + qrSize + 4;
+      let ty = blockY + 5;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0);
+      doc.text(`${settings.nome}`, textX, ty);
+      doc.setFont("helvetica", "normal");
+      doc.text(" - Verificação de autenticidade via QR Code", textX + doc.getTextWidth(`${settings.nome}`), ty);
+      ty += 5;
+
+      const shortCode = data.contractId.substring(0, 8).toUpperCase();
+      doc.setFontSize(7.5);
+      doc.text("Código de Autenticidade: ", textX, ty);
+      doc.setFont("helvetica", "bold");
+      doc.text(shortCode, textX + doc.getTextWidth("Código de Autenticidade: "), ty);
+      ty += 5;
+
+      const footerY = pageHeight - 8;
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(60);
+      doc.text("*Para validar a autenticidade deste documento, acesse ", margin, footerY);
+      const baseW = doc.getTextWidth("*Para validar a autenticidade deste documento, acesse ");
+      doc.setTextColor(0, 80, 200);
+      doc.text(verifyUrl, margin + baseW, footerY);
+      const linkW = doc.getTextWidth(verifyUrl);
+      doc.setDrawColor(0, 80, 200);
+      doc.setLineWidth(0.2);
+      doc.line(margin + baseW, footerY + 0.5, margin + baseW + linkW, footerY + 0.5);
+      doc.setTextColor(0);
+      doc.setDrawColor(0);
+    } catch (e) {
+      console.error("Erro ao gerar QR Code no contrato:", e);
+    }
   }
+
   return doc;
 }
