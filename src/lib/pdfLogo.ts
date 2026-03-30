@@ -176,7 +176,7 @@ export async function addLogoToPDF(
   }
   
   try {
-    const logoData = await loadLogoBase64(settings.logo_url);
+    const logoData = await loadImageBase64(settings.logo_url);
     if (!logoData) return y;
     
     const img = new Image();
