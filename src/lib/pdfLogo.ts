@@ -80,7 +80,7 @@ export async function addWatermarkToAllPages(doc: any, profissionalProfile?: any
 
   let logoData: { base64: string; format: string } | null = null;
   if (settings.logo_url) {
-    logoData = await loadLogoBase64(settings.logo_url);
+    logoData = await loadImageBase64(settings.logo_url);
   }
 
   for (let i = 1; i <= pageCount; i++) {
