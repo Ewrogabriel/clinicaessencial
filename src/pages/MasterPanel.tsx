@@ -791,6 +791,7 @@ export default function MasterPanel() {
           <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Visão Geral</TabsTrigger>
           <TabsTrigger value="clinics" className="text-xs sm:text-sm">Clínicas</TabsTrigger>
           <TabsTrigger value="plans" className="text-xs sm:text-sm">Planos</TabsTrigger>
+          <TabsTrigger value="upgrades" className="text-xs sm:text-sm">Upgrades</TabsTrigger>
           <TabsTrigger value="payments" className="text-xs sm:text-sm">Pagamentos</TabsTrigger>
           <TabsTrigger value="groups" className="text-xs sm:text-sm">Grupos</TabsTrigger>
           <TabsTrigger value="marketing" className="gap-1 text-xs sm:text-sm">
@@ -803,6 +804,7 @@ export default function MasterPanel() {
         <TabsContent value="dashboard"><MasterDashboardTab /></TabsContent>
         <TabsContent value="clinics"><ClinicsTab /></TabsContent>
         <TabsContent value="plans"><PlansTab /></TabsContent>
+        <TabsContent value="upgrades"><UpgradeRequestsTab /></TabsContent>
         <TabsContent value="payments"><PaymentsTab /></TabsContent>
         <TabsContent value="groups"><GroupsTab /></TabsContent>
         <TabsContent value="marketing"><MasterMarketingTab /></TabsContent>
