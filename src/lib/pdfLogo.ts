@@ -147,7 +147,7 @@ export async function addWatermarkToAllPages(doc: any, profissionalProfile?: any
     // 3. Rubrica no canto inferior direito (se existir e for solicitada - aqui colocamos padrão)
     if (profile?.rubrica_url) {
       try {
-        const rubricaData = await loadLogoBase64(profile.rubrica_url);
+        const rubricaData = await loadImageBase64(profile.rubrica_url);
         if (rubricaData) {
           doc.setGState(new doc.GState({ opacity: 0.8 })); // Rubrica mais visível
           doc.addImage(rubricaData.base64, rubricaData.format, pageWidth - 35, pageHeight - 25, 20, 10);
