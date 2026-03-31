@@ -131,7 +131,7 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
     mutationFn: async (planId: string) => {
       if (subscription) {
         const { error } = await (supabase.from("clinic_subscriptions") as any)
-          .update({ plan_id: planId })
+          .update({ plan_id: planId, updated_at: new Date().toISOString() })
           .eq("id", subscription.id);
         if (error) throw error;
       } else {
@@ -140,6 +140,7 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
         const { error } = await (supabase.from("clinic_subscriptions") as any).insert({
           clinic_id: clinic.id,
           plan_id: planId,
+          status: "ativa",
           data_vencimento: venc.toISOString().split("T")[0],
         });
         if (error) throw error;
@@ -148,9 +149,11 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-subscription", clinic?.id] });
       queryClient.invalidateQueries({ queryKey: ["master-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
+      queryClient.invalidateQueries({ queryKey: ["saas-status"] });
       toast({ title: "Plano atualizado! ✅" });
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Erro ao alterar plano", description: e.message, variant: "destructive" }),
   });
 
   const updateSubDiscount = useMutation({
