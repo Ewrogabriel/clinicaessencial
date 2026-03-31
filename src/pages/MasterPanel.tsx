@@ -783,22 +783,24 @@ function UpgradeRequestsTab() {
         .eq("id", id);
 
       if (action === "aprovado" && request.clinic_id && request.requested_plan_id) {
-        // Check if subscription exists
         const { data: sub } = await (supabase.from("clinic_subscriptions") as any)
           .select("id").eq("clinic_id", request.clinic_id).maybeSingle();
 
         if (sub) {
-          await (supabase.from("clinic_subscriptions") as any)
-            .update({ plan_id: request.requested_plan_id })
+          const { error: upErr } = await (supabase.from("clinic_subscriptions") as any)
+            .update({ plan_id: request.requested_plan_id, updated_at: new Date().toISOString() })
             .eq("id", sub.id);
+          if (upErr) throw upErr;
         } else {
           const venc = new Date();
           venc.setMonth(venc.getMonth() + 1);
-          await (supabase.from("clinic_subscriptions") as any).insert({
+          const { error: insErr } = await (supabase.from("clinic_subscriptions") as any).insert({
             clinic_id: request.clinic_id,
             plan_id: request.requested_plan_id,
+            status: "ativa",
             data_vencimento: venc.toISOString().split("T")[0],
           });
+          if (insErr) throw insErr;
         }
       }
     },
@@ -806,6 +808,8 @@ function UpgradeRequestsTab() {
       toast({ title: "Solicitação processada! ✅" });
       queryClient.invalidateQueries({ queryKey: ["plan-upgrade-requests"] });
       queryClient.invalidateQueries({ queryKey: ["master-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
+      queryClient.invalidateQueries({ queryKey: ["saas-status"] });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
