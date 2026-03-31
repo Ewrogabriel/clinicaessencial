@@ -45,28 +45,32 @@ function UpgradePlanButton({ clinicId, currentPlan }: { clinicId?: string; curre
       const { data: sub } = await (supabase.from("clinic_subscriptions") as any)
         .select("plan_id").eq("clinic_id", clinicId).maybeSingle();
       
-      const { error } = await (supabase.from("plan_upgrade_requests") as any).insert({
+      const { data: inserted, error } = await (supabase.from("plan_upgrade_requests") as any).insert({
         clinic_id: clinicId,
         current_plan_id: sub?.plan_id || null,
         requested_plan_id: selectedPlanId,
         requested_by: user.id,
         motivo: motivo || null,
-      });
+      }).select().single();
       if (error) throw error;
 
-      // Notify master admins
-      const { data: masters } = await supabase.from("user_roles").select("user_id").eq("role", "master");
-      if (masters?.length) {
-        const plan = plans.find((p: any) => p.id === selectedPlanId);
-        await supabase.from("notificacoes").insert(
-          masters.map((m) => ({
-            user_id: m.user_id,
-            tipo: "upgrade_plano",
-            titulo: "Solicitação de Upgrade de Plano",
-            resumo: `Clínica solicitou upgrade para o plano ${plan?.nome || "—"}`,
-            link: "/master",
-          }))
-        );
+      // Notify master admins (non-blocking)
+      try {
+        const { data: masters } = await (supabase.from("user_roles") as any).select("user_id").eq("role", "master");
+        if (masters?.length) {
+          const plan = plans.find((p: any) => p.id === selectedPlanId);
+          await (supabase.from("notificacoes") as any).insert(
+            masters.map((m: any) => ({
+              user_id: m.user_id,
+              tipo: "upgrade_plano",
+              titulo: "Solicitação de Upgrade de Plano",
+              resumo: `Clínica solicitou upgrade para o plano ${plan?.nome || "—"}`,
+              link: "/master",
+            }))
+          );
+        }
+      } catch (notifError) {
+        console.warn("Notificação não enviada:", notifError);
       }
     },
     onSuccess: () => {
