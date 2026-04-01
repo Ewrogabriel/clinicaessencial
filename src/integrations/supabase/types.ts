@@ -92,6 +92,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agenda_extra_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       agendamentos: {
@@ -191,6 +198,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agendamentos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "agendamentos_enrollment_id_fkey"
             columns: ["enrollment_id"]
             isOneToOne: false
@@ -281,6 +295,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "avisos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       bank_accounts: {
@@ -339,6 +360,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -425,6 +453,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bank_transactions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "bank_transactions_matched_paciente_id_fkey"
             columns: ["matched_paciente_id"]
             isOneToOne: false
@@ -474,6 +509,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueios_profissional_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -574,6 +616,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clinic_group_members_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "clinic_group_members_group_id_fkey"
             columns: ["group_id"]
             isOneToOne: false
@@ -638,6 +687,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_pacientes_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "clinic_pacientes_paciente_id_fkey"
@@ -766,6 +822,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clinic_subscriptions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "clinic_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
@@ -803,6 +866,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_users_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -914,6 +984,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_clinic_id_ref_fkey"
+            columns: ["clinic_id_ref"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -1096,6 +1173,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contrato_templates_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       contratos_digitais: {
@@ -1142,6 +1226,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_digitais_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "contratos_digitais_paciente_id_fkey"
@@ -1305,6 +1396,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "disponibilidade_profissional_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       documentos_clinicos: {
@@ -1354,6 +1452,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_clinicos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "documentos_clinicos_paciente_id_fkey"
@@ -1423,6 +1528,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emissoes_nf_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "emissoes_nf_paciente_id_fkey"
@@ -1551,6 +1663,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipamentos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -1763,6 +1882,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_clinic_id_ref_fkey"
+            columns: ["clinic_id_ref"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -2005,6 +2131,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "investments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       landing_content: {
@@ -2090,6 +2223,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lista_espera_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "lista_espera_matricula_id_fkey"
@@ -2179,6 +2319,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "marketing_campaigns_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       matriculas: {
@@ -2249,6 +2396,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriculas_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "matriculas_paciente_id_fkey"
@@ -2353,6 +2507,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "metas_clinica_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       modalidades: {
@@ -2393,6 +2554,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modalidades_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -2711,6 +2879,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "pagamentos_paciente_id_fkey"
             columns: ["paciente_id"]
             isOneToOne: false
@@ -2781,6 +2956,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_mensalidade_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "pagamentos_mensalidade_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -2843,6 +3025,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_sessoes_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "pagamentos_sessoes_forma_pagamento_id_fkey"
@@ -3073,6 +3262,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pesquisa_satisfacao_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "pesquisa_satisfacao_paciente_id_fkey"
             columns: ["paciente_id"]
             isOneToOne: false
@@ -3131,6 +3327,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_upgrade_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "plan_upgrade_requests_current_plan_id_fkey"
@@ -3264,6 +3467,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_exercicios_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
           {
             foreignKeyName: "planos_exercicios_paciente_id_fkey"
@@ -3474,6 +3684,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pre_cadastros_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
           },
         ]
       }
@@ -3879,6 +4096,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recesso_clinica_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       regras_comissao: {
@@ -4127,6 +4351,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "schedule_slots_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       solicitacoes_alteracao_dados: {
@@ -4348,6 +4579,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "statement_imports_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
         ]
       }
       subscription_payments: {
@@ -4518,6 +4756,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "teleconsulta_sessions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
             foreignKeyName: "teleconsulta_sessions_evolution_id_fkey"
             columns: ["evolution_id"]
             isOneToOne: false
@@ -4675,7 +4920,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_saas_status: {
+        Row: {
+          clinic_id: string | null
+          clinic_name: string | null
+          current_period_end: string | null
+          has_api: boolean | null
+          has_bi: boolean | null
+          has_premium_agenda: boolean | null
+          max_patients: number | null
+          max_professionals: number | null
+          plan_name: string | null
+          subscription_status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       book_appointment: {

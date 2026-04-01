@@ -147,10 +147,12 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clinic-subscription", clinic?.id] });
+      queryClient.invalidateQueries({ queryKey: ["clinic-subscription"] });
       queryClient.invalidateQueries({ queryKey: ["master-subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
       queryClient.invalidateQueries({ queryKey: ["saas-status"] });
+      queryClient.invalidateQueries({ queryKey: ["plan-limit"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-plans-upgrade"] });
       toast({ title: "Plano atualizado! ✅" });
     },
     onError: (e: Error) => toast({ title: "Erro ao alterar plano", description: e.message, variant: "destructive" }),

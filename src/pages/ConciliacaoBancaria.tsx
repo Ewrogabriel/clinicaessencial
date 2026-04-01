@@ -784,14 +784,18 @@ export default function ConciliacaoBancaria() {
                         {col.label} {col.required && <span className="text-destructive">*</span>}
                       </Label>
                       <Select
-                        value={columnMapping[col.key] || ""}
-                        onValueChange={(v) => setColumnMapping(prev => ({ ...prev, [col.key]: v }))}
+                        value={columnMapping[col.key] || "__ignore__"}
+                        onValueChange={(v) => setColumnMapping(prev => {
+                          const next = { ...prev };
+                          if (v === "__ignore__") { delete next[col.key]; } else { next[col.key] = v; }
+                          return next;
+                        })}
                       >
                         <SelectTrigger className="h-8 text-xs">
                           <SelectValue placeholder="Selecione a coluna" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">— Ignorar —</SelectItem>
+                          <SelectItem value="__ignore__">— Ignorar —</SelectItem>
                           {fileHeaders.map((h, i) => (
                             <SelectItem key={i} value={String(i)}>{h || `Coluna ${i + 1}`}</SelectItem>
                           ))}
