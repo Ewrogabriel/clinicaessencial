@@ -412,7 +412,7 @@ const ClinicSettings = () => {
               </div>
 
               <div className="pt-6">
-                <UpgradePlanButton clinicId={settings?.id} currentPlan={saasStatus?.plan_name} />
+                <UpgradePlanButton clinicId={saasStatus?.clinic_id} currentPlan={saasStatus?.plan_name} />
               </div>
             </CardContent>
           </Card>

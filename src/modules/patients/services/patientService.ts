@@ -174,7 +174,6 @@ export const patientService = {
             responsavel_parentesco: preCadastroData.responsavel_parentesco || null,
             created_by: createdBy,
             profissional_id: createdBy,
-            clinic_id: activeClinicId,
             codigo_acesso: codigoAcesso,
             status: "ativo",
         }).select().single();
