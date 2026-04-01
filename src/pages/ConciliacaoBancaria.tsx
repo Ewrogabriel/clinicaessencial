@@ -791,7 +791,7 @@ export default function ConciliacaoBancaria() {
                           <SelectValue placeholder="Selecione a coluna" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">— Ignorar —</SelectItem>
+                          <SelectItem value="__ignore__">— Ignorar —</SelectItem>
                           {fileHeaders.map((h, i) => (
                             <SelectItem key={i} value={String(i)}>{h || `Coluna ${i + 1}`}</SelectItem>
                           ))}
