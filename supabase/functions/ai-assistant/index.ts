@@ -357,8 +357,92 @@ Retorne um array JSON com os objetos limpos, seguindo as chaves descritas em Cam
         toolChoice = { type: "function", function: { name: "return_analyzed_rows" } };
         break;
 
+      case "categorize_transactions":
+        systemPrompt = `Você é um especialista em conciliação bancária para clínicas de saúde.
+Analise as descrições das transações bancárias e categorize cada uma nas categorias fornecidas.
+Tente também identificar se a transação corresponde a algum paciente pelo nome na descrição.
+Retorne um array JSON com a categorização.`;
+        userPrompt = `Categorias disponíveis: ${JSON.stringify(context.categories)}
+Nomes de pacientes da clínica: ${JSON.stringify(context.patient_names?.slice(0, 100) || [])}
+Transações para categorizar:
+${JSON.stringify(context.transactions?.slice(0, 50) || [])}
+
+Categorize cada transação.`;
+        tools = [{
+          type: "function",
+          function: {
+            name: "categorize_result",
+            description: "Return categorized transactions",
+            parameters: {
+              type: "object",
+              properties: {
+                categorized: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      descricao: { type: "string" },
+                      categoria: { type: "string" },
+                      paciente_nome: { type: "string" },
+                      confidence: { type: "number" }
+                    },
+                    required: ["descricao", "categoria"]
+                  }
+                }
+              },
+              required: ["categorized"]
+            }
+          }
+        }];
+        toolChoice = { type: "function", function: { name: "categorize_result" } };
+        break;
+
+      case "match_transactions":
+        systemPrompt = `Você é um especialista em conciliação bancária para clínicas de saúde.
+Analise as transações bancárias e tente relacioná-las com pagamentos pendentes e pacientes.
+Compare valores, datas e nomes para encontrar correspondências.
+Retorne um array de matches com os IDs correspondentes e um score de confiança.`;
+        userPrompt = `Transações bancárias para relacionar:
+${JSON.stringify(context.transactions?.slice(0, 50) || [])}
+
+Pagamentos pendentes no sistema:
+${JSON.stringify(context.payments?.slice(0, 100) || [])}
+
+Nomes de pacientes: ${JSON.stringify(context.patient_names?.slice(0, 100) || [])}
+
+Encontre correspondências entre as transações e os pagamentos/pacientes.`;
+        tools = [{
+          type: "function",
+          function: {
+            name: "match_result",
+            description: "Return matched transactions",
+            parameters: {
+              type: "object",
+              properties: {
+                matches: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      transaction_id: { type: "string" },
+                      payment_id: { type: "string" },
+                      paciente_id: { type: "string" },
+                      confidence: { type: "number" },
+                      motivo: { type: "string" }
+                    },
+                    required: ["transaction_id", "confidence"]
+                  }
+                }
+              },
+              required: ["matches"]
+            }
+          }
+        }];
+        toolChoice = { type: "function", function: { name: "match_result" } };
+        break;
+
       default:
-        throw new Error(`Unknown action: ${action}`);
+        throw new Error(`Ação desconhecida: ${action}`);
     }
 
     const body: any = {
