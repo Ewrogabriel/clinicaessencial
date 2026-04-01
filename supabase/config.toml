@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.ai-exercise-plan]
 verify_jwt = false
+
+[functions.confirm-agendamento]
+verify_jwt = false

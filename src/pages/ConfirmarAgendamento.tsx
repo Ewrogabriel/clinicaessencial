@@ -16,27 +16,14 @@ const ConfirmarAgendamento = () => {
   useEffect(() => {
     const fetchAgendamento = async () => {
       if (!id) return;
-      const { data, error } = await supabase
-        .from("agendamentos")
-        .select("*, pacientes(id, nome), clinicas(id, nome, logo_url)")
-        .eq("id", id)
-        .single();
 
-      if (!error && data) {
-        // Fetch professional data separately
-        const { data: profData } = await supabase
-          .from("profiles")
-          .select("user_id, nome")
-          .eq("user_id", data.profissional_id)
-          .single();
+      const { data, error } = await supabase.functions.invoke("confirm-agendamento", {
+        body: { action: "get", id },
+      });
 
-        const agendamentoComProf = {
-          ...data,
-          profissionais: profData ? { nome: profData.nome } : { nome: "Profissional" }
-        };
-
-        setAgendamento(agendamentoComProf);
-        const confirmacao = agendamentoComProf.confirmacao_presenca;
+      if (!error && data && !data.error) {
+        setAgendamento(data);
+        const confirmacao = data.confirmacao_presenca;
         if (confirmacao === "confirmado") setStatus("confirmed");
         else if (confirmacao === "cancelado") setStatus("denied");
       }
@@ -48,12 +35,11 @@ const ConfirmarAgendamento = () => {
 
   const handleConfirm = async (confirmed: boolean) => {
     const feedback = confirmed ? "confirmado" : "cancelado";
-    const { error } = await supabase
-      .from("agendamentos")
-      .update({ confirmacao_presenca: feedback })
-      .eq("id", id!);
+    const { data, error } = await supabase.functions.invoke("confirm-agendamento", {
+      body: { action: "update", id, confirmacao: feedback },
+    });
 
-    if (!error) {
+    if (!error && !data?.error) {
       setStatus(confirmed ? "confirmed" : "denied");
     }
   };
