@@ -2691,6 +2691,7 @@ export type Database = {
           ultima_avaliacao_data: string | null
           updated_at: string
           user_id: string | null
+          whatsapp: string | null
         }
         Insert: {
           bairro?: string | null
@@ -2747,6 +2748,7 @@ export type Database = {
           ultima_avaliacao_data?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
           bairro?: string | null
@@ -2803,6 +2805,7 @@ export type Database = {
           ultima_avaliacao_data?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
