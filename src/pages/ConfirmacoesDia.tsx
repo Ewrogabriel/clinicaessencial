@@ -51,7 +51,7 @@ const ConfirmacoesDia = () => {
     queryFn: async () => {
       let q = supabase
         .from("agendamentos")
-        .select("*, pacientes(id, nome, telefone, whatsapp)")
+        .select("*, pacientes(id, nome, telefone)")
         .gte("data_horario", rangeStart)
         .lte("data_horario", rangeEnd)
         .in("status", ["agendado", "confirmado", "pendente"])
@@ -93,7 +93,7 @@ const ConfirmacoesDia = () => {
 
   const enviarWhatsApp = async (ag: any) => {
     const paciente = ag.pacientes;
-    const telefone = paciente?.whatsapp || paciente?.telefone;
+    const telefone = paciente?.telefone;
 
     if (!telefone) {
       toast({
@@ -311,7 +311,7 @@ const ConfirmacoesDia = () => {
                 {isExpanded && (
                   <div className="divide-y" data-testid={`day-sessions-${day}`}>
                     {sessions.map((ag) => {
-                      const telefone = ag.pacientes?.whatsapp || ag.pacientes?.telefone;
+                      const telefone = ag.pacientes?.telefone;
                       const confirmacao = ag.confirmacao_presenca;
                       const enviado = !!ag.confirmacao_enviada_at;
 
