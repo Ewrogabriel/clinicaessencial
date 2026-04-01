@@ -108,6 +108,9 @@ export type Database = {
           checkin_profissional: boolean | null
           checkin_profissional_at: string | null
           clinic_id: string | null
+          confirmacao_enviada_at: string | null
+          confirmacao_presenca: string | null
+          confirmacao_respondida_at: string | null
           created_at: string
           created_by: string
           data_horario: string
@@ -137,6 +140,9 @@ export type Database = {
           checkin_profissional?: boolean | null
           checkin_profissional_at?: string | null
           clinic_id?: string | null
+          confirmacao_enviada_at?: string | null
+          confirmacao_presenca?: string | null
+          confirmacao_respondida_at?: string | null
           created_at?: string
           created_by: string
           data_horario: string
@@ -166,6 +172,9 @@ export type Database = {
           checkin_profissional?: boolean | null
           checkin_profissional_at?: string | null
           clinic_id?: string | null
+          confirmacao_enviada_at?: string | null
+          confirmacao_presenca?: string | null
+          confirmacao_respondida_at?: string | null
           created_at?: string
           created_by?: string
           data_horario?: string
