@@ -45,8 +45,9 @@ const ConfirmacoesDia = () => {
   const rangeStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0).toISOString();
   const rangeEnd = addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999), 7).toISOString();
 
-  const { data: agendamentos = [], isLoading, refetch } = useQuery({
+  const { data: agendamentos = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["confirmacoes-7dias", activeClinicId, rangeStart],
+    enabled: !!activeClinicId,
     queryFn: async () => {
       let q = supabase
         .from("agendamentos")
@@ -56,7 +57,7 @@ const ConfirmacoesDia = () => {
         .in("status", ["agendado", "confirmado", "pendente"])
         .order("data_horario", { ascending: true });
 
-      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      q = q.eq("clinic_id", activeClinicId!);
 
       const { data, error } = await q;
       if (error) throw error;
@@ -74,7 +75,7 @@ const ConfirmacoesDia = () => {
       return (data || []).map((a) => ({
         ...a,
         profissional_nome: profMap[a.profissional_id] || "Profissional não encontrado",
-      })) as any[];
+      }));
     },
   });
 
@@ -83,7 +84,7 @@ const ConfirmacoesDia = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("agendamentos")
-        .update({ confirmacao_enviada_at: new Date().toISOString() } as any)
+        .update({ confirmacao_enviada_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
@@ -163,10 +164,43 @@ const ConfirmacoesDia = () => {
     setExpandedDays((prev) => ({ ...prev, [day]: !prev[day] }));
   };
 
+  if (!activeClinicId) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground">
+        <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Carregando clínica...
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
         <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Carregando agendamentos...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Confirmações</h1>
+            <p className="text-muted-foreground text-sm">Sessões agendadas para os próximos 7 dias</p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" /> Tentar novamente
+          </Button>
+        </div>
+        <div className="text-center py-16 text-destructive">
+          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-30" />
+          <p className="text-base font-medium">Erro ao carregar agendamentos</p>
+          <p className="text-sm mt-1 text-muted-foreground">
+            {(error as Error)?.message
+              ? `Detalhes: ${(error as Error).message}`
+              : "Verifique sua conexão, permissões de acesso e tente novamente."}
+          </p>
+        </div>
       </div>
     );
   }

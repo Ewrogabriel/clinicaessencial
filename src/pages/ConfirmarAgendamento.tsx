@@ -36,7 +36,7 @@ const ConfirmarAgendamento = () => {
         };
 
         setAgendamento(agendamentoComProf);
-        const confirmacao = (agendamentoComProf as any).confirmacao_presenca;
+        const confirmacao = agendamentoComProf.confirmacao_presenca;
         if (confirmacao === "confirmado") setStatus("confirmed");
         else if (confirmacao === "cancelado") setStatus("denied");
       }
@@ -50,7 +50,7 @@ const ConfirmarAgendamento = () => {
     const feedback = confirmed ? "confirmado" : "cancelado";
     const { error } = await supabase
       .from("agendamentos")
-      .update({ confirmacao_presenca: feedback } as any)
+      .update({ confirmacao_presenca: feedback })
       .eq("id", id!);
 
     if (!error) {
