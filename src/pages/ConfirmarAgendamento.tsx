@@ -18,7 +18,7 @@ const ConfirmarAgendamento = () => {
       if (!id) return;
       const { data, error } = await supabase
         .from("agendamentos")
-        .select("*, pacientes(*), clinicas(*)")
+        .select("*, pacientes(id, nome), clinicas(id, nome, logo_url)")
         .eq("id", id)
         .single();
 
