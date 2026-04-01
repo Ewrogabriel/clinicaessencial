@@ -67,17 +67,19 @@ Deno.serve(async (req) => {
         .from("pacientes")
         .select("id, nome")
         .eq("id", agendamento.paciente_id)
-        .single(),
+        .maybeSingle(),
       supabase
         .from("profiles")
         .select("user_id, nome")
         .eq("user_id", agendamento.profissional_id)
-        .single(),
-      supabase
-        .from("clinicas")
-        .select("id, nome, logo_url")
-        .eq("id", agendamento.clinic_id)
-        .single(),
+        .maybeSingle(),
+      agendamento.clinic_id
+        ? supabase
+            .from("clinicas")
+            .select("id, nome, logo_url")
+            .eq("id", agendamento.clinic_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     const result = {
@@ -105,7 +107,7 @@ Deno.serve(async (req) => {
 
     const { error } = await supabase
       .from("agendamentos")
-      .update({ confirmacao_presenca: confirmacao })
+      .update({ confirmacao_presenca: confirmacao, confirmacao_respondida_at: new Date().toISOString() })
       .eq("id", id);
 
     if (error) {
