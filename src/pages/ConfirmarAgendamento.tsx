@@ -20,33 +20,18 @@ const ConfirmarAgendamento = () => {
         return;
       }
 
-      const { data: ag, error } = await supabase
-        .from("agendamentos")
-        .select("id, data_horario, confirmacao_presenca, paciente_id, profissional_id, clinic_id")
-        .eq("id", id)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("confirm-agendamento", {
+        body: { action: "get", id },
+      });
 
-      if (error || !ag) {
+      if (error || !data || data.error) {
         setLoading(false);
         return;
       }
 
-      const [pacienteRes, profRes, clinicaRes] = await Promise.all([
-        supabase.from("pacientes").select("id, nome").eq("id", ag.paciente_id).maybeSingle(),
-        supabase.from("profiles").select("user_id, nome").eq("user_id", ag.profissional_id).maybeSingle(),
-        ag.clinic_id
-          ? supabase.from("clinicas").select("id, nome, logo_url").eq("id", ag.clinic_id).maybeSingle()
-          : Promise.resolve({ data: null }),
-      ]);
+      setAgendamento(data);
 
-      setAgendamento({
-        ...ag,
-        pacientes: pacienteRes.data ?? null,
-        profissionais: profRes.data ? { nome: profRes.data.nome } : null,
-        clinicas: clinicaRes.data ?? null,
-      });
-
-      const confirmacao = ag.confirmacao_presenca;
+      const confirmacao = data.confirmacao_presenca;
       if (confirmacao === "confirmado") setStatus("confirmed");
       else if (confirmacao === "cancelado") setStatus("denied");
 
@@ -58,11 +43,10 @@ const ConfirmarAgendamento = () => {
 
   const handleConfirm = async (confirmed: boolean) => {
     if (!id) return;
-    const feedback = confirmed ? "confirmado" : "cancelado";
-    const { error } = await supabase
-      .from("agendamentos")
-      .update({ confirmacao_presenca: feedback })
-      .eq("id", id);
+    const confirmacao = confirmed ? "confirmado" : "cancelado";
+    const { error } = await supabase.functions.invoke("confirm-agendamento", {
+      body: { action: "update", id, confirmacao },
+    });
 
     if (!error) {
       setStatus(confirmed ? "confirmed" : "denied");
