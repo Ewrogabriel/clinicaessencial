@@ -512,7 +512,7 @@ export default function ConciliacaoBancaria() {
     }
   };
 
-  const pendingReview = useMemo(() => transactions.filter((t: any) => t.status === "matched" && !t.reviewed), [transactions]);
+  const pendingReview = useMemo(() => transactions.filter((t: any) => (t.status === "pendente" || (t.status === "matched" && !t.reviewed))), [transactions]);
 
   const preview = useMemo(() => importStep === "mapping" ? getMappedPreview() : [], [importStep, getMappedPreview]);
 

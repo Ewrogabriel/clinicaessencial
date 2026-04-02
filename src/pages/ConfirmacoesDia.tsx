@@ -372,8 +372,21 @@ const ConfirmacoesDia = () => {
                             )}
                           </div>
 
-                          {/* WhatsApp button */}
-                          <div className="shrink-0">
+                          {/* Actions */}
+                          <div className="shrink-0 flex items-center gap-2">
+                            {confirmacao === "cancelado" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
+                                onClick={() => {
+                                  window.open(`/agenda?remarcar=${ag.id}`, "_self");
+                                }}
+                                data-testid={`remarcar-btn-${ag.id}`}
+                              >
+                                <RefreshCw className="h-3.5 w-3.5" /> Remarcar
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant={enviado ? "outline" : "default"}
