@@ -171,7 +171,7 @@ export const AppSidebar = memo(function AppSidebar() {
   const menuProfissionalClinico = [
     { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
-    { title: "Agenda Premium", url: "/agenda-premium", icon: Sparkles },
+    
     { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
     { title: t("nav.patients"), url: "/pacientes", icon: Users },
     { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },

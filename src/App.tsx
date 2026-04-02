@@ -171,7 +171,7 @@ const App = () => (
                         <Route path="/planos-exercicios" element={<PlanosExercicios />} />
                         <Route path="/planos" element={<Planos />} />
                         <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
-                        <Route path="/agenda-premium" element={<RequireRole roles={["admin", "gestor", "master", "profissional", "secretario"]}><AgendaPremium /></RequireRole>} />
+                        <Route path="/agenda-premium" element={<Navigate to="/agenda?tab=vagas" replace />} />
                         <Route path="/conciliacao-bancaria" element={<RequireRole roles={["admin", "gestor", "master"]}><ConciliacaoBancaria /></RequireRole>} />
                         <Route path="/investimentos" element={<RequireRole roles={["admin", "gestor", "master"]}><Investimentos /></RequireRole>} />
                       </Route>
