@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2, Video, Home, Clock } from "lucide-react";
+import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2, Video, Home, Clock, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -137,9 +137,10 @@ interface AgendamentoFormProps {
   onSuccess: () => void;
   defaultDate?: Date;
   defaultProfissionalId?: string;
+  appointmentType?: "sessao_avulsa" | "sessao_plano";
 }
 
-export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId }: AgendamentoFormProps) {
+export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId, appointmentType }: AgendamentoFormProps) {
   const { user } = useAuth();
   const { activeClinicId } = useClinic();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -152,6 +153,8 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [overCapacityPending, setOverCapacityPending] = useState<FormData | null>(null);
+  const [planos, setPlanos] = useState<Array<{ id: string; paciente_id: string; profissional_id: string; tipo_atendimento: string; total_sessoes: number; sessoes_utilizadas: number; paciente_nome?: string }>>([]);
+  const [selectedPlanoId, setSelectedPlanoId] = useState<string>("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -251,6 +254,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
       fetchProfissionais();
       fetchModalidades();
       fetchFormasPagamento();
+      if (appointmentType === "sessao_plano") fetchPlanos();
+    } else {
+      setSelectedPlanoId("");
     }
   }, [open]);
 
@@ -291,7 +297,25 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
     setFormasPagamento(data ?? []);
   };
 
-  const toggleDia = (dia: number) => {
+  const fetchPlanos = async () => {
+    const { data: planosData } = await supabase
+      .from("planos")
+      .select("id, paciente_id, profissional_id, tipo_atendimento, total_sessoes, sessoes_utilizadas")
+      .eq("status", "ativo");
+    if (!planosData) { setPlanos([]); return; }
+
+    const pacienteIds = [...new Set(planosData.map(p => p.paciente_id))];
+    const { data: pacientesData } = await supabase
+      .from("pacientes")
+      .select("id, nome")
+      .in("id", pacienteIds);
+    const pacienteMap: Record<string, string> = {};
+    (pacientesData ?? []).forEach(p => { pacienteMap[p.id] = p.nome; });
+
+    setPlanos(planosData.map(p => ({ ...p, paciente_nome: pacienteMap[p.paciente_id] ?? p.paciente_id })));
+  };
+
+ = (dia: number) => {
     const current = form.getValues("dias_semana");
     const currentHorarios = form.getValues("horarios_por_dia");
     if (current.includes(dia)) {
@@ -437,6 +461,17 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
           forma_pagamento_id: formaPagamentoId,
           data_vencimento: values.data_vencimento,
         } as any);
+
+        if (appointmentType === "sessao_plano" && selectedPlanoId) {
+          const plano = planos.find(p => p.id === selectedPlanoId);
+          if (plano) {
+            await supabase
+              .from("planos")
+              .update({ sessoes_utilizadas: plano.sessoes_utilizadas + 1 })
+              .eq("id", selectedPlanoId);
+          }
+        }
+
         toast.success("Agendamento realizado com sucesso!");
       }
 
@@ -459,10 +494,69 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-[Plus_Jakarta_Sans]">Novo Agendamento</DialogTitle>
+          <DialogTitle className="font-[Plus_Jakarta_Sans]">
+            {appointmentType === "sessao_plano" ? "Sessão do Plano" : "Nova Sessão Avulsa"}
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+            {/* Plan selector for sessao_plano */}
+            {appointmentType === "sessao_plano" && (
+              <div className="rounded-lg border p-4 space-y-2 bg-green-50/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <Layers className="h-4 w-4 text-green-600" />
+                  <Label className="font-medium text-sm">Pacote de Sessões</Label>
+                </div>
+                <Select
+                  value={selectedPlanoId}
+                  onValueChange={(val) => {
+                    setSelectedPlanoId(val);
+                    const plano = planos.find(p => p.id === val);
+                    if (plano) {
+                      form.setValue("paciente_id", plano.paciente_id);
+                      form.setValue("profissional_id", plano.profissional_id);
+                      form.setValue("tipo_atendimento", plano.tipo_atendimento);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o pacote" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {planos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="font-medium">{p.paciente_nome}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          · {p.tipo_atendimento} · {p.sessoes_utilizadas}/{p.total_sessoes} sessões usadas
+                        </span>
+                      </SelectItem>
+                    ))}
+                    {planos.length === 0 && (
+                      <SelectItem value="_none" disabled>
+                        Nenhum pacote ativo encontrado
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedPlanoId && (() => {
+                  const plano = planos.find(p => p.id === selectedPlanoId);
+                  if (!plano) return null;
+                  const remaining = plano.total_sessoes - plano.sessoes_utilizadas;
+                  return (
+                    <p className={cn(
+                      "text-xs mt-1",
+                      remaining <= 0 ? "text-destructive" : remaining <= 2 ? "text-amber-600" : "text-green-700"
+                    )}>
+                      {remaining <= 0
+                        ? "⚠️ Pacote esgotado — sem sessões disponíveis."
+                        : `✅ ${remaining} sessão(ões) restante(s) neste pacote.`}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="paciente_id"
@@ -474,6 +568,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                       patients={pacientes}
                       value={field.value}
                       onValueChange={field.onChange}
+                      disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}
                     />
                   </FormControl>
                   <FormMessage />
@@ -488,7 +583,11 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Profissional</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o profissional" />
@@ -814,7 +913,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
             )}
 
             {/* Financeiro — sessão única */}
-            {!isRecorrente && (
+            {!isRecorrente && appointmentType !== "sessao_plano" && (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -896,7 +995,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
             )}
 
             {/* Repetir sessão (para agendamento único) */}
-            {!isRecorrente && (
+            {!isRecorrente && appointmentType !== "sessao_plano" && (
               <div className="rounded-lg border p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -960,6 +1059,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
               </div>
             )}
 
+            {appointmentType !== "sessao_plano" && (
             <div className="rounded-lg border p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1272,6 +1372,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                 </div>
               )}
             </div>
+            )}
 
             <FormField
               control={form.control}
