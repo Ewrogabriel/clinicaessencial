@@ -5,18 +5,31 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   CheckSquare,
   XSquare,
   RotateCcw,
   ChevronDown,
   ChevronUp,
   Landmark,
+  Upload,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReconciliation } from "@/modules/finance/hooks/useReconciliation";
+import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
+import { useStatementImport } from "@/modules/finance/hooks/useStatementImport";
 import { TransactionFilter } from "./TransactionFilter";
 import { BulkApprovalDialog } from "./BulkApprovalDialog";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
+import { BankAccountDialog } from "./BankAccountDialog";
+import { ImportStatementDialog } from "./ImportStatementDialog";
 import {
   getStatusConfig,
   formatBRL,
@@ -26,6 +39,11 @@ import {
 } from "@/modules/finance/utils/reconciliationHelpers";
 import type { BankTransaction } from "@/modules/finance/services/reconciliationService";
 import { toast } from "@/modules/shared/hooks/use-toast";
+
+function formatConfidence(raw: number | null | undefined): string | null {
+  if (raw == null) return null;
+  return `${(Number(raw) * 100).toFixed(0)}%`;
+}
 
 export function ReconciliationPage() {
   const {
@@ -49,6 +67,24 @@ export function ReconciliationPage() {
     isBulkRejecting,
   } = useReconciliation();
 
+  const {
+    accounts,
+    isLoading: isLoadingAccounts,
+    createAccount,
+    isCreating,
+  } = useBankAccounts();
+
+  const {
+    step: importStep,
+    parsedData,
+    validation,
+    importResult,
+    error: importError,
+    parseFile,
+    importTransactions,
+    reset: resetImport,
+  } = useStatementImport();
+
   const [bulkDialog, setBulkDialog] = useState<{
     open: boolean;
     action: "approve" | "reject";
@@ -56,8 +92,16 @@ export function ReconciliationPage() {
   const [detailTx, setDetailTx] = useState<BankTransaction | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [showStats, setShowStats] = useState(true);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectedImportAccount, setSelectedImportAccount] = useState("");
+  const [selectedFilterAccount, setSelectedFilterAccount] = useState("all");
 
-  const sorted = sortTransactions(transactions);
+  const sorted = sortTransactions(
+    selectedFilterAccount && selectedFilterAccount !== "all"
+      ? transactions.filter((t) => t.bank_account_id === selectedFilterAccount)
+      : transactions
+  );
   const allSelected =
     sorted.length > 0 && selectedIds.length === sorted.length;
   const someSelected = selectedIds.length > 0;
@@ -81,8 +125,75 @@ export function ReconciliationPage() {
     }
   };
 
+  const handleCreateAccount = async (dto: Parameters<typeof createAccount>[0]) => {
+    try {
+      await createAccount(dto);
+      toast({ title: "Conta bancária cadastrada com sucesso." });
+    } catch {
+      toast({ title: "Erro ao cadastrar conta", variant: "destructive" });
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedImportAccount) {
+      toast({ title: "Selecione uma conta bancária.", variant: "destructive" });
+      return;
+    }
+    try {
+      await importTransactions(selectedImportAccount);
+      toast({ title: "Extrato importado com sucesso." });
+    } catch {
+      toast({ title: "Erro ao importar extrato", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setAccountDialogOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
+          Cadastrar Conta
+        </Button>
+        <Button
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setImportDialogOpen(true)}
+          disabled={accounts.length === 0}
+          title={accounts.length === 0 ? "Cadastre uma conta bancária primeiro" : undefined}
+        >
+          <Upload className="h-4 w-4" />
+          Importar Extrato
+        </Button>
+
+        {/* Account filter */}
+        {accounts.length > 0 && (
+          <div className="ml-auto">
+            <Select
+              value={selectedFilterAccount}
+              onValueChange={setSelectedFilterAccount}
+            >
+              <SelectTrigger className="h-8 text-sm w-48">
+                <SelectValue placeholder="Todas as contas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as contas</SelectItem>
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.apelido ?? acc.banco_nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
       {/* Stats summary */}
       <div>
         <button
@@ -229,9 +340,21 @@ export function ReconciliationPage() {
                       >
                         {formatBRL(Number(tx.valor))}
                       </p>
-                      <Badge className={cn("text-xs", statusCfg.className)}>
-                        {statusCfg.label}
-                      </Badge>
+                      <div className="flex items-center gap-1 justify-end mt-0.5">
+                        <Badge className={cn("text-xs", statusCfg.className)}>
+                          {statusCfg.label}
+                        </Badge>
+                        {tx.matched_payment_id && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-blue-600 border-blue-300"
+                            title={`Confiança: ${formatConfidence(tx.matched_confidence) ?? "—"}`}
+                          >
+                            ✓{" "}
+                            {formatConfidence(tx.matched_confidence) ?? "match"}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     {undoable && (
@@ -290,6 +413,34 @@ export function ReconciliationPage() {
         }}
         isApproving={isApproving}
         isRejecting={isRejecting}
+      />
+
+      {/* Bank account dialog */}
+      <BankAccountDialog
+        open={accountDialogOpen}
+        onOpenChange={setAccountDialogOpen}
+        onSave={handleCreateAccount}
+        isLoading={isCreating}
+      />
+
+      {/* Import statement dialog */}
+      <ImportStatementDialog
+        open={importDialogOpen}
+        onOpenChange={(o) => {
+          if (!o) resetImport();
+          setImportDialogOpen(o);
+        }}
+        accounts={accounts}
+        selectedAccountId={selectedImportAccount}
+        onAccountChange={setSelectedImportAccount}
+        step={importStep}
+        parsedData={parsedData}
+        validation={validation}
+        importResult={importResult}
+        error={importError}
+        onFileSelect={parseFile}
+        onImport={handleImport}
+        onReset={resetImport}
       />
     </div>
   );

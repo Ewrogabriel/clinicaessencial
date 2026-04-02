@@ -87,7 +87,8 @@ export const reconciliationService = {
           reviewed: true,
           reviewed_at: new Date().toISOString(),
           reviewed_by: reviewedBy,
-          ...(note ? { descricao: note } : {}),
+          // Store the note in review_note; never overwrite the original descricao
+          ...(note ? { review_note: note } : {}),
         })
         .eq("id", id);
       if (error) throw error;
@@ -113,7 +114,8 @@ export const reconciliationService = {
           reviewed: true,
           reviewed_at: new Date().toISOString(),
           reviewed_by: reviewedBy,
-          ...(reason ? { descricao: reason } : {}),
+          // Store the reason in review_note; never overwrite the original descricao
+          ...(reason ? { review_note: reason } : {}),
         })
         .eq("id", id);
       if (error) throw error;
