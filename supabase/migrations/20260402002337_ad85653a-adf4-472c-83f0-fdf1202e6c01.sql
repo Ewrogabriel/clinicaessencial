@@ -1,0 +1,1 @@
+ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS confirmacao_enviada_at timestamptz DEFAULT NULL;
