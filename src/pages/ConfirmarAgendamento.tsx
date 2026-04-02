@@ -3,15 +3,19 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, XCircle, Calendar, Clock, User } from "lucide-react";
+import { CheckCircle2, XCircle, Calendar, Clock, User, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ReagendamentoDialog } from "@/components/agenda/ReagendamentoDialog";
+import { toast } from "@/modules/shared/hooks/use-toast";
 
 const ConfirmarAgendamento = () => {
   const { id } = useParams();
   const [agendamento, setAgendamento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<"pending" | "confirmed" | "denied">("pending");
+  const [status, setStatus] = useState<"pending" | "confirmed" | "denied" | "rescheduled">("pending");
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [profissionaisList, setProfissionaisList] = useState<Array<{ id: string; nome: string }>>([]);
 
   useEffect(() => {
     const fetchAgendamento = async () => {
@@ -35,6 +39,11 @@ const ConfirmarAgendamento = () => {
       if (confirmacao === "confirmado") setStatus("confirmed");
       else if (confirmacao === "cancelado") setStatus("denied");
 
+      // Populate the professionals list for the reschedule dialog
+      if (data.profissional_id) {
+        setProfissionaisList([{ id: data.profissional_id, nome: data.profissionais?.nome || "Profissional" }]);
+      }
+
       setLoading(false);
     };
 
@@ -51,6 +60,48 @@ const ConfirmarAgendamento = () => {
     if (!error) {
       setStatus(confirmed ? "confirmed" : "denied");
     }
+  };
+
+  const handleRescheduleConfirm = async (rescheduleData: { data: Date; hora: string; profissionalId: string }) => {
+    if (!id) return;
+    const parts = rescheduleData.hora.split(":");
+    if (parts.length < 2) {
+      toast({ title: "Horário inválido", variant: "destructive" });
+      return;
+    }
+    const [hours, minutes] = parts.map(Number);
+    if (isNaN(hours) || isNaN(minutes)) {
+      toast({ title: "Horário inválido", variant: "destructive" });
+      return;
+    }
+    const dt = new Date(rescheduleData.data);
+    dt.setHours(hours, minutes, 0, 0);
+    const data_horario = dt.toISOString();
+
+    const { error } = await supabase.functions.invoke("confirm-agendamento", {
+      body: {
+        action: "reschedule",
+        id,
+        data_horario,
+        profissional_id: rescheduleData.profissionalId,
+      },
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao reagendar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowRescheduleModal(false);
+    setStatus("rescheduled");
+    toast({
+      title: "Reagendado com sucesso!",
+      description: `Novo horário: ${format(dt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+    });
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
@@ -116,19 +167,41 @@ const ConfirmarAgendamento = () => {
                   <h2 className="text-2xl font-bold text-green-700">Presença Confirmada!</h2>
                   <p className="text-slate-600">Obrigado por confirmar. Te aguardamos no horário marcado.</p>
                 </>
+              ) : status === "rescheduled" ? (
+                <>
+                  <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+                    <RefreshCw className="h-12 w-12 text-blue-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-blue-700">Reagendamento Confirmado!</h2>
+                  <p className="text-slate-600">Seu atendimento foi reagendado. Você receberá uma confirmação em breve.</p>
+                </>
               ) : (
                 <>
                   <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
                     <XCircle className="h-12 w-12 text-red-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-red-700">Aviso Recebido</h2>
-                  <p className="text-slate-600">Entendemos o imprevisto. Entraremos em contato em breve para reagendamento.</p>
+                  <p className="text-slate-600">Entendemos o imprevisto. Gostaria de reagendar para outro horário?</p>
+                  <Button
+                    onClick={() => setShowRescheduleModal(true)}
+                    className="gap-2 mt-2"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Reagendar Agora
+                  </Button>
                 </>
               )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <ReagendamentoDialog
+        open={showRescheduleModal}
+        onOpenChange={setShowRescheduleModal}
+        profissionalId={agendamento?.profissional_id}
+        profissionaisList={profissionaisList}
+        onConfirm={handleRescheduleConfirm}
+      />
     </div>
   );
 };
