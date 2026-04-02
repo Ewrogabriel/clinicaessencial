@@ -75,7 +75,7 @@ const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
 const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
 
-const ConciliacaoBancaria = lazy(() => import("./pages/ConciliacaoBancaria"));
+
 const Investimentos = lazy(() => import("./pages/Investimentos"));
 
 const DashboardToggle = () => {
@@ -172,7 +172,7 @@ const App = () => (
                         <Route path="/planos" element={<Planos />} />
                         <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
                         <Route path="/agenda-premium" element={<Navigate to="/agenda?tab=vagas" replace />} />
-                        <Route path="/conciliacao-bancaria" element={<RequireRole roles={["admin", "gestor", "master"]}><ConciliacaoBancaria /></RequireRole>} />
+                        <Route path="/conciliacao-bancaria" element={<Navigate to="/financeiro" replace />} />
                         <Route path="/investimentos" element={<RequireRole roles={["admin", "gestor", "master"]}><Investimentos /></RequireRole>} />
                       </Route>
                       <Route path="*" element={<NotFound />} />

@@ -18,7 +18,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Building2, Plus, Upload, Check, X, Loader2, FileSpreadsheet,
   Landmark, RefreshCw, Sparkles, Trash2, Tag, ArrowRightLeft, Brain,
-  Pencil, Search, SlidersHorizontal, Link2
+  Pencil, Search, Link2, Users, Receipt, AlertCircle
 } from "lucide-react";
 
 const BANKS = [
@@ -108,6 +108,16 @@ export default function ConciliacaoBancaria() {
   const [expenseLinkTxId, setExpenseLinkTxId] = useState<string | null>(null);
   const [expenseLinkId, setExpenseLinkId] = useState<string>("");
 
+  // Relate payments dialog
+  const [paymentRelateDialogOpen, setPaymentRelateDialogOpen] = useState(false);
+  const [relateMonth, setRelateMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [relateSelectedTxId, setRelateSelectedTxId] = useState<string>("");
+
+  // Create expense from transaction dialog
+  const [createExpenseDialogOpen, setCreateExpenseDialogOpen] = useState(false);
+  const [expenseTxData, setExpenseTxData] = useState<any>(null);
+  const [expenseForm, setExpenseForm] = useState({ descricao: "", valor: "", data_vencimento: "", categoria: "" });
+
   // Fetch bank accounts
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["bank-accounts", activeClinicId],
@@ -187,6 +197,24 @@ export default function ConciliacaoBancaria() {
       return data || [];
     },
     enabled: !!activeClinicId,
+  });
+
+  // Fetch payments for the selected month — used in Relate Payments dialog
+  const { data: monthPayments = [] } = useQuery({
+    queryKey: ["relate-payments", activeClinicId, relateMonth],
+    queryFn: async () => {
+      if (!activeClinicId) return [];
+      const [y, m] = relateMonth.split("-").map(Number);
+      const endDate = new Date(y, m, 0).toISOString().split("T")[0];
+      const { data } = await supabase.from("pagamentos")
+        .select("id, paciente_id, valor, data_vencimento, descricao, status, origem_tipo, pacientes(nome)")
+        .eq("clinic_id", activeClinicId)
+        .in("status", ["pendente", "vencido"] as any)
+        .gte("data_vencimento", `${relateMonth}-01`)
+        .lte("data_vencimento", endDate);
+      return data || [];
+    },
+    enabled: !!activeClinicId && paymentRelateDialogOpen,
   });
 
   // Create bank account
@@ -342,6 +370,81 @@ export default function ConciliacaoBancaria() {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  // ---- LINK PAYMENT TO TRANSACTION ----
+  const linkPaymentToTx = useMutation({
+    mutationFn: async ({ txId, paymentId, pacienteId }: { txId: string; paymentId: string; pacienteId: string }) => {
+      const tx = transactions.find((t: any) => t.id === txId);
+      await supabase.from("pagamentos")
+        .update({ status: "pago" as any, data_pagamento: tx?.data_transacao || new Date().toISOString().split("T")[0] })
+        .eq("id", paymentId);
+      await (supabase.from("bank_transactions") as any)
+        .update({
+          matched_payment_id: paymentId,
+          matched_paciente_id: pacienteId,
+          matched_confidence: 1.0,
+          status: "confirmado",
+          reviewed: true,
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", txId);
+    },
+    onSuccess: () => {
+      toast({ title: "Pagamento vinculado com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["relate-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      setRelateSelectedTxId("");
+      setPaymentRelateDialogOpen(false);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  // ---- CREATE EXPENSE FROM TRANSACTION ----
+  const createExpenseFromTx = useMutation({
+    mutationFn: async () => {
+      if (!expenseTxData) throw new Error("Nenhuma transação selecionada");
+      const { data: expense, error } = await supabase.from("expenses").insert({
+        clinic_id: activeClinicId,
+        descricao: expenseForm.descricao || expenseTxData.descricao,
+        valor: parseFloat(expenseForm.valor) || Math.abs(expenseTxData.valor),
+        data_vencimento: expenseForm.data_vencimento || expenseTxData.data_transacao,
+        data_pagamento: expenseTxData.data_transacao,
+        status: "pago",
+        categoria: expenseForm.categoria || null,
+      } as any).select("id").single();
+      if (error) throw error;
+      await (supabase.from("bank_transactions") as any)
+        .update({
+          status: "confirmado",
+          reviewed: true,
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString(),
+          dados_originais: { ...(expenseTxData.dados_originais || {}), matched_expense_id: expense.id },
+        })
+        .eq("id", expenseTxData.id);
+    },
+    onSuccess: () => {
+      toast({ title: "Despesa criada e lançamento conciliado!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      setCreateExpenseDialogOpen(false);
+      setExpenseTxData(null);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const openCreateExpenseDialog = (tx: any) => {
+    setExpenseTxData(tx);
+    setExpenseForm({
+      descricao: tx.descricao || "",
+      valor: String(Math.abs(tx.valor)),
+      data_vencimento: tx.data_transacao || format(new Date(), "yyyy-MM-dd"),
+      categoria: tx.categoria || "",
+    });
+    setCreateExpenseDialogOpen(true);
+  };
+
   // ---- IMPORT LOGIC ----
   const parseDateBR = (str: string): string => {
     if (!str) return new Date().toISOString().split("T")[0];
@@ -493,21 +596,44 @@ export default function ConciliacaoBancaria() {
         return;
       }
 
+      // Deduplication: fetch existing transactions for this account to avoid duplicate inserts
+      const { data: existingTxs } = await (supabase.from("bank_transactions") as any)
+        .select("data_transacao, valor, descricao")
+        .eq("bank_account_id", selectedAccountId);
+      const existingSet = new Set(
+        (existingTxs || []).map((t: any) => `${t.data_transacao}|${Number(t.valor).toFixed(2)}|${t.descricao}`)
+      );
+      const deduped = transactions.filter(t =>
+        !existingSet.has(`${t.data_transacao}|${Number(t.valor).toFixed(2)}|${t.descricao}`)
+      );
+      const skippedCount = transactions.length - deduped.length;
+
+      if (deduped.length === 0) {
+        toast({
+          title: "Nenhuma transação nova",
+          description: `${skippedCount} lançamento(s) duplicado(s) ignorado(s).`,
+        });
+        setImporting(false);
+        setImportStep("mapping");
+        return;
+      }
+
       // Insert in batches of 100
-      for (let i = 0; i < transactions.length; i += 100) {
-        const batch = transactions.slice(i, i + 100);
+      for (let i = 0; i < deduped.length; i += 100) {
+        const batch = deduped.slice(i, i + 100);
         await (supabase.from("bank_transactions") as any).insert(batch);
       }
 
       // Auto-match by value
-      await autoMatchByValue(transactions);
+      await autoMatchByValue(deduped);
 
       // If AI enabled, run categorization
       if (useAI) {
-        await runAICategorization(transactions.map(t => ({ descricao: t.descricao, valor: t.valor })));
+        await runAICategorization(deduped.map(t => ({ descricao: t.descricao, valor: t.valor })));
       }
 
-      toast({ title: `${transactions.length} transações importadas!`, description: useAI ? "IA está categorizando..." : "Pronto para revisão." });
+      const skippedMsg = skippedCount > 0 ? ` (${skippedCount} duplicado(s) ignorado(s))` : "";
+      toast({ title: `${deduped.length} transações importadas!${skippedMsg}`, description: useAI ? "IA está categorizando..." : "Pronto para revisão." });
       queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
       resetImportState();
     } catch (err: any) {
@@ -718,9 +844,12 @@ export default function ConciliacaoBancaria() {
           <h1 className="text-2xl font-bold tracking-tight">Conciliação Bancária</h1>
           <p className="text-muted-foreground">Importe extratos, categorize transações e confirme pagamentos.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" className="gap-2" onClick={() => setPaymentRelateDialogOpen(true)}>
+            <Users className="h-4 w-4" /> Relacionar Pagamentos
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setCategoryDialogOpen(true)}>
-            <Tag className="h-4 w-4" /> Categorias
+            <Tag className="h-4 w-4" /> Criar Categoria
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => setAccountDialogOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Conta
@@ -815,6 +944,9 @@ export default function ConciliacaoBancaria() {
                 {categorizingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
                 <Sparkles className="h-3.5 w-3.5 text-primary" /> Relacionar Pacientes com IA
               </Button>
+              <Button variant="outline" className="gap-2" onClick={() => setPaymentRelateDialogOpen(true)}>
+                <Users className="h-4 w-4" /> Relacionar Pagamentos do Mês
+              </Button>
             </div>
           </TabsContent>
 
@@ -881,7 +1013,12 @@ export default function ConciliacaoBancaria() {
                         </Button>
                         {tx.valor < 0 && (
                           <Button size="sm" variant="outline" className="gap-1" onClick={() => { setExpenseLinkTxId(tx.id); setExpenseLinkId(""); }}>
-                            <Link2 className="h-3.5 w-3.5" /> Despesa
+                            <Link2 className="h-3.5 w-3.5" /> Vincular Despesa
+                          </Button>
+                        )}
+                        {tx.valor < 0 && (
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => openCreateExpenseDialog(tx)}>
+                            <Receipt className="h-3.5 w-3.5" /> Nova Despesa
                           </Button>
                         )}
                         <Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "reject" })}>
@@ -1304,6 +1441,160 @@ export default function ConciliacaoBancaria() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Relate Payments Dialog */}
+      <Dialog open={paymentRelateDialogOpen} onOpenChange={(open) => { setPaymentRelateDialogOpen(open); if (!open) { setRelateSelectedTxId(""); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Relacionar Pagamentos do Mês</DialogTitle>
+            <DialogDescription>Vincule transações bancárias a pagamentos pendentes por matrícula, plano ou sessão avulsa.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm shrink-0">Mês de referência</Label>
+              <Select value={relateMonth} onValueChange={setRelateMonth}>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {monthPayments.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Nenhum pagamento pendente neste mês.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(["matricula", "plano", "sessao_avulsa", "manual"] as const).map(tipo => {
+                  const tipoLabel: Record<string, string> = {
+                    matricula: "Matrículas", plano: "Planos", sessao_avulsa: "Sessões Avulsas", manual: "Manual"
+                  };
+                  const items = monthPayments.filter((p: any) => p.origem_tipo === tipo || (!p.origem_tipo && tipo === "manual"));
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={tipo}>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{tipoLabel[tipo]}</p>
+                      <div className="space-y-2">
+                        {items.map((payment: any) => (
+                          <div key={payment.id} className="border rounded-lg p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium">{(payment as any).pacientes?.nome || "—"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {payment.descricao} • Venc: {payment.data_vencimento ? format(new Date(payment.data_vencimento + "T12:00:00"), "dd/MM/yyyy") : "—"}
+                                </p>
+                              </div>
+                              <span className="text-sm font-semibold text-emerald-700">R$ {Number(payment.valor).toFixed(2)}</span>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Select value={relateSelectedTxId} onValueChange={setRelateSelectedTxId}>
+                                <SelectTrigger className="h-8 text-xs flex-1">
+                                  <SelectValue placeholder="Selecionar transação..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {transactions
+                                    .filter((t: any) => t.valor > 0 && t.status !== "confirmado")
+                                    .map((t: any) => (
+                                      <SelectItem key={t.id} value={t.id}>
+                                        {format(new Date(t.data_transacao + "T12:00:00"), "dd/MM")} — {t.descricao.slice(0, 30)} — R$ {Number(t.valor).toFixed(2)}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                size="sm"
+                                className="gap-1 text-xs shrink-0"
+                                disabled={!relateSelectedTxId || linkPaymentToTx.isPending}
+                                onClick={() => linkPaymentToTx.mutate({
+                                  txId: relateSelectedTxId,
+                                  paymentId: payment.id,
+                                  pacienteId: payment.paciente_id,
+                                })}
+                              >
+                                {linkPaymentToTx.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                                Vincular
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentRelateDialogOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Expense from Transaction Dialog */}
+      <Dialog open={createExpenseDialogOpen} onOpenChange={(open) => { if (!open) { setCreateExpenseDialogOpen(false); setExpenseTxData(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Receipt className="h-5 w-5" /> Criar Despesa do Extrato</DialogTitle>
+            <DialogDescription>Crie uma despesa a partir deste lançamento bancário e concilie automaticamente.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Descrição <span className="text-destructive">*</span></Label>
+              <Input
+                value={expenseForm.descricao}
+                onChange={e => setExpenseForm(p => ({ ...p, descricao: e.target.value }))}
+                placeholder="Descrição da despesa"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor (R$) <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={expenseForm.valor}
+                  onChange={e => setExpenseForm(p => ({ ...p, valor: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Data de Vencimento</Label>
+                <Input
+                  type="date"
+                  value={expenseForm.data_vencimento}
+                  onChange={e => setExpenseForm(p => ({ ...p, data_vencimento: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Categoria</Label>
+              <Select value={expenseForm.categoria} onValueChange={v => setExpenseForm(p => ({ ...p, categoria: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar categoria..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">— Sem categoria —</SelectItem>
+                  {allCategories.map(c => (
+                    <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCreateExpenseDialogOpen(false); setExpenseTxData(null); }}>Cancelar</Button>
+            <Button
+              className="gap-2"
+              onClick={() => createExpenseFromTx.mutate()}
+              disabled={!expenseForm.descricao || !expenseForm.valor || createExpenseFromTx.isPending}
+            >
+              {createExpenseFromTx.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
+              Criar Despesa e Conciliar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
