@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import type { WhatsAppAutomationSettings } from "@/modules/whatsapp/types";
+import { CONFIRMATION_TEMPLATE, CONFIRMATION_VARIABLES } from "@/lib/whatsapp/confirmationTemplates";
 
 type Fields = Pick<
   WhatsAppAutomationSettings,
@@ -24,17 +25,19 @@ const HOURS_OPTIONS = [
   { value: "72", label: "72 horas antes" },
 ];
 
-const VARIABLES = ["{paciente_nome}", "{data_sessao}", "{hora_sessao}", "{profissional_nome}"];
+const VARIABLES = CONFIRMATION_VARIABLES;
 
-const DEFAULT_MESSAGE =
-  "Olá, {paciente_nome}! Lembrando que você tem uma sessão agendada para {data_sessao} às {hora_sessao} com {profissional_nome}. Por favor, confirme sua presença.";
+const DEFAULT_MESSAGE = CONFIRMATION_TEMPLATE;
 
 function renderPreview(template: string) {
   return template
-    .replace(/\{paciente_nome\}/g, "Maria Silva")
-    .replace(/\{data_sessao\}/g, "10/04/2026")
-    .replace(/\{hora_sessao\}/g, "09:00")
-    .replace(/\{profissional_nome\}/g, "Dr. João");
+    .replace(/\{paciente\}/g, "Maria Silva")
+    .replace(/\{tipo\}/g, "sessão")
+    .replace(/\{dia_semana\}/g, "Segunda-feira")
+    .replace(/\{data\}/g, "10/04/2026")
+    .replace(/\{hora\}/g, "09:00")
+    .replace(/\{profissional\}/g, "Dr. João")
+    .replace(/\{link\}/g, "https://app.exemplo.com/confirmar-agendamento/123");
 }
 
 export function SessionConfirmationSettings({ settings, onChange }: SessionConfirmationSettingsProps) {

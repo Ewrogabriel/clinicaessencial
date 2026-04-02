@@ -10,8 +10,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "@/modules/shared/utils/errorHandler";
 import { WhatsAppService } from "@/lib/whatsapp/whatsappService";
+import { buildConfirmationMessage } from "@/lib/whatsapp/confirmationTemplates";
 import {
-  buildSessionConfirmationMessage,
   buildMonthlyReminderMessage,
   buildOverdueAlertMessage,
 } from "@/lib/whatsapp/messageTemplates";
@@ -19,24 +19,11 @@ import { getConfig, getAutomationSettings } from "./whatsappConfigService";
 import type {
   MessageType,
   MessageStatus,
-  SessionConfirmationData,
   MonthlyReminderData,
   OverdueAlertData,
 } from "@/modules/whatsapp/types";
 
 // ── Internal helpers ─────────────────────────────────────────
-
-/** Formats an ISO date-time string to dd/MM/yyyy */
-function formatDate(isoString: string): string {
-  const d = new Date(isoString);
-  return d.toLocaleDateString("pt-BR");
-}
-
-/** Formats an ISO date-time string to HH:mm */
-function formatTime(isoString: string): string {
-  const d = new Date(isoString);
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
 
 /**
  * Writes a row to whatsapp_message_logs.
@@ -95,6 +82,7 @@ export async function sendSessionConfirmation(appointmentId: string): Promise<vo
     .select(`
       id,
       data_horario,
+      tipo_atendimento,
       clinic_id,
       paciente_id,
       profissional_id,
@@ -138,22 +126,19 @@ export async function sendSessionConfirmation(appointmentId: string): Promise<vo
     return;
   }
 
-  // 4. Build message
+  // 4. Build message using the canonical confirmation template
   const appUrl = typeof window !== "undefined"
     ? window.location.origin
     : (import.meta.env.VITE_APP_URL ?? "");
 
-  const confirmationData: SessionConfirmationData = {
-    patientName: patient?.nome ?? "Paciente",
-    patientPhone: phone,
-    professionalName,
-    sessionDate: formatDate(ag.data_horario),
-    sessionTime: formatTime(ag.data_horario),
-    confirmationLink: `${appUrl}/confirmar-agendamento/${appointmentId}`,
-  };
-
-  const content = buildSessionConfirmationMessage(
-    confirmationData,
+  const content = buildConfirmationMessage(
+    {
+      pacienteNome: patient?.nome ?? "Paciente",
+      profissionalNome: professionalName,
+      tipo: ag.tipo_atendimento || "sessão",
+      dataHorario: ag.data_horario,
+      confirmationLink: `${appUrl}/confirmar-agendamento/${appointmentId}`,
+    },
     settings?.session_confirmation_message
   );
 
