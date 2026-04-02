@@ -1,0 +1,2 @@
+ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS confirmacao_presenca text DEFAULT NULL;
+ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS confirmacao_respondida_at timestamptz DEFAULT NULL;
