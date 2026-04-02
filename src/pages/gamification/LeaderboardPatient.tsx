@@ -121,8 +121,8 @@ export default function LeaderboardPatient() {
         </p>
       )}
 
-      <div className="grid grid-cols-3 gap-3 text-center">
-        {(["Iniciante", "Prata", "Ouro", "Bronze", "Diamante"] as const).map((lvl, i) => {
+      <div className="grid grid-cols-5 gap-3 text-center">
+        {(["Iniciante", "Bronze", "Prata", "Ouro", "Diamante"] as const).map((lvl) => {
           const thresholds: Record<string, number> = { Iniciante: 0, Bronze: 50, Prata: 150, Ouro: 300, Diamante: 500 };
           const colors: Record<string, string> = {
             Iniciante: "text-muted-foreground",
@@ -138,7 +138,6 @@ export default function LeaderboardPatient() {
             </div>
           );
         })}
-        <div />
       </div>
     </div>
   );
