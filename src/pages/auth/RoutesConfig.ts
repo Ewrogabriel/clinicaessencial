@@ -178,13 +178,8 @@ export const protectedRoutes: RouteDefinition[] = [
   },
   {
     path: "/financeiro",
-    description: "Financial overview, invoices and payments.",
+    description: "Financial overview, invoices, payments and bank reconciliation (tabs).",
     roles: ["admin", "gestor", "master", "secretario"],
-  },
-  {
-    path: "/financeiro/conciliacao",
-    description: "Bank transaction reconciliation.",
-    roles: ["admin", "gestor", "master"],
   },
   {
     path: "/inteligencia-bi",
@@ -377,13 +372,6 @@ export const redirectRoutes: RouteDefinition[] = [
     roles: ["authenticated"],
     isRedirect: true,
     redirectTo: "/agenda?tab=vagas",
-  },
-  {
-    path: "/conciliacao-bancaria",
-    description: "Deprecated – redirects to /financeiro/conciliacao.",
-    roles: ["authenticated"],
-    isRedirect: true,
-    redirectTo: "/financeiro/conciliacao",
   },
 ];
 
