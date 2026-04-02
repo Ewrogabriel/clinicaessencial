@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
+import { AppointmentTypeSelector, type AppointmentType } from "@/components/agenda/AppointmentTypeSelector";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDialog";
 import { DayScheduleModal } from "@/components/agenda/DayScheduleModal";
@@ -34,6 +35,8 @@ const Agenda = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = usePersistedFilter<ViewMode>("agenda-view", "semanal");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<AppointmentType | undefined>();
   const [formOpen, setFormOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedProfIdForForm, setSelectedProfIdForForm] = useState<string | undefined>();
@@ -162,11 +165,20 @@ const Agenda = () => {
       setDayModalOpen(true);
     }
   };
-  const handleNewAgendamento = () => { setSelectedDate(new Date()); setSelectedProfIdForForm(undefined); setFormOpen(true); };
+  const handleNewAgendamento = () => { setSelectedDate(new Date()); setSelectedProfIdForForm(undefined); setTypeSelectorOpen(true); };
+  const handleTypeSelected = (type: AppointmentType) => {
+    setTypeSelectorOpen(false);
+    if (type === "matricula") {
+      navigate("/matriculas?nova=1");
+    } else {
+      setSelectedAppointmentType(type);
+      setFormOpen(true);
+    }
+  };
   const handleDayModalSlotSelect = (date: Date, profissionalId: string) => {
     setSelectedDate(date);
     setSelectedProfIdForForm(profissionalId);
-    setFormOpen(true);
+    setTypeSelectorOpen(true);
   };
 
   const handleExportPDF = () => {
@@ -375,7 +387,8 @@ const Agenda = () => {
         </>
       )}
 
-      <AgendamentoForm open={formOpen} onOpenChange={setFormOpen} onSuccess={refetchAgendamentos} defaultDate={selectedDate} defaultProfissionalId={selectedProfIdForForm} />
+      <AppointmentTypeSelector open={typeSelectorOpen} onOpenChange={setTypeSelectorOpen} onTypeSelected={handleTypeSelected} />
+      <AgendamentoForm open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) setSelectedAppointmentType(undefined); }} onSuccess={refetchAgendamentos} defaultDate={selectedDate} defaultProfissionalId={selectedProfIdForForm} appointmentType={selectedAppointmentType} />
       <RescheduleDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} agendamento={rescheduleAg} onSuccess={refetchAgendamentos} />
       <AppointmentDetailDialog open={detailOpen} onOpenChange={setDetailOpen} agendamento={detailAg} onCancel={handleCancelAppointment} onCheckin={handleCheckin} onReschedule={handleReschedule} isPatient={isPatient} />
       <DayScheduleModal
