@@ -14,9 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Building2, Plus, Upload, Check, X, Loader2, FileSpreadsheet,
-  Landmark, RefreshCw, Sparkles, Trash2, Tag, ArrowRightLeft, Brain
+  Landmark, RefreshCw, Sparkles, Trash2, Tag, ArrowRightLeft, Brain,
+  Pencil, Search, SlidersHorizontal, Link2
 } from "lucide-react";
 
 const BANKS = [
@@ -80,6 +82,32 @@ export default function ConciliacaoBancaria() {
   // AI categorization state
   const [categorizingAI, setCategorizingAI] = useState(false);
 
+  // History filters
+  const [filterMonth, setFilterMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+
+  // Transaction CRUD dialog
+  const [txDialogOpen, setTxDialogOpen] = useState(false);
+  const [txDialogMode, setTxDialogMode] = useState<"add" | "edit">("add");
+  const [editingTx, setEditingTx] = useState<any>(null);
+  const [txForm, setTxForm] = useState({
+    data_transacao: format(new Date(), "yyyy-MM-dd"),
+    descricao: "",
+    valor: "",
+    categoria: "",
+    documento: "",
+    status: "pendente",
+  });
+
+  // Category manager
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  // Expense link for debit transactions
+  const [expenseLinkTxId, setExpenseLinkTxId] = useState<string | null>(null);
+  const [expenseLinkId, setExpenseLinkId] = useState<string>("");
+
   // Fetch bank accounts
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["bank-accounts", activeClinicId],
@@ -137,6 +165,30 @@ export default function ConciliacaoBancaria() {
     enabled: !!activeClinicId,
   });
 
+  // Fetch custom categories
+  const { data: customCategories = [] } = useQuery({
+    queryKey: ["bank-tx-categories", activeClinicId],
+    queryFn: async () => {
+      const { data } = await (supabase.from("bank_transaction_categories") as any)
+        .select("*").eq("clinic_id", activeClinicId).order("nome");
+      return data || [];
+    },
+    enabled: !!activeClinicId,
+  });
+
+  // Fetch pending expenses (for debit matching)
+  const { data: pendingExpenses = [] } = useQuery({
+    queryKey: ["pending-expenses-for-match", activeClinicId],
+    queryFn: async () => {
+      const { data } = await supabase.from("expenses")
+        .select("id, descricao, valor, data_vencimento, status")
+        .eq("clinic_id", activeClinicId)
+        .in("status", ["pendente", "aberto"] as any);
+      return data || [];
+    },
+    enabled: !!activeClinicId,
+  });
+
   // Create bank account
   const createAccount = useMutation({
     mutationFn: async () => {
@@ -168,6 +220,126 @@ export default function ConciliacaoBancaria() {
       queryClient.invalidateQueries({ queryKey: ["bank-accounts"] });
       if (selectedAccountId) setSelectedAccountId("");
     },
+  });
+
+  // ---- TRANSACTION CRUD ----
+  const allCategories = useMemo(() => {
+    const custom = customCategories.map((c: any) => ({ key: c.nome, label: c.nome }));
+    const builtin = CATEGORIES.map(k => ({ key: k, label: CATEGORY_LABELS[k] || k }));
+    return [...builtin, ...custom.filter((c: any) => !CATEGORIES.includes(c.key))];
+  }, [customCategories]);
+
+  const openAddTx = () => {
+    setTxDialogMode("add");
+    setEditingTx(null);
+    setTxForm({ data_transacao: format(new Date(), "yyyy-MM-dd"), descricao: "", valor: "", categoria: "", documento: "", status: "pendente" });
+    setTxDialogOpen(true);
+  };
+
+  const openEditTx = (tx: any) => {
+    setTxDialogMode("edit");
+    setEditingTx(tx);
+    setTxForm({
+      data_transacao: tx.data_transacao || format(new Date(), "yyyy-MM-dd"),
+      descricao: tx.descricao || "",
+      valor: String(tx.valor ?? ""),
+      categoria: tx.categoria || "",
+      documento: tx.documento || "",
+      status: tx.status || "pendente",
+    });
+    setTxDialogOpen(true);
+  };
+
+  const saveTx = useMutation({
+    mutationFn: async () => {
+      const payload: any = {
+        data_transacao: txForm.data_transacao,
+        descricao: txForm.descricao,
+        valor: parseFloat(txForm.valor) || 0,
+        categoria: txForm.categoria || null,
+        documento: txForm.documento || null,
+        status: txForm.status,
+        tipo: (parseFloat(txForm.valor) || 0) >= 0 ? "credito" : "debito",
+      };
+      if (txDialogMode === "add") {
+        payload.bank_account_id = selectedAccountId;
+        payload.clinic_id = activeClinicId;
+        const { error } = await (supabase.from("bank_transactions") as any).insert(payload);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("bank_transactions") as any)
+          .update(payload).eq("id", editingTx.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: txDialogMode === "add" ? "Transação criada!" : "Transação atualizada!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+      setTxDialogOpen(false);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteTx = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("bank_transactions") as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Transação excluída!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  // ---- CUSTOM CATEGORIES ----
+  const createCategory = useMutation({
+    mutationFn: async (nome: string) => {
+      const { error } = await (supabase.from("bank_transaction_categories") as any).insert({
+        clinic_id: activeClinicId, nome, created_by: user?.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Categoria criada!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-tx-categories"] });
+      setNewCategoryName("");
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteCategory = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("bank_transaction_categories") as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Categoria removida!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-tx-categories"] });
+    },
+  });
+
+  // ---- EXPENSE LINK ----
+  const confirmExpenseLink = useMutation({
+    mutationFn: async ({ txId, expenseId }: { txId: string; expenseId: string }) => {
+      const tx = transactions.find((t: any) => t.id === txId);
+      await supabase.from("expenses").update({
+        status: "pago",
+        data_pagamento: tx?.data_transacao || new Date().toISOString().split("T")[0],
+      } as any).eq("id", expenseId);
+      await (supabase.from("bank_transactions") as any)
+        .update({ status: "confirmado", reviewed: true, reviewed_by: user?.id, reviewed_at: new Date().toISOString(),
+          dados_originais: { ...(tx?.dados_originais || {}), matched_expense_id: expenseId } })
+        .eq("id", txId);
+    },
+    onSuccess: () => {
+      toast({ title: "Despesa conciliada com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      setExpenseLinkTxId(null);
+      setExpenseLinkId("");
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   // ---- IMPORT LOGIC ----
@@ -514,6 +686,29 @@ export default function ConciliacaoBancaria() {
 
   const pendingReview = useMemo(() => transactions.filter((t: any) => (t.status === "pendente" || (t.status === "matched" && !t.reviewed))), [transactions]);
 
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t: any) => {
+      if (filterMonth !== "all") {
+        const txMonth = (t.data_transacao || "").slice(0, 7);
+        if (txMonth !== filterMonth) return false;
+      }
+      if (filterSearch) {
+        const lower = filterSearch.toLowerCase();
+        if (!t.descricao?.toLowerCase().includes(lower) && !t.pacientes?.nome?.toLowerCase().includes(lower)) return false;
+      }
+      if (filterCategory !== "all" && t.categoria !== filterCategory) return false;
+      return true;
+    });
+  }, [transactions, filterMonth, filterSearch, filterCategory]);
+
+  // Month options for filter (last 12 months)
+  const monthOptions = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
+      return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy", { locale: ptBR }) };
+    });
+  }, []);
+
   const preview = useMemo(() => importStep === "mapping" ? getMappedPreview() : [], [importStep, getMappedPreview]);
 
   return (
@@ -524,6 +719,9 @@ export default function ConciliacaoBancaria() {
           <p className="text-muted-foreground">Importe extratos, categorize transações e confirme pagamentos.</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setCategoryDialogOpen(true)}>
+            <Tag className="h-4 w-4" /> Categorias
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setAccountDialogOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Conta
           </Button>
@@ -656,11 +854,36 @@ export default function ConciliacaoBancaria() {
                             </p>
                           </div>
                         )}
+                        {tx.valor < 0 && expenseLinkTxId === tx.id && (
+                          <div className="mt-2 flex gap-2 items-center">
+                            <Select value={expenseLinkId} onValueChange={setExpenseLinkId}>
+                              <SelectTrigger className="h-8 text-xs flex-1">
+                                <SelectValue placeholder="Selecionar despesa..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {pendingExpenses.map((exp: any) => (
+                                  <SelectItem key={exp.id} value={exp.id}>
+                                    {exp.descricao} — R$ {Number(exp.valor).toFixed(2)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" className="gap-1 text-xs" onClick={() => { if (expenseLinkId) confirmExpenseLink.mutate({ txId: tx.id, expenseId: expenseLinkId }); }} disabled={!expenseLinkId || confirmExpenseLink.isPending}>
+                              <Check className="h-3.5 w-3.5" /> Conciliar
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setExpenseLinkTxId(null); setExpenseLinkId(""); }}><X className="h-3.5 w-3.5" /></Button>
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <Button size="sm" variant="outline" className="gap-1 text-emerald-600" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "confirm" })}>
                           <Check className="h-3.5 w-3.5" /> Confirmar
                         </Button>
+                        {tx.valor < 0 && (
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => { setExpenseLinkTxId(tx.id); setExpenseLinkId(""); }}>
+                            <Link2 className="h-3.5 w-3.5" /> Despesa
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "reject" })}>
                           <X className="h-3.5 w-3.5" /> Rejeitar
                         </Button>
@@ -675,19 +898,60 @@ export default function ConciliacaoBancaria() {
           {/* HISTORY TAB */}
           <TabsContent value="historico">
             <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-base">Histórico de Transações</CardTitle>
+                  <Button size="sm" className="gap-2" onClick={openAddTx}>
+                    <Plus className="h-4 w-4" /> Nova Transação
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Select value={filterMonth} onValueChange={setFilterMonth}>
+                    <SelectTrigger className="h-8 text-xs w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os meses</SelectItem>
+                      {monthOptions.map(m => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]">
+                      <SelectValue placeholder="Categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas categorias</SelectItem>
+                      {allCategories.map(c => (
+                        <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="relative flex-1 min-w-[180px]">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      className="h-8 text-xs pl-7"
+                      placeholder="Buscar por nome ou descrição..."
+                      value={filterSearch}
+                      onChange={e => setFilterSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
               <CardContent className="p-0">
                 {loadingTransactions ? (
                   <div className="py-12 text-center text-muted-foreground">Carregando...</div>
-                ) : transactions.length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground">Nenhuma transação importada.</div>
+                ) : filteredTransactions.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">Nenhuma transação encontrada.</div>
                 ) : (
                   <div className="divide-y max-h-[500px] overflow-y-auto">
-                    {transactions.map((tx: any) => (
+                    {filteredTransactions.map((tx: any) => (
                       <div key={tx.id} className="px-4 py-3 flex items-center justify-between hover:bg-muted/50 gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{tx.descricao}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(tx.data_transacao), "dd/MM/yyyy")}
+                            {tx.data_transacao ? format(new Date(tx.data_transacao + "T12:00:00"), "dd/MM/yyyy") : "—"}
                             {tx.pacientes?.nome && ` • ${tx.pacientes.nome}`}
                           </p>
                         </div>
@@ -700,8 +964,8 @@ export default function ConciliacaoBancaria() {
                               <SelectValue placeholder="Categoria" />
                             </SelectTrigger>
                             <SelectContent>
-                              {CATEGORIES.map(c => (
-                                <SelectItem key={c} value={c}>{CATEGORY_LABELS[c]}</SelectItem>
+                              {allCategories.map(c => (
+                                <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -711,6 +975,12 @@ export default function ConciliacaoBancaria() {
                           <Badge variant={tx.status === "confirmado" ? "default" : tx.status === "rejeitado" ? "outline" : "secondary"} className="text-[10px]">
                             {tx.status}
                           </Badge>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditTx(tx)}>
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteTx.mutate(tx.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -722,28 +992,64 @@ export default function ConciliacaoBancaria() {
 
           {/* API TAB */}
           <TabsContent value="integracao">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 text-primary" /> Integração API / Open Finance
-                </CardTitle>
-                <CardDescription>Em desenvolvimento. Utilize a importação manual de extratos.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {BANKS.map(bank => (
-                  <div key={bank.codigo} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <Landmark className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{bank.nome}</p>
-                        <p className="text-xs text-muted-foreground">Código: {bank.codigo}</p>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5 text-primary" /> Integração API / Open Finance
+                  </CardTitle>
+                  <CardDescription>
+                    Conecte sua conta bancária diretamente via API ou Open Finance para importação automática de extratos.
+                    Em desenvolvimento — utilize a importação manual de extratos enquanto isso.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {BANKS.map(bank => (
+                    <div key={bank.codigo} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <Landmark className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">{bank.nome}</p>
+                          <p className="text-xs text-muted-foreground">Código: {bank.codigo}</p>
+                        </div>
                       </div>
+                      <Badge variant="outline">Em breve</Badge>
                     </div>
-                    <Badge variant="outline">Em breve</Badge>
+                  ))}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Open Finance Brasil
+                  </CardTitle>
+                  <CardDescription>
+                    Integração via Open Finance conforme regulamentação do Banco Central do Brasil (BCB).
+                    Permite consentimento para leitura automática de extratos e transações.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      { label: "Consentimento OAuth2", desc: "Autorização segura via redirecionamento bancário", status: "Planejado" },
+                      { label: "Leitura de Extrato", desc: "Importação automática de transações via API", status: "Planejado" },
+                      { label: "Webhook de Pagamentos", desc: "Notificação em tempo real de depósitos e PIX", status: "Planejado" },
+                      { label: "Conciliação Automática", desc: "Cruzamento automático com pagamentos do sistema", status: "Base pronta" },
+                    ].map(item => (
+                      <div key={item.label} className="p-3 rounded-lg border space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{item.label}</p>
+                          <Badge variant={item.status === "Base pronta" ? "default" : "outline"} className="text-[10px]">
+                            {item.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       )}
@@ -889,6 +1195,114 @@ export default function ConciliacaoBancaria() {
               {createAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Cadastrar Conta
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Transaction Dialog */}
+      <Dialog open={txDialogOpen} onOpenChange={setTxDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{txDialogMode === "add" ? "Nova Transação" : "Editar Transação"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Data da Transação <span className="text-destructive">*</span></Label>
+              <Input type="date" value={txForm.data_transacao} onChange={e => setTxForm(p => ({ ...p, data_transacao: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Descrição <span className="text-destructive">*</span></Label>
+              <Input value={txForm.descricao} onChange={e => setTxForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Ex: Pagamento mensalidade João" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor <span className="text-destructive">*</span></Label>
+                <Input type="number" step="0.01" value={txForm.valor} onChange={e => setTxForm(p => ({ ...p, valor: e.target.value }))} placeholder="-150.00" />
+                <p className="text-[10px] text-muted-foreground mt-1">Negativo = débito, positivo = crédito</p>
+              </div>
+              <div>
+                <Label>Documento / Nº</Label>
+                <Input value={txForm.documento} onChange={e => setTxForm(p => ({ ...p, documento: e.target.value }))} placeholder="123456" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Categoria</Label>
+                <Select value={txForm.categoria} onValueChange={v => setTxForm(p => ({ ...p, categoria: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">— Sem categoria —</SelectItem>
+                    {allCategories.map(c => (
+                      <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={txForm.status} onValueChange={v => setTxForm(p => ({ ...p, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTxDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveTx.mutate()} disabled={!txForm.descricao || !txForm.data_transacao || saveTx.isPending}>
+              {saveTx.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {txDialogMode === "add" ? "Criar Transação" : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Manager Dialog */}
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Tag className="h-5 w-5" /> Gerenciar Categorias</DialogTitle>
+            <DialogDescription>Adicione ou remova categorias personalizadas para suas transações.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nova categoria..."
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && newCategoryName.trim()) createCategory.mutate(newCategoryName.trim()); }}
+              />
+              <Button onClick={() => newCategoryName.trim() && createCategory.mutate(newCategoryName.trim())} disabled={!newCategoryName.trim() || createCategory.isPending}>
+                {createCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Categorias padrão</p>
+              <div className="flex flex-wrap gap-1.5">
+                {CATEGORIES.map(c => (
+                  <Badge key={c} variant="secondary" className="text-xs">{CATEGORY_LABELS[c]}</Badge>
+                ))}
+              </div>
+            </div>
+            {customCategories.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Categorias personalizadas</p>
+                <div className="space-y-1.5">
+                  {customCategories.map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-md border text-sm">
+                      <span>{c.nome}</span>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteCategory.mutate(c.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
