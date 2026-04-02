@@ -4,9 +4,9 @@ import {
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   FileCheck, Handshake, Video,
   Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
-  Clock, Settings2, CheckCheck, Sparkles,
+  Clock, CheckCheck, ChevronDown, ChevronRight,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useState, useEffect } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -17,8 +17,13 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ClinicSwitcher } from "@/components/layout/ClinicSwitcher";
+import {
+  masterGroups, adminGroups, profissionalGroups, patientGroups,
+  ROLE_LABELS, ROLE_BADGE_COLORS,
+  type MenuGroup, type MenuItem,
+} from "@/components/layout/menuConfig";
 
 /* Resource key → route mapping (for permission-based menus) */
 const RESOURCE_ROUTES: Record<string, string> = {
@@ -55,15 +60,104 @@ const RESOURCE_I18N_KEYS: Record<string, string> = {
   precos_planos: "nav.prices", produtos: "nav.products",
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CollapsibleGroup – renders a single collapsible menu section
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface CollapsibleGroupProps {
+  group: MenuGroup;
+  collapsed: boolean;
+  isActive: (path: string) => boolean;
+  t: (key: string) => string;
+}
+
+function CollapsibleGroup({ group, collapsed, isActive, t }: CollapsibleGroupProps) {
+  // Auto-expand the group when one of its items is the current page
+  const hasActive = group.items.some((item) => isActive(item.url));
+  const [open, setOpen] = useState(!group.defaultCollapsed || hasActive);
+
+  // Re-expand the group whenever navigation causes a child route to become active
+  useEffect(() => {
+    if (hasActive) setOpen(true);
+  }, [hasActive]);
+
+  const label = t(group.labelKey);
+
+  return (
+    <SidebarGroup>
+      {/* Group header – doubles as collapse toggle */}
+      <button
+        type="button"
+        className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/70 transition-colors"
+        onClick={() => !collapsed && setOpen((v) => !v)}
+      >
+        <SidebarGroupLabel className="p-0 text-inherit uppercase tracking-wider text-xs">
+          {label}
+        </SidebarGroupLabel>
+        {!collapsed && (
+          <span className="shrink-0 opacity-60">
+            {open ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+          </span>
+        )}
+      </button>
+
+      {/* Items – always visible when sidebar is icon-collapsed */}
+      {(open || collapsed) && (
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {group.items.map((item: MenuItem) => (
+              <SidebarMenuItem key={item.url}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(item.url)}
+                  tooltip={t(item.labelKey)}
+                >
+                  <NavLink
+                    to={item.url}
+                    end={item.url === "/dashboard"}
+                    activeClassName="bg-sidebar-accent text-sidebar-primary"
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{t(item.labelKey)}</span>
+                    {item.badge && (
+                      <Badge
+                        variant="secondary"
+                        className="ml-auto h-5 min-w-[1.25rem] px-1 text-[10px]"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      )}
+    </SidebarGroup>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AppSidebar
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const AppSidebar = memo(function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, isAdmin, isGestor, isPatient, isProfissional, isSecretario, isMaster, hasPermission } = useAuth();
+  const {
+    profile, signOut,
+    isAdmin, isGestor, isPatient, isProfissional, isSecretario, isMaster,
+    hasPermission, roles,
+  } = useAuth();
   const { saasStatus } = useSaaS();
   const { t } = useI18n();
-  const isStaff = isAdmin || isGestor || isProfissional || isSecretario || isMaster;
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -72,155 +166,64 @@ export const AppSidebar = memo(function AppSidebar() {
     navigate("/login");
   };
 
-  /* ── Menus by prescribed UX structure ── */
+  // Primary role for the visual role badge in the footer
+  const primaryRole = roles?.[0] ?? null;
+  const roleLabel = primaryRole ? ROLE_LABELS[primaryRole] : null;
+  const roleBadgeClass = primaryRole ? ROLE_BADGE_COLORS[primaryRole] : "";
 
-  // Patients group
-  const menuPacientes = [
-    { title: t("nav.patients"), url: "/pacientes", icon: Users },
-    { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
-    { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
-  ];
+  // Admin/gestor finance group: inject BI item when the feature flag is active
+  const resolvedAdminGroups: MenuGroup[] = adminGroups.map((group) => {
+    if (group.labelKey !== "group.finance") return group;
+    if (!saasStatus?.has_bi) return group;
+    const items = [...group.items];
+    const biIdx = items.findIndex((i) => i.url === "/relatorios");
+    items.splice(biIdx, 0, {
+      labelKey: "nav.bi_intelligence",
+      url: "/inteligencia-bi",
+      icon: BarChart3,
+    });
+    return { ...group, items };
+  });
 
-  // Scheduling group (Filtered by SaaS)
-  const menuAgendamentos = [
-    { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
-    
-    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
-    { title: "Confirmações", url: "/confirmacoes-dia", icon: CheckCheck },
-    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
-    { title: t("nav.modalities"), url: "/modalidades", icon: Layers },
-    { title: t("nav.availability"), url: "/disponibilidade", icon: Clock },
-  ];
-
-  // Professionals group
-  const menuProfissionais = [
-    { title: t("nav.team"), url: "/profissionais", icon: UserCog },
-  ];
-
-  // Finance group (Filtered by SaaS)
-  const menuFinanceiro = [
-    { title: t("nav.finance"), url: "/financeiro", icon: DollarSign },
-    { title: t("nav.commissions"), url: "/comissoes", icon: Calculator },
-    { title: "Investimentos", url: "/investimentos", icon: Activity },
-    ...(saasStatus?.has_bi ? [{ title: "Inteligência BI", url: "/inteligencia-bi", icon: Activity }] : []),
-    { title: t("nav.reports"), url: "/relatorios", icon: BarChart3 },
-  ];
-
-  // Clinic group
-  const menuClinica = [
-    { title: t("nav.clinic_payment"), url: "/clinica", icon: Activity },
-    { title: t("nav.units"), url: "/gestao-clinicas", icon: Building2 },
-    { title: t("nav.pre_registrations"), url: "/pre-cadastros", icon: UserCog },
-    { title: t("nav.requests"), url: "/solicitacoes-alteracao", icon: FileCheck },
-    { title: t("nav.inventory"), url: "/inventario", icon: Tag },
-  ];
-
-  // Settings group
-  const menuConfiguracoes = [
-    { title: t("nav.partners"), url: "/convenios", icon: Handshake },
-    { title: t("nav.contracts"), url: "/contratos", icon: FileText },
-    { title: t("nav.automations"), url: "/automacoes", icon: Send },
-    { title: "Marketing", url: "/marketing", icon: Target },
-    { title: t("nav.goals"), url: "/metas", icon: Trophy },
-    { title: t("nav.gamification"), url: "/gamificacao-admin", icon: Trophy },
-    { title: t("nav.import"), url: "/importacao", icon: Upload },
-    { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
-    { title: t("nav.notices"), url: "/avisos", icon: Megaphone },
-  ];
-
-  const menuMaster = [
-    { title: t("nav.master_panel"), url: "/master", icon: Crown },
-  ];
-
-  const menuPatient = [
-    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
-    { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
-    { title: t("nav.my_plans"), url: "/meus-planos", icon: ClipboardList },
-    { title: t("nav.my_history"), url: "/meu-historico", icon: ClipboardList },
-    { title: t("nav.my_payments"), url: "/meus-pagamentos", icon: CreditCard },
-    { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
-    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
-    { title: t("nav.partners"), url: "/convenios", icon: Handshake },
-    { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
-    { title: t("nav.my_contract"), url: "/contratos", icon: FileText },
-    { title: t("nav.my_profile"), url: "/meu-perfil", icon: Users },
-  ];
-
-  const renderGroup = (label: string, items: { title: string; url: string; icon: any }[]) => (
-    <SidebarGroup key={label}>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.url}>
-              <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                <NavLink to={item.url} end={item.url === "/dashboard"} activeClassName="bg-sidebar-accent text-sidebar-primary">
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.title}</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-
-  // Professional menu groups
-  const menuProfissionalClinico = [
-    { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
-    { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
-    
-    { title: t("nav.my_agenda"), url: "/minha-agenda", icon: Calendar },
-    { title: t("nav.patients"), url: "/pacientes", icon: Users },
-    { title: t("nav.records"), url: "/prontuarios", icon: ClipboardList },
-    { title: t("nav.documents"), url: "/documentos-clinicos", icon: Stethoscope },
-    { title: t("nav.session_plans"), url: "/planos", icon: ClipboardList },
-    { title: "Planos de Exercícios", url: "/planos-exercicios", icon: Dumbbell },
-    { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
-  ];
-
-  const menuProfissionalAdmin = [
-    { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
-    { title: t("nav.products"), url: "/inventario", icon: Tag },
-  ];
-
-  const menuProfissionalFinanceiro = [
-    { title: "Minhas Comissões", url: "/comissoes", icon: Calculator },
-  ];
-
-  const menuProfissionalConfig = [
-    { title: t("nav.contracts"), url: "/contratos", icon: FileText },
-    { title: t("nav.messages"), url: "/mensagens", icon: MessageSquare },
-    { title: t("nav.notices"), url: "/avisos", icon: Megaphone },
-    { title: t("nav.my_profile"), url: "/perfil-profissional", icon: User },
-  ];
-
-  // Build permission-based menu for non-admin staff (secretário)
-  const buildPermissionMenu = () => {
-    const items: { title: string; url: string; icon: any }[] = [
-      { title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard },
+  // Build permission-based groups for secretário role
+  const buildSecretarioGroups = (): MenuGroup[] => {
+    const items: MenuItem[] = [
+      { labelKey: "nav.home", url: "/dashboard", icon: LayoutDashboard },
     ];
     Object.entries(RESOURCE_ROUTES).forEach(([resource, route]) => {
       if (hasPermission(resource)) {
-        const i18nKey = RESOURCE_I18N_KEYS[resource] || resource;
-        const label = resource === "agenda" && isProfissional ? t("nav.my_agenda") : t(i18nKey);
+        const labelKey = RESOURCE_I18N_KEYS[resource] || resource;
         const url = resource === "agenda" && isProfissional ? "/minha-agenda" : route;
-        items.push({ title: label, url, icon: RESOURCE_ICONS[resource] || Activity });
+        items.push({ labelKey, url, icon: RESOURCE_ICONS[resource] || Activity });
       }
     });
-    return items;
+    return [{ labelKey: "group.menu", items }];
   };
+
+  // Determine which menu groups apply to the current user
+  let groups: MenuGroup[] = [];
+  if (isAdmin || isGestor) {
+    groups = resolvedAdminGroups;
+  } else if (isProfissional) {
+    groups = profissionalGroups;
+  } else if (isSecretario) {
+    groups = buildSecretarioGroups();
+  } else if (isPatient) {
+    groups = patientGroups;
+  }
 
   return (
     <Sidebar collapsible="icon">
+      {/* Brand header */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shrink-0">
           <Activity className="h-5 w-5" />
         </div>
         {!collapsed && (
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">Essencial</span>
+            <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">
+              Essencial
+            </span>
             <span className="text-[11px] text-sidebar-foreground/60">Clínicas</span>
           </div>
         )}
@@ -229,41 +232,43 @@ export const AppSidebar = memo(function AppSidebar() {
       <ClinicSwitcher collapsed={collapsed} />
 
       <SidebarContent>
-        {isMaster && renderGroup(t("group.master"), menuMaster)}
-        {(isAdmin || isGestor) ? (
-          <>
-            {renderGroup("Início", [{ title: t("nav.home"), url: "/dashboard", icon: LayoutDashboard }])}
-            {renderGroup("Pacientes", menuPacientes)}
-            {renderGroup("Agendamentos", menuAgendamentos)}
-            {renderGroup("Profissionais", menuProfissionais)}
-            {renderGroup("Financeiro", menuFinanceiro)}
-            {renderGroup("Clínica", menuClinica)}
-            {renderGroup("Configurações", menuConfiguracoes)}
-            {isProfissional && renderGroup(t("group.profile"), [
-              { title: t("nav.my_profile"), url: "/perfil-profissional", icon: User },
-            ])}
-          </>
-        ) : isProfissional ? (
-          <>
-            {renderGroup("Clínico", menuProfissionalClinico)}
-            {renderGroup("Administrativo", menuProfissionalAdmin)}
-            {renderGroup("Financeiro", menuProfissionalFinanceiro)}
-            {renderGroup("Configurações", menuProfissionalConfig)}
-          </>
-        ) : isSecretario ? (
-          <>
-            {renderGroup(t("group.menu"), buildPermissionMenu())}
-          </>
-        ) : isPatient ? (
-          renderGroup(t("group.my_portal"), menuPatient)
-        ) : null}
+        {/* Master panel is always prepended when the user has master role */}
+        {isMaster &&
+          masterGroups.map((group) => (
+            <CollapsibleGroup
+              key={group.labelKey}
+              group={group}
+              collapsed={collapsed}
+              isActive={isActive}
+              t={t}
+            />
+          ))}
+
+        {groups.map((group) => (
+          <CollapsibleGroup
+            key={group.labelKey}
+            group={group}
+            collapsed={collapsed}
+            isActive={isActive}
+            t={t}
+          />
+        ))}
       </SidebarContent>
 
       <SidebarFooter>
         <SidebarMenu>
           {!collapsed && profile && (
-            <div className="px-3 py-2 mb-2">
-              <p className="text-xs text-sidebar-foreground/60 truncate">{profile.nome}</p>
+            <div className="px-3 py-2 mb-1 space-y-1">
+              <p className="text-xs text-sidebar-foreground/80 font-medium truncate">
+                {profile.nome}
+              </p>
+              {roleLabel && (
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${roleBadgeClass}`}
+                >
+                  {roleLabel}
+                </span>
+              )}
             </div>
           )}
           <SidebarMenuItem>
