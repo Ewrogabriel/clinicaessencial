@@ -512,7 +512,7 @@ export default function ConciliacaoBancaria() {
     }
   };
 
-  const pendingReview = useMemo(() => transactions.filter((t: any) => t.status === "matched" && !t.reviewed), [transactions]);
+  const pendingReview = useMemo(() => transactions.filter((t: any) => (t.status === "pendente" || (t.status === "matched" && !t.reviewed))), [transactions]);
 
   const preview = useMemo(() => importStep === "mapping" ? getMappedPreview() : [], [importStep, getMappedPreview]);
 
@@ -631,7 +631,7 @@ export default function ConciliacaoBancaria() {
               </Card>
             ) : (
               pendingReview.map((tx: any) => (
-                <Card key={tx.id} className="border-l-4 border-l-primary">
+                <Card key={tx.id} className={`border-l-4 ${tx.status === "matched" ? "border-l-primary" : "border-l-amber-400"}`}>
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -644,6 +644,9 @@ export default function ConciliacaoBancaria() {
                           {tx.categoria && (
                             <Badge variant="outline" className="ml-2 text-[10px]">{CATEGORY_LABELS[tx.categoria] || tx.categoria}</Badge>
                           )}
+                          <Badge variant="secondary" className="ml-2 text-[10px]">
+                            {tx.status === "matched" ? "Match IA" : "Importado"}
+                          </Badge>
                         </p>
                         {tx.matched_paciente_id && (
                           <div className="mt-2 p-2 rounded-md bg-muted/50">

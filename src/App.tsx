@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/modules/auth/hooks/useAuth";
 import { ClinicProvider } from "@/modules/clinic/hooks/useClinic";
@@ -74,7 +74,7 @@ const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadePr
 const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
 const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
-const AgendaPremium = lazy(() => import("./pages/AgendaPremium"));
+
 const ConciliacaoBancaria = lazy(() => import("./pages/ConciliacaoBancaria"));
 const Investimentos = lazy(() => import("./pages/Investimentos"));
 
@@ -171,7 +171,7 @@ const App = () => (
                         <Route path="/planos-exercicios" element={<PlanosExercicios />} />
                         <Route path="/planos" element={<Planos />} />
                         <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
-                        <Route path="/agenda-premium" element={<RequireRole roles={["admin", "gestor", "master", "profissional", "secretario"]}><AgendaPremium /></RequireRole>} />
+                        <Route path="/agenda-premium" element={<Navigate to="/agenda?tab=vagas" replace />} />
                         <Route path="/conciliacao-bancaria" element={<RequireRole roles={["admin", "gestor", "master"]}><ConciliacaoBancaria /></RequireRole>} />
                         <Route path="/investimentos" element={<RequireRole roles={["admin", "gestor", "master"]}><Investimentos /></RequireRole>} />
                       </Route>
