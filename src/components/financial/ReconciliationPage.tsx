@@ -20,6 +20,8 @@ import {
   Landmark,
   Upload,
   Plus,
+  Plus,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReconciliation } from "@/modules/finance/hooks/useReconciliation";
@@ -96,6 +98,8 @@ export function ReconciliationPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedImportAccount, setSelectedImportAccount] = useState("");
   const [selectedFilterAccount, setSelectedFilterAccount] = useState("all");
+  const [bankAccountDialogOpen, setBankAccountDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const sorted = sortTransactions(
     selectedFilterAccount && selectedFilterAccount !== "all"
@@ -192,6 +196,30 @@ export function ReconciliationPage() {
             </Select>
           </div>
         )}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+          <Landmark className="h-4 w-4" />
+          Conciliação Bancária
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setBankAccountDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Cadastrar Conta
+          </Button>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setImportDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Importar Extrato
+          </Button>
+        </div>
       </div>
 
       {/* Stats summary */}
@@ -421,6 +449,8 @@ export function ReconciliationPage() {
         onOpenChange={setAccountDialogOpen}
         onSave={handleCreateAccount}
         isLoading={isCreating}
+        open={bankAccountDialogOpen}
+        onOpenChange={setBankAccountDialogOpen}
       />
 
       {/* Import statement dialog */}
@@ -441,6 +471,7 @@ export function ReconciliationPage() {
         onFileSelect={parseFile}
         onImport={handleImport}
         onReset={resetImport}
+        onOpenChange={setImportDialogOpen}
       />
     </div>
   );
