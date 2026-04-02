@@ -93,6 +93,14 @@ const MeuPerfilToggle = () => {
   return <MeuPerfil />;
 };
 
+const LeaderboardPatient = lazy(() => import("./pages/gamification/LeaderboardPatient"));
+const RewardsCatalog = lazy(() => import("./pages/gamification/RewardsCatalog"));
+const ClinicManagement = lazy(() => import("./pages/master/ClinicManagement"));
+const RevenueAnalytics = lazy(() => import("./pages/master/RevenueAnalytics"));
+const FeatureFlagsPanel = lazy(() => import("./pages/master/FeatureFlagsPanel"));
+const UserManagement = lazy(() => import("./pages/master/UserManagement"));
+const AuditLogs = lazy(() => import("./pages/master/AuditLogs"));
+
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 const App = () => (
@@ -175,6 +183,13 @@ const App = () => (
                         <Route path="/agenda-premium" element={<Navigate to="/agenda?tab=vagas" replace />} />
                         <Route path="/conciliacao-bancaria" element={<Navigate to="/financeiro/conciliacao" replace />} />
                         <Route path="/financeiro/conciliacao" element={<RequireRole roles={["admin", "gestor", "master"]}><ConciliacaoBancaria /></RequireRole>} />
+                        <Route path="/gamificacao/ranking" element={<LeaderboardPatient />} />
+                        <Route path="/gamificacao/recompensas" element={<RewardsCatalog />} />
+                        <Route path="/master/clinicas" element={<RequireRole roles={["master"]}><ClinicManagement /></RequireRole>} />
+                        <Route path="/master/revenue" element={<RequireRole roles={["master"]}><RevenueAnalytics /></RequireRole>} />
+                        <Route path="/master/features" element={<RequireRole roles={["master"]}><FeatureFlagsPanel /></RequireRole>} />
+                        <Route path="/master/users" element={<RequireRole roles={["master"]}><UserManagement /></RequireRole>} />
+                        <Route path="/master/audit" element={<RequireRole roles={["master"]}><AuditLogs /></RequireRole>} />
                         <Route path="/investimentos" element={<RequireRole roles={["admin", "gestor", "master"]}><Investimentos /></RequireRole>} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
