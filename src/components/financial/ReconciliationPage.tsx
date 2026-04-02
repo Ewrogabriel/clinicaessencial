@@ -20,13 +20,10 @@ import {
   Landmark,
   Upload,
   Plus,
-  Plus,
-  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReconciliation } from "@/modules/finance/hooks/useReconciliation";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
-import { useStatementImport } from "@/modules/finance/hooks/useStatementImport";
 import { TransactionFilter } from "./TransactionFilter";
 import { BulkApprovalDialog } from "./BulkApprovalDialog";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
@@ -69,23 +66,7 @@ export function ReconciliationPage() {
     isBulkRejecting,
   } = useReconciliation();
 
-  const {
-    accounts,
-    isLoading: isLoadingAccounts,
-    createAccount,
-    isCreating,
-  } = useBankAccounts();
-
-  const {
-    step: importStep,
-    parsedData,
-    validation,
-    importResult,
-    error: importError,
-    parseFile,
-    importTransactions,
-    reset: resetImport,
-  } = useStatementImport();
+  const { accounts } = useBankAccounts();
 
   const [bulkDialog, setBulkDialog] = useState<{
     open: boolean;
@@ -96,10 +77,7 @@ export function ReconciliationPage() {
   const [showStats, setShowStats] = useState(true);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [selectedImportAccount, setSelectedImportAccount] = useState("");
   const [selectedFilterAccount, setSelectedFilterAccount] = useState("all");
-  const [bankAccountDialogOpen, setBankAccountDialogOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const sorted = sortTransactions(
     selectedFilterAccount && selectedFilterAccount !== "all"
@@ -126,28 +104,6 @@ export function ReconciliationPage() {
       });
     } catch {
       toast({ title: "Erro ao processar lote", variant: "destructive" });
-    }
-  };
-
-  const handleCreateAccount = async (dto: Parameters<typeof createAccount>[0]) => {
-    try {
-      await createAccount(dto);
-      toast({ title: "Conta bancária cadastrada com sucesso." });
-    } catch {
-      toast({ title: "Erro ao cadastrar conta", variant: "destructive" });
-    }
-  };
-
-  const handleImport = async () => {
-    if (!selectedImportAccount) {
-      toast({ title: "Selecione uma conta bancária.", variant: "destructive" });
-      return;
-    }
-    try {
-      await importTransactions(selectedImportAccount);
-      toast({ title: "Extrato importado com sucesso." });
-    } catch {
-      toast({ title: "Erro ao importar extrato", variant: "destructive" });
     }
   };
 
@@ -196,30 +152,6 @@ export function ReconciliationPage() {
             </Select>
           </div>
         )}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <Landmark className="h-4 w-4" />
-          Conciliação Bancária
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setBankAccountDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Cadastrar Conta
-          </Button>
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setImportDialogOpen(true)}
-          >
-            <Upload className="h-4 w-4" />
-            Importar Extrato
-          </Button>
-        </div>
       </div>
 
       {/* Stats summary */}
@@ -447,30 +379,11 @@ export function ReconciliationPage() {
       <BankAccountDialog
         open={accountDialogOpen}
         onOpenChange={setAccountDialogOpen}
-        onSave={handleCreateAccount}
-        isLoading={isCreating}
-        open={bankAccountDialogOpen}
-        onOpenChange={setBankAccountDialogOpen}
       />
 
       {/* Import statement dialog */}
       <ImportStatementDialog
         open={importDialogOpen}
-        onOpenChange={(o) => {
-          if (!o) resetImport();
-          setImportDialogOpen(o);
-        }}
-        accounts={accounts}
-        selectedAccountId={selectedImportAccount}
-        onAccountChange={setSelectedImportAccount}
-        step={importStep}
-        parsedData={parsedData}
-        validation={validation}
-        importResult={importResult}
-        error={importError}
-        onFileSelect={parseFile}
-        onImport={handleImport}
-        onReset={resetImport}
         onOpenChange={setImportDialogOpen}
       />
     </div>
