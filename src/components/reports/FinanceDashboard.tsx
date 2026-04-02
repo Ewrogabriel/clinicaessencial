@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TrendingUp, TrendingDown, DollarSign, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Target, AlertCircle, Calculator, ArrowRightLeft } from "lucide-react";
 import { useMemo } from "react";
+
+/** 1-hour cache for dashboard metrics */
+const DASHBOARD_STALE_TIME = 1000 * 60 * 60;
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -25,7 +28,7 @@ export const FinanceDashboard = () => {
       const { data } = await supabase.from("formas_pagamento").select("id, nome").eq("ativo", true);
       return data ?? [];
     },
-    staleTime: 1000 * 60 * 30,
+    staleTime: DASHBOARD_STALE_TIME,
   });
 
   const formasMap = useMemo(() => {
@@ -92,6 +95,7 @@ export const FinanceDashboard = () => {
       return Promise.all(allQueries);
 
     },
+    staleTime: DASHBOARD_STALE_TIME,
   });
 
   const { data: formaDistribution = [] } = useQuery({
@@ -132,6 +136,59 @@ export const FinanceDashboard = () => {
       }));
     },
     enabled: Object.keys(formasMap).length > 0 || formasPagamentoList.length === 0,
+    staleTime: DASHBOARD_STALE_TIME,
+  });
+
+  // Analytics: outstanding payments (pendente + vencido)
+  const { data: outstandingData } = useQuery({
+    queryKey: ["finance-dashboard-outstanding", activeClinicId],
+    queryFn: async () => {
+      let q = supabase
+        .from("pagamentos")
+        .select("valor, status")
+        .in("status", ["pendente", "vencido"] as any);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      const total = (data || []).reduce((s, p) => s + Number(p.valor), 0);
+      const vencido = (data || []).filter(p => p.status === "vencido").reduce((s, p) => s + Number(p.valor), 0);
+      return { total, vencido, count: (data || []).length };
+    },
+    staleTime: DASHBOARD_STALE_TIME,
+  });
+
+  // Analytics: pending commissions
+  const { data: commissionsData } = useQuery({
+    queryKey: ["finance-dashboard-commissions-pending", activeClinicId],
+    queryFn: async () => {
+      let q = (supabase.from("commissions") as any)
+        .select("valor, status")
+        .eq("status", "pendente");
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      return (data || []).reduce((s: number, c: any) => s + Number(c.valor), 0);
+    },
+    staleTime: DASHBOARD_STALE_TIME,
+  });
+
+  // Analytics: cash flow projection (next 30 days = scheduled payments due)
+  const { data: cashFlowProjection } = useQuery({
+    queryKey: ["finance-dashboard-cashflow", activeClinicId],
+    queryFn: async () => {
+      const today = new Date();
+      const in30Days = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const todayStr = today.toISOString().split("T")[0];
+      const in30DaysStr = in30Days.toISOString().split("T")[0];
+      let q = supabase
+        .from("pagamentos")
+        .select("valor, status, data_vencimento")
+        .eq("status", "pendente" as any)
+        .gte("data_vencimento", todayStr)
+        .lte("data_vencimento", in30DaysStr);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      return (data || []).reduce((s, p) => s + Number(p.valor), 0);
+    },
+    staleTime: DASHBOARD_STALE_TIME,
   });
 
   const lastMonth = monthlyData[monthlyData.length - 1];
@@ -142,6 +199,7 @@ export const FinanceDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Primary KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
@@ -175,6 +233,46 @@ export const FinanceDashboard = () => {
             <p className={`text-2xl font-bold ${Number(growthRate) >= 0 ? "text-green-600" : "text-destructive"}`}>
               {growthRate ? `${growthRate}%` : "—"}
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary analytics cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <AlertCircle className="h-4 w-4 text-destructive" /> A Receber (pendente)
+            </div>
+            <p className="text-2xl font-bold text-destructive">
+              R$ {(outstandingData?.total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+            {(outstandingData?.vencido ?? 0) > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                R$ {(outstandingData?.vencido ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} vencido
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Calculator className="h-4 w-4 text-orange-500" /> Comissões Pendentes
+            </div>
+            <p className="text-2xl font-bold text-orange-600">
+              R$ {(commissionsData || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <ArrowRightLeft className="h-4 w-4 text-blue-500" /> Previsão 30 dias
+            </div>
+            <p className="text-2xl font-bold text-blue-600">
+              R$ {(cashFlowProjection || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Recebimentos agendados</p>
           </CardContent>
         </Card>
       </div>
