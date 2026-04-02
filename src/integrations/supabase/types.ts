@@ -108,9 +108,6 @@ export type Database = {
           checkin_profissional: boolean | null
           checkin_profissional_at: string | null
           clinic_id: string | null
-          confirmacao_enviada_at: string | null
-          confirmacao_presenca: string | null
-          confirmacao_respondida_at: string | null
           created_at: string
           created_by: string
           data_horario: string
@@ -140,9 +137,6 @@ export type Database = {
           checkin_profissional?: boolean | null
           checkin_profissional_at?: string | null
           clinic_id?: string | null
-          confirmacao_enviada_at?: string | null
-          confirmacao_presenca?: string | null
-          confirmacao_respondida_at?: string | null
           created_at?: string
           created_by: string
           data_horario: string
@@ -172,9 +166,6 @@ export type Database = {
           checkin_profissional?: boolean | null
           checkin_profissional_at?: string | null
           clinic_id?: string | null
-          confirmacao_enviada_at?: string | null
-          confirmacao_presenca?: string | null
-          confirmacao_respondida_at?: string | null
           created_at?: string
           created_by?: string
           data_horario?: string
@@ -2700,7 +2691,6 @@ export type Database = {
           ultima_avaliacao_data: string | null
           updated_at: string
           user_id: string | null
-          whatsapp: string | null
         }
         Insert: {
           bairro?: string | null
@@ -2757,7 +2747,6 @@ export type Database = {
           ultima_avaliacao_data?: string | null
           updated_at?: string
           user_id?: string | null
-          whatsapp?: string | null
         }
         Update: {
           bairro?: string | null
@@ -2814,7 +2803,6 @@ export type Database = {
           ultima_avaliacao_data?: string | null
           updated_at?: string
           user_id?: string | null
-          whatsapp?: string | null
         }
         Relationships: [
           {
