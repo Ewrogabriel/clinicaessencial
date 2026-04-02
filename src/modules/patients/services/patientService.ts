@@ -196,6 +196,28 @@ export const patientService = {
 
         if (updateError) throw updateError;
 
+        // Send onboarding email if patient has an email address
+        const emailTo = params.preCadastroData.email || null;
+        if (emailTo) {
+            try {
+                const onboardingLink = newPatient?.id
+                    ? `${window.location.origin}/onboarding/${newPatient.id}`
+                    : undefined;
+
+                await supabase.functions.invoke("send-pre-cadastro-email", {
+                    body: {
+                        template: "pre_cadastro_aprovado",
+                        to: emailTo,
+                        patientName: params.preCadastroData.nome,
+                        onboardingLink,
+                    },
+                });
+            } catch (emailError) {
+                // Email errors are non-fatal — log and continue
+                console.warn("Failed to send approval email:", emailError);
+            }
+        }
+
         return { patient: newPatient as Paciente, codigoAcesso };
     },
 
