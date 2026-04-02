@@ -896,54 +896,90 @@ export default function ConciliacaoBancaria() {
           <Button variant="outline" className="gap-2" onClick={() => setCategoryDialogOpen(true)}>
             <Tag className="h-4 w-4" /> Criar Categoria
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => setAccountDialogOpen(true)}>
-            <Plus className="h-4 w-4" /> Nova Conta
-          </Button>
+          {selectedAccountId && (
+            <Button className="gap-2" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="h-4 w-4" /> Importar Extrato
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Bank Accounts */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {accounts.map((acc: any) => (
-          <Card
-            key={acc.id}
-            className={`cursor-pointer transition-all ${selectedAccountId === acc.id ? "ring-2 ring-primary" : "hover:shadow-md"}`}
-            onClick={() => setSelectedAccountId(acc.id)}
-          >
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Landmark className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm">{acc.apelido || acc.banco_nome}</CardTitle>
-              </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); deleteAccount.mutate(acc.id); }}>
-                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                {acc.banco_nome} • Ag: {acc.agencia || "—"} • Conta: {acc.conta || "—"}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-        {accounts.length === 0 && !loadingAccounts && (
-          <Card className="col-span-full">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Landmark className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>Nenhuma conta bancária cadastrada.</p>
-              <Button variant="outline" className="mt-4 gap-2" onClick={() => setAccountDialogOpen(true)}>
-                <Plus className="h-4 w-4" /> Cadastrar Conta
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+      {/* Minhas Contas */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Landmark className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Minhas Contas</h2>
+          </div>
+          <Button className="gap-2" onClick={() => setAccountDialogOpen(true)}>
+            <Plus className="h-4 w-4" /> Adicionar Nova Conta
+          </Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {accounts.map((acc: any) => (
+            <Card
+              key={acc.id}
+              className={`cursor-pointer transition-all ${selectedAccountId === acc.id ? "ring-2 ring-primary shadow-md" : "hover:shadow-md"}`}
+              onClick={() => setSelectedAccountId(acc.id)}
+            >
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Landmark className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm">{acc.apelido || acc.banco_nome}</CardTitle>
+                </div>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); deleteAccount.mutate(acc.id); }}>
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  {acc.banco_nome} • Ag: {acc.agencia || "—"} • Conta: {acc.conta || "—"}
+                </p>
+                {selectedAccountId === acc.id && (
+                  <Button
+                    size="sm"
+                    className="mt-3 w-full gap-2"
+                    onClick={(e) => { e.stopPropagation(); setImportDialogOpen(true); }}
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Importar Extrato
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+          {accounts.length === 0 && !loadingAccounts && (
+            <Card className="col-span-full">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Landmark className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Nenhuma conta bancária cadastrada.</p>
+                <p className="text-sm mt-1">Adicione uma conta para começar a importar extratos.</p>
+                <Button className="mt-4 gap-2" onClick={() => setAccountDialogOpen(true)}>
+                  <Plus className="h-4 w-4" /> Adicionar Nova Conta
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
+
+      {/* Quick import dialog trigger when account selected but no import started */}
+      {selectedAccountId && !importDialogOpen && (
+        <div className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+          <Upload className="h-5 w-5 text-primary flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Conta selecionada</p>
+            <p className="text-xs text-muted-foreground">Importe um extrato ou visualize as transações abaixo.</p>
+          </div>
+          <Button className="gap-2 flex-shrink-0" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4" /> Importar Extrato
+          </Button>
+        </div>
+      )}
 
       {/* Selected Account */}
       {selectedAccountId && (
-        <Tabs defaultValue="importar" className="space-y-4">
+        <Tabs defaultValue="pendentes" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="importar">Importar Extrato</TabsTrigger>
             <TabsTrigger value="pendentes">
               Pendentes
               {pendingReview.length > 0 && <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-[10px]">{pendingReview.length}</Badge>}
@@ -951,49 +987,6 @@ export default function ConciliacaoBancaria() {
             <TabsTrigger value="historico">Histórico</TabsTrigger>
             <TabsTrigger value="integracao">Integração API</TabsTrigger>
           </TabsList>
-
-          {/* IMPORT TAB */}
-          <TabsContent value="importar">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-primary" /> Importar Extrato
-                </CardTitle>
-                <CardDescription>
-                  Envie o extrato bancário. Você mapeia as colunas antes de importar. A IA é opcional.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-8 text-center">
-                  <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Formatos aceitos: CSV, Excel (.xlsx), TXT, OFX
-                  </p>
-                  <label className="cursor-pointer">
-                    <Button variant="outline" className="gap-2" asChild>
-                      <span><Upload className="h-4 w-4" /> Selecionar Arquivo</span>
-                    </Button>
-                    <input type="file" className="hidden" accept=".csv,.xlsx,.xls,.txt,.ofx" onChange={handleFileSelect} />
-                  </label>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AI Actions */}
-            <div className="flex gap-2 mt-4 flex-wrap">
-              <Button variant="outline" className="gap-2" onClick={handleAICategorizeAll} disabled={categorizingAI}>
-                {categorizingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> Categorizar com IA
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={handleAIMatchAll} disabled={categorizingAI}>
-                {categorizingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> Relacionar Pacientes com IA
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={() => setPaymentRelateDialogOpen(true)}>
-                <Users className="h-4 w-4" /> Relacionar Pagamentos do Mês
-              </Button>
-            </div>
-          </TabsContent>
 
           {/* PENDING TAB */}
           <TabsContent value="pendentes" className="space-y-3">
@@ -1295,6 +1288,50 @@ export default function ConciliacaoBancaria() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Import Extrato Dialog */}
+      <Dialog open={importDialogOpen && importStep === "upload"} onOpenChange={(open) => { if (!open) resetImportState(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" /> Importar Extrato
+            </DialogTitle>
+            <DialogDescription>
+              Envie o extrato bancário. Você mapeia as colunas antes de importar. A IA é opcional.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-8 text-center">
+              <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground mb-4">
+                Formatos aceitos: CSV, Excel (.xlsx), TXT, OFX
+              </p>
+              <label className="cursor-pointer">
+                <Button variant="outline" className="gap-2" asChild>
+                  <span><Upload className="h-4 w-4" /> Selecionar Arquivo</span>
+                </Button>
+                <input type="file" className="hidden" accept=".csv,.xlsx,.xls,.txt,.ofx" onChange={handleFileSelect} />
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleAICategorizeAll} disabled={categorizingAI}>
+                {categorizingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Categorizar com IA
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleAIMatchAll} disabled={categorizingAI}>
+                {categorizingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Relacionar Pacientes com IA
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => { resetImportState(); setPaymentRelateDialogOpen(true); }}>
+                <Users className="h-4 w-4" /> Relacionar Pagamentos do Mês
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetImportState}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Column Mapping Dialog */}
       <Dialog open={importStep === "mapping" || importStep === "importing"} onOpenChange={(open) => { if (!open) resetImportState(); }}>
