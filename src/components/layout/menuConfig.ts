@@ -100,7 +100,15 @@ export const adminGroups: MenuGroup[] = [
       { labelKey: "nav.finance",       url: "/financeiro",       icon: DollarSign },
       { labelKey: "nav.commissions",   url: "/comissoes",        icon: Calculator },
       { labelKey: "nav.investments",   url: "/investimentos",    icon: Activity },
-      { labelKey: "nav.reports",       url: "/relatorios",       icon: BarChart3 },
+    ],
+  },
+  {
+    labelKey: "group.insights",
+    defaultCollapsed: false,
+    items: [
+      { labelKey: "nav.reports",        url: "/relatorios",     icon: BarChart3 },
+      { labelKey: "nav.bi_intelligence", url: "/inteligencia-bi", icon: BarChart3 },
+      { labelKey: "nav.automations",    url: "/automacoes",     icon: Send },
     ],
   },
   {
@@ -120,7 +128,6 @@ export const adminGroups: MenuGroup[] = [
     items: [
       { labelKey: "nav.partners",     url: "/convenios",          icon: Handshake },
       { labelKey: "nav.contracts",    url: "/contratos",          icon: FileText },
-      { labelKey: "nav.automations",  url: "/automacoes",         icon: Send },
       { labelKey: "nav.marketing",    url: "/marketing",          icon: Target },
       { labelKey: "nav.goals",        url: "/metas",              icon: Trophy },
       { labelKey: "nav.gamification", url: "/gamificacao-admin",  icon: Trophy },

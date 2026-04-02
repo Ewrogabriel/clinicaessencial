@@ -3,7 +3,7 @@
  *
  * Validates that:
  * - The prescribed menu groups (Pacientes, Agendamentos, Profissionais,
- *   Financeiro, Clínica, Configurações) contain the correct routes.
+ *   Financeiro, Insights & Automação, Clínica, Configurações) contain the correct routes.
  * - The /disponibilidade route exists in the Agendamentos group (not Profissionais).
  * - Duplicate/alias routes are removed from admin menus.
  * - Patient menu contains expected self-service items.
@@ -32,7 +32,13 @@ const menuProfissionais = [
 const menuFinanceiro = [
   { url: "/financeiro" },
   { url: "/comissoes" },
+  { url: "/investimentos" },
+];
+
+const menuInsights = [
   { url: "/relatorios" },
+  { url: "/inteligencia-bi" },
+  { url: "/automacoes" },
 ];
 
 const menuClinica = [
@@ -46,7 +52,6 @@ const menuClinica = [
 const menuConfiguracoes = [
   { url: "/convenios" },
   { url: "/contratos" },
-  { url: "/automacoes" },
   { url: "/marketing" },
   { url: "/metas" },
   { url: "/gamificacao-admin" },
@@ -75,6 +80,7 @@ const adminGroups = {
   agendamentos: menuAgendamentos,
   profissionais: menuProfissionais,
   financeiro: menuFinanceiro,
+  insights: menuInsights,
   clinica: menuClinica,
   configuracoes: menuConfiguracoes,
 };
@@ -117,11 +123,19 @@ describe("Navigation structure – admin groups", () => {
     expect(urls).toHaveLength(1);
   });
 
-  it("Financeiro group contains payments, commissions and reports", () => {
+  it("Financeiro group contains payments, commissions and investments (no reports)", () => {
     const urls = urlsInGroup(menuFinanceiro);
     expect(urls).toContain("/financeiro");
     expect(urls).toContain("/comissoes");
+    expect(urls).toContain("/investimentos");
+    expect(urls).not.toContain("/relatorios");
+  });
+
+  it("Insights group contains reports, BI intelligence and automations", () => {
+    const urls = urlsInGroup(menuInsights);
     expect(urls).toContain("/relatorios");
+    expect(urls).toContain("/inteligencia-bi");
+    expect(urls).toContain("/automacoes");
     expect(urls).toHaveLength(3);
   });
 
@@ -131,9 +145,9 @@ describe("Navigation structure – admin groups", () => {
     expect(urls).toContain("/gestao-clinicas");
   });
 
-  it("Configurações group contains automations, marketing, import", () => {
+  it("Configurações group contains marketing, import but NOT automations", () => {
     const urls = urlsInGroup(menuConfiguracoes);
-    expect(urls).toContain("/automacoes");
+    expect(urls).not.toContain("/automacoes");
     expect(urls).toContain("/marketing");
     expect(urls).toContain("/importacao");
   });
@@ -146,9 +160,15 @@ describe("Navigation structure – admin groups", () => {
     }
   });
 
-  it("reports (/relatorios) lives in Financeiro, not Configurações", () => {
-    expect(urlsInGroup(menuFinanceiro)).toContain("/relatorios");
+  it("reports (/relatorios) lives in Insights, not Financeiro or Configurações", () => {
+    expect(urlsInGroup(menuInsights)).toContain("/relatorios");
+    expect(urlsInGroup(menuFinanceiro)).not.toContain("/relatorios");
     expect(urlsInGroup(menuConfiguracoes)).not.toContain("/relatorios");
+  });
+
+  it("automations (/automacoes) lives in Insights, not Configurações", () => {
+    expect(urlsInGroup(menuInsights)).toContain("/automacoes");
+    expect(urlsInGroup(menuConfiguracoes)).not.toContain("/automacoes");
   });
 
   it("messaging routes (mensagens, avisos) are in Configurações, not a separate group", () => {
