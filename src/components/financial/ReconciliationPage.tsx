@@ -11,12 +11,16 @@ import {
   ChevronDown,
   ChevronUp,
   Landmark,
+  Plus,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReconciliation } from "@/modules/finance/hooks/useReconciliation";
 import { TransactionFilter } from "./TransactionFilter";
 import { BulkApprovalDialog } from "./BulkApprovalDialog";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
+import { BankAccountDialog } from "./BankAccountDialog";
+import { ImportStatementDialog } from "./ImportStatementDialog";
 import {
   getStatusConfig,
   formatBRL,
@@ -56,6 +60,8 @@ export function ReconciliationPage() {
   const [detailTx, setDetailTx] = useState<BankTransaction | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [showStats, setShowStats] = useState(true);
+  const [bankAccountDialogOpen, setBankAccountDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const sorted = sortTransactions(transactions);
   const allSelected =
@@ -83,6 +89,33 @@ export function ReconciliationPage() {
 
   return (
     <div className="space-y-4">
+      {/* Action buttons */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+          <Landmark className="h-4 w-4" />
+          Conciliação Bancária
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setBankAccountDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Cadastrar Conta
+          </Button>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setImportDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Importar Extrato
+          </Button>
+        </div>
+      </div>
+
       {/* Stats summary */}
       <div>
         <button
@@ -290,6 +323,18 @@ export function ReconciliationPage() {
         }}
         isApproving={isApproving}
         isRejecting={isRejecting}
+      />
+
+      {/* Bank account dialog */}
+      <BankAccountDialog
+        open={bankAccountDialogOpen}
+        onOpenChange={setBankAccountDialogOpen}
+      />
+
+      {/* Import statement dialog */}
+      <ImportStatementDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
       />
     </div>
   );
