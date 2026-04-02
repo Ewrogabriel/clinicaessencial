@@ -1,5 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from "@/modules/shared/utils/errorHandler";
+import type { BankAccount, CreateBankAccountDTO } from "../types";
+
+export const bankAccountService = {
+  async getAccounts(clinicId: string): Promise<BankAccount[]> {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("bank_accounts")
+        .select("*")
+        .eq("clinic_id", clinicId)
+        .order("banco_nome", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BankAccount[];
 import type { Tables } from "@/types/database.types";
 
 export type BankAccount = Tables<"bank_accounts">;
@@ -41,6 +53,7 @@ export const bankAccountService = {
         .eq("id", id)
         .single();
       if (error) throw error;
+      return data as BankAccount;
       return data ?? null;
     } catch (error) {
       handleError(error, "Erro ao buscar conta bancária.");
@@ -48,6 +61,15 @@ export const bankAccountService = {
     }
   },
 
+  async createAccount(dto: CreateBankAccountDTO): Promise<BankAccount> {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("bank_accounts")
+        .insert({ ...dto, ativo: dto.ativo ?? true })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as BankAccount;
   async createAccount(
     formData: BankAccountFormData,
     clinicId: string | null,
@@ -79,11 +101,13 @@ export const bankAccountService = {
 
   async updateAccount(
     id: string,
+    updates: Partial<CreateBankAccountDTO>
     formData: Partial<BankAccountFormData>
   ): Promise<void> {
     try {
       const { error } = await (supabase as any)
         .from("bank_accounts")
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .update({
           ...(formData.apelido !== undefined && { apelido: formData.apelido }),
           ...(formData.banco_nome !== undefined && { banco_nome: formData.banco_nome }),
@@ -110,6 +134,7 @@ export const bankAccountService = {
         .eq("id", id);
       if (error) throw error;
     } catch (error) {
+      handleError(error, "Erro ao excluir conta bancária.");
       handleError(error, "Erro ao remover conta bancária.");
       throw error;
     }

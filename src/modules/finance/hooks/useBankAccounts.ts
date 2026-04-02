@@ -1,5 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { bankAccountService } from "../services/bankAccountService";
+import type { CreateBankAccountDTO } from "../types";
+
+const STALE_TIME = 1000 * 60 * 5;
+
+export function useBankAccounts() {
+  const { activeClinicId } = useClinic();
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import {
   bankAccountService,
@@ -15,6 +22,9 @@ export function useBankAccounts() {
 
   const accountsQuery = useQuery({
     queryKey: ["bank-accounts", activeClinicId],
+    queryFn: () =>
+      activeClinicId ? bankAccountService.getAccounts(activeClinicId) : [],
+    enabled: !!activeClinicId,
     queryFn: () => bankAccountService.getAccounts(activeClinicId),
     staleTime: STALE_TIME,
   });
@@ -24,12 +34,24 @@ export function useBankAccounts() {
   };
 
   const createMutation = useMutation({
+    mutationFn: (dto: Omit<CreateBankAccountDTO, "clinic_id">) =>
+      bankAccountService.createAccount({
+        ...dto,
+        clinic_id: activeClinicId ?? "",
+      }),
     mutationFn: (data: BankAccountFormData) =>
       bankAccountService.createAccount(data, activeClinicId, user?.id ?? ""),
     onSuccess: invalidate,
   });
 
   const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<CreateBankAccountDTO>;
+    }) => bankAccountService.updateAccount(id, updates),
     mutationFn: ({ id, data }: { id: string; data: Partial<BankAccountFormData> }) =>
       bankAccountService.updateAccount(id, data),
     onSuccess: invalidate,
