@@ -101,6 +101,7 @@ const UserManagement = lazy(() => import("./pages/master/UserManagement"));
 const AuditLogs = lazy(() => import("./pages/master/AuditLogs"));
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const WhatsAppLogs = lazy(() => import("./pages/WhatsAppLogs"));
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
@@ -156,6 +157,7 @@ const App = () => (
                         <Route path="/modalidades" element={<Modalidades />} />
                         <Route path="/profissionais" element={<RequireRole roles={["admin", "gestor", "master"]}><Profissionais /></RequireRole>} />
                         <Route path="/automacoes" element={<RequireRole roles={["admin", "gestor", "master"]}><Automacoes /></RequireRole>} />
+                        <Route path="/whatsapp/logs" element={<RequireRole roles={["admin", "gestor", "master"]}><WhatsAppLogs /></RequireRole>} />
                         <Route path="/avisos" element={<AvisosAdmin />} />
                         <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
                         <Route path="/contratos" element={<Contratos />} />

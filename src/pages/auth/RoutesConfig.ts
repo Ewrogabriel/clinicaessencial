@@ -212,6 +212,11 @@ export const protectedRoutes: RouteDefinition[] = [
     roles: ["admin", "gestor", "master"],
   },
   {
+    path: "/whatsapp/logs",
+    description: "WhatsApp message logs and monitoring dashboard.",
+    roles: ["admin", "gestor", "master"],
+  },
+  {
     path: "/avisos",
     description: "Clinic-wide announcements.",
     roles: ["authenticated"],
