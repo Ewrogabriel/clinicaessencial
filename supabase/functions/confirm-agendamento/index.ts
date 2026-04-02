@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: { action: string; id: string; confirmacao?: string };
+  let body: { action: string; id: string; confirmacao?: string; data_horario?: string; profissional_id?: string };
   try {
     body = await req.json();
   } catch {
@@ -108,6 +108,40 @@ Deno.serve(async (req) => {
     const { error } = await supabase
       .from("agendamentos")
       .update({ confirmacao_presenca: confirmacao, confirmacao_respondida_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // action=reschedule: update appointment date/time and optionally professional
+  if (action === "reschedule") {
+    const { data_horario, profissional_id } = body;
+    if (!data_horario) {
+      return new Response(
+        JSON.stringify({ error: "data_horario is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const updatePayload: { data_horario: string; confirmacao_presenca: string; profissional_id?: string } = {
+      data_horario,
+      confirmacao_presenca: "pendente",
+    };
+    if (profissional_id) updatePayload.profissional_id = profissional_id;
+
+    const { error } = await supabase
+      .from("agendamentos")
+      .update(updatePayload)
       .eq("id", id);
 
     if (error) {
