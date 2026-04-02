@@ -171,18 +171,11 @@ export const AppSidebar = memo(function AppSidebar() {
   const roleLabel = primaryRole ? ROLE_LABELS[primaryRole] : null;
   const roleBadgeClass = primaryRole ? ROLE_BADGE_COLORS[primaryRole] : "";
 
-  // Admin/gestor finance group: inject BI item when the feature flag is active
+  // Admin/gestor insights group: hide BI item when the feature flag is inactive
   const resolvedAdminGroups: MenuGroup[] = adminGroups.map((group) => {
-    if (group.labelKey !== "group.finance") return group;
-    if (!saasStatus?.has_bi) return group;
-    const items = [...group.items];
-    const biIdx = items.findIndex((i) => i.url === "/relatorios");
-    items.splice(biIdx, 0, {
-      labelKey: "nav.bi_intelligence",
-      url: "/inteligencia-bi",
-      icon: BarChart3,
-    });
-    return { ...group, items };
+    if (group.labelKey !== "group.insights") return group;
+    if (saasStatus?.has_bi) return group;
+    return { ...group, items: group.items.filter((i) => i.url !== "/inteligencia-bi") };
   });
 
   // Build permission-based groups for secretário role

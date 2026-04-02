@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, TrendingUp, Brain, Star, UserX, AlertTriangle } from "lucide-react";
+import { BarChart3, TrendingUp, Brain, Star, UserX, AlertTriangle, Activity } from "lucide-react";
 import RelatoriosContent from "./RelatoriosContent";
 import Indicadores from "./Indicadores";
 import Inteligencia from "./Inteligencia";
+import InteligenciaBI from "./InteligenciaBI";
 import { NpsAdminPanel } from "@/components/reports/NpsAdminPanel";
 import { ReengagementCampaign } from "@/components/reports/ReengagementCampaign";
 import { InadimplenciaReport } from "@/components/reports/InadimplenciaReport";
@@ -27,6 +28,9 @@ const Relatorios = () => {
           <TabsTrigger value="inteligencia" className="gap-2">
             <Brain className="h-4 w-4" /> Inteligência
           </TabsTrigger>
+          <TabsTrigger value="inteligencia-bi" className="gap-2">
+            <Activity className="h-4 w-4" /> Inteligência BI
+          </TabsTrigger>
           <TabsTrigger value="nps" className="gap-2">
             <Star className="h-4 w-4" /> NPS
           </TabsTrigger>
@@ -46,6 +50,9 @@ const Relatorios = () => {
         </TabsContent>
         <TabsContent value="inteligencia" className="mt-4">
           <Inteligencia />
+        </TabsContent>
+        <TabsContent value="inteligencia-bi" className="mt-4">
+          <InteligenciaBI />
         </TabsContent>
         <TabsContent value="nps" className="mt-4">
           <NpsAdminPanel />
