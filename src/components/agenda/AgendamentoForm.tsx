@@ -155,6 +155,8 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
   const [overCapacityPending, setOverCapacityPending] = useState<FormData | null>(null);
   const [planos, setPlanos] = useState<Array<{ id: string; paciente_id: string; profissional_id: string; tipo_atendimento: string; total_sessoes: number; sessoes_utilizadas: number; paciente_nome?: string }>>([]);
   const [selectedPlanoId, setSelectedPlanoId] = useState<string>("");
+  const selectedPlano = planos.find(p => p.id === selectedPlanoId) ?? null;
+  const planoSessoesRestantes = selectedPlano ? selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas : null;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -315,7 +317,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
     setPlanos(planosData.map(p => ({ ...p, paciente_nome: pacienteMap[p.paciente_id] ?? p.paciente_id })));
   };
 
- = (dia: number) => {
+  const toggleDia = (dia: number) => {
     const current = form.getValues("dias_semana");
     const currentHorarios = form.getValues("horarios_por_dia");
     if (current.includes(dia)) {
@@ -462,13 +464,14 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
           data_vencimento: values.data_vencimento,
         } as any);
 
-        if (appointmentType === "sessao_plano" && selectedPlanoId) {
-          const plano = planos.find(p => p.id === selectedPlanoId);
-          if (plano) {
-            await supabase
-              .from("planos")
-              .update({ sessoes_utilizadas: plano.sessoes_utilizadas + 1 })
-              .eq("id", selectedPlanoId);
+        if (appointmentType === "sessao_plano" && selectedPlanoId && selectedPlano) {
+          const { error: updateError } = await supabase
+            .from("planos")
+            .update({ sessoes_utilizadas: selectedPlano.sessoes_utilizadas + 1 })
+            .eq("id", selectedPlanoId);
+          if (updateError) {
+            console.error("Erro ao atualizar sessões do plano:", updateError);
+            toast.error("Agendamento criado, mas não foi possível atualizar o contador do plano.");
           }
         }
 
@@ -539,21 +542,16 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                     )}
                   </SelectContent>
                 </Select>
-                {selectedPlanoId && (() => {
-                  const plano = planos.find(p => p.id === selectedPlanoId);
-                  if (!plano) return null;
-                  const remaining = plano.total_sessoes - plano.sessoes_utilizadas;
-                  return (
-                    <p className={cn(
-                      "text-xs mt-1",
-                      remaining <= 0 ? "text-destructive" : remaining <= 2 ? "text-amber-600" : "text-green-700"
-                    )}>
-                      {remaining <= 0
-                        ? "⚠️ Pacote esgotado — sem sessões disponíveis."
-                        : `✅ ${remaining} sessão(ões) restante(s) neste pacote.`}
-                    </p>
-                  );
-                })()}
+                {selectedPlanoId && selectedPlano && (
+                  <p className={cn(
+                    "text-xs mt-1",
+                    planoSessoesRestantes <= 0 ? "text-destructive" : planoSessoesRestantes <= 2 ? "text-amber-600" : "text-green-700"
+                  )}>
+                    {planoSessoesRestantes <= 0
+                      ? "⚠️ Pacote esgotado — sem sessões disponíveis."
+                      : `✅ ${planoSessoesRestantes} sessão(ões) restante(s) neste pacote.`}
+                  </p>
+                )}
               </div>
             )}
 
@@ -1411,7 +1409,10 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button
+                type="submit"
+                disabled={loading || (appointmentType === "sessao_plano" && planoSessoesRestantes !== null && planoSessoesRestantes <= 0)}
+              >
                 {loading
                   ? "Salvando..."
                   : isRecorrente

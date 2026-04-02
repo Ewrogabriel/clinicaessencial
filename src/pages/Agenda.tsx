@@ -388,7 +388,7 @@ const Agenda = () => {
       )}
 
       <AppointmentTypeSelector open={typeSelectorOpen} onOpenChange={setTypeSelectorOpen} onTypeSelected={handleTypeSelected} />
-      <AgendamentoForm open={formOpen} onOpenChange={setFormOpen} onSuccess={refetchAgendamentos} defaultDate={selectedDate} defaultProfissionalId={selectedProfIdForForm} appointmentType={selectedAppointmentType} />
+      <AgendamentoForm open={formOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) setSelectedAppointmentType(undefined); }} onSuccess={refetchAgendamentos} defaultDate={selectedDate} defaultProfissionalId={selectedProfIdForForm} appointmentType={selectedAppointmentType} />
       <RescheduleDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} agendamento={rescheduleAg} onSuccess={refetchAgendamentos} />
       <AppointmentDetailDialog open={detailOpen} onOpenChange={setDetailOpen} agendamento={detailAg} onCancel={handleCancelAppointment} onCheckin={handleCheckin} onReschedule={handleReschedule} isPatient={isPatient} />
       <DayScheduleModal
