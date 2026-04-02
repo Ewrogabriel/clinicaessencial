@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock, Zap, Loader2 } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock, Zap, Loader2, Landmark } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ import { financeService } from "@/modules/finance/services/financeService";
 
 const NotasFiscais = lazy(() => import("./NotasFiscais"));
 const Comissoes = lazy(() => import("./Comissoes"));
+const ConciliacaoBancaria = lazy(() => import("./ConciliacaoBancaria"));
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pago: { label: "Pago", variant: "default" },
@@ -389,6 +390,9 @@ const Financeiro = () => {
             <TabsTrigger value="integracao" className="gap-2">
               <Zap className="h-4 w-4" /> Integrações
             </TabsTrigger>
+            <TabsTrigger value="conciliacao" className="gap-2">
+              <Landmark className="h-4 w-4" /> Conciliação
+            </TabsTrigger>
             <TabsTrigger value="dre">DRE</TabsTrigger>
           </TabsList>
         )}
@@ -719,6 +723,7 @@ const Financeiro = () => {
         <TabsContent value="despesas"><Despesas /></TabsContent>
         <TabsContent value="comissoes"><Suspense fallback={<LazyLoadFallback />}><Comissoes /></Suspense></TabsContent>
         <TabsContent value="notas-fiscais"><Suspense fallback={<LazyLoadFallback />}><NotasFiscais /></Suspense></TabsContent>
+        <TabsContent value="conciliacao"><Suspense fallback={<LazyLoadFallback />}><ConciliacaoBancaria /></Suspense></TabsContent>
 
         <TabsContent value="integracao" className="space-y-4">
           <div>
