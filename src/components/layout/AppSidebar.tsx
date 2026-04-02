@@ -84,7 +84,7 @@ export const AppSidebar = memo(function AppSidebar() {
   // Scheduling group (Filtered by SaaS)
   const menuAgendamentos = [
     { title: t("nav.agenda"), url: "/agenda", icon: Calendar },
-    ...(saasStatus?.has_premium_agenda ? [{ title: "Agenda Premium", url: "/agenda-premium", icon: Sparkles }] : []),
+    
     { title: "Teleconsulta", url: "/teleconsulta-hub", icon: Video },
     { title: "Confirmações", url: "/confirmacoes-dia", icon: CheckCheck },
     { title: t("nav.enrollments"), url: "/matriculas", icon: Receipt },
