@@ -8,11 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, XCircle, Eye, UserPlus, Search, Layers, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, UserPlus, Search, Layers, Loader2, CheckSquare } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { patientService } from "@/modules/patients/services/patientService";
@@ -41,6 +42,10 @@ const PreCadastrosAdmin = () => {
 
   const [approving, setApproving] = useState(false);
   const [batchApproving, setBatchApproving] = useState(false);
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActing, setBulkActing] = useState(false);
 
   const { data: preCadastros = [], isLoading } = useQuery({
     queryKey: ["pre-cadastros", statusFilter],
@@ -189,6 +194,67 @@ const PreCadastrosAdmin = () => {
     });
   };
 
+  // Bulk approve selected pending pre-cadastros (create patients)
+  const handleBulkApprove = async () => {
+    if (!user || bulkActing || selectedIds.size === 0) return;
+    setBulkActing(true);
+    const toApprove = filtered.filter((p: any) => selectedIds.has(p.id) && p.status === "pendente");
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const preCadastro of toApprove) {
+      try {
+        await patientService.approvePreCadastro({
+          preCadastroId: preCadastro.id,
+          preCadastroData: preCadastro,
+          activeClinicId,
+          createdBy: user.id,
+          revisadoPor: user.id,
+        });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setBulkActing(false);
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
+    queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
+    toast({
+      title: `${successCount} paciente(s) aprovado(s) e cadastrado(s)${errorCount > 0 ? `, ${errorCount} com erro` : ""}.`,
+    });
+  };
+
+  // Bulk reject selected pending pre-cadastros
+  const handleBulkReject = async () => {
+    if (!user || bulkActing || selectedIds.size === 0) return;
+    setBulkActing(true);
+    const toReject = filtered.filter((p: any) => selectedIds.has(p.id) && p.status === "pendente");
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const p of toReject) {
+      try {
+        await (supabase.from("pre_cadastros") as any)
+          .update({ status: "rejeitado", revisado_por: user.id })
+          .eq("id", p.id);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setBulkActing(false);
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
+    toast({
+      title: `${successCount} pré-cadastro(s) rejeitado(s)${errorCount > 0 ? `, ${errorCount} com erro` : ""}.`,
+    });
+  };
+
   // Collect unique batch IDs from pre-cadastros that have one
   const batchIds: string[] = Array.from(
     new Set(
@@ -209,6 +275,10 @@ const PreCadastrosAdmin = () => {
 
   const pendingInSelectedBatch =
     batchFilter !== "__all__" ? filtered.filter((p: any) => p.status === "pendente").length : 0;
+
+  const filteredPendingIds = filtered.filter((p: any) => p.status === "pendente").map((p: any) => p.id);
+  const allPendingSelected = filteredPendingIds.length > 0 && filteredPendingIds.every((id: string) => selectedIds.has(id));
+  const selectedPendingCount = filteredPendingIds.filter((id: string) => selectedIds.has(id)).length;
 
   const statusBadge = (status: string) => {
     switch (status) {
@@ -254,7 +324,7 @@ const PreCadastrosAdmin = () => {
               key={value}
               size="sm"
               variant={statusFilter === value ? "default" : "outline"}
-              onClick={() => setStatusFilter(value)}
+              onClick={() => { setStatusFilter(value); setSelectedIds(new Set()); }}
             >
               {label}
             </Button>
@@ -262,7 +332,7 @@ const PreCadastrosAdmin = () => {
         </div>
 
         {batchIds.length > 0 && (
-          <Select value={batchFilter} onValueChange={setBatchFilter}>
+          <Select value={batchFilter} onValueChange={(v) => { setBatchFilter(v); setSelectedIds(new Set()); }}>
             <SelectTrigger className="w-56">
               <Layers className="h-4 w-4 mr-2 shrink-0" />
               <SelectValue placeholder="Filtrar por lote" />
@@ -292,11 +362,59 @@ const PreCadastrosAdmin = () => {
         )}
       </div>
 
+      {/* Bulk selection toolbar */}
+      {filteredPendingIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => {
+              if (allPendingSelected) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(filteredPendingIds));
+              }
+            }}
+          >
+            <CheckSquare className="h-4 w-4" />
+            {allPendingSelected ? "Desmarcar todos" : "Selecionar todos os pendentes"}
+          </Button>
+          {selectedPendingCount > 0 && (
+            <>
+              <Badge variant="secondary" className="text-xs px-2 py-1">
+                {selectedPendingCount} selecionado(s)
+              </Badge>
+              <Button
+                size="sm"
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleBulkApprove}
+                disabled={bulkActing}
+              >
+                {bulkActing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Aprovar selecionados
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-2"
+                onClick={handleBulkReject}
+                disabled={bulkActing}
+              >
+                {bulkActing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                Rejeitar selecionados
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10"></TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>E-mail</TableHead>
@@ -309,19 +427,33 @@ const PreCadastrosAdmin = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Nenhum pré-cadastro encontrado
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((p: any) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.id} className={selectedIds.has(p.id) ? "bg-muted/40" : ""}>
+                    <TableCell>
+                      {p.status === "pendente" && (
+                        <Checkbox
+                          checked={selectedIds.has(p.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedIds(prev => {
+                              const next = new Set(prev);
+                              if (checked) next.add(p.id); else next.delete(p.id);
+                              return next;
+                            });
+                          }}
+                        />
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell>{p.telefone}</TableCell>
                     <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>

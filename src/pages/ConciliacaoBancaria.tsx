@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +19,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Building2, Plus, Upload, Check, X, Loader2, FileSpreadsheet,
   Landmark, RefreshCw, Sparkles, Trash2, Tag, ArrowRightLeft, Brain,
-  Pencil, Search, Link2, Users, Receipt, AlertCircle
+  Pencil, Search, Link2, Users, Receipt, AlertCircle, CheckSquare
 } from "lucide-react";
 
 const BANKS = [
@@ -117,6 +118,10 @@ export default function ConciliacaoBancaria() {
   const [createExpenseDialogOpen, setCreateExpenseDialogOpen] = useState(false);
   const [expenseTxData, setExpenseTxData] = useState<any>(null);
   const [expenseForm, setExpenseForm] = useState({ descricao: "", valor: "", data_vencimento: "", categoria: "" });
+
+  // Bulk selection for Pendentes tab
+  const [selectedTxIds, setSelectedTxIds] = useState<Set<string>>(new Set());
+  const [bulkActing, setBulkActing] = useState(false);
 
   // Fetch bank accounts
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
@@ -445,7 +450,46 @@ export default function ConciliacaoBancaria() {
     setCreateExpenseDialogOpen(true);
   };
 
-  // ---- IMPORT LOGIC ----
+  // ---- BULK ACTIONS (Pendentes tab) ----
+  const handleBulkAction = async (action: "confirm" | "reject") => {
+    if (selectedTxIds.size === 0) return;
+    setBulkActing(true);
+    const ids = Array.from(selectedTxIds);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const txId of ids) {
+      try {
+        if (action === "confirm") {
+          const tx = transactions.find((t: any) => t.id === txId);
+          if (tx?.matched_payment_id) {
+            await supabase.from("pagamentos")
+              .update({ status: "pago" as any, data_pagamento: tx.data_transacao })
+              .eq("id", tx.matched_payment_id);
+          }
+          await (supabase.from("bank_transactions") as any)
+            .update({ status: "confirmado", reviewed: true, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+            .eq("id", txId);
+        } else {
+          await (supabase.from("bank_transactions") as any)
+            .update({ status: "rejeitado", reviewed: true, reviewed_by: user?.id, reviewed_at: new Date().toISOString(), matched_payment_id: null, matched_paciente_id: null })
+            .eq("id", txId);
+        }
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setBulkActing(false);
+    setSelectedTxIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+    const actionLabel = action === "confirm" ? "confirmadas" : "rejeitadas";
+    toast({
+      title: `${successCount} transações ${actionLabel}${errorCount > 0 ? `, ${errorCount} com erro` : ""}.`,
+    });
+  };
   const parseDateBR = (str: string): string => {
     if (!str) return new Date().toISOString().split("T")[0];
     const brMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
@@ -961,75 +1005,135 @@ export default function ConciliacaoBancaria() {
                 </CardContent>
               </Card>
             ) : (
-              pendingReview.map((tx: any) => (
-                <Card key={tx.id} className={`border-l-4 ${tx.status === "matched" ? "border-l-primary" : "border-l-amber-400"}`}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{tx.descricao}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(tx.data_transacao), "dd/MM/yyyy")} •{" "}
-                          <span className={tx.valor >= 0 ? "text-emerald-600" : "text-destructive"}>
-                            R$ {Math.abs(tx.valor).toFixed(2)}
-                          </span>
-                          {tx.categoria && (
-                            <Badge variant="outline" className="ml-2 text-[10px]">{CATEGORY_LABELS[tx.categoria] || tx.categoria}</Badge>
-                          )}
-                          <Badge variant="secondary" className="ml-2 text-[10px]">
-                            {tx.status === "matched" ? "Match IA" : "Importado"}
-                          </Badge>
-                        </p>
-                        {tx.matched_paciente_id && (
-                          <div className="mt-2 p-2 rounded-md bg-muted/50">
-                            <p className="text-xs font-medium">
-                              <Badge variant="secondary" className="mr-2">Match {Math.round((tx.matched_confidence || 0) * 100)}%</Badge>
-                              Paciente: {tx.pacientes?.nome || "—"}
+              <>
+                {/* Bulk action toolbar */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      if (selectedTxIds.size === pendingReview.length) {
+                        setSelectedTxIds(new Set());
+                      } else {
+                        setSelectedTxIds(new Set(pendingReview.map((t: any) => t.id)));
+                      }
+                    }}
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                    {selectedTxIds.size === pendingReview.length ? "Desmarcar todas" : "Selecionar todas"}
+                  </Button>
+                  {selectedTxIds.size > 0 && (
+                    <>
+                      <Badge variant="secondary" className="text-xs px-2 py-1">
+                        {selectedTxIds.size} selecionada(s)
+                      </Badge>
+                      <Button
+                        size="sm"
+                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => handleBulkAction("confirm")}
+                        disabled={bulkActing}
+                      >
+                        {bulkActing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                        Aprovar selecionadas
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="gap-2"
+                        onClick={() => handleBulkAction("reject")}
+                        disabled={bulkActing}
+                      >
+                        {bulkActing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                        Rejeitar selecionadas
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {pendingReview.map((tx: any) => (
+                  <Card key={tx.id} className={`border-l-4 ${selectedTxIds.has(tx.id) ? "ring-2 ring-primary" : ""} ${tx.status === "matched" ? "border-l-primary" : "border-l-amber-400"}`}>
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <Checkbox
+                            checked={selectedTxIds.has(tx.id)}
+                            onCheckedChange={(checked) => {
+                              setSelectedTxIds(prev => {
+                                const next = new Set(prev);
+                                if (checked) next.add(tx.id); else next.delete(tx.id);
+                                return next;
+                              });
+                            }}
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{tx.descricao}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(tx.data_transacao), "dd/MM/yyyy")} •{" "}
+                              <span className={tx.valor >= 0 ? "text-emerald-600" : "text-destructive"}>
+                                R$ {Math.abs(tx.valor).toFixed(2)}
+                              </span>
+                              {tx.categoria && (
+                                <Badge variant="outline" className="ml-2 text-[10px]">{CATEGORY_LABELS[tx.categoria] || tx.categoria}</Badge>
+                              )}
+                              <Badge variant="secondary" className="ml-2 text-[10px]">
+                                {tx.status === "matched" ? "Match IA" : "Importado"}
+                              </Badge>
                             </p>
+                            {tx.matched_paciente_id && (
+                              <div className="mt-2 p-2 rounded-md bg-muted/50">
+                                <p className="text-xs font-medium">
+                                  <Badge variant="secondary" className="mr-2">Match {Math.round((tx.matched_confidence || 0) * 100)}%</Badge>
+                                  Paciente: {tx.pacientes?.nome || "—"}
+                                </p>
+                              </div>
+                            )}
+                            {tx.valor < 0 && expenseLinkTxId === tx.id && (
+                              <div className="mt-2 flex gap-2 items-center">
+                                <Select value={expenseLinkId} onValueChange={setExpenseLinkId}>
+                                  <SelectTrigger className="h-8 text-xs flex-1">
+                                    <SelectValue placeholder="Selecionar despesa..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {pendingExpenses.map((exp: any) => (
+                                      <SelectItem key={exp.id} value={exp.id}>
+                                        {exp.descricao} — R$ {Number(exp.valor).toFixed(2)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button size="sm" className="gap-1 text-xs" onClick={() => { if (expenseLinkId) confirmExpenseLink.mutate({ txId: tx.id, expenseId: expenseLinkId }); }} disabled={!expenseLinkId || confirmExpenseLink.isPending}>
+                                  <Check className="h-3.5 w-3.5" /> Conciliar
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setExpenseLinkTxId(null); setExpenseLinkId(""); }}><X className="h-3.5 w-3.5" /></Button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {tx.valor < 0 && expenseLinkTxId === tx.id && (
-                          <div className="mt-2 flex gap-2 items-center">
-                            <Select value={expenseLinkId} onValueChange={setExpenseLinkId}>
-                              <SelectTrigger className="h-8 text-xs flex-1">
-                                <SelectValue placeholder="Selecionar despesa..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {pendingExpenses.map((exp: any) => (
-                                  <SelectItem key={exp.id} value={exp.id}>
-                                    {exp.descricao} — R$ {Number(exp.valor).toFixed(2)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" className="gap-1 text-xs" onClick={() => { if (expenseLinkId) confirmExpenseLink.mutate({ txId: tx.id, expenseId: expenseLinkId }); }} disabled={!expenseLinkId || confirmExpenseLink.isPending}>
-                              <Check className="h-3.5 w-3.5" /> Conciliar
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button size="sm" variant="outline" className="gap-1 text-emerald-600" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "confirm" })}>
+                            <Check className="h-3.5 w-3.5" /> Confirmar
+                          </Button>
+                          {tx.valor < 0 && (
+                            <Button size="sm" variant="outline" className="gap-1" onClick={() => { setExpenseLinkTxId(tx.id); setExpenseLinkId(""); }}>
+                              <Link2 className="h-3.5 w-3.5" /> Vincular Existente
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => { setExpenseLinkTxId(null); setExpenseLinkId(""); }}><X className="h-3.5 w-3.5" /></Button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <Button size="sm" variant="outline" className="gap-1 text-emerald-600" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "confirm" })}>
-                          <Check className="h-3.5 w-3.5" /> Confirmar
-                        </Button>
-                        {tx.valor < 0 && (
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => { setExpenseLinkTxId(tx.id); setExpenseLinkId(""); }}>
-                            <Link2 className="h-3.5 w-3.5" /> Vincular Existente
+                          )}
+                          {tx.valor < 0 && (
+                            <Button size="sm" variant="outline" className="gap-1" onClick={() => openCreateExpenseDialog(tx)}>
+                              <Receipt className="h-3.5 w-3.5" /> Nova Despesa
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "reject" })}>
+                            <X className="h-3.5 w-3.5" /> Rejeitar
                           </Button>
-                        )}
-                        {tx.valor < 0 && (
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => openCreateExpenseDialog(tx)}>
-                            <Receipt className="h-3.5 w-3.5" /> Nova Despesa
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => confirmMatch.mutate({ txId: tx.id, action: "reject" })}>
-                          <X className="h-3.5 w-3.5" /> Rejeitar
-                        </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
             )}
           </TabsContent>
 
