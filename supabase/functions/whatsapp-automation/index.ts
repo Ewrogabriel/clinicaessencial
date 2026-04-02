@@ -126,9 +126,9 @@ async function logMessage(
   }
 }
 
-/** Interpolates {{key}} placeholders in a template string. */
+/** Interpolates {key} placeholders in a template string. */
 function interpolate(template: string, vars: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`);
 }
 
 /** Normalises a phone number to E.164 format (adds "+" when missing). */
@@ -151,7 +151,7 @@ async function processSessionConfirmations(
 
   const { data: appointments } = await (supabase as any)
     .from("agendamentos")
-    .select("id, data_horario, paciente_id, profissional_id")
+    .select("id, data_horario, tipo_atendimento, paciente_id, profissional_id")
     .eq("clinic_id", clinicId)
     .in("status", ["agendado", "confirmado"])
     .gte("data_horario", windowStart.toISOString())
@@ -171,7 +171,7 @@ async function processSessionConfirmations(
   const appUrl = Deno.env.get("APP_URL") ?? "";
   let sent = 0;
 
-  for (const ag of appointments as Array<{ id: string; data_horario: string; paciente_id: string; profissional_id: string }>) {
+  for (const ag of appointments as Array<{ id: string; data_horario: string; tipo_atendimento: string | null; paciente_id: string; profissional_id: string }>) {
     // De-duplicate
     const { data: existingLog } = await (supabase as any)
       .from("whatsapp_message_logs")
@@ -200,29 +200,42 @@ async function processSessionConfirmations(
 
     const professionalName: string = profile?.nome ?? "seu profissional";
 
-    const sessionDate = new Date(ag.data_horario).toLocaleDateString("pt-BR");
-    const sessionTime = new Date(ag.data_horario).toLocaleTimeString("pt-BR", {
+    const date = new Date(ag.data_horario);
+    const sessionDate = date.toLocaleDateString("pt-BR");
+    const sessionTime = date.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     });
+    const diaSemanaNames = [
+      "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+      "Quinta-feira", "Sexta-feira", "Sábado",
+    ];
+    const diaSemana = diaSemanaNames[date.getDay()];
     const confirmationLink = `${appUrl}/confirmar-agendamento/${ag.id}`;
 
+    // NOTE: This Edge Function runs in a Deno runtime and cannot import from
+    // the project's TypeScript source (src/lib/whatsapp/confirmationTemplates.ts).
+    // The template below MUST mirror CONFIRMATION_TEMPLATE exactly.
+    // When updating the canonical template, update this constant as well.
     const defaultTemplate =
-      "Olá, {{patientName}}! 😊\n\n" +
-      "Lembramos que você tem uma sessão agendada com *{{professionalName}}* " +
-      "em *{{sessionDate}}* às *{{sessionTime}}*.\n\n" +
+      "Olá {paciente}! 👋\n\n" +
+      "Lembramos que você tem uma {tipo} agendada:\n" +
+      "📅 *{dia_semana}, {data}* às *{hora}*\n" +
+      "👤 Profissional: *{profissional}*\n\n" +
       "Por favor, confirme sua presença clicando no link abaixo:\n" +
-      "{{confirmationLink}}\n\n" +
-      "Em caso de impossibilidade, entre em contato com antecedência. Obrigado!";
+      "🔗 {link}\n\n" +
+      "Aguardamos você! 😊";
 
     const content = interpolate(
       (settings.session_confirmation_message as string) || defaultTemplate,
       {
-        patientName: patient?.nome ?? "Paciente",
-        professionalName,
-        sessionDate,
-        sessionTime,
-        confirmationLink,
+        paciente: patient?.nome ?? "Paciente",
+        tipo: ag.tipo_atendimento || "sessão",
+        dia_semana: diaSemana,
+        data: sessionDate,
+        hora: sessionTime,
+        profissional: professionalName,
+        link: confirmationLink,
       }
     );
 

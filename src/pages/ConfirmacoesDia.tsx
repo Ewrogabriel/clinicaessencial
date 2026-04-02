@@ -21,6 +21,7 @@ import { format, addDays, parseISO, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { buildConfirmationMessage } from "@/lib/whatsapp/confirmationTemplates";
 
 const statusLabel: Record<string, { label: string; color: string }> = {
   confirmado: { label: "Confirmado ✓", color: "bg-green-100 text-green-700 border-green-200" },
@@ -107,20 +108,13 @@ const ConfirmacoesDia = () => {
     setSending(ag.id);
     try {
       const confirmUrl = `${window.location.origin}/confirmar-agendamento/${ag.id}`;
-      const dataFmt = format(parseISO(ag.data_horario), "dd/MM/yyyy", { locale: ptBR });
-      const horaFmt = format(parseISO(ag.data_horario), "HH:mm");
-      const diaSemana = format(parseISO(ag.data_horario), "EEEE", { locale: ptBR });
-      const profNome = ag.profissional_nome;
-      const tipo = ag.tipo_atendimento || "sessão";
-
-      const mensagem =
-        `Olá ${paciente.nome}! 👋\n\n` +
-        `Lembramos que você tem uma ${tipo} agendada:\n` +
-        `📅 *${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)}, ${dataFmt}* às *${horaFmt}*\n` +
-        `👤 Profissional: *${profNome}*\n\n` +
-        `Por favor, confirme sua presença clicando no link abaixo:\n` +
-        `🔗 ${confirmUrl}\n\n` +
-        `Aguardamos você! 😊`;
+      const mensagem = buildConfirmationMessage({
+        pacienteNome: paciente.nome,
+        profissionalNome: ag.profissional_nome,
+        tipo: ag.tipo_atendimento || "sessão",
+        dataHorario: ag.data_horario,
+        confirmationLink: confirmUrl,
+      });
 
       const numero = telefone.replace(/\D/g, "");
       const numeroComDDI = numero.startsWith("55") ? numero : `55${numero}`;
