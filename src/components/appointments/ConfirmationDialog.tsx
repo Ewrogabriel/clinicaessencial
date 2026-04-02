@@ -38,8 +38,7 @@ export function ConfirmationDialog({ agendamento, open, onClose }: ConfirmationD
 
   const paciente = agendamento.pacientes ?? agendamento.paciente;
   const confirmacao = agendamento.confirmacao_presenca as string | null;
-  const enviadoEm: string | null =
-    agendamento.confirmacao_enviada_at ?? agendamento.confirmacao_enviada_em ?? null;
+  const enviadoEm: string | null = agendamento.confirmacao_enviada_at ?? null;
 
   const dataFmt = agendamento.data_horario
     ? format(parseISO(agendamento.data_horario), "dd/MM/yyyy", { locale: ptBR })

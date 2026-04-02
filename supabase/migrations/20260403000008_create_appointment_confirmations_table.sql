@@ -1,5 +1,5 @@
 -- Enhanced appointment confirmation tracking
-ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS confirmacao_enviada_em TIMESTAMPTZ;
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS confirmacao_enviada_at TIMESTAMPTZ;
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_24h_enviado BOOLEAN DEFAULT false;
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_1h_enviado BOOLEAN DEFAULT false;
 
