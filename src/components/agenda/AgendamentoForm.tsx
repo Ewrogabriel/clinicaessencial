@@ -24,6 +24,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -126,9 +136,10 @@ interface AgendamentoFormProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   defaultDate?: Date;
+  defaultProfissionalId?: string;
 }
 
-export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: AgendamentoFormProps) {
+export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId }: AgendamentoFormProps) {
   const { user } = useAuth();
   const { activeClinicId } = useClinic();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -140,6 +151,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [overCapacityPending, setOverCapacityPending] = useState<FormData | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -226,6 +238,12 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       form.setValue("data", defaultDate);
     }
   }, [defaultDate, form]);
+
+  useEffect(() => {
+    if (open && defaultProfissionalId) {
+      form.setValue("profissional_id", defaultProfissionalId);
+    }
+  }, [open, defaultProfissionalId, form]);
 
   useEffect(() => {
     if (open) {
@@ -323,6 +341,19 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
       toast.error("Selecione uma clínica antes de criar um agendamento.");
       return;
     }
+
+    // For single (non-recurring) appointments: check capacity and ask for confirmation
+    const isSingleAppointment = !values.recorrente && (!values.repetir || values.repetir_quantidade <= 1);
+    if (isSingleAppointment && availabilityResult?.isOverCapacity) {
+      setOverCapacityPending(values);
+      return;
+    }
+
+    await doSubmit(values);
+  };
+
+  const doSubmit = async (values: FormData) => {
+    if (!user || !activeClinicId) return;
     setLoading(true);
 
     try {
@@ -424,6 +455,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
     : 0;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -1291,6 +1323,49 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate }: 
           </form>
         </Form>
       </DialogContent>
-    </Dialog >
+    </Dialog>
+
+    {/* Over-capacity confirmation dialog */}
+    <AlertDialog open={!!overCapacityPending} onOpenChange={(o) => { if (!o) setOverCapacityPending(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            ⚠️ Capacidade excedida
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {availabilityResult && (
+              <>
+                <strong>Você está agendando além da capacidade definida.</strong>
+                <br />
+                {availabilityResult.currentCount >= availabilityResult.maxCapacity
+                  ? `Este horário já atingiu ${availabilityResult.currentCount}/${availabilityResult.maxCapacity} pacientes.`
+                  : availabilityResult.message}
+                <br /><br />
+                Deseja continuar mesmo assim?
+              </>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setOverCapacityPending(null)}>
+            Cancelar
+          </AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+            onClick={() => {
+              if (overCapacityPending) {
+                const pending = overCapacityPending;
+                setOverCapacityPending(null);
+                doSubmit(pending);
+              }
+            }}
+          >
+            Continuar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }
