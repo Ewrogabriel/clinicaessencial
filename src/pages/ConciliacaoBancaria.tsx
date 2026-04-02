@@ -111,7 +111,7 @@ export default function ConciliacaoBancaria() {
   // Relate payments dialog
   const [paymentRelateDialogOpen, setPaymentRelateDialogOpen] = useState(false);
   const [relateMonth, setRelateMonth] = useState(format(new Date(), "yyyy-MM"));
-  const [relateSelectedTxId, setRelateSelectedTxId] = useState<string>("");
+  const [relateSelectedTxByPayment, setRelateSelectedTxByPayment] = useState<Record<string, string>>({});
 
   // Create expense from transaction dialog
   const [createExpenseDialogOpen, setCreateExpenseDialogOpen] = useState(false);
@@ -394,7 +394,7 @@ export default function ConciliacaoBancaria() {
       queryClient.invalidateQueries({ queryKey: ["bank-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["relate-payments"] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-      setRelateSelectedTxId("");
+      setRelateSelectedTxByPayment({});
       setPaymentRelateDialogOpen(false);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -600,11 +600,12 @@ export default function ConciliacaoBancaria() {
       const { data: existingTxs } = await (supabase.from("bank_transactions") as any)
         .select("data_transacao, valor, descricao")
         .eq("bank_account_id", selectedAccountId);
+      const normalizeDesc = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
       const existingSet = new Set(
-        (existingTxs || []).map((t: any) => `${t.data_transacao}|${Number(t.valor).toFixed(2)}|${t.descricao}`)
+        (existingTxs || []).map((t: any) => `${t.data_transacao}|${Number(t.valor).toFixed(2)}|${normalizeDesc(t.descricao)}`)
       );
       const deduped = transactions.filter(t =>
-        !existingSet.has(`${t.data_transacao}|${Number(t.valor).toFixed(2)}|${t.descricao}`)
+        !existingSet.has(`${t.data_transacao}|${Number(t.valor).toFixed(2)}|${normalizeDesc(t.descricao)}`)
       );
       const skippedCount = transactions.length - deduped.length;
 
@@ -1013,7 +1014,7 @@ export default function ConciliacaoBancaria() {
                         </Button>
                         {tx.valor < 0 && (
                           <Button size="sm" variant="outline" className="gap-1" onClick={() => { setExpenseLinkTxId(tx.id); setExpenseLinkId(""); }}>
-                            <Link2 className="h-3.5 w-3.5" /> Vincular Despesa
+                            <Link2 className="h-3.5 w-3.5" /> Vincular Existente
                           </Button>
                         )}
                         {tx.valor < 0 && (
@@ -1445,7 +1446,7 @@ export default function ConciliacaoBancaria() {
       </Dialog>
 
       {/* Relate Payments Dialog */}
-      <Dialog open={paymentRelateDialogOpen} onOpenChange={(open) => { setPaymentRelateDialogOpen(open); if (!open) { setRelateSelectedTxId(""); } }}>
+      <Dialog open={paymentRelateDialogOpen} onOpenChange={(open) => { setPaymentRelateDialogOpen(open); if (!open) { setRelateSelectedTxByPayment({}); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Relacionar Pagamentos do Mês</DialogTitle>
@@ -1493,7 +1494,10 @@ export default function ConciliacaoBancaria() {
                               <span className="text-sm font-semibold text-emerald-700">R$ {Number(payment.valor).toFixed(2)}</span>
                             </div>
                             <div className="flex gap-2 items-center">
-                              <Select value={relateSelectedTxId} onValueChange={setRelateSelectedTxId}>
+                              <Select
+                                value={relateSelectedTxByPayment[payment.id] || ""}
+                                onValueChange={v => setRelateSelectedTxByPayment(prev => ({ ...prev, [payment.id]: v }))}
+                              >
                                 <SelectTrigger className="h-8 text-xs flex-1">
                                   <SelectValue placeholder="Selecionar transação..." />
                                 </SelectTrigger>
@@ -1502,7 +1506,7 @@ export default function ConciliacaoBancaria() {
                                     .filter((t: any) => t.valor > 0 && t.status !== "confirmado")
                                     .map((t: any) => (
                                       <SelectItem key={t.id} value={t.id}>
-                                        {format(new Date(t.data_transacao + "T12:00:00"), "dd/MM")} — {t.descricao.slice(0, 30)} — R$ {Number(t.valor).toFixed(2)}
+                                        {format(new Date(t.data_transacao + "T12:00:00"), "dd/MM")} — {t.descricao.length > 30 ? t.descricao.slice(0, 30) + "…" : t.descricao} — R$ {Number(t.valor).toFixed(2)}
                                       </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -1510,9 +1514,9 @@ export default function ConciliacaoBancaria() {
                               <Button
                                 size="sm"
                                 className="gap-1 text-xs shrink-0"
-                                disabled={!relateSelectedTxId || linkPaymentToTx.isPending}
+                                disabled={!relateSelectedTxByPayment[payment.id] || linkPaymentToTx.isPending}
                                 onClick={() => linkPaymentToTx.mutate({
-                                  txId: relateSelectedTxId,
+                                  txId: relateSelectedTxByPayment[payment.id],
                                   paymentId: payment.id,
                                   pacienteId: payment.paciente_id,
                                 })}
