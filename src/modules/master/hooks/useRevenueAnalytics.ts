@@ -29,7 +29,7 @@ function getPeriodStartDate(period: Period): Date {
 async function fetchRevenueAnalytics(period: Period): Promise<RevenueAnalytics> {
   const since = getPeriodStartDate(period);
 
-  const [subsRes, pagsRes] = await Promise.all([
+  const [subsRes, pagsRes, prevSubsRes] = await Promise.all([
     (supabase.from("clinic_subscriptions") as any)
       .select("*, platform_plans(valor_mensal, nome)")
       .gte("created_at", since.toISOString()),
@@ -37,10 +37,15 @@ async function fetchRevenueAnalytics(period: Period): Promise<RevenueAnalytics> 
       .select("valor, status, mes_referencia, subscription_id")
       .eq("status", "pago")
       .gte("mes_referencia", since.toISOString().substring(0, 10)),
+    (supabase.from("clinic_subscriptions") as any)
+      .select("platform_plans(valor_mensal)")
+      .eq("status", "ativa")
+      .lt("created_at", since.toISOString()),
   ]);
 
   const subs: any[] = subsRes.data ?? [];
   const pags: any[] = pagsRes.data ?? [];
+  const prevSubs: any[] = prevSubsRes.data ?? [];
 
   const activeSubs = subs.filter((s: any) => s.status === "ativa");
   const mrr = activeSubs.reduce(
@@ -70,10 +75,12 @@ async function fetchRevenueAnalytics(period: Period): Promise<RevenueAnalytics> 
       clinics: clinicSet.size,
     }));
 
-  const prevMrr =
-    monthly.length > 1 ? monthly[monthly.length - 2]?.revenue ?? 0 : 0;
-  const growth =
-    prevMrr > 0 ? ((mrr - prevMrr) / prevMrr) * 100 : 0;
+  // Compare current MRR to prior period's active subscription total
+  const prevMrr = (prevSubs ?? []).reduce(
+    (acc: number, s: any) => acc + Number(s.platform_plans?.valor_mensal ?? 0),
+    0,
+  );
+  const growth = prevMrr > 0 ? ((mrr - prevMrr) / prevMrr) * 100 : 0;
 
   return {
     mrr,

@@ -48,7 +48,11 @@ export function RevenueChart({ data }: RevenueChartProps) {
         <XAxis dataKey="monthLabel" tick={{ fontSize: 12 }} />
         <YAxis
           yAxisId="revenue"
-          tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+          tickFormatter={(v: number) => {
+            if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`;
+            if (v >= 1_000) return `R$${(v / 1_000).toFixed(0)}k`;
+            return `R$${v}`;
+          }}
           tick={{ fontSize: 12 }}
         />
         <YAxis

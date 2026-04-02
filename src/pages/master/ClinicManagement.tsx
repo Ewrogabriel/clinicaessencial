@@ -207,10 +207,7 @@ export default function ClinicManagement() {
           </div>
 
           <ClinicTable
-            clinics={filtered.map((c: any) => ({
-              ...c,
-              selected: selectedIds.has(c.id),
-            }))}
+            clinics={filtered}
             isLoading={isLoading}
             onActivate={(id) => activateMutation.mutate(id)}
             onDeactivate={(id) => deactivateMutation.mutate(id)}

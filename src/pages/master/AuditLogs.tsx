@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAuditLogs, AuditLog } from "@/modules/master/services/masterService";
-import { format } from "date-fns";
+import { format, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const ACTION_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -93,7 +93,7 @@ export default function AuditLogs() {
       const matchAction = actionFilter === "all" || l.action === actionFilter;
       const matchTable = tableFilter === "all" || l.table_name === tableFilter;
       const matchFrom = !dateFrom || new Date(l.created_at) >= new Date(dateFrom);
-      const matchTo = !dateTo || new Date(l.created_at) <= new Date(dateTo + "T23:59:59");
+      const matchTo = !dateTo || new Date(l.created_at) <= endOfDay(new Date(dateTo));
       return matchSearch && matchAction && matchTable && matchFrom && matchTo;
     });
   }, [logs, search, actionFilter, tableFilter, dateFrom, dateTo]);
