@@ -171,7 +171,7 @@ export function useWeekdaySlots(options: {
             // to calculate current occupancy per time slot
             const { data: appointments } = await supabase
                 .from("agendamentos")
-                .select("data_horario, tipo_sessao")
+                .select("id, data_horario, tipo_sessao, recorrencia_grupo_id")
                 .eq("profissional_id", options.professionalId)
                 .eq("recorrente", true)
                 .not("status", "in", '("cancelado","falta")');
