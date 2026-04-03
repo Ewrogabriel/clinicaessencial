@@ -65,10 +65,6 @@ export function FinancialTabs({
         </TabsTrigger>
         <TabsTrigger value="previsao">Previsão</TabsTrigger>
         <TabsTrigger value="despesas">Despesas</TabsTrigger>
-        <TabsTrigger value="comissoes" className="gap-1.5">
-          <Users2 className="h-3.5 w-3.5" />
-          Comissões
-        </TabsTrigger>
         <TabsTrigger value="notas-fiscais">Notas Fiscais</TabsTrigger>
         <TabsTrigger value="dre" className="gap-1.5">
           <DollarSign className="h-3.5 w-3.5" />
