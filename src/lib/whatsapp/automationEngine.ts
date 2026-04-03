@@ -168,10 +168,10 @@ export class AutomationEngine {
   async processOverdueAlerts(): Promise<number> {
     let processed = 0;
 
-    const { data: clinics, error } = await (supabase
+    const { data: clinics, error } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .select("clinic_id")
-      .eq("overdue_alert_enabled", true) as any);
+      .eq("overdue_alert_enabled", true);
 
     if (error || !clinics) {
       handleError(error, "[AutomationEngine] Erro ao buscar clínicas para alerta de inadimplência.");
