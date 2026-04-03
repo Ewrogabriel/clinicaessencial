@@ -30,28 +30,13 @@ export function usePatientPayments(pacienteId: string) {
       const { data: pgtos } = await supabase
         .from("pagamentos")
         .select(
-          "id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, bank_transaction_id, origem_tipo, agendamento_id, profissional_id, matricula_id, plano_id"
+          "id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, origem_tipo, agendamento_id, profissional_id, matricula_id, plano_id"
         )
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
 
-      // Gather bank transaction IDs from pagamentos
-      const bankIds: string[] = [];
-      (pgtos || []).forEach((p: any) => {
-        if (p.bank_transaction_id) bankIds.push(p.bank_transaction_id);
-      });
-
-      // Fetch bank transactions for reconciliation info
+      // Bank reconciliation map (no longer stored on pagamentos table)
       const bankMap: Record<string, { status: string; data_conciliacao: string | null }> = {};
-      if (bankIds.length > 0) {
-        const { data: bts } = await (supabase as any)
-          .from("bank_transactions")
-          .select("id, status, data_conciliacao")
-          .in("id", bankIds);
-        (bts || []).forEach((bt: any) => {
-          bankMap[bt.id] = { status: bt.status, data_conciliacao: bt.data_conciliacao };
-        });
-      }
 
       // Fetch profissional names for sessions
       const profissionalIds: string[] = [];
@@ -76,7 +61,7 @@ export function usePatientPayments(pacienteId: string) {
       }
 
       (pgtos || []).forEach((p: any) => {
-        const bt = p.bank_transaction_id ? bankMap[p.bank_transaction_id] : null;
+        const bt = null;
         const { status, dias_atraso } = resolveStatus(
           p.status ?? "pendente",
           p.data_vencimento,
@@ -94,7 +79,7 @@ export function usePatientPayments(pacienteId: string) {
           valor: Number(p.valor),
           origem_tipo: p.origem_tipo ?? "manual",
           observacoes: p.observacoes,
-          bank_transaction_id: p.bank_transaction_id,
+          bank_transaction_id: null,
           bank_status: bt?.status ?? null,
           bank_data_conciliacao: bt?.data_conciliacao ?? null,
           created_at: p.created_at ?? "",

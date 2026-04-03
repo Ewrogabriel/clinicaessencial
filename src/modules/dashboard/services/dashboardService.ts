@@ -132,7 +132,8 @@ export const dashboardService = {
           let q = (supabase as any)
             .from("pagamentos")
             .select("id", { count: "exact", head: true })
-            .eq("status", "vencido");
+            .eq("status", "pendente")
+            .lt("data_vencimento", new Date().toISOString().split("T")[0]);
           if (clinicId) q = q.eq("clinic_id", clinicId);
           return q;
         })(),
