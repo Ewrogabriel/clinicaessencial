@@ -53,13 +53,15 @@ const formatBRL = (value: number) =>
 
 const labelOrigem: Record<string, string> = {
   plano: "Plano / Pacote",
-  mensalidade: "Matrícula",
+  mensalidade: "Mensalidade",
   matricula: "Matrícula",
   sessao: "Sessão Avulsa",
   sessao_avulsa: "Sessão Avulsa",
   manual: "Pagamento Manual",
   reembolso: "Reembolso",
   ajuste: "Ajuste",
+  credito: "Crédito",
+  investimento: "Investimento",
 };
 
 const labelStatus: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -71,6 +73,7 @@ const labelStatus: Record<string, { label: string; variant: "default" | "seconda
   cancelado: { label: "Cancelado", variant: "outline" },
   reembolsado: { label: "Reembolsado", variant: "outline" },
   aberto: { label: "Em Aberto", variant: "secondary" },
+  parcialmente_pago: { label: "Parcial", variant: "secondary" },
 };
 
 function getMovimentacaoTipo(valor: number, status: string): { tipo: string; cor: string } {
@@ -292,7 +295,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
       // 1. pagamentos (includes sessao_avulsa, matricula, plano, manual)
       const { data: pgtos } = await supabase
         .from("pagamentos")
-        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, bank_transaction_id, origem_tipo, agendamento_id, profissional_id")
+        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, bank_transaction_id, origem_tipo, agendamento_id, profissional_id, matricula_id, plano_id")
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
 
@@ -422,21 +425,23 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         .eq("paciente_id", pacienteId)
         .eq("status", "ativa");
 
-      // Collect matricula IDs that already have payment entries in pagamentos
-      const paidMatriculaIds = new Set(
+      // Build set of matricula IDs that have been paid:
+      // (a) via pagamentos table (matricula_id column)
+      const paidMatriculaFromPgtos = new Set(
         (pgtos || [])
-          .filter((p: any) => p.origem_tipo === "matricula")
-          .map((p: any) => p.id)
+          .filter((p: any) => p.origem_tipo === "matricula" && p.matricula_id)
+          .map((p: any) => p.matricula_id)
       );
-      // Also collect from pagamentos_mensalidade (matricula_id field)
+      // (b) via pagamentos_mensalidade (matricula_id field)
       const { data: pgMensalWithMatricula } = await (supabase as any)
         .from("pagamentos_mensalidade")
         .select("matricula_id")
         .eq("paciente_id", pacienteId)
         .not("matricula_id", "is", null);
-      const paidMatriculaRefIds = new Set(
-        (pgMensalWithMatricula || []).map((r: any) => r.matricula_id)
-      );
+      const paidMatriculaRefIds = new Set([
+        ...paidMatriculaFromPgtos,
+        ...(pgMensalWithMatricula || []).map((r: any) => r.matricula_id),
+      ]);
 
       (matriculas || []).forEach((m: any) => {
         if (paidMatriculaRefIds.has(m.id)) return; // already has payment records
@@ -468,10 +473,11 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         .eq("paciente_id", pacienteId)
         .eq("status", "ativo");
 
+      // Build set of plano IDs that have been paid via pagamentos (plano_id column)
       const paidPlanoIds = new Set(
         (pgtos || [])
-          .filter((p: any) => p.origem_tipo === "plano")
-          .map((p: any) => p.id)
+          .filter((p: any) => p.origem_tipo === "plano" && p.plano_id)
+          .map((p: any) => p.plano_id)
       );
 
       (planos || []).forEach((pl: any) => {
@@ -496,6 +502,79 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
           bank_data_conciliacao: null,
           created_at: pl.created_at ?? "",
           profissional: pl.profissional_id ? (profissionalMap[pl.profissional_id] ?? null) : null,
+        });
+      });
+
+      // 6. Sessões avulsas realizadas sem pagamento (not in pagamentos nor pagamentos_sessoes)
+      // Build sets of agendamento IDs already covered by payment records
+      const paidAgendamentoIds = new Set(
+        (pgtos || [])
+          .filter((p: any) => p.agendamento_id)
+          .map((p: any) => p.agendamento_id)
+      );
+      const { data: paidSessoesByAgendamento } = await (supabase as any)
+        .from("pagamentos_sessoes")
+        .select("agendamento_id")
+        .eq("paciente_id", pacienteId)
+        .not("agendamento_id", "is", null);
+      (paidSessoesByAgendamento || []).forEach((r: any) => {
+        if (r.agendamento_id) paidAgendamentoIds.add(r.agendamento_id);
+      });
+
+      const { data: agendamentosRealizados } = await (supabase as any)
+        .from("agendamentos")
+        .select("id, data_horario, profissional_id, created_at")
+        .eq("paciente_id", pacienteId)
+        .eq("status", "realizado");
+
+      // Collect profissional IDs from unpaid sessions for name lookup
+      const unpaidSessaoIds: string[] = [];
+      (agendamentosRealizados || []).forEach((ag: any) => {
+        if (!paidAgendamentoIds.has(ag.id)) {
+          if (ag.profissional_id && !profissionalIds.includes(ag.profissional_id)) {
+            profissionalIds.push(ag.profissional_id);
+            unpaidSessaoIds.push(ag.profissional_id);
+          }
+        }
+      });
+
+      // Fetch any additional profissional names not yet loaded
+      if (unpaidSessaoIds.length > 0) {
+        const missingIds = unpaidSessaoIds.filter((id) => !profissionalMap[id]);
+        if (missingIds.length > 0) {
+          const { data: extraProfs } = await (supabase as any)
+            .from("profiles")
+            .select("id, nome")
+            .in("id", missingIds);
+          (extraProfs || []).forEach((pr: any) => {
+            profissionalMap[pr.id] = pr.nome;
+          });
+        }
+      }
+
+      (agendamentosRealizados || []).forEach((ag: any) => {
+        if (paidAgendamentoIds.has(ag.id)) return; // already has a payment record
+        const hoje = now;
+        const dataSessao = new Date(ag.data_horario);
+        const isAtrasado = dataSessao < hoje;
+        const dias_atraso = isAtrasado ? differenceInDays(hoje, dataSessao) : undefined;
+        results.push({
+          id: `sessao-pendente-${ag.id}`,
+          source_table: "pagamentos_sessoes",
+          data_pagamento: null,
+          data_vencimento: ag.data_horario,
+          descricao: `Sessão com ${ag.profissional_id ? (profissionalMap[ag.profissional_id] ?? "Profissional") : "Profissional"}`,
+          status: isAtrasado ? "atrasado" : "pendente",
+          dias_atraso,
+          forma_pagamento: null,
+          valor: 0,
+          origem_tipo: "sessao_avulsa",
+          observacoes: "Sessão realizada - pagamento pendente",
+          bank_transaction_id: null,
+          bank_status: null,
+          bank_data_conciliacao: null,
+          created_at: ag.created_at ?? "",
+          profissional: ag.profissional_id ? (profissionalMap[ag.profissional_id] ?? null) : null,
         });
       });
 
@@ -572,17 +651,17 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
     const totalDebito = filtered
       .filter((p) => p.status !== "reembolsado" && p.status !== "cancelado")
       .reduce((sum, p) => sum + p.valor, 0);
-    const totalCredito = filtered
-      .filter((p) => p.status === "reembolsado")
+    const totalPago = filtered
+      .filter((p) => p.status === "pago")
       .reduce((sum, p) => sum + p.valor, 0);
     const totalPendente = filtered
-      .filter((p) => ["pendente", "aberto", "nao_iniciado"].includes(p.status))
+      .filter((p) => ["pendente", "aberto", "nao_iniciado", "parcialmente_pago"].includes(p.status))
       .reduce((sum, p) => sum + p.valor, 0);
     const totalAtrasado = filtered
       .filter((p) => p.status === "atrasado" || p.status === "vencido")
       .reduce((sum, p) => sum + p.valor, 0);
-    const saldo = totalDebito - totalCredito;
-    return { totalDebito, totalCredito, saldo, totalPendente, totalAtrasado };
+    const saldo = totalDebito - totalPago;
+    return { totalDebito, totalPago, saldo, totalPendente, totalAtrasado };
   }, [filtered]);
 
   const clearFilters = () => {
@@ -612,7 +691,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-red-100 bg-red-50/50">
           <CardHeader className="pb-1 pt-4 px-4">
             <CardTitle className="text-xs font-medium text-red-700 flex items-center gap-1">
@@ -627,11 +706,11 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         <Card className="border-green-100 bg-green-50/50">
           <CardHeader className="pb-1 pt-4 px-4">
             <CardTitle className="text-xs font-medium text-green-700 flex items-center gap-1">
-              <TrendingUp className="h-3.5 w-3.5" /> Total Crédito
+              <TrendingUp className="h-3.5 w-3.5" /> Total Pago
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-4 px-4">
-            <p className="text-xl font-bold text-green-700">{formatBRL(summary.totalCredito)}</p>
+            <p className="text-xl font-bold text-green-700">{formatBRL(summary.totalPago)}</p>
           </CardContent>
         </Card>
 
@@ -654,6 +733,17 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <p className="text-xl font-bold text-yellow-700">{formatBRL(summary.totalPendente)}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-200 bg-red-100/50">
+          <CardHeader className="pb-1 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-red-800 flex items-center gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" /> Atrasado
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4 px-4">
+            <p className="text-xl font-bold text-red-800">{formatBRL(summary.totalAtrasado)}</p>
           </CardContent>
         </Card>
       </div>
@@ -697,6 +787,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
                 <SelectItem value="aberto">Em Aberto</SelectItem>
                 <SelectItem value="atrasado">Atrasado</SelectItem>
                 <SelectItem value="nao_iniciado">Não Pago</SelectItem>
+                <SelectItem value="parcialmente_pago">Parcialmente Pago</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
                 <SelectItem value="reembolsado">Reembolsado</SelectItem>
               </SelectContent>
@@ -709,9 +800,12 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
               <SelectContent>
                 <SelectItem value="todos">Todos tipos</SelectItem>
                 <SelectItem value="matricula">Matrícula</SelectItem>
+                <SelectItem value="mensalidade">Mensalidade</SelectItem>
                 <SelectItem value="plano">Plano / Pacote</SelectItem>
                 <SelectItem value="sessao_avulsa">Sessão Avulsa</SelectItem>
                 <SelectItem value="manual">Pagamento Manual</SelectItem>
+                <SelectItem value="ajuste">Ajuste</SelectItem>
+                <SelectItem value="reembolso">Reembolso</SelectItem>
               </SelectContent>
             </Select>
 
