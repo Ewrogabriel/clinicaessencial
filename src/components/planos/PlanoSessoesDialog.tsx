@@ -135,9 +135,8 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agendamentos")
-        .select("id, data_horario, duracao_minutos, status, tipo_atendimento, observacoes")
+        .select("id, data_horario, duracao_minutos, status, tipo_atendimento, observacoes, profissional_id, profiles:profissional_id(nome)")
         .eq("paciente_id", plano.paciente_id)
-        .eq("profissional_id", plano.profissional_id)
         .ilike("observacoes", `%plano:${plano.id}%`)
         .order("data_horario", { ascending: true });
       if (error) throw error;
@@ -490,6 +489,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                     <TableRow>
                       <TableHead>#</TableHead>
                       <TableHead>Data/Hora</TableHead>
+                      <TableHead>Profissional</TableHead>
                       <TableHead>Duração</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -506,6 +506,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                           <TableCell className="text-sm">
                             {format(new Date(s.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </TableCell>
+                          <TableCell className="text-sm">{(s.profiles as any)?.nome ?? "—"}</TableCell>
                           <TableCell className="text-sm">{s.duracao_minutos} min</TableCell>
                           <TableCell><Badge variant={sb.variant}>{sb.label}</Badge></TableCell>
                         </TableRow>
