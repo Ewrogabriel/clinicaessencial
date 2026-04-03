@@ -1,4 +1,4 @@
-import { AlertTriangle, User } from "lucide-react";
+import { AlertTriangle, User, Download, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,8 @@ import {
   labelStatus,
 } from "@/modules/finance/utils/paymentHelpers";
 import { ReconciliationBadge } from "./ReconciliationBadge";
+import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
+import { toast } from "sonner";
 import type { PaymentEntry } from "./types";
 
 interface PaymentDetailModalProps {

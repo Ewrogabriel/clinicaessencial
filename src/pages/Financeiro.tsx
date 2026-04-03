@@ -428,7 +428,7 @@ const Financeiro = () => {
                               <Download className="h-4 w-4" />
                             </Button>
                           )}
-                          {isPaid && pagamento.source_table === "pagamentos" && !isPatient && (
+                          {isPaid && !isPatient && (
                             <Button
                               size="sm"
                               variant="ghost"
