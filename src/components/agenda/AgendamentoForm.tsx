@@ -257,7 +257,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Profissional</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger><SelectValue placeholder="Selecione o profissional" /></SelectTrigger>
                       </FormControl>
