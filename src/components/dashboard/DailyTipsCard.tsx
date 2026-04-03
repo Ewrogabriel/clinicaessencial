@@ -44,15 +44,27 @@ export function DailyTipsCard({ tipo }: DailyTipsCardProps) {
     queryKey: ["dicas-diarias-dashboard", tipo, retryCount],
     queryFn: async () => {
       try {
-        const invoke = supabase.functions?.invoke;
-        if (!invoke) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
           return { dicas: [], date: new Date().toISOString().split("T")[0] };
         }
 
-        const { data, error } = await invoke("generate-daily-tips", {
-          body: { tipo },
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const baseUrl = import.meta.env.VITE_SUPABASE_URL || `https://${projectId}.supabase.co`;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+        const res = await fetch(`${baseUrl}/functions/v1/generate-daily-tips`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": anonKey || "",
+          },
+          body: JSON.stringify({ tipo }),
         });
-        if (error) throw error;
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         return data as { dicas: { titulo: string; conteudo: string; categoria: string }[]; date: string };
       } catch (e) {
         console.warn("[DailyTipsCard] Erro ao gerar dicas:", e);
