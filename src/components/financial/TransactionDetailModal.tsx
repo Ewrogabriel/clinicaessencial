@@ -235,6 +235,7 @@ export function TransactionDetailModal({
         // Only copy ID when no text is selected
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) {
+          e.preventDefault();
           handleCopyId();
         }
       } else if (e.key === "?" || e.key === "h") {
@@ -342,7 +343,7 @@ export function TransactionDetailModal({
                   } />
                   <InfoRow label="Valor" value={
                     <span className={`font-bold ${isCredit ? "text-green-600" : "text-red-600"}`}>
-                      {isCredit ? "+" : "-"}{formatBRL(Math.abs(transaction.valor))}
+                      {isCredit ? "+" : "-"}{formatBRL(valor)}
                     </span>
                   } />
                   <InfoRow label="Status" value={
@@ -490,12 +491,12 @@ export function TransactionDetailModal({
                                   </strong>
                                 </span>
                               )}
-                              {Math.abs(s.valor - Math.abs(transaction.valor)) > 0.01 && (
+                              {Math.abs(s.valor - valor) > 0.01 && (
                                 <span className="text-red-600">
                                   Diff:{" "}
                                   <strong>
-                                    {s.valor > Math.abs(transaction.valor) ? "+" : ""}
-                                    {formatBRL(s.valor - Math.abs(transaction.valor))}
+                                    {s.valor > valor ? "+" : ""}
+                                    {formatBRL(s.valor - valor)}
                                   </strong>
                                 </span>
                               )}
