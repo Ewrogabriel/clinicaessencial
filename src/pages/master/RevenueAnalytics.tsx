@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatBRL } from "@/modules/shared/utils/currencyFormatters";
 import { TrendingUp, DollarSign, Users, AlertTriangle, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
