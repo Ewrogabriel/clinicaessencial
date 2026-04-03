@@ -62,7 +62,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
         />
         <Tooltip
           formatter={(value: number, name: string) => {
-            if (name === "Receita") return [formatCurrency(value), name];
+            if (name === "Receita") return [formatBRLCompact(value), name];
             return [value, name];
           }}
         />

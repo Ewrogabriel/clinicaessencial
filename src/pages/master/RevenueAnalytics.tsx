@@ -68,8 +68,7 @@ export default function RevenueAnalytics() {
   const [period, setPeriod] = useState<Period>("quarter");
   const { data, isLoading } = useRevenueMetrics(period);
 
-  const formatCurrency = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const formatCurrency = (v: number) => formatBRL(v);
 
   return (
     <div className="space-y-6">
