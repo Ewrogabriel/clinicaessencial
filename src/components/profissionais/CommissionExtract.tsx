@@ -31,6 +31,12 @@ interface ProfSummary {
   atendimentosDetail: any[];
 }
 
+/** Parse "YYYY-MM-01" as local date to avoid UTC timezone shift */
+function parseMesRefDate(mesRef: string): Date {
+  const [year, month] = mesRef.split("-").map(Number);
+  return new Date(year, month - 1, 1);
+}
+
 export function CommissionExtract() {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
   const canManage = isAdmin || isGestor;
@@ -347,7 +353,7 @@ export function CommissionExtract() {
       if (error) throw error;
 
       // Send notification
-      const mesLabel = format(new Date(`${mesRef}-01`), "MMMM 'de' yyyy", { locale: ptBR });
+      const mesLabel = format(parseMesRefDate(mesRef), "MMMM 'de' yyyy", { locale: ptBR });
       const titulo = `Comissão Fechada — ${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}`;
       let resumo = `Sua comissão de ${mesLabel} foi fechada. Valor: R$ ${valorFinal.toFixed(2)}.`;
       if (comp !== 0) resumo += ` Compensação: R$ ${comp.toFixed(2)}.`;
@@ -386,7 +392,7 @@ export function CommissionExtract() {
   const generateClosingReceipt = async (prof: ProfSummary, valorFinal: number, comp: number, bonus: number) => {
     const doc = new jsPDF();
     const settings = await getClinicSettings();
-    const mesLabel = format(new Date(`${mesRef}-01`), "MMMM 'de' yyyy", { locale: ptBR });
+    const mesLabel = format(parseMesRefDate(mesRef), "MMMM 'de' yyyy", { locale: ptBR });
 
     let y = 15;
     y = await addLogoToPDF(doc, 85, y, 40, 25);
@@ -507,7 +513,7 @@ export function CommissionExtract() {
   const generateGlobalPDF = async () => {
     const doc = new jsPDF();
     const settings = await getClinicSettings();
-    const mesLabel = format(new Date(`${mesRef}-01`), "MMMM 'de' yyyy", { locale: ptBR });
+    const mesLabel = format(parseMesRefDate(mesRef), "MMMM 'de' yyyy", { locale: ptBR });
 
     let y = 15;
     y = await addLogoToPDF(doc, 85, y, 40, 25);
@@ -670,7 +676,7 @@ export function CommissionExtract() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Calculator className="h-5 w-5 text-amber-600" />
-                Prévia de Comissão Aberta — {format(new Date(`${mesRef}-01`), "MMMM/yyyy", { locale: ptBR })}
+                Prévia de Comissão Aberta — {format(parseMesRefDate(mesRef), "MMMM/yyyy", { locale: ptBR })}
               </CardTitle>
               <CardDescription>
                 Estimativa baseada nos atendimentos do mês. Sujeita a fechamento pelo administrador.
@@ -840,7 +846,7 @@ export function CommissionExtract() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" />
-              Extrato — {format(new Date(`${mesRef}-01`), "MMMM yyyy", { locale: ptBR })}
+              Extrato — {format(parseMesRefDate(mesRef), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
             <CardDescription>
               Comissões previstas para todas as sessões e consultas agendadas no mês.
@@ -1005,7 +1011,7 @@ export function CommissionExtract() {
               <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/50">
                 <div>
                   <p className="text-xs text-muted-foreground">Mês</p>
-                  <p className="font-medium">{format(new Date(`${mesRef}-01`), "MMMM/yyyy", { locale: ptBR })}</p>
+                  <p className="font-medium">{format(parseMesRefDate(mesRef), "MMMM/yyyy", { locale: ptBR })}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Atendimentos</p>
