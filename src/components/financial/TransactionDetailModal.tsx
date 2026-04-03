@@ -445,6 +445,16 @@ export function TransactionDetailModal({
               </div>
             </div>
 
+            {/* ── SEÇÃO 2.5: Integração com Investimentos ───────────────────── */}
+            {clinicId && (
+              <div className="rounded-lg border bg-card p-4">
+                <InvestmentLinkSection
+                  transaction={transaction}
+                  clinicId={clinicId}
+                />
+              </div>
+            )}
+
             {/* ── SEÇÃO 3: Sugestões Inteligentes ───────────────────────────── */}
             <div className="rounded-lg border bg-card p-4">
               <SectionHeader
@@ -668,16 +678,6 @@ export function TransactionDetailModal({
                 </div>
               </div>
             </div>
-
-            {/* ── SEÇÃO 7.5: Integração com Investimentos ───────────────────── */}
-            {clinicId && (
-              <div className="rounded-lg border bg-card p-4">
-                <InvestmentLinkSection
-                  transaction={transaction}
-                  clinicId={clinicId}
-                />
-              </div>
-            )}
 
             {/* ── SEÇÃO 8: Ações Rápidas ─────────────────────────────────────── */}
             <div className="rounded-lg border bg-card p-4">
