@@ -141,8 +141,8 @@ export default function TeleconsultaHub() {
                 {sc.label}
               </span>
               <div className="flex gap-1">
-                {hasTranscript && <Mic className="h-3.5 w-3.5 text-primary" title="Transcrição disponível" />}
-                {hasSummary && <FileText className="h-3.5 w-3.5 text-green-600" title="Resumo clínico" />}
+                {hasTranscript && <span title="Transcrição disponível"><Mic className="h-3.5 w-3.5 text-primary" /></span>}
+                {hasSummary && <span title="Resumo clínico"><FileText className="h-3.5 w-3.5 text-green-600" /></span>}
               </div>
             </div>
           </div>
