@@ -61,6 +61,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         <PaymentDetailModal
           payment={selectedPayment}
           pacienteNome={pacienteNome}
+          pacienteCpf={pacienteCpf}
           onClose={() => setSelectedPayment(null)}
         />
       )}
