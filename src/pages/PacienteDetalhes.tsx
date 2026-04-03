@@ -21,13 +21,14 @@ import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
+import { PaymentHistoryTab } from "@/components/patient/PaymentHistoryTab";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const PacienteDetalhes = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { isAdmin, isProfissional } = useAuth();
+    const { isAdmin, isProfissional, isGestor, isSecretario, isMaster } = useAuth();
     const initialTab = searchParams.get("tab") ?? "prontuario";
     const [activeTab, setActiveTab] = useState(initialTab);
     const [evolutionOpen, setEvolutionOpen] = useState(false);
@@ -153,7 +154,7 @@ const PacienteDetalhes = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-8">
+                <TabsList className="grid w-full grid-cols-5 mb-8">
                     <TabsTrigger value="prontuario" className="gap-2">
                         <Stethoscope className="h-4 w-4" />
                         <span className="hidden sm:inline">Prontuário</span>
@@ -166,6 +167,12 @@ const PacienteDetalhes = () => {
                         <Calendar className="h-4 w-4" />
                         <span className="hidden sm:inline">Agenda</span>
                     </TabsTrigger>
+                    {(isAdmin || isGestor || isSecretario || isMaster) && (
+                        <TabsTrigger value="pagamentos" className="gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            <span className="hidden sm:inline">Pagamentos</span>
+                        </TabsTrigger>
+                    )}
                     <TabsTrigger value="cadastro" className="gap-2">
                         <User className="h-4 w-4" />
                         <span className="hidden sm:inline">Cadastro</span>
@@ -327,6 +334,14 @@ const PacienteDetalhes = () => {
                 <TabsContent value="atendimentos" className="space-y-4">
                     <PatientScheduleTab pacienteId={id!} pacienteTelefone={paciente?.telefone} pacienteNome={paciente?.nome} />
                 </TabsContent>
+
+                {(isAdmin || isGestor || isSecretario || isMaster) && (
+                    <TabsContent value="pagamentos" className="space-y-4">
+                        {activeTab === "pagamentos" && (
+                            <PaymentHistoryTab pacienteId={id!} pacienteNome={paciente.nome} />
+                        )}
+                    </TabsContent>
+                )}
 
                 <TabsContent value="cadastro">
                     <Card>
