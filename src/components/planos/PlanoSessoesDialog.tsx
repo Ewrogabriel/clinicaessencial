@@ -489,6 +489,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                     <TableRow>
                       <TableHead>#</TableHead>
                       <TableHead>Data/Hora</TableHead>
+                      <TableHead>Profissional</TableHead>
                       <TableHead>Duração</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -505,6 +506,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                           <TableCell className="text-sm">
                             {format(new Date(s.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </TableCell>
+                          <TableCell className="text-sm">{(s.profiles as any)?.nome ?? "—"}</TableCell>
                           <TableCell className="text-sm">{s.duracao_minutos} min</TableCell>
                           <TableCell><Badge variant={sb.variant}>{sb.label}</Badge></TableCell>
                         </TableRow>
