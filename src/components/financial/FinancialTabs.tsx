@@ -96,11 +96,8 @@ export function FinancialTabs({
         </Suspense>
       </TabsContent>
 
-      <TabsContent value="comissoes">
-        <Suspense fallback={<LazyLoadFallback />}>
-          <Comissoes />
-        </Suspense>
-      </TabsContent>
+
+
 
       <TabsContent value="notas-fiscais">
         <Suspense fallback={<LazyLoadFallback />}>
