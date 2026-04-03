@@ -97,9 +97,10 @@ export const adminGroups: MenuGroup[] = [
     labelKey: "group.finance",
     defaultCollapsed: false,
     items: [
-      { labelKey: "nav.finance",       url: "/financeiro",       icon: DollarSign },
-      { labelKey: "nav.commissions",   url: "/comissoes",        icon: Calculator },
-      { labelKey: "nav.investments",   url: "/investimentos",    icon: Activity },
+      { labelKey: "nav.finance",         url: "/financeiro",              icon: DollarSign },
+      { labelKey: "nav.reconciliation", url: "/financeiro/conciliacao",  icon: Receipt },
+      { labelKey: "nav.commissions",    url: "/comissoes",               icon: Calculator },
+      { labelKey: "nav.investments",    url: "/investimentos",           icon: Activity },
     ],
   },
   {

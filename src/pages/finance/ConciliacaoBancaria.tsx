@@ -630,27 +630,29 @@ export default function ConciliacaoBancaria() {
                       </div>
 
                       {/* Ações */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         {/* Editar */}
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => handleOpenEditDialog(tx)}
                           title="Editar transação"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          className="h-8 gap-1.5 px-2.5 text-xs border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                         >
                           <Pencil className="h-3.5 w-3.5" />
+                          Editar
                         </Button>
 
                         {/* Excluir */}
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => handleOpenDeleteConfirm(tx)}
                           title="Excluir transação"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                          className="h-8 gap-1.5 px-2.5 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
+                          Excluir
                         </Button>
 
                         {isPending && (
@@ -659,19 +661,20 @@ export default function ConciliacaoBancaria() {
                               size="sm"
                               variant="default"
                               onClick={() => handleOpenMatchDialog(tx)}
-                              className="gap-1.5 ml-1"
+                              className="h-8 gap-1.5 px-3 text-xs font-semibold shadow-sm"
                             >
-                              <Check className="h-3.5 w-3.5" />
+                              <Link className="h-3.5 w-3.5" />
                               Conciliar
                             </Button>
                             <Button
                               size="sm"
-                              variant="ghost"
+                              variant="outline"
                               onClick={() => handleOpenRejectDialog(tx)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                              className="h-8 gap-1.5 px-2.5 text-xs border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
                               title="Rejeitar"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-3.5 w-3.5" />
+                              Rejeitar
                             </Button>
                           </>
                         )}
