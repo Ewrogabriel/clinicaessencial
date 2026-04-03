@@ -16,7 +16,7 @@ const IntegrationStatus = lazy(() =>
   }))
 );
 const Despesas = lazy(() => import("@/pages/Despesas"));
-const Comissoes = lazy(() => import("@/pages/Comissoes"));
+
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 
 interface FinancialTabsProps {
