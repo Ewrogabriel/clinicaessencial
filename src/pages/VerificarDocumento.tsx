@@ -67,9 +67,8 @@ const VerificarDocumento = () => {
       const { data: prof } = await supabase
         .from("profiles")
         .select("nome, registro_profissional, conselho_profissional, registro_conselho")
-        .eq("id", data.profissional_id)
+        .eq("user_id", data.profissional_id)
         .maybeSingle();
-
 
       setProfissional(prof);
     } catch {
@@ -105,9 +104,8 @@ const VerificarDocumento = () => {
       const { data: prof } = await supabase
         .from("profiles")
         .select("nome, registro_profissional, conselho_profissional, registro_conselho")
-        .eq("id", found.profissional_id)
+        .eq("user_id", found.profissional_id)
         .maybeSingle();
-
 
       setProfissional(prof);
     } catch {
