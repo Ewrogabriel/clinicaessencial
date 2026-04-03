@@ -21,11 +21,11 @@ import type {
  */
 export async function getConfig(clinicId: string): Promise<WhatsAppConfig | null> {
   try {
-    const { data, error } = await (supabase
+    const { data, error } = await (supabase as any)
       .from("whatsapp_config")
       .select("id, clinic_id, api_token, phone_number_id, is_active, created_at, updated_at")
       .eq("clinic_id", clinicId)
-      .maybeSingle() as any);
+      .maybeSingle();
 
     if (error) throw error;
     return data as WhatsAppConfig | null;
