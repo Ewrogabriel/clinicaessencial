@@ -30,6 +30,7 @@ interface PaymentDetailModalProps {
 
 export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", onClose }: PaymentDetailModalProps) {
   const [sendingReceipt, setSendingReceipt] = useStateReact(false);
+  const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
   const statusInfo = labelStatus[payment.status] ?? {
     label: payment.status,
