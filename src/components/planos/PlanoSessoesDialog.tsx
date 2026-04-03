@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarPlus, Check, Clock, Eye, Calendar as CalendarIcon, Repeat, Video, Home } from "lucide-react";
+import { TimeSlotCards, type TimeSlot } from "@/components/ui/time-slot-cards";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Button } from "@/components/ui/button";
