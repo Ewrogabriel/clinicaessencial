@@ -84,10 +84,10 @@ export class AutomationEngine {
   async processSessionConfirmations(): Promise<number> {
     let sent = 0;
 
-    const { data: clinics, error: clinicsError } = await (supabase
+    const { data: clinics, error: clinicsError } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .select("clinic_id, session_confirmation_enabled, session_confirmation_hours_before")
-      .eq("session_confirmation_enabled", true) as any);
+      .eq("session_confirmation_enabled", true);
 
     if (clinicsError || !clinics) {
       handleError(clinicsError, "[AutomationEngine] Erro ao buscar clínicas para confirmação de sessão.");
