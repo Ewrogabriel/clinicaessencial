@@ -1,5 +1,5 @@
 /**
- * Centralised date-formatting utilities.
+ * Centralized date-formatting utilities.
  *
  * All formatters use `date-fns` with the `pt-BR` locale and `parseISO` to
  * avoid timezone shifts when working with YYYY-MM-DD strings (see memory:

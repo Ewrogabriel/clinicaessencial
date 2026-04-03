@@ -1,5 +1,5 @@
 /**
- * Centralised currency-formatting utilities for BRL (Brazilian Real).
+ * Centralized currency-formatting utilities for BRL (Brazilian Real).
  *
  * Usage:
  *   import { formatBRL, parseCurrency, getCurrencySymbol }
