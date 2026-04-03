@@ -493,7 +493,7 @@ const ClinicSettings = () => {
 
 
         <TabsContent value="feriados">
-          <HolidaysTab clinicId={settings?.id || ""} />
+          <HolidaysTab clinicId={activeClinicId || ""} />
         </TabsContent>
 
         <TabsContent value="backup">
