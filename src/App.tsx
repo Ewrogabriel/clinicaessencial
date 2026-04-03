@@ -101,7 +101,6 @@ const App = () => (
         <I18nProvider>
           <AuthProvider>
             <ClinicProvider>
-              <Toaster />
               <Sonner />
               <BrowserRouter>
                 <ErrorBoundary>
