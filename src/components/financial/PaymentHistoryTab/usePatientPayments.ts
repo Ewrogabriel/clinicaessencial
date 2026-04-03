@@ -30,7 +30,7 @@ export function usePatientPayments(pacienteId: string) {
       const { data: pgtos } = await supabase
         .from("pagamentos")
         .select(
-          "id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, bank_transaction_id, origem_tipo, agendamento_id, profissional_id, matricula_id, plano_id"
+          "id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, origem_tipo, agendamento_id, profissional_id, matricula_id, plano_id"
         )
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
