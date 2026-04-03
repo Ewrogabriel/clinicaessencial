@@ -127,7 +127,7 @@ export function useInvestmentSuggestions(
     queryKey: ["investment-search", clinicId, query],
     queryFn: () =>
       investmentReconciliationService.searchInvestments(clinicId ?? "", query),
-    enabled: !!clinicId && query.length > 0,
+    enabled: !!clinicId && query.length >= 2,
     staleTime: 30_000,
   });
 }

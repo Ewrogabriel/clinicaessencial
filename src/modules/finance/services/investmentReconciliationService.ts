@@ -124,13 +124,21 @@ export const investmentReconciliationService = {
 
     // If it's a resgate, update the investment status
     if (movementType === "resgate") {
+      // Fetch valor_aplicado to calculate actual yield (rendimento = resgate - aplicado)
+      const { data: inv } = await (supabase as any)
+        .from("investments")
+        .select("valor_aplicado")
+        .eq("id", investimentoId)
+        .single();
+      const valorResgatado = Math.abs(tx.valor);
+      const rendimentoTotal = inv ? valorResgatado - Number(inv.valor_aplicado) : 0;
       const { error: updateError } = await (supabase as any)
         .from("investments")
         .update({
           status: "resgatado",
-          valor_resgatado: Math.abs(tx.valor),
+          valor_resgatado: valorResgatado,
           data_resgate: tx.data_transacao,
-          rendimento_total: Math.abs(tx.valor),
+          rendimento_total: rendimentoTotal,
         })
         .eq("id", investimentoId);
       if (updateError) throw updateError;
