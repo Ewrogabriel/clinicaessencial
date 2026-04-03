@@ -311,10 +311,27 @@ export default function Teleconsulta() {
   useEffect(() => { transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [transcriptLines, interimText]);
 
   // ─── Speech Recognition ───
-  const startTranscription = () => {
+  const micPermissionDeniedRef = useRef(false);
+
+  const startTranscription = async () => {
+    if (micPermissionDeniedRef.current) {
+      toast.error("Permissão de microfone negada. Habilite nas configurações do navegador e recarregue a página.");
+      return;
+    }
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error("Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.");
+      return;
+    }
+
+    // Check microphone permission first
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+    } catch {
+      micPermissionDeniedRef.current = true;
+      toast.error("Permissão de microfone negada. Habilite nas configurações do navegador.");
       return;
     }
 
@@ -345,15 +362,17 @@ export default function Teleconsulta() {
     recognition.onerror = (event: any) => {
       if (event.error === "no-speech") return;
       console.error("Speech recognition error:", event.error);
-      if (event.error === "not-allowed") {
-        toast.error("Permissão de microfone negada para transcrição.");
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        micPermissionDeniedRef.current = true;
+        recognitionRef.current = null;
         setIsTranscribing(false);
+        toast.error("Permissão de microfone negada para transcrição.");
+        return;
       }
     };
 
     recognition.onend = () => {
-      // Auto-restart if still transcribing
-      if (recognitionRef.current && isTranscribing) {
+      if (recognitionRef.current && !micPermissionDeniedRef.current) {
         try { recognition.start(); } catch { /* ignore */ }
       }
     };
