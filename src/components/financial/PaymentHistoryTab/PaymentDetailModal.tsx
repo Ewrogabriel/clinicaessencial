@@ -21,10 +21,11 @@ import type { PaymentEntry } from "./types";
 
 interface PaymentDetailModalProps {
   payment: PaymentEntry;
+  pacienteNome: string;
   onClose: () => void;
 }
 
-export function PaymentDetailModal({ payment, onClose }: PaymentDetailModalProps) {
+export function PaymentDetailModal({ payment, pacienteNome, onClose }: PaymentDetailModalProps) {
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
   const statusInfo = labelStatus[payment.status] ?? {
