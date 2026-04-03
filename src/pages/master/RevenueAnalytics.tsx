@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatBRL } from "@/modules/shared/utils/currencyFormatters";
 import { TrendingUp, DollarSign, Users, AlertTriangle, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -68,8 +69,7 @@ export default function RevenueAnalytics() {
   const [period, setPeriod] = useState<Period>("quarter");
   const { data, isLoading } = useRevenueMetrics(period);
 
-  const formatCurrency = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const formatCurrency = (v: number) => formatBRL(v);
 
   return (
     <div className="space-y-6">

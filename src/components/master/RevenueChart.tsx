@@ -26,9 +26,8 @@ function formatMonth(month: string): string {
   return date.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
 }
 
-function formatCurrency(value: number): string {
-  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
+// Use centralized currency formatter
+import { formatBRLCompact } from "@/modules/shared/utils/currencyFormatters";
 
 export function RevenueChart({ data }: RevenueChartProps) {
   if (data.length === 0) {
@@ -63,7 +62,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
         />
         <Tooltip
           formatter={(value: number, name: string) => {
-            if (name === "Receita") return [formatCurrency(value), name];
+            if (name === "Receita") return [formatBRLCompact(value), name];
             return [value, name];
           }}
         />
