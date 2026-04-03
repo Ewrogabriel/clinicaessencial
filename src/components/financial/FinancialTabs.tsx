@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, BarChart3, Receipt, Users2, DollarSign } from "lucide-react";
+import { Zap, BarChart3, Receipt, DollarSign } from "lucide-react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
