@@ -24,6 +24,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
     staleTime: 1000 * 60 * 30,
   });
   const pacienteCpf = pacienteData?.cpf || "";
+  const pacienteWhatsapp = pacienteData?.whatsapp || pacienteData?.telefone || "";
 
   const { data: payments = [], isLoading } = usePatientPayments(pacienteId);
   const { filters, setFilters, filtered, hasActiveFilters, clearFilters } =
