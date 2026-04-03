@@ -31,6 +31,12 @@ interface ProfSummary {
   atendimentosDetail: any[];
 }
 
+/** Parse "YYYY-MM-01" as local date to avoid UTC timezone shift */
+function parseMesRefDate(mesRef: string): Date {
+  const [year, month] = mesRef.split("-").map(Number);
+  return new Date(year, month - 1, 1);
+}
+
 export function CommissionExtract() {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
   const canManage = isAdmin || isGestor;
