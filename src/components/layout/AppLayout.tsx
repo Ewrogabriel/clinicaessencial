@@ -6,7 +6,6 @@ import { ThemeToggle } from "./ThemeToggle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
-import { NotificationCenter } from "@/components/financial/NotificationCenter";
 
 export function AppLayout() {
   const { isPatient } = useAuth();
