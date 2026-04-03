@@ -3,6 +3,9 @@
  * Automatically detects and classifies investment transactions
  */
 
+// Minimum value to consider a transaction as a potential investment
+const INVESTMENT_VALUE_THRESHOLD = 1000;
+
 // Keywords that suggest a transaction is an investment application (DEBIT)
 const DEBIT_KEYWORDS = [
   "aplicação", "aplicacao", "investimento", "cdb", "tesouro", "lci", "lca",
@@ -61,8 +64,8 @@ export function detectInvestment(
   const creditMatch = CREDIT_KEYWORDS.filter((kw) => lower.includes(kw));
   const hasKeyword = debitMatch.length > 0 || creditMatch.length > 0;
 
-  // Value heuristic: > R$1.000 could be an investment
-  const isHighValue = absValue >= 1000;
+  // Value heuristic: > INVESTMENT_VALUE_THRESHOLD could be an investment
+  const isHighValue = absValue >= INVESTMENT_VALUE_THRESHOLD;
 
   // Determine if investment
   const isLikelyInvestment = hasKeyword || isHighValue;
