@@ -242,7 +242,8 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                         `Qualquer dúvida, estamos à disposição! 🙏`;
                       const phoneNumber = pacienteTelefone.replace(/\D/g, "");
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`, "_blank");
+                      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensagem)}`;
+                      window.location.href = whatsappUrl;
                       toast.success("Link do recibo gerado e enviado!");
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar recibo.");
