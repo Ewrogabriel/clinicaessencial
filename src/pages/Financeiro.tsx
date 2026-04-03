@@ -1,3 +1,4 @@
+import { dateFormats } from "@/modules/shared/utils/dateFormatters";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
@@ -321,10 +322,7 @@ const Financeiro = () => {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
-  const formatDate = (d: string | null) => {
-    if (!d) return "—";
-    try { return format(new Date(d), "dd/MM/yyyy"); } catch { return "—"; }
-  };
+  const formatDate = dateFormats.date;
 
   // ── Extracted tab content as variables ──────────────────────────────────────
   const pagamentosTabContent = (

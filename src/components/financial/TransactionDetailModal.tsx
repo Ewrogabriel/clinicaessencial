@@ -1,3 +1,4 @@
+import { dateFormats } from "@/modules/shared/utils/dateFormatters";
 import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -105,29 +106,8 @@ function getStatusConfig(status?: string | null) {
   }
 }
 
-function formatDate(dateStr: string | null | undefined, withTime = false) {
-  if (!dateStr) return "—";
-  try {
-    const d = new Date(dateStr);
-    if (withTime) {
-      return d.toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-    }
-    return d.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
-}
+const formatDate = (dateStr: string | null | undefined, withTime = false) =>
+  withTime ? dateFormats.full(dateStr) : dateFormats.date(dateStr);
 
 function confidenceStars(confidence: number) {
   const stars = Math.round(confidence * 5);

@@ -1,3 +1,4 @@
+import { dateFormats } from "@/modules/shared/utils/dateFormatters";
 import { useEffect, useState } from "react";
 import { Clock, CheckCircle, XCircle, Edit, Scissors, RotateCcw } from "lucide-react";
 import { auditService, AuditLogEntry } from "@/modules/finance/services/auditService";
@@ -35,15 +36,7 @@ const ACTION_LABELS: Record<string, string> = {
   config_change: "Config. alterada",
 };
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const formatDate = dateFormats.full;
 
 export function AuditTrail({ clinicId, resourceId, limit = 20 }: AuditTrailProps) {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);

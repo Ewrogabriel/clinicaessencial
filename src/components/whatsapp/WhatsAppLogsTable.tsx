@@ -1,3 +1,4 @@
+import { dateFormats } from "@/modules/shared/utils/dateFormatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,15 +40,7 @@ const STATUS_CONFIG: Record<
   failed: { label: "Falha", variant: "destructive" },
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const formatDate = dateFormats.full;
 
 function truncate(text: string | null | undefined, max = 60) {
   if (!text) return "—";
