@@ -25,10 +25,11 @@ interface PaymentDetailModalProps {
   payment: PaymentEntry;
   pacienteNome: string;
   pacienteCpf?: string;
+  pacienteTelefone?: string;
   onClose: () => void;
 }
 
-export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", onClose }: PaymentDetailModalProps) {
+export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pacienteTelefone = "", onClose }: PaymentDetailModalProps) {
   const [sendingReceipt, setSendingReceipt] = useStateReact(false);
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
@@ -232,7 +233,9 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", on
                       const text = encodeURIComponent(
                         `Olá! Segue o recibo nº ${numero} no valor de R$ ${Math.abs(payment.valor).toFixed(2)}.\n\nBaixe aqui: ${publicUrl}`
                       );
-                      window.open(`https://wa.me/?text=${text}`, "_blank");
+                      const phoneNumber = pacienteTelefone.replace(/\D/g, "");
+                      const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
+                      window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
                       toast.success("Link do recibo gerado e enviado!");
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar recibo.");

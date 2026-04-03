@@ -18,12 +18,13 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
   const { data: pacienteData } = useQuery({
     queryKey: ["paciente-cpf", pacienteId],
     queryFn: async () => {
-      const { data } = await supabase.from("pacientes").select("cpf").eq("id", pacienteId).single();
+      const { data } = await supabase.from("pacientes").select("cpf, telefone").eq("id", pacienteId).single();
       return data;
     },
     staleTime: 1000 * 60 * 30,
   });
   const pacienteCpf = pacienteData?.cpf || "";
+  const pacienteTelefone = pacienteData?.telefone || "";
 
   const { data: payments = [], isLoading } = usePatientPayments(pacienteId);
   const { filters, setFilters, filtered, hasActiveFilters, clearFilters } =
@@ -62,6 +63,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
           payment={selectedPayment}
           pacienteNome={pacienteNome}
           pacienteCpf={pacienteCpf}
+          pacienteTelefone={pacienteTelefone}
           onClose={() => setSelectedPayment(null)}
         />
       )}
