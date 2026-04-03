@@ -15,8 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface PatientScheduleTabProps {
   pacienteId: string;
   pacienteTelefone?: string;
@@ -80,7 +79,7 @@ export const PatientScheduleTab = ({ pacienteId, pacienteTelefone, pacienteNome 
   const handleAction = async () => {
     if (!actionDialog) return;
     if (!justificativa.trim()) {
-      toast({ title: "Informe a justificativa", variant: "destructive" });
+      toast.error("Informe a justificativa");
       return;
     }
     setSaving(true);
@@ -96,12 +95,12 @@ export const PatientScheduleTab = ({ pacienteId, pacienteTelefone, pacienteNome 
         .eq("id", actionDialog.agendamento.id) as any);
       if (error) throw error;
 
-      toast({ title: actionDialog.action === "cancelar" ? "Agendamento cancelado" : "Agendamento remarcado" });
+      toast.success(actionDialog.action === "cancelar" ? "Agendamento cancelado" : "Agendamento remarcado");
       queryClient.invalidateQueries({ queryKey: ["agendamentos-paciente", pacienteId] });
       setActionDialog(null);
       setJustificativa("");
     } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast.error("Erro", { description: e.message });
     } finally {
       setSaving(false);
     }

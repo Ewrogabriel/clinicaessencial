@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import {
   getClinics,
   getClinicStats,
   getMasterUsers,
 } from "@/modules/master/services/masterService";
+import { toast } from "sonner";
 
 // ─── useClinics ─────────────────────────────────────────────
 
@@ -39,11 +39,11 @@ export function useActivateClinic() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Clínica ativada com sucesso ✅" });
+      toast.success("Clínica ativada com sucesso ✅");
       queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
     },
     onError: (e: Error) =>
-      toast({ title: "Erro ao ativar clínica", description: e.message, variant: "destructive" }),
+      toast.error("Erro ao ativar clínica", { description: e.message }),
   });
 }
 
@@ -60,11 +60,11 @@ export function useDeactivateClinic() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Clínica desativada" });
+      toast.success("Clínica desativada");
       queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
     },
     onError: (e: Error) =>
-      toast({ title: "Erro ao desativar clínica", description: e.message, variant: "destructive" }),
+      toast.error("Erro ao desativar clínica", { description: e.message }),
   });
 }
 

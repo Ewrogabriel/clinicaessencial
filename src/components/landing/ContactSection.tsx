@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Activity, Send, Mail, Instagram, CheckCircle2, Loader2 } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ContactSectionProps {
   content?: {
@@ -33,7 +33,7 @@ export const ContactSection = ({ content }: ContactSectionProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome || !formData.email) {
-      toast({ title: "Preencha nome e email", variant: "destructive" });
+      toast.error("Preencha nome e email");
       return;
     }
     setLoading(true);
@@ -47,14 +47,14 @@ export const ContactSection = ({ content }: ContactSectionProps) => {
       });
       if (error) throw error;
       setSent(true);
-      toast({ title: "Mensagem enviada!", description: "Entraremos em contato em breve." });
+      toast.success("Mensagem enviada!", { description: "Entraremos em contato em breve." });
     } catch (err: any) {
       console.error("Contact form error:", err);
       const subject = encodeURIComponent(`Contato - ${formData.nome}`);
       const body = encodeURIComponent(`Nome: ${formData.nome}\nEmail: ${formData.email}\nTelefone: ${formData.telefone}\n\n${formData.mensagem}`);
       window.open(`mailto:${email}?subject=${subject}&body=${body}`);
       setSent(true);
-      toast({ title: "Redirecionado para email", description: "Tente novamente ou envie por email." });
+      toast.success("Redirecionado para email", { description: "Tente novamente ou envie por email." });
     } finally {
       setLoading(false);
     }

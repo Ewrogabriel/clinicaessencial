@@ -34,7 +34,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { PlanLimitBanner, usePlanLimitCheck } from "@/components/planos/PlanLimitBanner";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { patientService } from "@/modules/patients/services/patientService";
 import {
@@ -47,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 type Paciente = Tables<"pacientes">;
 
@@ -149,10 +149,10 @@ const Pacientes = () => {
   const handleCopyInvite = useCallback((p: Paciente) => {
     const codes = JSON.parse(localStorage.getItem('paciente_codes') || '{}');
     const accessCode = codes[p.id] || (p as any).codigo_acesso;
-    if (!accessCode) { toast({ title: "Código não disponível", variant: "destructive" }); return; }
+    if (!accessCode) { toast.error("Código não disponível"); return; }
     const invite = `Olá ${p.nome.split(' ')[0]}! 👋\n\nCódigo: ${accessCode}\nLink: ${window.location.origin}/paciente-access`;
     navigator.clipboard.writeText(invite);
-    toast({ title: "Convite copiado!" });
+    toast.success("Convite copiado!");
   }, []);
   const handleWhatsApp = useCallback((phone: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
@@ -167,13 +167,13 @@ const Pacientes = () => {
   }, [deleteId, updateStatus]);
 
   const syncNibo = async () => {
-    toast({ title: "Sincronizando...", description: "Buscando pacientes no Nibo" });
+    toast.success("Sincronizando...", { description: "Buscando pacientes no Nibo" });
     try {
       await patientService.syncNibo(activeClinicId);
-      toast({ title: "Sincronizado!", description: "Lista de pacientes atualizada" });
+      toast.success("Sincronizado!", { description: "Lista de pacientes atualizada" });
       queryClient.invalidateQueries({ queryKey: ["pacientes"] });
     } catch (error: any) {
-      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+      toast.error("Erro na sincronização", { description: error.message });
     }
   };
 

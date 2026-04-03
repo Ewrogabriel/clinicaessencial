@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Activity, LogIn } from "lucide-react";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useI18n } from "@/modules/shared/hooks/useI18n";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, resetPassword, user } = useAuth();
@@ -35,11 +34,7 @@ const Login = () => {
       if (cleanCpf.length === 11) {
         authEmail = `${cleanCpf}@paciente.essencial.com`;
       } else {
-        toast({
-          title: t("common.error"),
-          description: "CPF deve conter 11 dígitos ou informe um e-mail válido.",
-          variant: "destructive",
-        });
+        toast.error(t("common.error"), { description: "CPF deve conter 11 dígitos ou informe um e-mail válido." });
         setLoading(false);
         return;
       }
@@ -54,11 +49,7 @@ const Login = () => {
         rawMsg === "Invalid login credentials"
           ? "E-mail ou senha incorretos"
           : rawMsg || "Erro desconhecido";
-      toast({
-        title: t("common.error"),
-        description,
-        variant: "destructive",
-      });
+      toast.error(t("common.error"));
     }
 
     setLoading(false);
@@ -66,11 +57,7 @@ const Login = () => {
 
   const handleResetPassword = async () => {
     if (!loginEmail) {
-      toast({
-        title: t("common.error"),
-        description: "Por favor, insira seu e-mail para redefinir a senha.",
-        variant: "destructive",
-      });
+      toast.error(t("common.error"), { description: "Por favor, insira seu e-mail para redefinir a senha." });
       return;
     }
 
@@ -79,18 +66,10 @@ const Login = () => {
     if (!resetEmail.includes("@")) {
       const cleanCpf = resetEmail.replace(/\D/g, "");
       if (cleanCpf.length === 11) {
-        toast({
-          title: t("common.error"),
-          description: "Para redefinir a senha da sua conta via CPF, entre em contato com a recepção da clínica.",
-          variant: "destructive",
-        });
+        toast.error(t("common.error"), { description: "Para redefinir a senha da sua conta via CPF, entre em contato com a recepção da clínica." });
         return;
       } else {
-        toast({
-          title: t("common.error"),
-          description: "CPF deve conter 11 dígitos ou informe um e-mail válido.",
-          variant: "destructive",
-        });
+        toast.error(t("common.error"), { description: "CPF deve conter 11 dígitos ou informe um e-mail válido." });
         return;
       }
     }
@@ -98,16 +77,9 @@ const Login = () => {
     setLoading(true);
     try {
       await resetPassword(resetEmail);
-      toast({
-        title: t("common.success"),
-        description: "Verifique sua caixa de entrada para redefinir sua senha.",
-      });
+      toast.success(t("common.success"), { description: "Verifique sua caixa de entrada para redefinir sua senha." });
     } catch (error: any) {
-      toast({
-        title: t("common.error"),
-        description: error?.message || "Erro ao recuperar senha",
-        variant: "destructive",
-      });
+      toast.error(t("common.error"), { description: error?.message || "Erro ao recuperar senha" });
     }
     setLoading(false);
   };

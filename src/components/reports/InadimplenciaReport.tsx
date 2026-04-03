@@ -16,8 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Clock, DollarSign, Send, Filter } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type AgingBucket = "0-30" | "31-60" | "61-90" | "90+";
 
 interface DelinquentPayment {
@@ -128,13 +127,13 @@ export function InadimplenciaReport() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inadimplencia"] });
       setSelectedIds(new Set());
-      toast({ title: `${selectedIds.size} pagamento(s) marcado(s) como pago!` });
+      toast.success(`${selectedIds.size} pagamento(s) marcado(s) como pago!`);
     },
   });
 
   const sendReminder = (payment: DelinquentPayment) => {
     if (!payment.paciente_telefone) {
-      toast({ title: "Paciente sem telefone", variant: "destructive" });
+      toast.error("Paciente sem telefone");
       return;
     }
     const phone = payment.paciente_telefone.replace(/\D/g, "");
@@ -148,7 +147,7 @@ export function InadimplenciaReport() {
   const sendBulkReminder = () => {
     const selected = filtered.filter((p) => selectedIds.has(p.id));
     selected.forEach((p) => sendReminder(p));
-    toast({ title: `Cobrança enviada para ${selected.length} paciente(s)` });
+    toast.success(`Cobrança enviada para ${selected.length} paciente(s)`);
   };
 
   return (

@@ -17,9 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
+import { toast } from "sonner";
 
 interface RefundDialogProps {
   open: boolean;
@@ -85,13 +85,13 @@ export function RefundDialog({
 
       if (newTxErr) throw newTxErr;
 
-      toast({ title: "✓ Reembolso registrado com sucesso" });
+      toast.success("✓ Reembolso registrado com sucesso");
       onSaved();
       onClose();
       setReason("cancelamento");
       setNotes("");
     } catch {
-      toast({ title: "Erro ao registrar reembolso", variant: "destructive" });
+      toast.error("Erro ao registrar reembolso");
     } finally {
       setIsSaving(false);
     }

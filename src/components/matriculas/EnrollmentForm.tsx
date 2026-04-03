@@ -15,9 +15,9 @@ import { getMonthlyAvailability } from "@/lib/availabilityCheck";
 import { cn } from "@/lib/utils";
 import { isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useWeekdaySlots } from "@/modules/appointments/hooks/useAppointments";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 export type WeeklyScheduleEntry = {
     weekday: number;
@@ -155,11 +155,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
         );
 
         if (existingOnWeekday) {
-            toast({
-                title: "⚠️ Conflito de Horário",
-                description: "Este profissional já possui um agendamento neste dia da semana.",
-                variant: "destructive"
-            });
+            toast.error("⚠️ Conflito de Horário", { description: "Este profissional já possui um agendamento neste dia da semana." });
             return;
         }
 
@@ -173,11 +169,7 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
         });
 
         if (timeConflict) {
-            toast({
-                title: "⚠️ Conflito de Horário",
-                description: "Existe conflito de horário com outra sessão.",
-                variant: "destructive"
-            });
+            toast.error("⚠️ Conflito de Horário", { description: "Existe conflito de horário com outra sessão." });
             return;
         }
 

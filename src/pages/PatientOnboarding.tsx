@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Activity, CheckCircle, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const PatientOnboarding = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -32,13 +31,13 @@ const PatientOnboarding = () => {
         .single();
         
       if (error || !data) {
-        toast({ title: "Convite inválido ou expirado.", variant: "destructive" });
+        toast.error("Convite inválido ou expirado.");
         navigate("/login");
         return;
       }
       
       if ((data as any).user_id) {
-        toast({ title: "Cadastro já finalizado", description: "Você já possui acesso. Faça o login." });
+        toast.success("Cadastro já finalizado", { description: "Você já possui acesso. Faça o login." });
         navigate("/login");
         return;
       }
@@ -73,17 +72,17 @@ const PatientOnboarding = () => {
     const cleanCpf = cpf.replace(/\D/g, "");
     
     if (cleanCpf.length !== 11) {
-      toast({ title: "CPF Inválido", description: "O CPF deve ter 11 dígitos.", variant: "destructive" });
+      toast.error("CPF Inválido", { description: "O CPF deve ter 11 dígitos." });
       return;
     }
     
     if (senha.length < 6) {
-      toast({ title: "Senha muito curta", description: "A senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+      toast.error("Senha muito curta", { description: "A senha deve ter pelo menos 6 caracteres." });
       return;
     }
     
     if (senha !== confirmSenha) {
-      toast({ title: "Senhas diferentes", description: "A confirmação de senha não confere.", variant: "destructive" });
+      toast.error("Senhas diferentes", { description: "A confirmação de senha não confere." });
       return;
     }
 
@@ -128,20 +127,13 @@ const PatientOnboarding = () => {
           }
       }
 
-      toast({
-        title: "Conta criada com sucesso! 🎉",
-        description: "Você já pode acessar o seu portal.",
-      });
+      toast.success("Conta criada com sucesso! 🎉", { description: "Você já pode acessar o seu portal." });
       
       // Auto-login or redirect
       navigate("/dashboard");
       
     } catch (error: any) {
-      toast({
-        title: "Erro ao criar conta",
-        description: error.message || "Tente novamente mais tarde.",
-        variant: "destructive"
-      });
+      toast.error("Erro ao criar conta", { description: error.message || "Tente novamente mais tarde." });
     } finally {
       setSaving(false);
     }

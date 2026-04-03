@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2, Save, CheckCircle2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getConfig,
@@ -16,6 +15,7 @@ import { WhatsAppActivation } from "./WhatsAppActivation";
 import { SessionConfirmationSettings } from "./SessionConfirmationSettings";
 import { MonthlyReminderSettings } from "./MonthlyReminderSettings";
 import { OverdueAlertSettings } from "./OverdueAlertSettings";
+import { toast } from "sonner";
 
 interface WhatsAppConfigPanelProps {
   clinicId: string;
@@ -126,10 +126,10 @@ export function WhatsAppConfigPanel({ clinicId }: WhatsAppConfigPanelProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-config", clinicId] });
       queryClient.invalidateQueries({ queryKey: ["whatsapp-automation", clinicId] });
-      toast({ title: "Configurações salvas!", description: "WhatsApp Business atualizado com sucesso." });
+      toast.success("Configurações salvas!", { description: "WhatsApp Business atualizado com sucesso." });
     },
     onError: (e: Error) => {
-      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: e.message });
     },
   });
 

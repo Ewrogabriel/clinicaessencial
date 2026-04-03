@@ -18,8 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { reportingService } from "@/modules/finance/services/reportingService";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface ExportModalProps {
   open: boolean;
   clinicId: string;
@@ -60,12 +59,9 @@ export function ExportModal({ open, clinicId, onClose }: ExportModalProps) {
         );
       }
 
-      toast({
-        title: "✓ Exportação concluída",
-        description: `${report.rows.length} transações exportadas`,
-      });
+      toast.success("✓ Exportação concluída", { description: `${report.rows.length} transações exportadas` });
     } catch {
-      toast({ title: "Erro ao exportar", variant: "destructive" });
+      toast.error("Erro ao exportar");
     } finally {
       setIsExporting(false);
     }

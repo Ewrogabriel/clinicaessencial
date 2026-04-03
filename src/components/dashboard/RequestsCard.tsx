@@ -7,8 +7,8 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export function RequestsCard() {
   const { user } = useAuth();
@@ -79,7 +79,7 @@ export function RequestsCard() {
         });
       }
     },
-    onSuccess: () => { toast({ title: "Aprovado!" }); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
+    onSuccess: () => { toast.success("Aprovado!"); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
   });
 
   const rejectAgendamento = useMutation({
@@ -87,7 +87,7 @@ export function RequestsCard() {
       const { error } = await (supabase.from("agendamentos") as any).update({ status: "cancelado" }).eq("id", item.id);
       if (error) throw error;
     },
-    onSuccess: () => { toast({ title: "Rejeitado." }); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
+    onSuccess: () => { toast.success("Rejeitado."); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
   });
 
   const typeIcon: Record<string, any> = {

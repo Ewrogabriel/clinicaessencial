@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Plus, Edit2, Trash2, QrCode } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const FormasPagamento = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pixDialogOpen, setPixDialogOpen] = useState(false);
@@ -57,14 +56,14 @@ const FormasPagamento = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: editingId ? "Forma atualizada!" : "Forma criada!" });
+      toast.success(editingId ? "Forma atualizada!" : "Forma criada!");
       setDialogOpen(false);
       setEditingId(null);
       setForm({ nome: "", descricao: "", tipo: "pix" });
       refetch();
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     }
   });
 
@@ -91,14 +90,14 @@ const FormasPagamento = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Configuração PIX salva!" });
+      toast.success("Configuração PIX salva!");
       setPixDialogOpen(false);
       setSelectedFormaId(null);
       setPixForm({ chave_pix: "", tipo_chave: "cpf", nome_beneficiario: "" });
       refetch();
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     }
   });
 
@@ -111,11 +110,11 @@ const FormasPagamento = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Forma removida!" });
+      toast.success("Forma removida!");
       refetch();
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     }
   });
 

@@ -27,10 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface RescheduleDialogProps {
   open: boolean;
@@ -208,29 +208,26 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       }
     },
     onSuccess: () => {
-      toast({
-        title: isStaff ? `${tipoLabel} realizado!` : "Solicitação enviada!",
-        description: isStaff
-          ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada"} com sucesso.`
-          : `Sua solicitação de ${tipoLabelLower} foi enviada para análise da clínica.`,
-      });
+      const msg = isStaff
+        ? `${tipoLabel} realizado com sucesso!`
+        : `Solicitação de ${tipoLabelLower} enviada!`;
+      const desc = isStaff
+        ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada"} com sucesso.`
+        : "Aguarde a aprovação do profissional.";
+      toast.success(msg, { description: desc });
       queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       onSuccess();
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({
-        title: `Erro ao solicitar ${tipoLabelLower}`,
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Erro ao solicitar ${tipoLabelLower}`, { description: error.message });
     }
   });
 
   const handleReschedule = () => {
     if (!date) {
-      toast({ title: "Selecione uma data", variant: "destructive" });
+      toast.error("Selecione uma data");
       return;
     }
     requestReschedule.mutate();

@@ -13,8 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Filter, Settings2, Users } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 export function CommissionRules() {
   const { user, isAdmin, isGestor } = useAuth();
   const queryClient = useQueryClient();
@@ -96,11 +95,11 @@ export function CommissionRules() {
       }
     },
     onSuccess: () => {
-      toast({ title: editingRule ? "Regra atualizada!" : "Regra criada!" });
+      toast.success(editingRule ? "Regra atualizada!" : "Regra criada!");
       closeRuleDialog();
       queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro", { description: err.message }),
   });
 
   const deleteRule = useMutation({
@@ -109,7 +108,7 @@ export function CommissionRules() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Regra removida!" });
+      toast.success("Regra removida!");
       queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
     },
   });

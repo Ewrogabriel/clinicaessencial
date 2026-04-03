@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import {
   Sparkles, Loader2, Save, ExternalLink, RefreshCw,
   Type, CreditCard, MessageSquare, Phone, Plus, Trash2, Star
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface HeroContent {
   badge: string;
@@ -128,9 +128,9 @@ export function LandingSiteEditor() {
         );
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["landing-content"] });
-      toast({ title: "Seção salva!", description: `A seção "${secao}" foi atualizada.` });
+      toast.success("Seção salva!", { description: `A seção "${secao}" foi atualizada.` });
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     } finally {
       setSaving(false);
     }
@@ -159,10 +159,10 @@ export function LandingSiteEditor() {
         else if (section === "planos") setPlanos(content);
         else if (section === "depoimentos") setDepoimentos(content);
         else if (section === "contato") setContato(content);
-        toast({ title: "Conteúdo gerado!", description: "Revise e salve as alterações." });
+        toast.success("Conteúdo gerado!", { description: "Revise e salve as alterações." });
       }
     } catch (err: any) {
-      toast({ title: "Erro na IA", description: err.message, variant: "destructive" });
+      toast.error("Erro na IA", { description: err.message });
     } finally {
       setAiLoading(null);
     }

@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -21,6 +20,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const TIPOS_INVESTIMENTO = [
   "CDB", "LCI", "LCA", "Tesouro Selic", "Tesouro IPCA+", "Tesouro Prefixado",
@@ -131,11 +131,11 @@ export default function Investimentos() {
       }
     },
     onSuccess: () => {
-      toast({ title: editingId ? "Investimento atualizado!" : "Investimento cadastrado!" });
+      toast.success(editingId ? "Investimento atualizado!" : "Investimento cadastrado!");
       queryClient.invalidateQueries({ queryKey: ["investments"] });
       closeDialog();
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const deleteMutation = useMutation({
@@ -144,7 +144,7 @@ export default function Investimentos() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Investimento removido!" });
+      toast.success("Investimento removido!");
       queryClient.invalidateQueries({ queryKey: ["investments"] });
     },
   });
@@ -161,13 +161,13 @@ export default function Investimentos() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Investimento resgatado!" });
+      toast.success("Investimento resgatado!");
       queryClient.invalidateQueries({ queryKey: ["investments"] });
       setRedeemDialogOpen(false);
       setRedeemTarget(null);
       setRedeemValue("");
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const closeDialog = () => {
@@ -220,11 +220,11 @@ export default function Investimentos() {
           }
         }
       }
-      toast({ title: `${imported} investimento(s) importado(s)!` });
+      toast.success(`${imported} investimento(s) importado(s)!`);
       queryClient.invalidateQueries({ queryKey: ["investments"] });
       setImportDialogOpen(false);
     } catch (err: any) {
-      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+      toast.error("Erro na importação", { description: err.message });
     }
   };
 

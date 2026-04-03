@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
 import { LandingSiteEditor } from "@/components/marketing/LandingSiteEditor";
+import { toast } from "sonner";
 
 interface Ad {
   titulo: string;
@@ -94,9 +94,9 @@ export function MasterMarketingTab() {
       });
       if (error) throw error;
       setAppAds(data?.ads || []);
-      toast({ title: "Anúncios de venda do app gerados!" });
+      toast.success("Anúncios de venda do app gerados!");
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -120,9 +120,9 @@ export function MasterMarketingTab() {
       });
       if (error) throw error;
       setEmailCampaigns(data?.ads || []);
-      toast({ title: "Campanhas de email geradas!" });
+      toast.success("Campanhas de email geradas!");
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -145,9 +145,9 @@ export function MasterMarketingTab() {
       });
       if (error) throw error;
       setSocialPosts(data?.posts || []);
-      toast({ title: "Posts de social selling gerados!" });
+      toast.success("Posts de social selling gerados!");
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -180,10 +180,10 @@ export function MasterMarketingTab() {
         created_by: user.id,
       });
       if (error) throw error;
-      toast({ title: "Campanha salva!", description: "Disponível no histórico." });
+      toast.success("Campanha salva!", { description: "Disponível no histórico." });
       refetchCampaigns();
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     } finally {
       setSavingCampaign(false);
     }
@@ -192,16 +192,16 @@ export function MasterMarketingTab() {
   const deleteCampaign = async (id: string) => {
     const { error } = await supabase.from("marketing_campaigns").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erro ao excluir", variant: "destructive" });
+      toast.error("Erro ao excluir");
     } else {
-      toast({ title: "Campanha excluída" });
+      toast.success("Campanha excluída");
       refetchCampaigns();
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
+    toast.success("Copiado!", { description: "Texto copiado para a área de transferência" });
   };
 
   const renderAdCard = (ad: Ad, index: number) => (
@@ -635,7 +635,7 @@ export function MasterMarketingTab() {
                                   setSocialPosts(content.posts);
                                   setActiveTab("social-selling");
                                 }
-                                toast({ title: "Campanha carregada!" });
+                                toast.success("Campanha carregada!");
                               }}>
                               <ExternalLink className="h-3 w-3" /> Ver
                             </Button>

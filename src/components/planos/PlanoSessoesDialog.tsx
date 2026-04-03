@@ -26,8 +26,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface PlanoSessoesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -167,7 +166,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
       const sessaoCount = repetir ? Math.min(repetirQuantidade, creditosDisponiveis) : 1;
       
       if (repetir) {
-        toast({ title: `Agendando ${sessaoCount} sessões...` });
+        toast.success(`Agendando ${sessaoCount} sessões...`);
       }
 
       for (let i = 0; i < sessaoCount; i++) {
@@ -200,9 +199,9 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
       setSlotId("");
       setObservacoes("");
       setRepetir(false);
-      toast({ title: "Agendamento realizado com sucesso!" });
+      toast.success("Agendamento realizado com sucesso!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
 

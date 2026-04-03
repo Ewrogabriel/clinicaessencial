@@ -12,8 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Building2, Save, Users, Package, Percent } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
+import { toast } from "sonner";
 
 interface ClinicDetailDialogProps {
   open: boolean;
@@ -122,9 +122,9 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
-      toast({ title: "Clínica atualizada! ✅" });
+      toast.success("Clínica atualizada! ✅");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const changePlan = useMutation({
@@ -153,9 +153,9 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
       queryClient.invalidateQueries({ queryKey: ["saas-status"] });
       queryClient.invalidateQueries({ queryKey: ["plan-limit"] });
       queryClient.invalidateQueries({ queryKey: ["platform-plans-upgrade"] });
-      toast({ title: "Plano atualizado! ✅" });
+      toast.success("Plano atualizado! ✅");
     },
-    onError: (e: Error) => toast({ title: "Erro ao alterar plano", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro ao alterar plano", { description: e.message }),
   });
 
   const updateSubDiscount = useMutation({
@@ -168,9 +168,9 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-subscription", clinic?.id] });
-      toast({ title: "Desconto aplicado! ✅" });
+      toast.success("Desconto aplicado! ✅");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   if (!clinic) return null;

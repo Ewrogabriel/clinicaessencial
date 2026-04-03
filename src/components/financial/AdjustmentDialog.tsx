@@ -17,8 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface AdjustmentDialogProps {
   open: boolean;
   clinicId: string;
@@ -53,12 +52,12 @@ export function AdjustmentDialog({
 
   const handleSave = async () => {
     if (!form.description.trim() || !form.amount || !form.reason.trim()) {
-      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
     const amount = parseFloat(form.amount);
     if (isNaN(amount) || amount === 0) {
-      toast({ title: "Valor inválido", variant: "destructive" });
+      toast.error("Valor inválido");
       return;
     }
 
@@ -74,12 +73,12 @@ export function AdjustmentDialog({
         exclude_fiscal: form.exclude_fiscal,
       });
       if (error) throw error;
-      toast({ title: "✓ Ajuste criado com sucesso" });
+      toast.success("✓ Ajuste criado com sucesso");
       onSaved();
       onClose();
       setForm({ description: "", amount: "", type: "ajuste", reason: "", exclude_fiscal: false });
     } catch {
-      toast({ title: "Erro ao criar ajuste", variant: "destructive" });
+      toast.error("Erro ao criar ajuste");
     } finally {
       setIsSaving(false);
     }

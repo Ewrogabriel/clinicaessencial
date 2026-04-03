@@ -13,11 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, ShieldCheck } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import defaultAvatarImg from "@/assets/default-avatar.png";
 import defaultAvatarMale from "@/assets/default-avatar-male.png";
 import defaultAvatarFemale from "@/assets/default-avatar-female.png";
 import { usePatientForm } from "@/modules/patients/hooks/usePatientForm";
+import { toast } from "sonner";
 
 const PacienteForm = () => {
   const navigate = useNavigate();
@@ -195,7 +195,7 @@ const PacienteForm = () => {
                   size="sm"
                   onClick={() => {
                     navigator.clipboard.writeText(codigoAcesso);
-                    toast({ title: "Código copiado! ✓" });
+                    toast.success("Código copiado! ✓");
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" /> Copiar

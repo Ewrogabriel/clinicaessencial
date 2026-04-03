@@ -7,8 +7,7 @@ import { CheckCircle2, XCircle, Calendar, Clock, User, RefreshCw } from "lucide-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ReagendamentoDialog } from "@/components/agenda/ReagendamentoDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const ConfirmarAgendamento = () => {
   const { id } = useParams();
   const [agendamento, setAgendamento] = useState<any>(null);
@@ -66,12 +65,12 @@ const ConfirmarAgendamento = () => {
     if (!id) return;
     const parts = rescheduleData.hora.split(":");
     if (parts.length < 2) {
-      toast({ title: "Horário inválido", variant: "destructive" });
+      toast.error("Horário inválido");
       return;
     }
     const [hours, minutes] = parts.map(Number);
     if (isNaN(hours) || isNaN(minutes)) {
-      toast({ title: "Horário inválido", variant: "destructive" });
+      toast.error("Horário inválido");
       return;
     }
     const dt = new Date(rescheduleData.data);
@@ -88,20 +87,13 @@ const ConfirmarAgendamento = () => {
     });
 
     if (error) {
-      toast({
-        title: "Erro ao reagendar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error("Erro ao reagendar", { description: error.message });
       return;
     }
 
     setShowRescheduleModal(false);
     setStatus("rescheduled");
-    toast({
-      title: "Reagendado com sucesso!",
-      description: `Novo horário: ${format(dt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-    });
+    toast.success("Reagendado com sucesso!", { description: `Novo horário: ${format(dt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}` });
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;

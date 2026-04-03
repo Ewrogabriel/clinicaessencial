@@ -29,9 +29,9 @@ import {
 } from "lucide-react";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
 import { useStatementImport } from "@/modules/finance/hooks/useStatementImport";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
+import { toast } from "sonner";
 
 interface ImportStatementDialogProps {
   open: boolean;
@@ -70,11 +70,7 @@ export function ImportStatementDialog({ open, onOpenChange }: ImportStatementDia
     const allowed = ["csv", "txt", "ofx", "qfx"];
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (!allowed.includes(ext)) {
-      toast({
-        title: "Formato não suportado",
-        description: "Utilize arquivos CSV, TXT ou OFX.",
-        variant: "destructive",
-      });
+      toast.error("Formato não suportado", { description: "Utilize arquivos CSV, TXT ou OFX." });
       return;
     }
     setSelectedFile(file);
@@ -95,14 +91,14 @@ export function ImportStatementDialog({ open, onOpenChange }: ImportStatementDia
 
   const handleImport = async () => {
     if (!selectedAccountId) {
-      toast({ title: "Selecione uma conta bancária.", variant: "destructive" });
+      toast.error("Selecione uma conta bancária.");
       return;
     }
     try {
       await importTransactions(selectedAccountId);
-      toast({ title: "Importação concluída!" });
+      toast.success("Importação concluída!");
     } catch {
-      toast({ title: "Erro ao importar extrato", variant: "destructive" });
+      toast.error("Erro ao importar extrato");
     }
   };
 

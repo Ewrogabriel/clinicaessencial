@@ -14,9 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
-
+import { toast } from "sonner";
 interface PlanoFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -113,9 +111,9 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
       queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       onOpenChange(false);
-      toast({ title: isEdit ? "Plano atualizado!" : "Plano criado com sucesso!" });
+      toast.success(isEdit ? "Plano atualizado!" : "Plano criado com sucesso!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   return (

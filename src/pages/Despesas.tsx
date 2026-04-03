@@ -17,8 +17,8 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 const categorias = ["aluguel", "luz", "agua", "internet", "limpeza", "pessoal", "impostos", "insumos", "marketing", "outros"];
 
@@ -70,12 +70,12 @@ const Despesas = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
-            toast({ title: "Despesa registrada!" });
+            toast.success("Despesa registrada!");
             setDialogOpen(false);
             setFormData({ descricao: "", valor: "", data_vencimento: format(new Date(), "yyyy-MM-dd"), categoria: "outros", status: "pendente" });
         },
         onError: (error: Error) => {
-            toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+            toast.error("Erro ao salvar", { description: error.message });
         },
     });
 
@@ -86,7 +86,7 @@ const Despesas = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
-            toast({ title: "Despesa excluída" });
+            toast.success("Despesa excluída");
         },
     });
 
@@ -100,7 +100,7 @@ const Despesas = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
-            toast({ title: "Status atualizado" });
+            toast.success("Status atualizado");
         },
     });
 

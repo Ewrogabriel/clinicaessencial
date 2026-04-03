@@ -20,8 +20,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const COLORS = ["hsl(168, 65%, 38%)", "hsl(199, 89%, 48%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(142, 71%, 45%)", "hsl(280, 60%, 55%)"];
 
 const Relatorios = () => {
@@ -149,7 +148,7 @@ const Relatorios = () => {
       headStyles: { fillColor: [34, 139, 115] },
     });
     doc.save(`${title.replace(/\s+/g, "_")}.pdf`);
-    toast({ title: "PDF gerado!" });
+    toast.success("PDF gerado!");
   };
 
   const exportExcel = (title: string, headers: string[], rows: string[][]) => {
@@ -157,7 +156,7 @@ const Relatorios = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Relatório");
     XLSX.writeFile(wb, `${title.replace(/\s+/g, "_")}.xlsx`);
-    toast({ title: "Planilha gerada!" });
+    toast.success("Planilha gerada!");
   };
 
   const exportAtendimentos = (type: "pdf" | "xlsx") => {

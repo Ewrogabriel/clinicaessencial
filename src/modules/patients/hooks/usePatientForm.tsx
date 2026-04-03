@@ -14,10 +14,10 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { maskCPF, maskPhone, maskCEP, maskRG, isValidCPF, unmask } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
 // ── Grouped state shapes ───────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ export function usePatientForm() {
     supabase.from("pacientes").select("*").eq("id", id).single()
       .then(({ data, error }) => {
         if (error || !data) {
-          toast({ title: "Paciente não encontrado", variant: "destructive" });
+          toast.error("Paciente não encontrado");
           navigate("/pacientes");
           return;
         }
@@ -245,7 +245,7 @@ export function usePatientForm() {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
       if (data.erro) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
+        toast.error("CEP não encontrado");
         return;
       }
       if (target === "paciente") {
@@ -267,7 +267,7 @@ export function usePatientForm() {
       }
     } catch (err) {
       console.error("Erro ao buscar CEP", err);
-      toast({ title: "Erro ao buscar endereço", variant: "destructive" });
+      toast.error("Erro ao buscar endereço");
     }
   }, []);
 
@@ -276,7 +276,7 @@ export function usePatientForm() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ title: "Selecione uma imagem válida", variant: "destructive" });
+      toast.error("Selecione uma imagem válida");
       return;
     }
     setUploadingPhoto(true);
@@ -284,11 +284,11 @@ export function usePatientForm() {
     const path = `pacientes/${id || generateUUID()}/foto.${ext}`;
     const { error } = await supabase.storage.from("clinic-uploads").upload(path, file, { upsert: true });
     if (error) {
-      toast({ title: "Erro ao enviar foto", description: error.message, variant: "destructive" });
+      toast.error("Erro ao enviar foto", { description: error.message });
     } else {
       const { data: urlData } = supabase.storage.from("clinic-uploads").getPublicUrl(path);
       setBasic((prev) => ({ ...prev, fotoUrl: urlData.publicUrl }));
-      toast({ title: "Foto enviada! 📸" });
+      toast.success("Foto enviada! 📸");
     }
     setUploadingPhoto(false);
   }, [id]);
@@ -305,7 +305,7 @@ export function usePatientForm() {
       cidade: address.cidade,
       estado: address.estado,
     }));
-    toast({ title: "Endereço copiado! 📋" });
+    toast.success("Endereço copiado! 📋");
   }, [address]);
 
   // ── Generate invite link ───────────────────────────────────────────────────
@@ -320,14 +320,14 @@ export function usePatientForm() {
       }
     }
     if (!accessCode) {
-      toast({ title: "Código não encontrado", variant: "destructive" });
+      toast.error("Código não encontrado");
       return;
     }
     const accessLink = `${window.location.origin}/paciente-access`;
     const inviteMessage = `Olá ${basic.nome.split(" ")[0]}! 👋\n\nVocê foi cadastrado(a) em nosso sistema Essencial FisioPilates. Para acessar sua área de atendimento, use o código abaixo:\n\n📱 CÓDIGO DE ACESSO: ${accessCode}\n\n🔗 Link: ${accessLink}\n\nSimplemente acesse o link acima e insira seu código de acesso.\n\nQualquer dúvida, entre em contato conosco! 😊`;
     navigator.clipboard.writeText(inviteMessage)
-      .then(() => toast({ title: "Convite Copiado! ✓", description: "O convite com código foi copiado para a área de transferência." }))
-      .catch(() => toast({ title: "Erro ao copiar o convite.", variant: "destructive" }));
+      .then(() => toast.success("Convite Copiado! ✓", { description: "O convite com código foi copiado para a área de transferência." }))
+      .catch(() => toast.error("Erro ao copiar o convite."));
   }, [id, codigoAcesso, basic.nome]);
 
   // ── Form submit ────────────────────────────────────────────────────────────
@@ -338,13 +338,13 @@ export function usePatientForm() {
     const rawCpf = unmask(basic.cpf);
     if (rawCpf.length > 0) {
       if (!isValidCPF(rawCpf)) {
-        toast({ title: "CPF inválido", description: "O CPF do paciente não é válido. Verifique os dígitos.", variant: "destructive" });
+        toast.error("CPF inválido", { description: "O CPF do paciente não é válido. Verifique os dígitos." });
         return;
       }
       const { data: existingPatient } = await supabase.from("pacientes").select("id, nome").eq("cpf", basic.cpf);
       const dupPatient = (existingPatient ?? []).filter((p: { id: string }) => !isEditing || p.id !== id);
       if (dupPatient.length > 0) {
-        toast({ title: "CPF já cadastrado", description: `Este CPF já pertence ao paciente: ${(dupPatient[0] as { nome: string }).nome}`, variant: "destructive" });
+        toast.error("CPF já cadastrado", { description: `Este CPF já pertence ao paciente: ${(dupPatient[0] as { nome: string }).nome}` });
         return;
       }
     }
@@ -352,7 +352,7 @@ export function usePatientForm() {
     if (guardian.temResponsavel) {
       const rawRespCpf = unmask(guardian.cpf);
       if (rawRespCpf.length > 0 && !isValidCPF(rawRespCpf)) {
-        toast({ title: "CPF do responsável inválido", description: "O CPF do responsável não é válido. Verifique os dígitos.", variant: "destructive" });
+        toast.error("CPF do responsável inválido", { description: "O CPF do responsável não é válido. Verifique os dígitos." });
         return;
       }
     }
@@ -401,7 +401,7 @@ export function usePatientForm() {
       if (isEditing) {
         const { error } = await supabase.from("pacientes").update(payload).eq("id", id);
         if (error) throw error;
-        toast({ title: "Paciente atualizado com sucesso!" });
+        toast.success("Paciente atualizado com sucesso!");
       } else {
         const accessCode = generateAccessCode();
         const insertData = { ...payload, created_by: user.id, profissional_id: user.id, codigo_acesso: accessCode };
@@ -414,19 +414,7 @@ export function usePatientForm() {
 
         const accessLink = `${window.location.origin}/paciente-access`;
         const inviteMessage = `Olá ${basic.nome.split(" ")[0]}!\n\nVocê foi cadastrado em nosso sistema. Para acessar, use o código:\n\nCÓDIGO: ${accessCode}\n\nLink: ${accessLink}\n\nQualquer dúvida, entre em contato!`;
-        toast({
-          title: "Paciente cadastrado com sucesso!",
-          description: "Código de acesso gerado. Clique para copiar.",
-          action: (
-            <Button variant="outline" size="sm" onClick={() => {
-              navigator.clipboard.writeText(inviteMessage);
-              toast({ title: "Convite copiado!" });
-            }}>
-              <Copy className="h-4 w-4 mr-2" /> Copiar
-            </Button>
-          ),
-          duration: 10000,
-        });
+        toast.success("Paciente cadastrado com sucesso!", { description: "Código de acesso gerado. Clique para copiar." });
 
         if (activeClinicId && savedPatientId) {
           await supabase.from("clinic_pacientes").insert({ clinic_id: activeClinicId, paciente_id: savedPatientId });
@@ -445,7 +433,7 @@ export function usePatientForm() {
       navigate("/pacientes");
     } catch (err: unknown) {
       const errorMessage = (err as Error)?.message || "Erro ao salvar paciente";
-      toast({ title: "Erro ao salvar", description: errorMessage, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: errorMessage });
     } finally {
       setLoading(false);
     }

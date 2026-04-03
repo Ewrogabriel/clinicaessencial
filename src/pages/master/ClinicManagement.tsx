@@ -15,8 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClinicTable } from "@/components/master/ClinicTable";
 import { ClinicDetailDialog } from "@/components/master/ClinicDetailDialog";
 import { useClinics, useActivateClinic, useDeactivateClinic } from "@/modules/master/hooks/useMasterAdmin";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type StatusFilter = "all" | "ativa" | "trial" | "suspensa" | "cancelada";
 
 export default function ClinicManagement() {
@@ -67,7 +66,7 @@ export default function ClinicManagement() {
       await activateMutation.mutateAsync(id);
     }
     setSelectedIds(new Set());
-    toast({ title: `${selectedIds.size} clínica(s) ativada(s) ✅` });
+    toast.success(`${selectedIds.size} clínica(s) ativada(s) ✅`);
     queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
   };
 
@@ -76,7 +75,7 @@ export default function ClinicManagement() {
       await deactivateMutation.mutateAsync(id);
     }
     setSelectedIds(new Set());
-    toast({ title: `${selectedIds.size} clínica(s) desativada(s)` });
+    toast.success(`${selectedIds.size} clínica(s) desativada(s)`);
     queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
   };
 

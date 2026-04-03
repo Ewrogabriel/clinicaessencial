@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type Session = {
     id: string;
     data_horario: string;
@@ -135,11 +134,11 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props
             queryClient.invalidateQueries({ queryKey: ["enrollment-sessions", enrollmentId] });
             queryClient.invalidateQueries({ queryKey: ["enrollment-credits", enrollmentId] });
             queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-            toast({ title: "✅ Sessão reagendada com sucesso!" });
+            toast.success("✅ Sessão reagendada com sucesso!");
             onClose();
         },
         onError: (err: any) => {
-            toast({ title: "Erro ao reagendar", description: err?.message || "Erro desconhecido", variant: "destructive" });
+            toast.error("Erro ao reagendar", { description: err?.message || "Erro desconhecido" });
         },
     });
 

@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronsUpDown, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface CouncilComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -49,9 +48,9 @@ export function CouncilCombobox({ value, onValueChange, placeholder = "Selecione
       setShowCreate(false);
       setNewName("");
       setNewSigla("");
-      toast({ title: "Conselho cadastrado!" });
+      toast.success("Conselho cadastrado!");
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const filtered = useMemo(() => {

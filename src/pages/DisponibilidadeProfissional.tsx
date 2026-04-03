@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
@@ -27,6 +26,7 @@ import { generateAvailabilityPDF } from "@/lib/generateAvailabilityPDF";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const DIAS_SEMANA = [
   { value: 1, label: "Segunda-feira", short: "Seg" },
@@ -208,7 +208,7 @@ const DisponibilidadeProfissional = () => {
   const handleAddSlot = async () => {
     if (!profId) return;
     if (newSlot.hora_inicio >= newSlot.hora_fim) {
-      toast({ title: "Horário inválido", description: "O horário de início deve ser antes do fim.", variant: "destructive" });
+      toast.error("Horário inválido", { description: "O horário de início deve ser antes do fim." });
       return;
     }
     setLoading(true);
@@ -217,39 +217,39 @@ const DisponibilidadeProfissional = () => {
       hora_inicio: newSlot.hora_inicio, hora_fim: newSlot.hora_fim, max_pacientes: newSlot.max_pacientes,
       clinic_id: activeClinicId,
     });
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else { toast({ title: "Horário adicionado! ✅" }); refetch(); }
+    if (error) toast.error("Erro", { description: error.message });
+    else { toast.success("Horário adicionado! ✅"); refetch(); }
     setLoading(false);
   };
 
   const handleDeleteSlot = async (id: string) => {
     await (supabase.from("disponibilidade_profissional") as any).delete().eq("id", id);
-    toast({ title: "Horário removido" }); refetch();
+    toast.success("Horário removido"); refetch();
   };
 
   const handleEditSave = async (id: string) => {
     if (editValues.hora_inicio && editValues.hora_fim && editValues.hora_inicio >= editValues.hora_fim) {
-      toast({ title: "Horário inválido", variant: "destructive" }); return;
+      toast.error("Horário inválido"); return;
     }
     const { error } = await (supabase.from("disponibilidade_profissional") as any).update(editValues).eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else { toast({ title: "Horário atualizado! ✅" }); setEditingSlot(null); refetch(); }
+    if (error) toast.error("Erro", { description: error.message });
+    else { toast.success("Horário atualizado! ✅"); setEditingSlot(null); refetch(); }
   };
 
   const handleCopyDay = async (fromDay: number, toDay: number) => {
     const fromSlots = slots.filter(s => s.dia_semana === fromDay);
-    if (fromSlots.length === 0) { toast({ title: "Nenhum horário para copiar", variant: "destructive" }); return; }
+    if (fromSlots.length === 0) { toast.error("Nenhum horário para copiar"); return; }
     const records = fromSlots.map(s => ({
       profissional_id: profId, dia_semana: toDay, hora_inicio: s.hora_inicio, hora_fim: s.hora_fim, max_pacientes: s.max_pacientes,
       clinic_id: activeClinicId,
     }));
     const { error } = await (supabase.from("disponibilidade_profissional") as any).insert(records);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else { toast({ title: `Horários copiados para ${DIAS_SEMANA.find(d => d.value === toDay)?.label}! ✅` }); refetch(); }
+    if (error) toast.error("Erro", { description: error.message });
+    else { toast.success(`Horários copiados para ${DIAS_SEMANA.find(d => d.value === toDay)?.label}! ✅`); refetch(); }
   };
 
   const handleAddBloqueio = async () => {
-    if (!profId || !bloqueioData) { toast({ title: "Selecione uma data", variant: "destructive" }); return; }
+    if (!profId || !bloqueioData) { toast.error("Selecione uma data"); return; }
     const { error } = await (supabase.from("bloqueios_profissional") as any).insert({
       profissional_id: profId, data: bloqueioData, dia_inteiro: bloqueioDiaInteiro,
       hora_inicio: bloqueioDiaInteiro ? null : bloqueioHoraInicio,
@@ -257,7 +257,7 @@ const DisponibilidadeProfissional = () => {
       motivo: bloqueioMotivo || null,
       clinic_id: activeClinicId,
     });
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Erro", { description: error.message }); return; }
     // Broadcast block notification to all users
     const horarioTxt = bloqueioDiaInteiro ? "dia inteiro" : `${bloqueioHoraInicio}-${bloqueioHoraFim}`;
     const { data: allUsers } = await supabase.from("profiles").select("user_id");
@@ -271,22 +271,22 @@ const DisponibilidadeProfissional = () => {
       }));
       await (supabase.from("notificacoes").insert(notifs) as any);
     }
-    toast({ title: "Bloqueio adicionado! ✅" });
+    toast.success("Bloqueio adicionado! ✅");
     setBloqueioData(""); setBloqueioMotivo("");
     refetchBloqueios();
   };
 
   const handleDeleteBloqueio = async (id: string) => {
     await (supabase.from("bloqueios_profissional") as any).delete().eq("id", id);
-    toast({ title: "Bloqueio removido" }); refetchBloqueios();
+    toast.success("Bloqueio removido"); refetchBloqueios();
   };
 
   const handleAddFeriado = async () => {
-    if (!feriadoData || !feriadoDescricao.trim()) { toast({ title: "Preencha data e descrição", variant: "destructive" }); return; }
+    if (!feriadoData || !feriadoDescricao.trim()) { toast.error("Preencha data e descrição"); return; }
     const { error } = await (supabase.from("feriados") as any).insert({
       data: feriadoData, descricao: feriadoDescricao.trim(), created_by: user?.id,
     });
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Erro", { description: error.message }); return; }
     // Broadcast notification to all users
     const { data: allUsers } = await supabase.from("profiles").select("user_id");
     if (allUsers) {
@@ -299,26 +299,26 @@ const DisponibilidadeProfissional = () => {
       }));
       await (supabase.from("notificacoes").insert(notifs) as any);
     }
-    toast({ title: "Feriado cadastrado! ✅" }); setFeriadoData(""); setFeriadoDescricao(""); refetchFeriados();
+    toast.success("Feriado cadastrado! ✅"); setFeriadoData(""); setFeriadoDescricao(""); refetchFeriados();
   };
 
   const handleDeleteFeriado = async (id: string) => {
     await (supabase.from("feriados") as any).delete().eq("id", id);
-    toast({ title: "Feriado removido" }); refetchFeriados();
+    toast.success("Feriado removido"); refetchFeriados();
   };
 
   const handleAddExtra = async () => {
-    if (!profId || !extraData) { toast({ title: "Selecione uma data", variant: "destructive" }); return; }
-    if (extraHoraInicio >= extraHoraFim) { toast({ title: "Horário inválido", variant: "destructive" }); return; }
+    if (!profId || !extraData) { toast.error("Selecione uma data"); return; }
+    if (extraHoraInicio >= extraHoraFim) { toast.error("Horário inválido"); return; }
     const { error } = await (supabase.from("agenda_extra") as any).insert({
       profissional_id: profId, data: extraData,
       hora_inicio: extraHoraInicio, hora_fim: extraHoraFim,
       max_pacientes: extraMaxPacientes, motivo: extraMotivo || null,
       clinic_id: activeClinicId,
     });
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (error) toast.error("Erro", { description: error.message });
     else {
-      toast({ title: "Agenda extra adicionada! ✅" });
+      toast.success("Agenda extra adicionada! ✅");
       setExtraData(""); setExtraMotivo("");
       refetchExtra();
     }
@@ -326,12 +326,12 @@ const DisponibilidadeProfissional = () => {
 
   const handleDeleteExtra = async (id: string) => {
     await (supabase.from("agenda_extra") as any).delete().eq("id", id);
-    toast({ title: "Agenda extra removida" }); refetchExtra();
+    toast.success("Agenda extra removida"); refetchExtra();
   };
 
   const handleExportPDF = () => {
     generateAvailabilityPDF(slots, currentProfName);
-    toast({ title: "PDF da grade semanal exportado!" });
+    toast.success("PDF da grade semanal exportado!");
   };
 
   // Vacancy-specific derived data

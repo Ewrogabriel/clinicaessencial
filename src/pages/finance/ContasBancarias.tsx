@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Landmark, Pencil, Trash2 } from "lucide-react";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
 import { BankAccountDialog } from "@/components/financial/BankAccountDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import type { BankAccount } from "@/modules/finance/types";
+import { toast } from "sonner";
 
 export default function ContasBancarias() {
   const { accounts, isLoading, deleteAccount, isDeleting } = useBankAccounts();
@@ -29,9 +29,9 @@ export default function ContasBancarias() {
   const handleDelete = async (id: string) => {
     try {
       await deleteAccount(id);
-      toast({ title: "✓ Conta bancária removida" });
+      toast.success("✓ Conta bancária removida");
     } catch {
-      toast({ title: "Erro ao remover conta", variant: "destructive" });
+      toast.error("Erro ao remover conta");
     }
   };
 

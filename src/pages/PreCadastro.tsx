@@ -8,8 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Activity, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, maskRG } from "@/lib/masks";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const PreCadastro = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -54,7 +53,7 @@ const PreCadastro = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || !telefone.trim()) {
-      toast({ title: "Preencha nome e telefone", variant: "destructive" });
+      toast.error("Preencha nome e telefone");
       return;
     }
     setLoading(true);
@@ -76,7 +75,7 @@ const PreCadastro = () => {
       if (error) throw error;
       setSubmitted(true);
     } catch (err: any) {
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao enviar", { description: err.message });
     } finally {
       setLoading(false);
     }

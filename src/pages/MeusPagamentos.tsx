@@ -9,8 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Download, FileText } from "lucide-react";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const MeusPagamentos = () => {
   const { patientId } = useAuth();
 
@@ -97,7 +96,7 @@ const MeusPagamentos = () => {
       referencia: ref.charAt(0).toUpperCase() + ref.slice(1),
     });
     pdf.save(`Recibo_${numero}.pdf`);
-    toast({ title: "Recibo baixado com sucesso!" });
+    toast.success("Recibo baixado com sucesso!");
   };
 
   return (

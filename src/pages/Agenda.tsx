@@ -19,10 +19,10 @@ import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDi
 import { DayScheduleModal } from "@/components/agenda/DayScheduleModal";
 import { DailyView, WeeklyView, MonthlyView, CalendarLegend, type Agendamento } from "@/components/agenda/AgendaViews";
 import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePersistedFilter } from "@/modules/shared/hooks/usePersistedFilter";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import type { StatusAgendamento } from "@/types/entities";
+import { toast } from "sonner";
 
 const VacancyCalendar = lazy(() => import("./VacancyCalendar"));
 const ListaEspera = lazy(() => import("./ListaEspera"));
@@ -185,20 +185,20 @@ const Agenda = () => {
     const agsWithTel = filteredAgendamentos.map((ag) => ({ ...ag, paciente_telefone: pacientesMap[ag.paciente_id] || "" }));
     const profName = filterProfId !== "all" ? profissionais.find((p) => p.user_id === filterProfId)?.nome : undefined;
     generateWeeklyPDF(agsWithTel, currentDate, pacientesMap, profName);
-    toast({ title: "PDF gerado!", description: profName ? `Agenda de ${profName} exportada.` : "Agenda completa exportada." });
+    toast.success("PDF gerado!", { description: profName ? `Agenda de ${profName}` : undefined });
   };
 
   const handleCancelAppointment = async (id: string) => {
     updateStatusMutation.mutate({ id, status: "cancelado" }, {
-      onSuccess: () => { toast({ title: "Agendamento cancelado" }); refetchAgendamentos(); },
-      onError: () => { toast({ title: "Erro ao cancelar", variant: "destructive" }); },
+      onSuccess: () => { toast.success("Agendamento cancelado"); refetchAgendamentos(); },
+      onError: () => { toast.error("Erro ao cancelar"); },
     });
   };
 
   const handleStatusChange = (id: string, status: string) => {
     updateStatusMutation.mutate({ id, status: status as StatusAgendamento }, {
       onSuccess: () => { refetchAgendamentos(); },
-      onError: () => { toast({ title: "Erro ao atualizar status", variant: "destructive" }); },
+      onError: () => { toast.error("Erro ao atualizar status"); },
     });
   };
 
@@ -212,7 +212,7 @@ const Agenda = () => {
     const ag = agendamentos.find((a) => a.id === agId);
     const profissionalId = ag?.profissional_id || user?.id || "";
     rescheduleMutation.mutate({ id: agId, newDate, profissionalId }, {
-      onSuccess: () => { toast({ title: "Sessão reagendada! 📅", description: format(newDate, "dd/MM/yyyy 'às' HH:mm") }); refetchAgendamentos(); },
+      onSuccess: () => { toast.success("Sessão reagendada! 📅", { description: format(newDate, "dd/MM/yyyy HH:mm") }); refetchAgendamentos(); },
     });
   };
 

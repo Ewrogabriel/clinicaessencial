@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Target, Plus, Pencil, Trash2, Calendar, DollarSign, Users, CheckCircle2, XCircle, Clock, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Meta {
   id: string;
@@ -84,7 +84,7 @@ export function MetasClinicaForm() {
       if (error) throw error;
       setAiSuggestions(data?.suggestions || []);
     } catch (err: any) {
-      toast({ title: "Erro ao buscar sugestões", description: err.message, variant: "destructive" });
+      toast.error("Erro ao buscar sugestões", { description: err.message });
     } finally {
       setLoadingAi(false);
     }
@@ -188,13 +188,13 @@ export function MetasClinicaForm() {
       }
     },
     onSuccess: () => {
-      toast({ title: editingMeta ? "Meta atualizada!" : "Meta criada com sucesso!" });
+      toast.success(editingMeta ? "Meta atualizada!" : "Meta criada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["metas-clinica"] });
       setDialogOpen(false);
       resetForm();
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: error.message });
     },
   });
 
@@ -207,11 +207,11 @@ export function MetasClinicaForm() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Meta excluída!" });
+      toast.success("Meta excluída!");
       queryClient.invalidateQueries({ queryKey: ["metas-clinica"] });
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      toast.error("Erro ao excluir", { description: error.message });
     },
   });
 

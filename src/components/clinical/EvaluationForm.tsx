@@ -17,8 +17,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 interface EvaluationFormProps {
     open: boolean;
@@ -99,7 +99,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
             queryClient.invalidateQueries({ queryKey: ["prontuarios-list"] });
             queryClient.invalidateQueries({ queryKey: ["paciente-detalhes", pacienteId] });
             queryClient.invalidateQueries({ queryKey: ["evaluations", pacienteId] });
-            toast({ title: "Avaliação registrada com sucesso!" });
+            toast.success("Avaliação registrada com sucesso!");
             onOpenChange(false);
             setFormData({
                 queixa_principal: "",
@@ -111,11 +111,7 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
             });
         },
         onError: (error: any) => {
-            toast({
-                title: "Erro ao registrar avaliação",
-                description: error.message,
-                variant: "destructive",
-            });
+            toast.error("Erro ao registrar avaliação", { description: error.message });
         },
     });
 

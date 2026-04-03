@@ -18,8 +18,7 @@ import {
   Download,
   Search,
 } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type AIAction = "summarize" | "suggest_conduct" | "lesson_plan" | "treatment_plan" | "generate_report" | "analyze_all";
 
 const ACTION_LABELS: Record<AIAction, { label: string; icon: React.ReactNode; description: string }> = {
@@ -83,7 +82,7 @@ export function AIClinicalAssistant({ pacienteId, modalidade }: AIClinicalAssist
 
   const callAI = async (action: AIAction) => {
     if (!evolutions.length && !evaluation && action !== "lesson_plan") {
-      toast({ title: "Sem dados para analisar", description: "Registre avaliações ou evoluções primeiro.", variant: "destructive" });
+      toast.error("Sem dados para analisar", { description: "Registre avaliações ou evoluções primeiro." });
       return;
     }
 
@@ -118,7 +117,7 @@ export function AIClinicalAssistant({ pacienteId, modalidade }: AIClinicalAssist
       if (error) throw error;
       setResult(data.result || "Sem resultado.");
     } catch (err: any) {
-      toast({ title: "Erro na análise IA", description: err.message, variant: "destructive" });
+      toast.error("Erro na análise IA", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -126,7 +125,7 @@ export function AIClinicalAssistant({ pacienteId, modalidade }: AIClinicalAssist
 
   const copyResult = () => {
     navigator.clipboard.writeText(result);
-    toast({ title: "Copiado para a área de transferência!" });
+    toast.success("Copiado para a área de transferência!");
   };
 
   const downloadResult = () => {

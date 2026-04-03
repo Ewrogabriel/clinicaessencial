@@ -21,8 +21,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface Notificacao {
   id: string;
   tipo: string;
@@ -132,11 +131,11 @@ export const NotificationBell = memo(function NotificationBell() {
     onSuccess: (_, { action }) => {
       queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-      toast({ title: action === "aprovar" ? "Agendamento aprovado!" : "Agendamento rejeitado." });
+      toast.success(action === "aprovar" ? "Agendamento aprovado!" : "Agendamento rejeitado.");
       setDetail(null);
     },
     onError: () => {
-      toast({ title: "Erro ao processar", variant: "destructive" });
+      toast.error("Erro ao processar");
     },
   });
 

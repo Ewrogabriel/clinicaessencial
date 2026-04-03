@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const CheckInProfissional = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -50,10 +49,10 @@ const CheckInProfissional = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos-dia"] });
-      toast({ title: "Status atualizado com sucesso!" });
+      toast.success("Status atualizado com sucesso!");
     },
     onError: (error) => {
-      toast({ title: "Erro ao atualizar", description: String(error), variant: "destructive" });
+      toast.error("Erro ao atualizar", { description: String(error) });
     },
   });
 

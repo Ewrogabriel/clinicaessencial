@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Modalidade } from "@/types/entities";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 interface UseModalidadesOptions {
     ativo?: boolean;
@@ -63,10 +63,10 @@ export function useCreateModalidade() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-            toast({ title: "Modalidade criada!" });
+            toast.success("Modalidade criada!");
         },
         onError: (error: Error) => {
-            toast({ title: "Erro", description: error.message, variant: "destructive" });
+            toast.error("Erro", { description: error.message });
         },
     });
 }
@@ -87,10 +87,10 @@ export function useUpdateModalidade() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-            toast({ title: "Modalidade atualizada!" });
+            toast.success("Modalidade atualizada!");
         },
         onError: (error: Error) => {
-            toast({ title: "Erro", description: error.message, variant: "destructive" });
+            toast.error("Erro", { description: error.message });
         },
     });
 }
@@ -108,10 +108,10 @@ export function useDeleteModalidade() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-            toast({ title: "Modalidade excluída!" });
+            toast.success("Modalidade excluída!");
         },
         onError: (error: Error) => {
-            toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+            toast.error("Erro ao excluir", { description: error.message });
         },
     });
 }

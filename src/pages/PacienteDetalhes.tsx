@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { EvolutionForm } from "@/components/clinical/EvolutionForm";
 import { EvaluationForm } from "@/components/clinical/EvaluationForm";
 import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";

@@ -29,10 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useMasterUsers } from "@/modules/master/hooks/useMasterAdmin";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function UserManagement() {
   const queryClient = useQueryClient();
@@ -49,13 +49,13 @@ export default function UserManagement() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Convite enviado ✅" });
+      toast.success("Convite enviado ✅");
       setInviteOpen(false);
       setForm({ nome: "", email: "", role: "admin" });
       queryClient.invalidateQueries({ queryKey: ["master-users"] });
     },
     onError: (e: Error) =>
-      toast({ title: "Erro ao convidar", description: e.message, variant: "destructive" }),
+      toast.error("Erro ao convidar", { description: e.message }),
   });
 
   const deactivateMutation = useMutation({
@@ -66,11 +66,11 @@ export default function UserManagement() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Usuário desativado" });
+      toast.success("Usuário desativado");
       queryClient.invalidateQueries({ queryKey: ["master-users"] });
     },
     onError: (e: Error) =>
-      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      toast.error("Erro", { description: e.message }),
   });
 
   const roleVariant: Record<string, "default" | "secondary"> = {

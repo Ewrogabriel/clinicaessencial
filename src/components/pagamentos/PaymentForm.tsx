@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Copy, QrCode } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface PaymentFormProps {
   tipo: "mensalidade" | "sessao";
   items: any[];
@@ -47,11 +46,11 @@ export const PaymentForm = ({
 
   const handlePaymentSubmit = () => {
     if (!selectedForma) {
-      toast({ title: "Erro", description: "Selecione uma forma de pagamento", variant: "destructive" });
+      toast.error("Erro", { description: "Selecione uma forma de pagamento" });
       return;
     }
     if (selectedItems.length === 0) {
-      toast({ title: "Erro", description: "Selecione pelo menos um item", variant: "destructive" });
+      toast.error("Erro", { description: "Selecione pelo menos um item" });
       return;
     }
 
@@ -61,17 +60,17 @@ export const PaymentForm = ({
     if (forma.tipo === "pix") {
       const pixData = configPix[selectedForma];
       if (!pixData) {
-        toast({ title: "Erro", description: "Dados PIX não configurados", variant: "destructive" });
+        toast.error("Erro", { description: "Dados PIX não configurados" });
         return;
       }
       // Copy PIX key to clipboard
       navigator.clipboard.writeText(pixData.chave_pix);
-      toast({ title: "PIX copiado para clipboard!" });
+      toast.success("PIX copiado para clipboard!");
     }
 
     // TODO: integrate with payment gateway
 
-    toast({ title: "Instrções de pagamento enviadas!", description: "Verifique seu email para mais detalhes." });
+    toast.success("Instrções de pagamento enviadas!", { description: "Verifique seu email para mais detalhes." });
     onPaymentComplete?.();
   };
 
@@ -183,7 +182,7 @@ export const PaymentForm = ({
                               onClick={(e) => {
                                 e.preventDefault();
                                 navigator.clipboard.writeText(pixData.chave_pix);
-                                toast({ title: "Copiado!" });
+                                toast.success("Copiado!");
                               }}
                               className="p-1 hover:bg-blue-200 rounded"
                             >

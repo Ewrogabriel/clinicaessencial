@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { splitService, SplitEntry } from "@/modules/finance/services/splitService";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
+import { toast } from "sonner";
 
 interface SplitPaymentModalProps {
   open: boolean;
@@ -85,11 +85,11 @@ export function SplitPaymentModal({
     try {
       setIsSaving(true);
       await splitService.createSplits(clinicId, transaction.id, transaction.valor, splits);
-      toast({ title: "✓ Splits criados com sucesso" });
+      toast.success("✓ Splits criados com sucesso");
       onSaved();
       onClose();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Erro ao criar splits", variant: "destructive" });
+      toast.error(err?.message ?? "Erro ao criar splits");
     } finally {
       setIsSaving(false);
     }

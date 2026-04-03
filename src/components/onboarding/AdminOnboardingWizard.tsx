@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle2, Building2, Users, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const STEPS = [
   { icon: Building2, title: "Dados da Clínica", desc: "Configure o nome e contato da sua clínica" },
   { icon: Layers, title: "Modalidades", desc: "Defina os tipos de atendimento oferecidos" },
@@ -45,14 +44,14 @@ export function AdminOnboardingWizard() {
     } else {
       await supabase.from("clinic_settings").insert({ nome: clinicName, telefone: clinicPhone });
     }
-    toast({ title: "Clínica configurada! ✅" });
+    toast.success("Clínica configurada! ✅");
     setStep(1);
   };
 
   const handleSaveModalidade = async () => {
     if (!modalidade.trim()) { setStep(2); return; }
     await supabase.from("modalidades").insert({ nome: modalidade, created_by: user!.id });
-    toast({ title: "Modalidade criada! ✅" });
+    toast.success("Modalidade criada! ✅");
     setStep(2);
   };
 

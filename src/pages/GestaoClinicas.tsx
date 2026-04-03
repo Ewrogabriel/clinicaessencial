@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Plus, Edit, Users, Trash2, ArrowLeft } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface ClinicaForm {
   nome: string;
@@ -97,9 +97,9 @@ const GestaoClinicas = () => {
       setFormOpen(false);
       setEditingId(null);
       setForm(emptyForm);
-      toast({ title: editingId ? "Clínica atualizada!" : "Clínica criada!" });
+      toast.success(editingId ? "Clínica atualizada!" : "Clínica criada!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const addUserMutation = useMutation({
@@ -111,9 +111,9 @@ const GestaoClinicas = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-users"] });
       setAddUserId("");
-      toast({ title: "Usuário vinculado!" });
+      toast.success("Usuário vinculado!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const removeUserMutation = useMutation({
@@ -123,7 +123,7 @@ const GestaoClinicas = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-users"] });
-      toast({ title: "Usuário desvinculado!" });
+      toast.success("Usuário desvinculado!");
     },
   });
 

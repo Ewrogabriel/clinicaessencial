@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, Users, Calendar, DollarSign, Sparkles, ArrowRight, RotateCcw, ClipboardList } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { parseDateMultiFormat } from "@/lib/dateUtils";
+import { toast } from "sonner";
 
 type ImportType = "pacientes" | "agendamentos" | "pagamentos";
 type Step = "upload" | "mapping" | "preview" | "result";
@@ -201,7 +201,7 @@ const ImportacaoMassa = () => {
       }
       setMapping(autoMap);
       setStep("mapping");
-      toast({ title: `${data.length} registro(s) carregados. Configure o mapeamento de colunas.` });
+      toast.success(`${data.length} registro(s) carregados. Configure o mapeamento de colunas.`);
     } catch (err: any) {
       setErrors([err.message]);
     }
@@ -236,11 +236,7 @@ const ImportacaoMassa = () => {
       };
 
       if ((step === "mapping" ? rawRows : rows).length > 50) {
-        toast({ 
-          title: "Aviso", 
-          description: "Analisando apenas as primeiras 50 linhas para garantir performance.",
-          variant: "default"
-        });
+        toast.success("Aviso", { description: "Analisando apenas as primeiras 50 linhas para garantir performance." });
       }
 
       // Add address extraction context for patient imports
@@ -276,7 +272,7 @@ const ImportacaoMassa = () => {
         } else {
           setRows(corrected);
         }
-        toast({ title: "IA mapeou e corrigiu os dados com sucesso!" });
+        toast.success("IA mapeou e corrigiu os dados com sucesso!");
         if (step === "mapping") setStep("preview");
       } else {
         throw new Error("Resposta inválida da IA");
@@ -298,11 +294,7 @@ const ImportacaoMassa = () => {
       }
 
       setErrors([userMessage]);
-      toast({
-        title: "Aviso",
-        description: "Você pode continuar mapeando manualmente ou tente novamente depois.",
-        variant: "destructive"
-      });
+      toast.error("Aviso", { description: "Você pode continuar mapeando manualmente ou tente novamente depois." });
     } finally {
       setAnalyzingAI(false);
     }
@@ -313,11 +305,7 @@ const ImportacaoMassa = () => {
     if (!user || rows.length === 0) return;
     
     if (!activeClinicId) {
-      toast({
-        title: "Erro de Clínica",
-        description: "Nenhuma clínica selecionada. Por favor, selecione uma clínica no menu superior.",
-        variant: "destructive"
-      });
+      toast.error("Erro de Clínica", { description: "Nenhuma clínica selecionada. Por favor, selecione uma clínica no menu superior." });
       return;
     }
 
@@ -517,7 +505,7 @@ const ImportacaoMassa = () => {
     setStep("result");
     setImporting(false);
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
-    if (success > 0) toast({ title: `${success} registro(s) importados com sucesso!` });
+    if (success > 0) toast.success(`${success} registro(s) importados com sucesso!`);
   };
 
   const downloadTemplate = () => {

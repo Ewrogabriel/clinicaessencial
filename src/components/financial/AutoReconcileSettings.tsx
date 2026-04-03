@@ -16,8 +16,7 @@ import {
   ReconciliationConfig,
   DEFAULT_CONFIG,
 } from "@/modules/finance/services/configurationService";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface AutoReconcileSettingsProps {
   open: boolean;
   clinicId: string;
@@ -50,10 +49,10 @@ export function AutoReconcileSettings({
     try {
       setIsSaving(true);
       await configurationService.saveConfig(config);
-      toast({ title: "✓ Configurações salvas" });
+      toast.success("✓ Configurações salvas");
       onClose();
     } catch {
-      toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+      toast.error("Erro ao salvar configurações");
     } finally {
       setIsSaving(false);
     }

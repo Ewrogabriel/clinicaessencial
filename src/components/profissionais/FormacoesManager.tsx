@@ -9,10 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Plus, Pencil, Trash2, GraduationCap, Award } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Formacao {
   id: string;
@@ -83,11 +83,11 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
       }
     },
     onSuccess: () => {
-      toast({ title: editingId ? "Formação atualizada!" : "Formação adicionada!" });
+      toast.success(editingId ? "Formação atualizada!" : "Formação adicionada!");
       queryClient.invalidateQueries({ queryKey: ["profissional-formacoes", profissionalId] });
       resetForm();
     },
-    onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro ao salvar", { description: e.message }),
   });
 
   const deleteMutation = useMutation({
@@ -99,7 +99,7 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Formação removida!" });
+      toast.success("Formação removida!");
       queryClient.invalidateQueries({ queryKey: ["profissional-formacoes", profissionalId] });
     },
   });

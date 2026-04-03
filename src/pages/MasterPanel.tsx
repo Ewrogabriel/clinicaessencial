@@ -23,7 +23,6 @@ import {
   Building2, CreditCard, Crown, Link2, Plus, Users, AlertTriangle, Check, X,
   DollarSign, TrendingUp, Package, FileText, BookOpen,
 } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { maskPhone, maskCNPJ, maskCEP } from "@/lib/masks";
@@ -33,6 +32,7 @@ import { generateSubscriptionContractPDF } from "@/lib/generateSubscriptionContr
 import { MasterMarketingTab } from "@/components/master/MasterMarketingTab";
 import { ManualTab } from "@/components/master/ManualTab";
 import { Rocket } from "lucide-react";
+import { toast } from "sonner";
 
 const STATUS_COLORS: Record<string, string> = {
   ativa: "default",
@@ -84,7 +84,7 @@ function ClinicsTab() {
   });
 
   const handleSave = async () => {
-    if (!form.nome) { toast({ title: "Nome é obrigatório", variant: "destructive" }); return; }
+    if (!form.nome) { toast.error("Nome é obrigatório"); return; }
 
     // Create clinic
     const { data: clinic, error } = await (supabase.from("clinicas") as any).insert({
@@ -94,7 +94,7 @@ function ClinicsTab() {
       whatsapp: form.whatsapp || null, email: form.email || null, instagram: form.instagram || null,
     }).select().single();
 
-    if (error) { toast({ title: "Erro ao criar clínica", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Erro ao criar clínica", { description: error.message }); return; }
 
     // Create subscription if plan selected
     if (form.plan_id && clinic) {
@@ -149,23 +149,15 @@ function ClinicsTab() {
         if (adminError) throw adminError;
 
         if (data?.tempPassword) {
-          toast({
-            title: "Admin criado com sucesso! 🎉",
-            description: `Email: ${form.admin_email}\nSenha temporária: ${data.tempPassword}`,
-            duration: 10000,
-          });
+          toast.success("Admin criado com sucesso! 🎉", { description: `Email: ${form.admin_email}\nSenha temporária: ${data.tempPassword}` });
         }
       } catch (adminError: any) {
         console.error("Error creating admin:", adminError);
-        toast({
-          title: "Clínica criada, mas erro ao criar admin",
-          description: adminError.message,
-          variant: "destructive",
-        });
+        toast.error("Clínica criada, mas erro ao criar admin", { description: adminError.message });
       }
     }
 
-    toast({ title: "Clínica criada com sucesso! ✅" });
+    toast.success("Clínica criada com sucesso! ✅");
     setForm({ nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", telefone: "", whatsapp: "", email: "", instagram: "", responsavel_nome: "", responsavel_email: "", responsavel_telefone: "", plan_id: "", observacoes: "", admin_nome: "", admin_email: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
@@ -312,7 +304,7 @@ function PlansTab() {
   });
 
   const handleSave = async () => {
-    if (!form.nome || !form.valor_mensal) { toast({ title: "Nome e valor são obrigatórios", variant: "destructive" }); return; }
+    if (!form.nome || !form.valor_mensal) { toast.error("Nome e valor são obrigatórios"); return; }
 
     const recursos = form.recursos_selecionados.map(key => {
       const recurso = ALL_RESOURCES.find(r => r.key === key);
@@ -332,9 +324,9 @@ function PlansTab() {
       validade_dias: form.validade_dias ? parseInt(form.validade_dias) : null,
     });
 
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Erro", { description: error.message }); return; }
 
-    toast({ title: "Plano criado! ✅" });
+    toast.success("Plano criado! ✅");
     setForm({ nome: "", descricao: "", valor_mensal: "", max_pacientes: "", max_profissionais: "", max_clinicas: "1", cor: "#3b82f6", destaque: false, recursos_selecionados: [], validade_dias: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["platform-plans"] });
@@ -460,7 +452,7 @@ function PaymentsTab() {
 
   const handleRegisterPayment = async () => {
     if (!selectedSub || !payForm.mes_referencia || !payForm.valor) {
-      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" }); return;
+      toast.error("Preencha todos os campos obrigatórios"); return;
     }
 
     const { error } = await (supabase.from("subscription_payments") as any).insert({
@@ -473,9 +465,9 @@ function PaymentsTab() {
       observacoes: payForm.observacoes || null,
     });
 
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Erro", { description: error.message }); return; }
 
-    toast({ title: "Pagamento registrado! ✅" });
+    toast.success("Pagamento registrado! ✅");
     setPayForm({ mes_referencia: "", valor: "", forma_pagamento: "", observacoes: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["subscription-payments"] });
@@ -604,8 +596,8 @@ function GroupsTab() {
     const { error } = await (supabase.from("clinic_groups") as any).insert({
       nome: form.nome, descricao: form.descricao || null, created_by: user?.id,
     });
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Grupo criado! ✅" });
+    if (error) { toast.error("Erro", { description: error.message }); return; }
+    toast.success("Grupo criado! ✅");
     setForm({ nome: "", descricao: "" });
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["clinic-groups"] });
@@ -805,13 +797,13 @@ function UpgradeRequestsTab() {
       }
     },
     onSuccess: () => {
-      toast({ title: "Solicitação processada! ✅" });
+      toast.success("Solicitação processada! ✅");
       queryClient.invalidateQueries({ queryKey: ["plan-upgrade-requests"] });
       queryClient.invalidateQueries({ queryKey: ["master-subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
       queryClient.invalidateQueries({ queryKey: ["saas-status"] });
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const pendentes = requests.filter((r: any) => r.status === "pendente");

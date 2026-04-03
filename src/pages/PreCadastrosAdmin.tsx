@@ -14,9 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, Eye, UserPlus, Search, Layers, Loader2, CheckSquare } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { patientService } from "@/modules/patients/services/patientService";
+import { toast } from "sonner";
 
 type StatusFilter = "pendente" | "aprovado" | "rejeitado" | "todos";
 
@@ -73,7 +73,7 @@ const PreCadastrosAdmin = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
-      toast({ title: "Status atualizado!" });
+      toast.success("Status atualizado!");
     },
   });
 
@@ -95,14 +95,11 @@ const PreCadastrosAdmin = () => {
 
       setDetailOpen(false);
 
-      toast({
-        title: "Paciente cadastrado com sucesso!",
-        description: `Código de acesso: ${codigoAcesso || "—"}`,
-      });
+      toast.success("Paciente cadastrado com sucesso!", { description: `Código de acesso: ${codigoAcesso || "—"}` });
 
       setTimeout(() => navigate("/pacientes"), 1500);
     } catch (err: any) {
-      toast({ title: "Erro ao criar paciente", description: err.message, variant: "destructive" });
+      toast.error("Erro ao criar paciente", { description: err.message });
     } finally {
       setApproving(false);
     }
@@ -119,7 +116,7 @@ const PreCadastrosAdmin = () => {
     );
 
     if (pending.length === 0) {
-      toast({ title: "Nenhum pré-cadastro pendente neste lote." });
+      toast.success("Nenhum pré-cadastro pendente neste lote.");
       setBatchApproving(false);
       return;
     }
@@ -187,11 +184,7 @@ const PreCadastrosAdmin = () => {
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
     queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
 
-    toast({
-      title: `Aprovação em lote concluída: ${successCount} criados${
-        errorCount > 0 ? `, ${errorCount} com erro` : ""
-      }.`,
-    });
+    toast.success(`Aprovação em lote concluída: ${successCount} criados${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`);
   };
 
   // Bulk approve selected pending pre-cadastros (create patients)
@@ -222,9 +215,7 @@ const PreCadastrosAdmin = () => {
     setSelectedIds(new Set());
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
     queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
-    toast({
-      title: `${successCount} paciente(s) aprovado(s) e cadastrado(s)${errorCount > 0 ? `, ${errorCount} com erro` : ""}.`,
-    });
+    toast.success(`${successCount} paciente(s) aprovado(s) e cadastrado(s)${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`);
   };
 
   // Bulk reject selected pending pre-cadastros
@@ -250,9 +241,7 @@ const PreCadastrosAdmin = () => {
     setBulkActing(false);
     setSelectedIds(new Set());
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
-    toast({
-      title: `${successCount} pré-cadastro(s) rejeitado(s)${errorCount > 0 ? `, ${errorCount} com erro` : ""}.`,
-    });
+    toast.success(`${successCount} pré-cadastro(s) rejeitado(s)${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`);
   };
 
   // Collect unique batch IDs from pre-cadastros that have one

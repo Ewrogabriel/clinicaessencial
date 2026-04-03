@@ -52,7 +52,6 @@ import {
 import { useBankTransactions } from "@/modules/finance/hooks/useBankTransactions";
 import { useMatching } from "@/modules/finance/hooks/useMatching";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { Label } from "@/components/ui/label";
 import { ImportStatementDialog } from "@/components/financial/ImportStatementDialog";
@@ -78,6 +77,7 @@ import type { Anomaly } from "@/modules/finance/services/anomalyDetectionService
 import { autoReconciliationService } from "@/modules/finance/services/autoReconciliationService";
 import { auditService } from "@/modules/finance/services/auditService";
 import { TransactionDetailModal } from "@/components/financial/TransactionDetailModal";
+import { toast } from "sonner";
 
 const EXPENSE_CATEGORIES = [
   "aluguel", "luz", "agua", "internet", "limpeza",
@@ -255,12 +255,9 @@ export default function ConciliacaoBancaria() {
   const handleAutoMatch = async () => {
     try {
       const matches = await autoMatch();
-      toast({
-        title: "✓ Auto-matching Concluído",
-        description: `${matches.length} transações correspondidas automaticamente`,
-      });
+      toast.success("✓ Auto-matching Concluído", { description: `${matches.length} transações correspondidas automaticamente` });
     } catch {
-      toast({ title: "Erro ao fazer auto-matching", variant: "destructive" });
+      toast.error("Erro ao fazer auto-matching");
     }
   };
 
@@ -274,12 +271,9 @@ export default function ConciliacaoBancaria() {
         suggested: (prev?.suggested ?? 0) + result.suggested,
         totalProcessed: (prev?.totalProcessed ?? 0) + result.reconciled + result.suggested + result.skipped,
       }));
-      toast({
-        title: "✓ Auto-reconciliação concluída",
-        description: `${result.reconciled} conciliadas, ${result.suggested} sugeridas`,
-      });
+      toast.success("✓ Auto-reconciliação concluída", { description: `${result.reconciled} conciliadas, ${result.suggested} sugeridas` });
     } catch {
-      toast({ title: "Erro na auto-reconciliação", variant: "destructive" });
+      toast.error("Erro na auto-reconciliação");
     } finally {
       setIsRunningAutoReconcile(false);
     }
@@ -297,9 +291,9 @@ export default function ConciliacaoBancaria() {
         after_state: { status: "pendente", pagamento_id: null },
         reason: "Conciliação desfeita manualmente",
       });
-      toast({ title: "✓ Conciliação desfeita" });
+      toast.success("✓ Conciliação desfeita");
     } catch {
-      toast({ title: "Erro ao desfazer conciliação", variant: "destructive" });
+      toast.error("Erro ao desfazer conciliação");
     }
   };
 
@@ -326,21 +320,21 @@ export default function ConciliacaoBancaria() {
         paymentId: transactionId,
         notas: matchNotes,
       });
-      toast({ title: "✓ Transação vinculada com sucesso" });
+      toast.success("✓ Transação vinculada com sucesso");
       setShowMatchDialog(false);
       setMatchNotes("");
     } catch {
-      toast({ title: "Erro ao vincular transação", variant: "destructive" });
+      toast.error("Erro ao vincular transação");
     }
   };
 
   const handleAcceptSuggestion = async (transactionId: string, paymentId: string) => {
     try {
       await manualMatch({ transactionId, paymentId, notas: "Sugestão automática aceita" });
-      toast({ title: "✓ Sugestão aceita e transação conciliada" });
+      toast.success("✓ Sugestão aceita e transação conciliada");
       setShowMatchDialog(false);
     } catch {
-      toast({ title: "Erro ao aceitar sugestão", variant: "destructive" });
+      toast.error("Erro ao aceitar sugestão");
     }
   };
 
@@ -366,10 +360,10 @@ export default function ConciliacaoBancaria() {
           observacoes: `Despesa criada: ${expenseForm.descricao || selectedTransaction.descricao}${newExpense?.id ? ` (ID: ${newExpense.id})` : ""}`,
         },
       });
-      toast({ title: "✓ Despesa criada e transação conciliada" });
+      toast.success("✓ Despesa criada e transação conciliada");
       setShowMatchDialog(false);
     } catch {
-      toast({ title: "Erro ao criar despesa", variant: "destructive" });
+      toast.error("Erro ao criar despesa");
     } finally {
       setIsSavingExpense(false);
     }
@@ -388,10 +382,10 @@ export default function ConciliacaoBancaria() {
         id: selectedTransaction.id,
         reason: rejectMotivo || "Rejeitado manualmente",
       });
-      toast({ title: "✓ Transação rejeitada" });
+      toast.success("✓ Transação rejeitada");
       setShowRejectDialog(false);
     } catch {
-      toast({ title: "Erro ao rejeitar transação", variant: "destructive" });
+      toast.error("Erro ao rejeitar transação");
     }
   };
 
@@ -412,7 +406,7 @@ export default function ConciliacaoBancaria() {
     try {
       const valorNum = parseFloat(editForm.valor);
       if (isNaN(valorNum) || valorNum <= 0) {
-        toast({ title: "Valor inválido", variant: "destructive" });
+        toast.error("Valor inválido");
         return;
       }
       await update({
@@ -424,10 +418,10 @@ export default function ConciliacaoBancaria() {
           ...(editForm.bank_account_id ? { bank_account_id: editForm.bank_account_id } : {}),
         },
       });
-      toast({ title: "✓ Transação atualizada" });
+      toast.success("✓ Transação atualizada");
       setShowEditDialog(false);
     } catch {
-      toast({ title: "Erro ao atualizar transação", variant: "destructive" });
+      toast.error("Erro ao atualizar transação");
     }
   };
 
@@ -441,11 +435,11 @@ export default function ConciliacaoBancaria() {
     if (!selectedTransaction) return;
     try {
       await remove(selectedTransaction.id);
-      toast({ title: "✓ Transação excluída" });
+      toast.success("✓ Transação excluída");
       setShowDeleteConfirm(false);
       setSelectedTransaction(null);
     } catch {
-      toast({ title: "Erro ao excluir transação", variant: "destructive" });
+      toast.error("Erro ao excluir transação");
     }
   };
 

@@ -17,8 +17,7 @@ import {
 import { UserX, MessageCircle, Send, Filter } from "lucide-react";
 import { differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const TEMPLATES = [
   {
     label: "Retorno Gentil",
@@ -119,7 +118,7 @@ export const ReengagementCampaign = () => {
     patients.forEach((p: any) => {
       if (p.telefone) sendWhatsApp(p.telefone, p.nome);
     });
-    toast({ title: `${patients.length} mensagem(ns) preparada(s) para envio!` });
+    toast.success(`${patients.length} mensagem(ns) preparada(s) para envio!`);
   };
 
   return (

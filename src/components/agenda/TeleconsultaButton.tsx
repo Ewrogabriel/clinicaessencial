@@ -2,8 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Video, Copy, ExternalLink } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface TeleconsultaButtonProps {
   agendamentoId: string;
   pacienteNome: string;
@@ -28,7 +27,7 @@ export function TeleconsultaButton({
   const copyLink = () => {
     const url = `${window.location.origin}/teleconsulta?agendamento=${agendamentoId}`;
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copiado!", description: "Envie para o paciente via WhatsApp ou mensagem." });
+    toast.success("Link copiado!", { description: "Envie para o paciente via WhatsApp ou mensagem." });
   };
 
   const sendWhatsApp = () => {

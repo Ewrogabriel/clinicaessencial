@@ -15,8 +15,7 @@ import { DailyView, CalendarLegend, type Agendamento } from "@/components/agenda
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface DashboardAgendaProps {
   isAdmin: boolean;
   defaultProfissionalId?: string;
@@ -93,8 +92,8 @@ export function DashboardAgenda({ isAdmin, defaultProfissionalId }: DashboardAge
 
   const handleCancelAppointment = async (id: string) => {
     cancelMutation.mutate({ id, status: "cancelado" }, {
-      onSuccess: () => { toast({ title: "Agendamento cancelado" }); refetchAgendamentos(); },
-      onError: () => toast({ title: "Erro ao cancelar", variant: "destructive" }),
+      onSuccess: () => { toast.success("Agendamento cancelado"); refetchAgendamentos(); },
+      onError: () => toast.error("Erro ao cancelar"),
     });
   };
 
@@ -102,7 +101,7 @@ export function DashboardAgenda({ isAdmin, defaultProfissionalId }: DashboardAge
     const ag = agendamentos.find((a) => a.id === agId);
     if (!ag) return;
     rescheduleMutation.mutate({ id: agId, newDate, profissionalId: ag.profissional_id }, {
-      onSuccess: () => { toast({ title: "Sessão reagendada!" }); refetchAgendamentos(); },
+      onSuccess: () => { toast.success("Sessão reagendada!"); refetchAgendamentos(); },
     });
   };
 

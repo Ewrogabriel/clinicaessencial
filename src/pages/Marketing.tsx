@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
 import { LandingSiteEditor } from "@/components/marketing/LandingSiteEditor";
+import { toast } from "sonner";
 
 interface Ad {
   titulo: string;
@@ -86,9 +86,9 @@ const Marketing = () => {
       });
       if (error) throw error;
       setClinicAds(data?.ads || []);
-      toast({ title: "Anúncios gerados com sucesso!" });
+      toast.success("Anúncios gerados com sucesso!");
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -109,9 +109,9 @@ const Marketing = () => {
       });
       if (error) throw error;
       setPlanAds(data?.ads || []);
-      toast({ title: "Anúncios de planos gerados!" });
+      toast.success("Anúncios de planos gerados!");
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -133,9 +133,9 @@ const Marketing = () => {
       });
       if (error) throw error;
       setSocialPosts(data?.posts || []);
-      toast({ title: "Posts gerados com sucesso!" });
+      toast.success("Posts gerados com sucesso!");
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -167,10 +167,10 @@ const Marketing = () => {
         created_by: user.id,
       });
       if (error) throw error;
-      toast({ title: "Campanha salva!", description: "Você pode acessá-la no histórico." });
+      toast.success("Campanha salva!", { description: "Você pode acessá-la no histórico." });
       refetchCampaigns();
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     } finally {
       setSavingCampaign(false);
     }
@@ -179,16 +179,16 @@ const Marketing = () => {
   const deleteCampaign = async (id: string) => {
     const { error } = await supabase.from("marketing_campaigns").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erro ao excluir", variant: "destructive" });
+      toast.error("Erro ao excluir");
     } else {
-      toast({ title: "Campanha excluída" });
+      toast.success("Campanha excluída");
       refetchCampaigns();
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
+    toast.success("Copiado!", { description: "Texto copiado para a área de transferência" });
   };
 
   const renderAdCard = (ad: Ad, index: number) => (
@@ -628,7 +628,7 @@ const Marketing = () => {
                                   setSocialPosts(content.posts || []);
                                   setActiveTab("social-posts");
                                 }
-                                toast({ title: "Campanha carregada!" });
+                                toast.success("Campanha carregada!");
                               }}
                             >
                               <ExternalLink className="h-3 w-3" /> Ver

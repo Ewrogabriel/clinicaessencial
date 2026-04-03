@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -21,6 +20,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
 
 interface PolicyForm {
   nome: string;
@@ -101,10 +101,10 @@ export function CancellationPolicies() {
       setFormOpen(false);
       setEditingId(null);
       setForm(emptyForm);
-      toast({ title: editingId ? "Política atualizada!" : "Política criada!" });
+      toast.success(editingId ? "Política atualizada!" : "Política criada!");
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     },
   });
 
@@ -118,7 +118,7 @@ export function CancellationPolicies() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["politicas-cancelamento"] });
       setDeleteTarget(null);
-      toast({ title: "Política removida." });
+      toast.success("Política removida.");
     },
   });
 

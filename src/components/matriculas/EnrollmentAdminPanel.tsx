@@ -13,7 +13,6 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -21,6 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
 import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────
 // CANCELLATION POLICY EDITOR
@@ -60,10 +60,10 @@ function CancellationPolicyEditor() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["cancellation-policy"] });
-            toast({ title: "✅ Política de cancelamento salva!" });
+            toast.success("✅ Política de cancelamento salva!");
         },
         onError: (err) => {
-            toast({ title: "Erro ao salvar", description: String(err), variant: "destructive" });
+            toast.error("Erro ao salvar", { description: String(err) });
         },
     });
 
@@ -158,12 +158,12 @@ function EnrollmentBlockManager() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["enrollments-block-view"] });
             queryClient.invalidateQueries({ queryKey: ["matriculas"] });
-            toast({ title: blocking?.bloqueado_admin ? "✅ Matrícula desbloqueada" : "🔒 Matrícula bloqueada" });
+            toast.success(blocking?.bloqueado_admin ? "✅ Matrícula desbloqueada" : "🔒 Matrícula bloqueada");
             setBlocking(null);
             setMotive("");
         },
         onError: (err) => {
-            toast({ title: "Erro", description: String(err), variant: "destructive" });
+            toast.error("Erro", { description: String(err) });
         },
     });
 
@@ -227,13 +227,13 @@ function EnrollmentBlockManager() {
         onSuccess: (count) => {
             if (count > 0) {
                 queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-                toast({ title: `✅ ${count} sessões geradas para o próximo mês!` });
+                toast.success(`✅ ${count} sessões geradas para o próximo mês!`);
             } else {
-                toast({ title: "Nenhuma sessão nova necessária para este período." });
+                toast.success("Nenhuma sessão nova necessária para este período.");
             }
         },
         onError: (err) => {
-            toast({ title: "Erro ao gerar sessões", description: String(err), variant: "destructive" });
+            toast.error("Erro ao gerar sessões", { description: String(err) });
         },
     });
 
