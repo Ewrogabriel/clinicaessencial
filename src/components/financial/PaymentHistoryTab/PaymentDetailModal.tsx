@@ -16,7 +16,9 @@ import {
 } from "@/modules/finance/utils/paymentHelpers";
 import { ReconciliationBadge } from "./ReconciliationBadge";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
+import { uploadReceiptToStorage } from "@/lib/uploadReceiptToStorage";
 import { toast } from "sonner";
+import { useState as useStateReact } from "react";
 import type { PaymentEntry } from "./types";
 
 interface PaymentDetailModalProps {
