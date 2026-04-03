@@ -150,7 +150,7 @@ export const FinanceDashboard = () => {
       if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
       const { data } = await q;
       const total = (data || []).reduce((s, p) => s + Number(p.valor), 0);
-      const vencido = (data || []).filter(p => p.status === "vencido").reduce((s, p) => s + Number(p.valor), 0);
+      const vencido = (data || []).filter(p => (p.status as string) === "vencido").reduce((s, p) => s + Number(p.valor), 0);
       return { total, vencido, count: (data || []).length };
     },
     staleTime: DASHBOARD_STALE_TIME,

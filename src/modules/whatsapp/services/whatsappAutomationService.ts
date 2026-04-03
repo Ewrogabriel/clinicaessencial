@@ -232,7 +232,7 @@ export async function sendMonthlyReminder(clinicId: string): Promise<void> {
       patientPhone: phone,
       amount: row.valor,
       dueDate: row.data_vencimento
-        ? formatDate(row.data_vencimento)
+        ? new Date(row.data_vencimento).toLocaleDateString("pt-BR")
         : "—",
     };
 

@@ -126,7 +126,7 @@ export function FinancialTabs({
 
       <TabsContent value="integracao" className="space-y-4">
         <Suspense fallback={<LazyLoadFallback />}>
-          <IntegrationStatus />
+          <IntegrationStatus clinicId={activeClinicId || ""} />
         </Suspense>
       </TabsContent>
     </Tabs>
