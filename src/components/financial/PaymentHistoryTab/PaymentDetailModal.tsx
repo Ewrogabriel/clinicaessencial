@@ -214,7 +214,7 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", on
                     const pdf = await generateReceiptPDF({
                       numero,
                       pacienteNome,
-                      cpf: "",
+                      cpf: pacienteCpf,
                       descricao: payment.descricao || "Serviço",
                       valor: Math.abs(payment.valor),
                       formaPagamento: payment.forma_pagamento || "",
