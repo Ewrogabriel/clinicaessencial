@@ -6,6 +6,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { NotificationCenter } from "@/components/financial/NotificationCenter";
 
 export function AppLayout() {
   const { isPatient } = useAuth();
@@ -21,6 +22,7 @@ export function AppLayout() {
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <LanguageSwitcher />
               <ThemeToggle />
+              <NotificationCenter />
               <NotificationBell />
             </div>
           </header>
