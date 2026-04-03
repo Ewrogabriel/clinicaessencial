@@ -230,12 +230,19 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                       });
                       const blob = pdf.output("blob");
                       const publicUrl = await uploadReceiptToStorage(blob, numero);
-                      const text = encodeURIComponent(
-                        `Olá! Segue o recibo nº ${numero} no valor de R$ ${Math.abs(payment.valor).toFixed(2)}.\n\nBaixe aqui: ${publicUrl}`
-                      );
+                      const firstName = pacienteNome.split(" ")[0];
+                      const valorFormatado = Math.abs(payment.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                      const mensagem =
+                        `Olá ${firstName}! 😊\n\n` +
+                        `Segue o recibo referente ao seu pagamento:\n\n` +
+                        `🧾 *Recibo nº ${numero}*\n` +
+                        `💰 Valor: *${valorFormatado}*\n` +
+                        (payment.forma_pagamento ? `💳 Forma: *${payment.forma_pagamento}*\n` : "") +
+                        `\n📄 Baixe seu recibo aqui:\n${publicUrl}\n\n` +
+                        `Qualquer dúvida, estamos à disposição! 🙏`;
                       const phoneNumber = pacienteTelefone.replace(/\D/g, "");
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
+                      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`, "_blank");
                       toast.success("Link do recibo gerado e enviado!");
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar recibo.");
