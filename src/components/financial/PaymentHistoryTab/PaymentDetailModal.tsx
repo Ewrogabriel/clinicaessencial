@@ -1,4 +1,4 @@
-import { AlertTriangle, User } from "lucide-react";
+import { AlertTriangle, User, Download, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,14 +15,17 @@ import {
   labelStatus,
 } from "@/modules/finance/utils/paymentHelpers";
 import { ReconciliationBadge } from "./ReconciliationBadge";
+import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
+import { toast } from "sonner";
 import type { PaymentEntry } from "./types";
 
 interface PaymentDetailModalProps {
   payment: PaymentEntry;
+  pacienteNome: string;
   onClose: () => void;
 }
 
-export function PaymentDetailModal({ payment, onClose }: PaymentDetailModalProps) {
+export function PaymentDetailModal({ payment, pacienteNome, onClose }: PaymentDetailModalProps) {
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
   const statusInfo = labelStatus[payment.status] ?? {
@@ -170,7 +173,80 @@ export function PaymentDetailModal({ payment, onClose }: PaymentDetailModalProps
           )}
         </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-between pt-2 gap-2">
+          <div className="flex gap-2">
+            {payment.status === "pago" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={async () => {
+                    const numero = getReceiptNumber(payment.id, payment.created_at);
+                    const dateStr2 = payment.data_pagamento || payment.created_at;
+                    const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
+                    const pdf = await generateReceiptPDF({
+                      numero,
+                      pacienteNome,
+                      cpf: "",
+                      descricao: payment.descricao || "Serviço",
+                      valor: Math.abs(payment.valor),
+                      formaPagamento: payment.forma_pagamento || "",
+                      dataPagamento: dataPgto,
+                      referencia: payment.descricao || "Serviço",
+                    });
+                    pdf.save(`Recibo_${numero}.pdf`);
+                    toast.success("Recibo gerado!");
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar Recibo
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={async () => {
+                    const numero = getReceiptNumber(payment.id, payment.created_at);
+                    const dateStr2 = payment.data_pagamento || payment.created_at;
+                    const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
+                    const pdf = await generateReceiptPDF({
+                      numero,
+                      pacienteNome,
+                      cpf: "",
+                      descricao: payment.descricao || "Serviço",
+                      valor: Math.abs(payment.valor),
+                      formaPagamento: payment.forma_pagamento || "",
+                      dataPagamento: dataPgto,
+                      referencia: payment.descricao || "Serviço",
+                    });
+                    const blob = pdf.output("blob");
+                    const url = URL.createObjectURL(blob);
+
+                    // Try Web Share API for mobile
+                    if (navigator.share && navigator.canShare) {
+                      try {
+                        const file = new File([blob], `Recibo_${numero}.pdf`, { type: "application/pdf" });
+                        await navigator.share({ title: `Recibo ${numero}`, files: [file] });
+                        toast.success("Recibo enviado!");
+                        return;
+                      } catch {}
+                    }
+                    // Fallback: open WhatsApp with text
+                    const text = encodeURIComponent(`Segue o recibo nº ${numero} no valor de R$ ${Math.abs(payment.valor).toFixed(2)}.`);
+                    window.open(`https://wa.me/?text=${text}`, "_blank");
+                    // Also download so user can attach
+                    pdf.save(`Recibo_${numero}.pdf`);
+                    toast.info("Recibo baixado. Anexe manualmente no WhatsApp.");
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Send className="h-4 w-4" />
+                  Enviar Recibo
+                </Button>
+              </>
+            )}
+          </div>
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>

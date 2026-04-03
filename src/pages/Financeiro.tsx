@@ -416,8 +416,8 @@ const Financeiro = () => {
                           </Badge>
                         </div>
                         <div className="w-[80px] text-right flex justify-end gap-1">
-                          {isPaid && pagamento.source_table === "pagamentos" && (
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={async () => {
+                          {isPaid && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Baixar Recibo" onClick={async () => {
                               const numero = getReceiptNumber(pagamento.id, pagamento.created_at);
                               const dataPgto = formatDate(pagamento.data_pagamento);
                               const ref = pagamento.descricao || "Serviço";
@@ -428,7 +428,7 @@ const Financeiro = () => {
                               <Download className="h-4 w-4" />
                             </Button>
                           )}
-                          {isPaid && pagamento.source_table === "pagamentos" && !isPatient && (
+                          {isPaid && !isPatient && (
                             <Button
                               size="sm"
                               variant="ghost"
