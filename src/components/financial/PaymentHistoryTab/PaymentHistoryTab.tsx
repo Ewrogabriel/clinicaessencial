@@ -18,7 +18,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
   const { data: pacienteData } = useQuery({
     queryKey: ["paciente-cpf", pacienteId],
     queryFn: async () => {
-      const { data } = await supabase.from("pacientes").select("cpf").eq("id", pacienteId).single();
+      const { data } = await supabase.from("pacientes").select("cpf, telefone, whatsapp").eq("id", pacienteId).single();
       return data;
     },
     staleTime: 1000 * 60 * 30,
