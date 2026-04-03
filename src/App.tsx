@@ -31,7 +31,7 @@ const Matriculas = lazy(() => import("./pages/Matriculas"));
 const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
 const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
-const InteligenciaBI = lazy(() => import("./pages/InteligenciaBI"));
+
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const Inventario = lazy(() => import("./pages/Inventario"));
 const Modalidades = lazy(() => import("./pages/Modalidades"));
