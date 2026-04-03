@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, CheckCircle, AlertCircle, Clock, Zap } from "lucide-react";
+import { toast } from "sonner";
 
 interface SyncLog {
   id: string;

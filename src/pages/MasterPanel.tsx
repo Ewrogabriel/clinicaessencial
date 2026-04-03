@@ -23,7 +23,6 @@ import {
   Building2, CreditCard, Crown, Link2, Plus, Users, AlertTriangle, Check, X,
   DollarSign, TrendingUp, Package, FileText, BookOpen,
 } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { maskPhone, maskCNPJ, maskCEP } from "@/lib/masks";
@@ -33,6 +32,7 @@ import { generateSubscriptionContractPDF } from "@/lib/generateSubscriptionContr
 import { MasterMarketingTab } from "@/components/master/MasterMarketingTab";
 import { ManualTab } from "@/components/master/ManualTab";
 import { Rocket } from "lucide-react";
+import { toast } from "sonner";
 
 const STATUS_COLORS: Record<string, string> = {
   ativa: "default",

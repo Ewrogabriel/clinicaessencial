@@ -14,8 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Upload, FileText, Trash2, Camera, Video, Home, ClipboardList, ArrowRight, Plus } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
+import { toast } from "sonner";
 
 const PerfilProfissional = () => {
   const { user, profile: authProfile } = useAuth();

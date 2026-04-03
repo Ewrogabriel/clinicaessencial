@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { splitService, SplitEntry } from "@/modules/finance/services/splitService";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
+import { toast } from "sonner";
 
 interface SplitPaymentModalProps {
   open: boolean;

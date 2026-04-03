@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Activity, LogIn } from "lucide-react";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useI18n } from "@/modules/shared/hooks/useI18n";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, resetPassword, user } = useAuth();

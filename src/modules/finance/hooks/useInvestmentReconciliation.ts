@@ -4,7 +4,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import {
   investmentReconciliationService,
   type Investment,
@@ -16,6 +15,7 @@ import {
   type InvestmentMovementType,
 } from "@/modules/finance/services/investmentDetectionService";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
+import { toast } from "sonner";
 
 // ── useInvestmentDetection ───────────────────────────────────────────────
 

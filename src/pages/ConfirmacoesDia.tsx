@@ -19,9 +19,9 @@ import {
 } from "lucide-react";
 import { format, addDays, parseISO, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { buildConfirmationMessage } from "@/lib/whatsapp/confirmationTemplates";
+import { toast } from "sonner";
 
 const statusLabel: Record<string, { label: string; color: string }> = {
   confirmado: { label: "Confirmado ✓", color: "bg-green-100 text-green-700 border-green-200" },

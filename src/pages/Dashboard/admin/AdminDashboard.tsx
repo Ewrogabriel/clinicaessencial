@@ -36,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -44,6 +43,7 @@ import { ClinicReportButton } from "@/components/reports/ClinicReportButton";
 import { AIKpiInsights } from "@/components/reports/AIKpiInsights";
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
+import { toast } from "sonner";
 
 const ADMIN_DEFAULT_CARDS: DashboardCard[] = [
   { id: "today-agenda", label: "Agenda de Hoje", visible: true },

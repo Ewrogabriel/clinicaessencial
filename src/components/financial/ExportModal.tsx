@@ -18,8 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { reportingService } from "@/modules/finance/services/reportingService";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface ExportModalProps {
   open: boolean;
   clinicId: string;

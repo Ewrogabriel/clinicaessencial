@@ -8,8 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Activity, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, maskRG } from "@/lib/masks";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const PreCadastro = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);

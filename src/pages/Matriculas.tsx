@@ -26,7 +26,6 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -39,6 +38,7 @@ import { EnrollmentAdminPanel } from "@/components/matriculas/EnrollmentAdminPan
 import { CancellationPolicies } from "@/components/matriculas/CancellationPolicies";
 import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
 import Planos from "./Planos";
+import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   ativa: { label: "Ativa", variant: "default" },

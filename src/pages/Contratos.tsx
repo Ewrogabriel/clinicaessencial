@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateContractPDF } from "@/lib/generateContractPDF";
 import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContractPDF";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
@@ -21,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PenTool } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SignaturePad } from "@/components/clinical/SignaturePad";
+import { toast } from "sonner";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();

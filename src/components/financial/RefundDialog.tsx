@@ -17,9 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
+import { toast } from "sonner";
 
 interface RefundDialogProps {
   open: boolean;

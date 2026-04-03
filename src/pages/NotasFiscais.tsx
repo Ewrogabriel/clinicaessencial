@@ -11,10 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, CheckCircle2, Search, Eye, Upload, Download, Send, RefreshCw, AlertTriangle } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 const NotasFiscais = () => {
   const { user } = useAuth();

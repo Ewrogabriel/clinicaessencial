@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { User, Phone, Mail, MapPin, FileText, Edit2, Save, X, AlertCircle, CheckCircle2, Camera, Upload, FileDown, Clock, RotateCcw } from "lucide-react";
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useState, useCallback } from "react";
 import { maskCEP } from "@/lib/masks";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className} fill="currentColor">

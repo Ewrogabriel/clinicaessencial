@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type Session = {
     id: string;
     data_horario: string;

@@ -5,10 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Check, X, Loader2, AlertCircle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface IntegrationConfig {
   id: string;

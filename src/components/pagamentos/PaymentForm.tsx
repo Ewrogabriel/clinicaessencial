@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Copy, QrCode } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface PaymentFormProps {
   tipo: "mensalidade" | "sessao";
   items: any[];

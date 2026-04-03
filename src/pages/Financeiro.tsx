@@ -22,13 +22,13 @@ import {
 } from "@/components/ui/select";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { lazy, Suspense } from "react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import { financeService } from "@/modules/finance/services/financeService";
 import { FinancialTabs } from "@/components/financial/FinancialTabs";
+import { toast } from "sonner";
 
 const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pago: { label: "Pago", variant: "default" },

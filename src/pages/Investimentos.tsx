@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -19,6 +18,7 @@ import {
   Pencil, Trash2, ArrowDownToLine, Upload, MoreHorizontal
 } from "lucide-react";
 import {
+import { toast } from "sonner";
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 

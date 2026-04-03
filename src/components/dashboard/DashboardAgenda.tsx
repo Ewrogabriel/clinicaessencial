@@ -15,8 +15,7 @@ import { DailyView, CalendarLegend, type Agendamento } from "@/components/agenda
 import { AgendamentoForm } from "@/components/agenda/AgendamentoForm";
 import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface DashboardAgendaProps {
   isAdmin: boolean;
   defaultProfissionalId?: string;

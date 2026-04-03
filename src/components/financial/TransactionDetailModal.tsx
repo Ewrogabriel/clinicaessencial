@@ -44,7 +44,6 @@ import {
   Keyboard,
   TrendingUp,
 } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { AuditTrail } from "@/components/financial/AuditTrail";
 import { AnomalyBadge } from "@/components/financial/AnomalyBadge";
@@ -52,6 +51,7 @@ import { InvestmentLinkSection } from "@/components/financial/InvestmentLinkSect
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
 import type { PossibleMatch } from "@/modules/finance/services/matchingService";
 import type { Anomaly } from "@/modules/finance/services/anomalyDetectionService";
+import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

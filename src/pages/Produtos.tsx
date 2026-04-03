@@ -15,10 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
+import { toast } from "sonner";
 
 const Produtos = () => {
   const { user, isAdmin, isProfissional } = useAuth();

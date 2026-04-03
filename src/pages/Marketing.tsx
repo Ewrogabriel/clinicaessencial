@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { MarketingImageGenerator } from "@/components/marketing/MarketingImageGenerator";
 import { LandingSiteEditor } from "@/components/marketing/LandingSiteEditor";
+import { toast } from "sonner";
 
 interface Ad {
   titulo: string;

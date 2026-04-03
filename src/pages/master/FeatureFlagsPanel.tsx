@@ -25,8 +25,8 @@ import {
   FeatureFlagData,
 } from "@/components/master/FeatureFlagToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { getFeatureFlags, updateFeatureFlag } from "@/modules/master/services/masterService";
+import { toast } from "sonner";
 
 const CATEGORIES = ["billing", "teleconsultation", "gamification", "reports", "integrations", "misc"];
 

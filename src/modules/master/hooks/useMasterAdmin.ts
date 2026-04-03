@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import {
+import { toast } from "sonner";
   getClinics,
   getClinicStats,
   getMasterUsers,

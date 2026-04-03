@@ -29,10 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useMasterUsers } from "@/modules/master/hooks/useMasterAdmin";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function UserManagement() {
   const queryClient = useQueryClient();

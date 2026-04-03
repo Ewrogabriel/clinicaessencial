@@ -29,9 +29,9 @@ import {
 } from "lucide-react";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
 import { useStatementImport } from "@/modules/finance/hooks/useStatementImport";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
+import { toast } from "sonner";
 
 interface ImportStatementDialogProps {
   open: boolean;

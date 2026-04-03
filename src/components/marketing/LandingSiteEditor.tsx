@@ -6,11 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+import { toast } from "sonner";
   Sparkles, Loader2, Save, ExternalLink, RefreshCw,
   Type, CreditCard, MessageSquare, Phone, Plus, Trash2, Star
 } from "lucide-react";

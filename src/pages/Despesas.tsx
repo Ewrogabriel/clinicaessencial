@@ -17,8 +17,8 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 const categorias = ["aluguel", "luz", "agua", "internet", "limpeza", "pessoal", "impostos", "insumos", "marketing", "outros"];
 

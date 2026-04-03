@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,7 @@ import { generateProfessionalContractPDF } from "@/lib/generateProfessionalContr
 import { cleanSignatureImage } from "@/lib/imageUtils";
 import { Loader2, Sparkles } from "lucide-react";
 import { CouncilCombobox } from "@/components/ui/council-combobox";
+import { toast } from "sonner";
 
 interface PermissionEntry {
   resource: string;

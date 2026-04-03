@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import * as XLSX from "xlsx";
 
 import { UnifiedPayment } from "@/types/database.types";
+import { toast } from "sonner";
 
 interface FinanceExportButtonProps {
   pagamentos: UnifiedPayment[];

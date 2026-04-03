@@ -7,8 +7,7 @@ import { CheckCircle2, XCircle, Calendar, Clock, User, RefreshCw } from "lucide-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ReagendamentoDialog } from "@/components/agenda/ReagendamentoDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const ConfirmarAgendamento = () => {
   const { id } = useParams();
   const [agendamento, setAgendamento] = useState<any>(null);

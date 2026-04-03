@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Landmark, Pencil, Trash2 } from "lucide-react";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
 import { BankAccountDialog } from "@/components/financial/BankAccountDialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import type { BankAccount } from "@/modules/finance/types";
+import { toast } from "sonner";
 
 export default function ContasBancarias() {
   const { accounts, isLoading, deleteAccount, isDeleting } = useBankAccounts();

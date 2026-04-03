@@ -20,8 +20,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const COLORS = ["hsl(168, 65%, 38%)", "hsl(199, 89%, 48%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(142, 71%, 45%)", "hsl(280, 60%, 55%)"];
 
 const Relatorios = () => {

@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
@@ -23,6 +22,7 @@ import { Calendar, ShieldCheck, CheckCircle2, XCircle, Rocket } from "lucide-rea
 import { useSaaS } from "@/modules/shared/hooks/useSaaS";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 function UpgradePlanButton({ clinicId, currentPlan }: { clinicId?: string; currentPlan?: string }) {
   const { user } = useAuth();

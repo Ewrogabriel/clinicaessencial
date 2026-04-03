@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Target, Plus, Pencil, Trash2, Calendar, DollarSign, Users, CheckCircle2, XCircle, Clock, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Meta {
   id: string;

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Copy, MessageCircle, Smartphone, QrCode, Share2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface DocumentShareDialogProps {
   open: boolean;

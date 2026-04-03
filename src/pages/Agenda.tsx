@@ -19,10 +19,10 @@ import { AppointmentDetailDialog } from "@/components/agenda/AppointmentDetailDi
 import { DayScheduleModal } from "@/components/agenda/DayScheduleModal";
 import { DailyView, WeeklyView, MonthlyView, CalendarLegend, type Agendamento } from "@/components/agenda/AgendaViews";
 import { generateWeeklyPDF } from "@/lib/generateAgendaPDF";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePersistedFilter } from "@/modules/shared/hooks/usePersistedFilter";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import type { StatusAgendamento } from "@/types/entities";
+import { toast } from "sonner";
 
 const VacancyCalendar = lazy(() => import("./VacancyCalendar"));
 const ListaEspera = lazy(() => import("./ListaEspera"));

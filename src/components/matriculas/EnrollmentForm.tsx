@@ -15,9 +15,9 @@ import { getMonthlyAvailability } from "@/lib/availabilityCheck";
 import { cn } from "@/lib/utils";
 import { isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useWeekdaySlots } from "@/modules/appointments/hooks/useAppointments";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 export type WeeklyScheduleEntry = {
     weekday: number;

@@ -14,9 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, Eye, UserPlus, Search, Layers, Loader2, CheckSquare } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { patientService } from "@/modules/patients/services/patientService";
+import { toast } from "sonner";
 
 type StatusFilter = "pendente" | "aprovado" | "rejeitado" | "todos";
 

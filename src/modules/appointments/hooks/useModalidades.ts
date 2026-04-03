@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Modalidade } from "@/types/entities";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { toast } from "sonner";
 
 interface UseModalidadesOptions {
     ativo?: boolean;

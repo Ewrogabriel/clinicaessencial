@@ -13,8 +13,8 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, XCircle, Eye, RefreshCw, ArrowRight, CalendarClock, CalendarPlus, FileEdit, ShoppingBag, Clock, FileDown } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { FichaRequestsPanel } from "@/components/admin/FichaRequestsPanel";
+import { toast } from "sonner";
 
 const FIELD_LABELS: Record<string, string> = {
   telefone: "Telefone", email: "Email", data_nascimento: "Data de Nascimento",

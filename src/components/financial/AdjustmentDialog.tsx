@@ -17,8 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface AdjustmentDialogProps {
   open: boolean;
   clinicId: string;

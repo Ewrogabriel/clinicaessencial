@@ -26,8 +26,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 interface PlanoSessoesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

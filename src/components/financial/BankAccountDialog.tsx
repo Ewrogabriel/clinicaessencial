@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Landmark } from "lucide-react";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import type { BankAccount } from "@/modules/finance/types";
+import { toast } from "sonner";
 
 const BANKS = [
   { codigo: "077", nome: "Inter" },

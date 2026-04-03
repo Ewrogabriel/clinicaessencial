@@ -7,8 +7,8 @@ import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export function RequestsCard() {
   const { user } = useAuth();

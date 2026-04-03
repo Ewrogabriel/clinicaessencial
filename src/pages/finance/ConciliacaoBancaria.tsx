@@ -52,7 +52,6 @@ import {
 import { useBankTransactions } from "@/modules/finance/hooks/useBankTransactions";
 import { useMatching } from "@/modules/finance/hooks/useMatching";
 import { useBankAccounts } from "@/modules/finance/hooks/useBankAccounts";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { Label } from "@/components/ui/label";
 import { ImportStatementDialog } from "@/components/financial/ImportStatementDialog";
@@ -78,6 +77,7 @@ import type { Anomaly } from "@/modules/finance/services/anomalyDetectionService
 import { autoReconciliationService } from "@/modules/finance/services/autoReconciliationService";
 import { auditService } from "@/modules/finance/services/auditService";
 import { TransactionDetailModal } from "@/components/financial/TransactionDetailModal";
+import { toast } from "sonner";
 
 const EXPENSE_CATEGORIES = [
   "aluguel", "luz", "agua", "internet", "limpeza",

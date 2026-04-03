@@ -15,8 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClinicTable } from "@/components/master/ClinicTable";
 import { ClinicDetailDialog } from "@/components/master/ClinicDetailDialog";
 import { useClinics, useActivateClinic, useDeactivateClinic } from "@/modules/master/hooks/useMasterAdmin";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type StatusFilter = "all" | "ativa" | "trial" | "suspensa" | "cancelada";
 
 export default function ClinicManagement() {

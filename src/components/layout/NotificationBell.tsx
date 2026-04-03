@@ -15,14 +15,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+import { toast } from "sonner";
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
 interface Notificacao {
   id: string;
   tipo: string;

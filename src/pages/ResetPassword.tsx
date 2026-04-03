@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 const ResetPassword = () => {
     const navigate = useNavigate();
     const [password, setPassword] = useState("");

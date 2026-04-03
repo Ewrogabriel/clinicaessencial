@@ -16,8 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Clock, DollarSign, Send, Filter } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 type AgingBucket = "0-30" | "31-60" | "61-90" | "90+";
 
 interface DelinquentPayment {

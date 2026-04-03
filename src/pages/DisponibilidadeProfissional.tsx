@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Clock, Plus, Trash2, Users, CalendarDays, Copy, Edit2, Check, X, Download, CalendarOff, PartyPopper, Eye, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
@@ -27,6 +26,7 @@ import { generateAvailabilityPDF } from "@/lib/generateAvailabilityPDF";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const DIAS_SEMANA = [
   { value: 1, label: "Segunda-feira", short: "Seg" },

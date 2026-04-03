@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 export type Paciente = Tables<"pacientes">;
 

@@ -14,9 +14,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { FileText, Brain, Loader2 } from "lucide-react";
 import { SignaturePad } from "./SignaturePad";
+import { toast } from "sonner";
 
 const EVOLUTION_TEMPLATES = [
   {

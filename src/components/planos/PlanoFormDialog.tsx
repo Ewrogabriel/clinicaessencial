@@ -14,9 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
-
+import { toast } from "sonner";
 interface PlanoFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

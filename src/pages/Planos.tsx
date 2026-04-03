@@ -21,9 +21,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
 import { PlanoSessoesDialog } from "@/components/planos/PlanoSessoesDialog";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   ativo: { label: "Ativo", variant: "default" },

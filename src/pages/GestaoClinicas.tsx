@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Plus, Edit, Users, Trash2, ArrowLeft } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface ClinicaForm {
   nome: string;

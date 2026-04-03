@@ -4,8 +4,7 @@ import { FileText, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { generateClinicReportPDF } from "@/lib/generateClinicReportPDF";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 export function ClinicReportButton() {
   const [loading, setLoading] = useState(false);
   const { activeClinicId } = useClinic();

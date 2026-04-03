@@ -14,10 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import jsPDF from "jspdf";
 import { getClinicSettings, addLogoToPDF, formatClinicAddress } from "@/lib/pdfLogo";
 import { calculateSessionValue, calculateSessionCommission } from "@/lib/calculations";
+import { toast } from "sonner";
 
 interface ProfSummary {
   nome: string;

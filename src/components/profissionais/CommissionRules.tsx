@@ -13,8 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Filter, Settings2, Users } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
+import { toast } from "sonner";
 export function CommissionRules() {
   const { user, isAdmin, isGestor } = useAuth();
   const queryClient = useQueryClient();

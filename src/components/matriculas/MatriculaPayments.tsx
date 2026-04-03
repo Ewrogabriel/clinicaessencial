@@ -18,10 +18,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
+import { toast } from "sonner";
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
 interface MatriculaPaymentsProps {
   matriculaId: string;
   pacienteId: string;

@@ -34,10 +34,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { PlanLimitBanner, usePlanLimitCheck } from "@/components/planos/PlanLimitBanner";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { patientService } from "@/modules/patients/services/patientService";
 import {
+import { toast } from "sonner";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

@@ -9,14 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+import { toast } from "sonner";
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "@/modules/shared/hooks/use-toast";
-
 interface PatientScheduleTabProps {
   pacienteId: string;
   pacienteTelefone?: string;

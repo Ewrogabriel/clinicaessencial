@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Trash2, Plus } from "lucide-react";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 /** Parse a YYYY-MM-DD string as local date (avoids UTC offset shifting the day) */
 const parseLocalDate = (dateStr: string) => {

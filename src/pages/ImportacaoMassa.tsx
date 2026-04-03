@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, Users, Calendar, DollarSign, Sparkles, ArrowRight, RotateCcw, ClipboardList } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { parseDateMultiFormat } from "@/lib/dateUtils";
+import { toast } from "sonner";
 
 type ImportType = "pacientes" | "agendamentos" | "pagamentos";
 type Step = "upload" | "mapping" | "preview" | "result";

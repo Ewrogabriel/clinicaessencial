@@ -14,10 +14,10 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { toast } from "@/modules/shared/hooks/use-toast";
 import { maskCPF, maskPhone, maskCEP, maskRG, isValidCPF, unmask } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
 // ── Grouped state shapes ───────────────────────────────────────────────────────
 
