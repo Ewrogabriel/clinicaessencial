@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-import { toast } from "sonner";
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { toast } from "sonner";
 const CheckInProfissional = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();

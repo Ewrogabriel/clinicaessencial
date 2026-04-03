@@ -10,10 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-import { toast } from "sonner";
   Sparkles, Loader2, Save, ExternalLink, RefreshCw,
   Type, CreditCard, MessageSquare, Phone, Plus, Trash2, Star
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface HeroContent {
   badge: string;

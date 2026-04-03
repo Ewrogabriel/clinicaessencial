@@ -12,11 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-import { toast } from "sonner";
   configurationService,
   ReconciliationConfig,
   DEFAULT_CONFIG,
 } from "@/modules/finance/services/configurationService";
+import { toast } from "sonner";
 interface AutoReconcileSettingsProps {
   open: boolean;
   clinicId: string;

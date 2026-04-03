@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-import { toast } from "sonner";
   Brain,
   FileText,
   Sparkles,
@@ -19,6 +18,7 @@ import { toast } from "sonner";
   Download,
   Search,
 } from "lucide-react";
+import { toast } from "sonner";
 type AIAction = "summarize" | "suggest_conduct" | "lesson_plan" | "treatment_plan" | "generate_report" | "analyze_all";
 
 const ACTION_LABELS: Record<AIAction, { label: string; icon: React.ReactNode; description: string }> = {

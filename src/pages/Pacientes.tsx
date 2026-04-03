@@ -37,7 +37,6 @@ import { PlanLimitBanner, usePlanLimitCheck } from "@/components/planos/PlanLimi
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { patientService } from "@/modules/patients/services/patientService";
 import {
-import { toast } from "sonner";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,6 +46,7 @@ import { toast } from "sonner";
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 type Paciente = Tables<"pacientes">;
 

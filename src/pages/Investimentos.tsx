@@ -18,9 +18,9 @@ import {
   Pencil, Trash2, ArrowDownToLine, Upload, MoreHorizontal
 } from "lucide-react";
 import {
-import { toast } from "sonner";
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const TIPOS_INVESTIMENTO = [
   "CDB", "LCI", "LCA", "Tesouro Selic", "Tesouro IPCA+", "Tesouro Prefixado",

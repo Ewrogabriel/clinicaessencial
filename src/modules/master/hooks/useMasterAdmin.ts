@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-import { toast } from "sonner";
   getClinics,
   getClinicStats,
   getMasterUsers,
 } from "@/modules/master/services/masterService";
+import { toast } from "sonner";
 
 // ─── useClinics ─────────────────────────────────────────────
 
