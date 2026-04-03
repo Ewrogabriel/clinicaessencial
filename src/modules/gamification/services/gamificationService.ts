@@ -78,7 +78,7 @@ async function getRewardsCatalog(clinicId: string) {
 }
 
 async function redeemReward(patientId: string, rewardId: string, clinicId: string) {
-  const { data, error } = await (supabase.from("gamification_resgates") as any)
+  const { data, error } = await (supabase as any).from("gamification_resgates")
     .insert([{ paciente_id: patientId, recompensa_id: rewardId, clinica_id: clinicId }])
     .select()
     .single();
