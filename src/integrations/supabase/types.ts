@@ -386,27 +386,20 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           dados_originais: Json | null
-          data_conciliacao: string | null
           data_transacao: string
           descricao: string
           documento: string | null
           id: string
           import_batch_id: string | null
-          investimento_id: string | null
-          is_investment: boolean | null
           matched_confidence: number | null
           matched_paciente_id: string | null
           matched_payment_id: string | null
-          movement_type: string | null
-          observacoes: string | null
-          pagamento_id: string | null
           reviewed: boolean | null
           reviewed_at: string | null
           reviewed_by: string | null
           saldo: number | null
           status: string | null
           tipo: string | null
-          updated_at: string | null
           valor: number
         }
         Insert: {
@@ -415,27 +408,20 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           dados_originais?: Json | null
-          data_conciliacao?: string | null
           data_transacao: string
           descricao: string
           documento?: string | null
           id?: string
           import_batch_id?: string | null
-          investimento_id?: string | null
-          is_investment?: boolean | null
           matched_confidence?: number | null
           matched_paciente_id?: string | null
           matched_payment_id?: string | null
-          movement_type?: string | null
-          observacoes?: string | null
-          pagamento_id?: string | null
           reviewed?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           saldo?: number | null
           status?: string | null
           tipo?: string | null
-          updated_at?: string | null
           valor: number
         }
         Update: {
@@ -444,27 +430,20 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           dados_originais?: Json | null
-          data_conciliacao?: string | null
           data_transacao?: string
           descricao?: string
           documento?: string | null
           id?: string
           import_batch_id?: string | null
-          investimento_id?: string | null
-          is_investment?: boolean | null
           matched_confidence?: number | null
           matched_paciente_id?: string | null
           matched_payment_id?: string | null
-          movement_type?: string | null
-          observacoes?: string | null
-          pagamento_id?: string | null
           reviewed?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           saldo?: number | null
           status?: string | null
           tipo?: string | null
-          updated_at?: string | null
           valor?: number
         }
         Relationships: [
@@ -494,13 +473,6 @@ export type Database = {
             columns: ["matched_paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bank_transactions_investimento_id_fkey"
-            columns: ["investimento_id"]
-            isOneToOne: false
-            referencedRelation: "investments"
             referencedColumns: ["id"]
           },
         ]
@@ -2092,91 +2064,73 @@ export type Database = {
       }
       investments: {
         Row: {
-          bank_transaction_id: string | null
           clinic_id: string | null
           created_at: string | null
           created_by: string | null
           data_aplicacao: string
-          data_resgate: string | null
           data_vencimento: string | null
-          historico_movimentacoes: Json | null
           id: string
           indexador: string | null
           instituicao: string | null
           iof_valor: number | null
           ir_valor: number | null
           nome: string
-          notas: string | null
           observacoes: string | null
           percentual_indexador: number | null
           rendimento_bruto: number | null
           rendimento_liquido: number | null
-          rendimento_total: number | null
           status: string | null
           taxa_contratada: number | null
           tipo: string
           updated_at: string | null
           valor_aplicado: number
           valor_atual: number | null
-          valor_resgatado: number | null
         }
         Insert: {
-          bank_transaction_id?: string | null
           clinic_id?: string | null
           created_at?: string | null
           created_by?: string | null
           data_aplicacao: string
-          data_resgate?: string | null
           data_vencimento?: string | null
-          historico_movimentacoes?: Json | null
           id?: string
           indexador?: string | null
           instituicao?: string | null
           iof_valor?: number | null
           ir_valor?: number | null
           nome: string
-          notas?: string | null
           observacoes?: string | null
           percentual_indexador?: number | null
           rendimento_bruto?: number | null
           rendimento_liquido?: number | null
-          rendimento_total?: number | null
           status?: string | null
           taxa_contratada?: number | null
           tipo: string
           updated_at?: string | null
           valor_aplicado: number
           valor_atual?: number | null
-          valor_resgatado?: number | null
         }
         Update: {
-          bank_transaction_id?: string | null
           clinic_id?: string | null
           created_at?: string | null
           created_by?: string | null
           data_aplicacao?: string
-          data_resgate?: string | null
           data_vencimento?: string | null
-          historico_movimentacoes?: Json | null
           id?: string
           indexador?: string | null
           instituicao?: string | null
           iof_valor?: number | null
           ir_valor?: number | null
           nome?: string
-          notas?: string | null
           observacoes?: string | null
           percentual_indexador?: number | null
           rendimento_bruto?: number | null
           rendimento_liquido?: number | null
-          rendimento_total?: number | null
           status?: string | null
           taxa_contratada?: number | null
           tipo?: string
           updated_at?: string | null
           valor_aplicado?: number
           valor_atual?: number | null
-          valor_resgatado?: number | null
         }
         Relationships: [
           {
@@ -2192,74 +2146,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_saas_status"
             referencedColumns: ["clinic_id"]
-          },
-          {
-            foreignKeyName: "investments_bank_transaction_id_fkey"
-            columns: ["bank_transaction_id"]
-            isOneToOne: false
-            referencedRelation: "bank_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      investment_transactions: {
-        Row: {
-          bank_transaction_id: string | null
-          clinic_id: string | null
-          created_at: string | null
-          created_by: string | null
-          data_movimento: string
-          descricao: string | null
-          id: string
-          investimento_id: string
-          tipo: string
-          valor: number
-        }
-        Insert: {
-          bank_transaction_id?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_movimento?: string
-          descricao?: string | null
-          id?: string
-          investimento_id: string
-          tipo: string
-          valor: number
-        }
-        Update: {
-          bank_transaction_id?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_movimento?: string
-          descricao?: string | null
-          id?: string
-          investimento_id?: string
-          tipo?: string
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "investment_transactions_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinicas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "investment_transactions_investimento_id_fkey"
-            columns: ["investimento_id"]
-            isOneToOne: false
-            referencedRelation: "investments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "investment_transactions_bank_transaction_id_fkey"
-            columns: ["bank_transaction_id"]
-            isOneToOne: false
-            referencedRelation: "bank_transactions"
-            referencedColumns: ["id"]
           },
         ]
       }
