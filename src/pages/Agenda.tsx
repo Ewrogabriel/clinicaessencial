@@ -185,7 +185,7 @@ const Agenda = () => {
     const agsWithTel = filteredAgendamentos.map((ag) => ({ ...ag, paciente_telefone: pacientesMap[ag.paciente_id] || "" }));
     const profName = filterProfId !== "all" ? profissionais.find((p) => p.user_id === filterProfId)?.nome : undefined;
     generateWeeklyPDF(agsWithTel, currentDate, pacientesMap, profName);
-    toast.success("PDF gerado!", { description: profName ? `Agenda de ${profName });
+    toast.success("PDF gerado!", { description: profName ? `Agenda de ${profName}` : undefined });
   };
 
   const handleCancelAppointment = async (id: string) => {
