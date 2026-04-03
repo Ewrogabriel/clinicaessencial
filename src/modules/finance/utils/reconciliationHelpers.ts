@@ -33,15 +33,8 @@ export function getStatusConfig(status: string | null): {
   }
 }
 
-/**
- * Format a BRL currency value.
- */
-export function formatBRL(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
+// Re-export from centralized formatter to avoid duplication
+export { formatBRL } from "@/modules/shared/utils/currencyFormatters";
 
 /**
  * Format a transaction date to a localized string.
