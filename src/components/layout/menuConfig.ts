@@ -17,7 +17,7 @@ import {
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   FileCheck, Handshake, Video,
   Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
-  Clock, CheckCheck, type LucideIcon,
+  Clock, CheckCheck, Banknote, type LucideIcon,
 } from "lucide-react";
 
 export type AppRole = "admin" | "gestor" | "profissional" | "secretario" | "paciente" | "master";
@@ -97,10 +97,10 @@ export const adminGroups: MenuGroup[] = [
     labelKey: "group.finance",
     defaultCollapsed: false,
     items: [
-      { labelKey: "nav.finance",         url: "/financeiro",              icon: DollarSign },
-      { labelKey: "nav.reconciliation", url: "/financeiro/conciliacao",  icon: Receipt },
-      { labelKey: "nav.commissions",    url: "/comissoes",               icon: Calculator },
-      { labelKey: "nav.investments",    url: "/investimentos",           icon: Activity },
+      { labelKey: "nav.finance",            url: "/financeiro",              icon: DollarSign },
+      { labelKey: "nav.reconciliation",     url: "/conciliacao-bancaria",    icon: Banknote },
+      { labelKey: "nav.commissions",        url: "/comissoes",               icon: Calculator },
+      { labelKey: "nav.investments",        url: "/investimentos",           icon: Activity },
     ],
   },
   {
