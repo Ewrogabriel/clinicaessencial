@@ -167,8 +167,40 @@ export function useWeekdaySlots(options: {
             const { data: windows, error } = await query;
             if (error || !windows || windows.length === 0) return [];
 
+            // Fetch ALL recurring/active appointments for this professional on this weekday
+            // to calculate current occupancy per time slot
+            const { data: appointments } = await supabase
+                .from("agendamentos")
+                .select("data_horario, tipo_sessao")
+                .eq("profissional_id", options.professionalId)
+                .eq("recorrente", true)
+                .not("status", "in", '("cancelado","falta")');
+
+            // Count appointments per time slot for this weekday
+            const slotCounts: Record<string, { count: number; hasIndividual: boolean }> = {};
+            for (const appt of (appointments ?? [])) {
+                const d = new Date(appt.data_horario);
+                if (d.getDay() !== options.weekday) continue;
+                const timeKey = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                if (!slotCounts[timeKey]) slotCounts[timeKey] = { count: 0, hasIndividual: false };
+                slotCounts[timeKey].count++;
+                if (appt.tipo_sessao === "individual") slotCounts[timeKey].hasIndividual = true;
+            }
+
+            // Deduplicate recurring counts: count unique recorrencia_grupo_id per time
+            // Actually, let's count unique patients per slot from distinct recurrence groups
+            const slotGroups: Record<string, Set<string>> = {};
+            for (const appt of (appointments ?? []) as any[]) {
+                const d = new Date(appt.data_horario);
+                if (d.getDay() !== options.weekday) continue;
+                const timeKey = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                const groupKey = appt.recorrencia_grupo_id || appt.id || Math.random().toString();
+                if (!slotGroups[timeKey]) slotGroups[timeKey] = new Set();
+                slotGroups[timeKey].add(groupKey);
+            }
+
             const step = options.durationMin ?? 60;
-            const slots: Array<{ time: string; max_capacity: number }> = [];
+            const slots: Array<{ time: string; max_capacity: number; current_capacity: number }> = [];
 
             for (const win of windows) {
                 const [sh, sm] = win.hora_inicio.split(":").map(Number);
@@ -178,9 +210,12 @@ export function useWeekdaySlots(options: {
                 while (cur + step <= end) {
                     const h = Math.floor(cur / 60);
                     const m = cur % 60;
+                    const timeKey = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                    const groupCount = slotGroups[timeKey]?.size ?? 0;
                     slots.push({
-                        time: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+                        time: timeKey,
                         max_capacity: win.max_pacientes,
+                        current_capacity: groupCount,
                     });
                     cur += step;
                 }
