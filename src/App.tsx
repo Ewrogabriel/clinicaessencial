@@ -145,7 +145,7 @@ const App = () => (
                         <Route path="/inventario" element={<Inventario />} />
                         <Route path="/financeiro" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><Financeiro /></RequireRole>} />
                         <Route path="/conciliacao-bancaria" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConciliacaoBancaria /></RequireRole>} />
-                        <Route path="/inteligencia-bi" element={<RequireRole roles={["admin", "gestor", "master"]}><InteligenciaBI /></RequireRole>} />
+                        <Route path="/inteligencia-bi" element={<Navigate to="/relatorios" replace />} />
                         <Route path="/relatorios" element={<RequireRole roles={["admin", "gestor", "master"]}><Relatorios /></RequireRole>} />
                         <Route path="/modalidades" element={<Modalidades />} />
                         <Route path="/profissionais" element={<RequireRole roles={["admin", "gestor", "master"]}><Profissionais /></RequireRole>} />
