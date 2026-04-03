@@ -25,10 +25,11 @@ interface PaymentDetailModalProps {
   payment: PaymentEntry;
   pacienteNome: string;
   pacienteCpf?: string;
+  pacienteTelefone?: string;
   onClose: () => void;
 }
 
-export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", onClose }: PaymentDetailModalProps) {
+export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pacienteTelefone = "", onClose }: PaymentDetailModalProps) {
   const [sendingReceipt, setSendingReceipt] = useStateReact(false);
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
