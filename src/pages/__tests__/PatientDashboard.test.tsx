@@ -119,7 +119,7 @@ const createTestQueryClient = () =>
 
 const renderPatientDashboard = async () => {
   const queryClient = createTestQueryClient();
-  const PatientDashboard = (await import("@/pages/PatientDashboard")).default;
+  const PatientDashboard = (await import("@/pages/Dashboard/patient/PatientDashboard")).default;
 
   return render(
     <QueryClientProvider client={queryClient}>
