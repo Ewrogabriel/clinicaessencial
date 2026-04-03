@@ -77,6 +77,7 @@ import { detectLocalAnomalies } from "@/modules/finance/services/anomalyDetectio
 import type { Anomaly } from "@/modules/finance/services/anomalyDetectionService";
 import { autoReconciliationService } from "@/modules/finance/services/autoReconciliationService";
 import { auditService } from "@/modules/finance/services/auditService";
+import { TransactionDetailModal } from "@/components/financial/TransactionDetailModal";
 
 const EXPENSE_CATEGORIES = [
   "aluguel", "luz", "agua", "internet", "limpeza",
@@ -175,6 +176,11 @@ export default function ConciliacaoBancaria() {
   const [showAuditTrail, setShowAuditTrail] = useState(false);
   const [isRunningAutoReconcile, setIsRunningAutoReconcile] = useState(false);
   const [autoStats, setAutoStats] = useState<{ autoReconciled: number; suggested: number; totalProcessed: number } | undefined>();
+
+  // ── Detail Modal ──────────────────────────────────────────────────────────
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailModalTransaction, setDetailModalTransaction] =
+    useState<BankTransactionRow | null>(null);
 
   // ── Derivados ────────────────────────────────────────────────────────────
   const unreconciledTransactions = useMemo(
@@ -472,6 +478,17 @@ export default function ConciliacaoBancaria() {
     }
   }, []);
 
+  // ── Detail Modal handler ──────────────────────────────────────────────────
+  const handleOpenDetailModal = useCallback(
+    (tx: BankTransactionRow) => {
+      setDetailModalTransaction(tx);
+      setSelectedTransaction(tx);
+      setShowDetailModal(true);
+      loadSuggestions(tx.id);
+    },
+    [loadSuggestions]
+  );
+
   // ── Helpers visuais ───────────────────────────────────────────────────────
   const getStatusBadge = (status?: string | null) => {
     if (status === "conciliado")
@@ -618,11 +635,20 @@ export default function ConciliacaoBancaria() {
                 return (
                   <div key={tx.id} className="border-b last:border-b-0">
                     {/* Linha principal */}
-                    <div className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                    <div
+                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        // Don't open modal when clicking buttons inside the row
+                        const target = e.target as HTMLElement;
+                        if (target.closest("button") || target.closest("[role='button']")) return;
+                        handleOpenDetailModal(tx);
+                      }}
+                      title="Clique para ver detalhes"
+                    >
                       {/* Expandir */}
                       <button
                         className="mr-2 p-1 rounded hover:bg-muted text-muted-foreground"
-                        onClick={() => handleToggleExpand(tx.id)}
+                        onClick={(e) => { e.stopPropagation(); handleToggleExpand(tx.id); }}
                         title={isExpanded ? "Recolher" : "Expandir detalhes"}
                       >
                         {isExpanded ? (
@@ -1299,6 +1325,35 @@ export default function ConciliacaoBancaria() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* ── Transaction Detail Modal ───────────────────────────────────────── */}
+      <TransactionDetailModal
+        transaction={detailModalTransaction}
+        transactions={filtered}
+        open={showDetailModal}
+        onOpenChange={(open) => {
+          setShowDetailModal(open);
+          if (!open) setDetailModalTransaction(null);
+        }}
+        suggestions={detailModalTransaction ? (suggestions[detailModalTransaction.id] ?? []) : []}
+        suggestionsLoading={detailModalTransaction ? (suggestionsLoading[detailModalTransaction.id] ?? false) : false}
+        anomalies={detailModalTransaction ? (anomalies[detailModalTransaction.id] ?? []) : []}
+        clinicId={activeClinicId ?? undefined}
+        onEdit={(tx) => handleOpenEditDialog(tx)}
+        onReconcile={(tx) => handleOpenMatchDialog(tx)}
+        onReject={(tx) => handleOpenRejectDialog(tx)}
+        onSplit={(tx) => { setSelectedTransaction(tx); setShowSplitModal(true); }}
+        onRefund={(tx) => { setSelectedTransaction(tx); setShowRefundDialog(true); }}
+        onAdjust={(tx) => { setSelectedTransaction(tx); setShowAdjustmentDialog(true); }}
+        onUndo={(tx) => handleUndoReconcile(tx)}
+        onDelete={(tx) => handleOpenDeleteConfirm(tx)}
+        onAcceptSuggestion={(transactionId, paymentId) => handleAcceptSuggestion(transactionId, paymentId)}
+        onNavigate={(tx) => {
+          setDetailModalTransaction(tx);
+          setSelectedTransaction(tx);
+          loadSuggestions(tx.id);
+        }}
+      />
     </div>
   );
 }
