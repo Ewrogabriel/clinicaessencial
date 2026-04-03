@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { SchedulePickerCards } from "./SchedulePickerCards";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
@@ -30,26 +29,6 @@ export type EnrollmentFormData = {
     preco_plano_id?: string;
 };
 
-const WEEKDAYS = [
-    { value: 0, label: "Domingo" },
-    { value: 1, label: "Segunda-feira" },
-    { value: 2, label: "Terça-feira" },
-    { value: 3, label: "Quarta-feira" },
-    { value: 4, label: "Quinta-feira" },
-    { value: 5, label: "Sexta-feira" },
-    { value: 6, label: "Sábado" },
-];
-
-const WEEKDAY_SHORT: Record<number, string> = {
-    0: "Dom",
-    1: "Seg",
-    2: "Ter",
-    3: "Qua",
-    4: "Qui",
-    5: "Sex",
-    6: "Sáb",
-};
-
 type Props = {
     formData: EnrollmentFormData;
     setFormData: (data: EnrollmentFormData) => void;
@@ -57,47 +36,10 @@ type Props = {
     profissionais: { user_id: string; nome: string }[];
 };
 
-
 export function EnrollmentForm({ formData, setFormData, pacientes, profissionais }: Props) {
     const { activeClinicId } = useClinic();
-    const [newWeekday, setNewWeekday] = useState<string>("");
-    const [newTime, setNewTime] = useState("");
-    const [newProfessional, setNewProfessional] = useState("");
-    const [newDuration, setNewDuration] = useState("60");
     const [modalidades, setModalidades] = useState<{ id: string; nome: string }[]>([]);
     const [precosPlanos, setPrecosPlanos] = useState<any[]>([]);
-    const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
-    const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-
-    const weekdayNum = newWeekday !== "" ? Number(newWeekday) : undefined;
-
-    const { data: weekdaySlots = [], isLoading: isLoadingSlots } = useWeekdaySlots({
-        professionalId: newProfessional || undefined,
-        weekday: weekdayNum,
-        clinicId: activeClinicId,
-        durationMin: 60,
-    });
-
-    useEffect(() => {
-        setNewTime("");
-    }, [newProfessional, newWeekday]);
-
-    useEffect(() => {
-        if (!newProfessional || !newTime) {
-            setMonthlyAvail({});
-            return;
-        }
-        const fetchMonthly = async () => {
-            const result = await getMonthlyAvailability(
-                newProfessional,
-                currentMonth.getFullYear(),
-                currentMonth.getMonth(),
-                newTime
-            );
-            setMonthlyAvail(result);
-        };
-        fetchMonthly();
-    }, [newProfessional, currentMonth, newTime]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -136,58 +78,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
         : 0;
     const valorPorSessao = totalSessoes > 0 ? (valor_final / totalSessoes).toFixed(2) : "0.00";
 
-    const addSchedule = async () => {
-        if (newWeekday === "" || !newTime || !newProfessional) return;
-        const weekday = Number(newWeekday);
-
-        const existingOnWeekday = formData.weekly_schedules.some(
-            (s: WeeklyScheduleEntry) => s.weekday === weekday && s.professional_id === newProfessional
-        );
-
-        if (existingOnWeekday) {
-            toast.error("⚠️ Conflito de Horário", { description: "Este profissional já possui um agendamento neste dia da semana." });
-            return;
-        }
-
-        const timeConflict = formData.weekly_schedules.some((s: WeeklyScheduleEntry) => {
-            if (s.weekday !== weekday) return false;
-            const existingStart = new Date(`2000-01-01T${s.time}:00`);
-            const existingEnd = new Date(existingStart.getTime() + s.session_duration * 60000);
-            const newStart = new Date(`2000-01-01T${newTime}:00`);
-            const newEnd = new Date(newStart.getTime() + parseInt(newDuration) * 60000);
-            return existingStart < newEnd && newStart < existingEnd;
-        });
-
-        if (timeConflict) {
-            toast.error("⚠️ Conflito de Horário", { description: "Existe conflito de horário com outra sessão." });
-            return;
-        }
-
-        const updated = [
-            ...formData.weekly_schedules,
-            {
-                weekday,
-                time: newTime,
-                professional_id: newProfessional,
-                session_duration: parseInt(newDuration) || 60,
-            },
-        ];
-        setFormData({ ...formData, weekly_schedules: updated });
-        setNewWeekday("");
-        setNewTime("");
-        setNewProfessional("");
-        setNewDuration("60");
-    };
-
-    const removeSchedule = (index: number) => {
-        const updated = formData.weekly_schedules.filter((_, i) => i !== index);
-        setFormData({ ...formData, weekly_schedules: updated });
-    };
-
-    const getProfessionalName = (id: string) => {
-        return profissionais.find((p) => p.user_id === id)?.nome || "—";
-    };
-
     return (
         <div className="space-y-5">
             {/* Paciente */}
@@ -199,9 +89,6 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                     onValueChange={(v) => setFormData({ ...formData, paciente_id: v })}
                 />
             </div>
-
-
-            {/* Plano selector removed - manual values only */}
 
             {/* Tipo + Due Day */}
             <div className="grid grid-cols-2 gap-4">
@@ -310,158 +197,14 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 </div>
             </div>
 
-            {/* Frequência Semanal */}
-            <div className="space-y-3 border rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Frequência Semanal</Label>
-                    {formData.weekly_schedules.length > 0 && (
-                        <Badge variant="secondary">{formData.weekly_schedules.length}x / semana</Badge>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <Label className="text-xs">Dia da Semana</Label>
-                        <Select value={newWeekday} onValueChange={setNewWeekday}>
-                            <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {WEEKDAYS.map((d) => (
-                                    <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label className="text-xs">Profissional</Label>
-                        <Select value={newProfessional} onValueChange={setNewProfessional}>
-                            <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {profissionais.map((p) => (
-                                    <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="col-span-2">
-                        <Label className="text-xs">Horário</Label>
-                        <Select
-                            value={newTime}
-                            onValueChange={setNewTime}
-                            disabled={isLoadingSlots || !newProfessional || newWeekday === ""}
-                        >
-                            <SelectTrigger className="mt-1">
-                                <SelectValue placeholder={
-                                    isLoadingSlots ? "Carregando..." :
-                                    (!newProfessional || newWeekday === "") ? "Selecione o dia e o profissional" :
-                                    weekdaySlots.length === 0 ? "Sem horários disponíveis" :
-                                    "Selecione o horário"
-                                } />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {weekdaySlots.map((slot) => (
-                                    <SelectItem key={slot.time} value={slot.time} disabled={(slot as any).current_capacity >= slot.max_capacity}>
-                                        <div className="flex items-center gap-2">
-                                            <Clock className="h-3 w-3 text-muted-foreground" />
-                                            <span className="font-medium">{slot.time}</span>
-                                            <span className={cn(
-                                                "text-[10px] px-1.5 py-0.5 rounded-full border",
-                                                (slot as any).current_capacity >= slot.max_capacity
-                                                    ? "bg-red-50 text-red-600 border-red-200"
-                                                    : "bg-green-50 text-green-600 border-green-200"
-                                            )}>
-                                                {(slot as any).current_capacity || 0}/{slot.max_capacity} vagas
-                                            </span>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label className="text-xs">Duração (min)</Label>
-                        <Input
-                            type="number"
-                            className="mt-1"
-                            value={newDuration}
-                            min={15}
-                            step={15}
-                            onChange={(e) => setNewDuration(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex items-end">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="w-full gap-2" disabled={!newProfessional || newWeekday === "" || !newTime}>
-                                    <CalendarIcon className="h-4 w-4" />
-                                    Ver Vagas
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
-                                <div className="p-3 border-b bg-muted/50 space-y-1">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Grade de Vagas por Dia</p>
-                                    <p className="text-xs text-muted-foreground">Horário: <span className="font-semibold">{newTime}</span></p>
-                                </div>
-                                <Calendar
-                                    mode="single"
-                                    locale={ptBR}
-                                    onMonthChange={setCurrentMonth}
-                                    className="rounded-md"
-                                    components={{
-                                        DayContent: ({ date }) => {
-                                            const v = monthlyAvail[date.getDate()];
-                                            const isCurrentM = isSameMonth(date, currentMonth);
-                                            const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                                            return (
-                                                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                                                    <span className={!isCurrentM ? "opacity-30" : ""}>{date.getDate()}</span>
-                                                    {isCurrentM && !isPast && (
-                                                        <span className={cn(
-                                                            "text-[8px] px-1 rounded-full",
-                                                            v > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
-                                                        )}>
-                                                            {v}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            );
-                                        }
-                                    }}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                </div>
-
-                <Button type="button" size="sm" variant="secondary" className="gap-2 w-full" onClick={addSchedule}
-                    disabled={newWeekday === "" || !newTime || !newProfessional}>
-                    <Plus className="h-4 w-4" />
-                    Adicionar horário
-                </Button>
-
-                {formData.weekly_schedules.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-2">Nenhum horário configurado ainda.</p>
-                ) : (
-                    <div className="space-y-2 mt-2">
-                        {formData.weekly_schedules.map((s, index) => (
-                            <div key={index} className="flex items-center justify-between bg-muted/40 rounded-lg px-3 py-2 border">
-                                <div className="flex items-center gap-3">
-                                    <Badge variant="outline" className="font-mono text-xs">{WEEKDAY_SHORT[s.weekday]}</Badge>
-                                    <span className="text-sm font-medium">{s.time}</span>
-                                    <span className="text-sm text-muted-foreground">• {getProfessionalName(s.professional_id)}</span>
-                                    <span className="text-xs text-muted-foreground">{s.session_duration}min</span>
-                                </div>
-                                <Button variant="ghost" size="sm" onClick={() => removeSchedule(index)}
-                                    className="h-7 w-7 p-0 text-destructive hover:text-destructive">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                )}
+            {/* Schedule Picker with Cards */}
+            <div className="border rounded-xl p-4">
+                <SchedulePickerCards
+                    schedules={formData.weekly_schedules}
+                    onSchedulesChange={(updated) => setFormData({ ...formData, weekly_schedules: updated })}
+                    profissionais={profissionais}
+                    clinicId={activeClinicId}
+                />
             </div>
 
             {/* Observações */}
