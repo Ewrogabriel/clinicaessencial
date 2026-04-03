@@ -15,6 +15,16 @@ import type { PaymentEntry, PaymentHistoryTabProps } from "./types";
 export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTabProps) {
   const [selectedPayment, setSelectedPayment] = useState<PaymentEntry | null>(null);
 
+  const { data: pacienteData } = useQuery({
+    queryKey: ["paciente-cpf", pacienteId],
+    queryFn: async () => {
+      const { data } = await supabase.from("pacientes").select("cpf").eq("id", pacienteId).single();
+      return data;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+  const pacienteCpf = pacienteData?.cpf || "";
+
   const { data: payments = [], isLoading } = usePatientPayments(pacienteId);
   const { filters, setFilters, filtered, hasActiveFilters, clearFilters } =
     usePaymentFilters(payments);
