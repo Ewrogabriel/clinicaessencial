@@ -19,6 +19,10 @@ export interface BankTransactionRow {
   import_batch_id: string | null;
   created_at: string | null;
   updated_at: string | null;
+  // Investment integration fields
+  investimento_id: string | null;
+  movement_type: string | null;
+  is_investment: boolean | null;
 }
 
 export interface CreateBankTransactionDTO {

@@ -42,11 +42,13 @@ import {
   Loader2,
   User,
   Keyboard,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { AuditTrail } from "@/components/financial/AuditTrail";
 import { AnomalyBadge } from "@/components/financial/AnomalyBadge";
+import { InvestmentLinkSection } from "@/components/financial/InvestmentLinkSection";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
 import type { PossibleMatch } from "@/modules/finance/services/matchingService";
 import type { Anomaly } from "@/modules/finance/services/anomalyDetectionService";
@@ -277,6 +279,12 @@ export function TransactionDetailModal({
                 </Badge>
                 {anomalies.length > 0 && (
                   <AnomalyBadge anomalies={anomalies} />
+                )}
+                {transaction.is_investment && (
+                  <Badge variant="outline" className="gap-1 border-blue-300 text-blue-700 text-xs">
+                    <TrendingUp className="h-3 w-3" />
+                    Investimento
+                  </Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground truncate">
@@ -660,6 +668,16 @@ export function TransactionDetailModal({
                 </div>
               </div>
             </div>
+
+            {/* ── SEÇÃO 7.5: Integração com Investimentos ───────────────────── */}
+            {clinicId && (
+              <div className="rounded-lg border bg-card p-4">
+                <InvestmentLinkSection
+                  transaction={transaction}
+                  clinicId={clinicId}
+                />
+              </div>
+            )}
 
             {/* ── SEÇÃO 8: Ações Rápidas ─────────────────────────────────────── */}
             <div className="rounded-lg border bg-card p-4">
