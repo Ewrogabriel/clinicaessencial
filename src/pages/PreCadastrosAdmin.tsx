@@ -184,8 +184,7 @@ const PreCadastrosAdmin = () => {
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
     queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
 
-    toast.success(`Aprovação em lote concluída: ${successCount} criados${
-        errorCount > 0 ? `);
+    toast.success(`Aprovação em lote concluída: ${successCount} criados${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`);
   };
 
   // Bulk approve selected pending pre-cadastros (create patients)
