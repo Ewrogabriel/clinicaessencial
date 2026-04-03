@@ -299,42 +299,8 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Horário (Vagas)</Label>
-                {availableSlots && availableSlots.length > 0 ? (
-                  <Select
-                    onValueChange={(val) => {
-                      setSlotId(val);
-                      const slot = availableSlots?.find((s: any) => s.id === val);
-                      if (slot) setHorario(slot.start_time.slice(0, 5));
-                    }}
-                    value={slotId}
-                    disabled={isLoadingSlots || !data}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder={isLoadingSlots ? "Carregando..." : "Selecione"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSlots?.map((slot: any) => (
-                        <SelectItem
-                          key={slot.id}
-                          value={slot.id}
-                          disabled={slot.status === 'full'}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
-                            <span className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded-full border",
-                              slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
-                            )}>
-                              {slot.current_capacity}/{slot.max_capacity}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
+                <Label className="text-xs">Horário</Label>
+                {(!availableSlots || availableSlots.length === 0) && (
                   <Input
                     type="time"
                     value={horario}
@@ -344,6 +310,23 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
                 )}
               </div>
             </div>
+
+            {availableSlots && availableSlots.length > 0 && (
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Selecione o horário</Label>
+                <TimeSlotCards
+                  slots={availableSlots as TimeSlot[]}
+                  selectedSlotId={slotId}
+                  onSelect={(slot) => {
+                    setSlotId(slot.id);
+                    setHorario(slot.start_time.slice(0, 5));
+                  }}
+                  isLoading={isLoadingSlots}
+                  emptyMessage="Selecione a data para ver horários"
+                  disabled={!data}
+                />
+              </div>
+            )
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
