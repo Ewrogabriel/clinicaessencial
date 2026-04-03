@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle } from "lucide-react";
 import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -127,6 +128,7 @@ function UpgradePlanButton({ clinicId, currentPlan }: { clinicId?: string; curre
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
+  const { activeClinicId } = useClinic();
   const { saasStatus, isLoading: loadingSaaS } = useSaaS();
   const updateMutation = useUpdateClinicSettings();
   const [form, setForm] = useState({
@@ -491,7 +493,7 @@ const ClinicSettings = () => {
 
 
         <TabsContent value="feriados">
-          <HolidaysTab clinicId={settings?.id || ""} />
+          <HolidaysTab clinicId={activeClinicId || ""} />
         </TabsContent>
 
         <TabsContent value="backup">
