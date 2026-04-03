@@ -51,6 +51,7 @@ export function FinancialTabs({
   dreContent,
   defaultTab = "visao-geral",
 }: FinancialTabsProps) {
+  const { activeClinicId } = useClinic();
   return (
     <Tabs defaultValue={defaultTab} className="space-y-4">
       <TabsList className="flex flex-wrap w-full max-w-5xl gap-1 h-auto p-1">
