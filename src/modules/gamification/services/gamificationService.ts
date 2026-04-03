@@ -11,7 +11,7 @@ const getLevel = (points: number) => {
 };
 
 async function getLeaderboard(clinicId: string, period: LeaderboardPeriod) {
-  const query = (supabase.from("gamification_pontos") as any)
+  const query = (supabase as any).from("gamification_pontos")
     .select("paciente_id, pontos, pacientes(nome)")
     .eq("clinica_id", clinicId);
 
@@ -46,7 +46,7 @@ async function getLeaderboard(clinicId: string, period: LeaderboardPeriod) {
 }
 
 async function getPlayerAchievements(patientId: string) {
-  const { data, error } = await (supabase.from("gamification_conquistas") as any)
+  const { data, error } = await (supabase as any).from("gamification_conquistas")
     .select("*")
     .eq("paciente_id", patientId)
     .order("created_at", { ascending: false });
@@ -56,7 +56,7 @@ async function getPlayerAchievements(patientId: string) {
 
 async function getChallenges(clinicId: string) {
   const today = new Date().toISOString().split("T")[0];
-  const { data, error } = await (supabase.from("gamification_desafios") as any)
+  const { data, error } = await (supabase as any).from("gamification_desafios")
     .select("*")
     .eq("clinica_id", clinicId)
     .eq("ativo", true)
@@ -68,7 +68,7 @@ async function getChallenges(clinicId: string) {
 }
 
 async function getRewardsCatalog(clinicId: string) {
-  const { data, error } = await (supabase.from("gamification_recompensas") as any)
+  const { data, error } = await (supabase as any).from("gamification_recompensas")
     .select("*")
     .eq("clinica_id", clinicId)
     .eq("ativo", true)
@@ -78,7 +78,7 @@ async function getRewardsCatalog(clinicId: string) {
 }
 
 async function redeemReward(patientId: string, rewardId: string, clinicId: string) {
-  const { data, error } = await (supabase.from("gamification_resgates") as any)
+  const { data, error } = await (supabase as any).from("gamification_resgates")
     .insert([{ paciente_id: patientId, recompensa_id: rewardId, clinica_id: clinicId }])
     .select()
     .single();
@@ -87,7 +87,7 @@ async function redeemReward(patientId: string, rewardId: string, clinicId: strin
 }
 
 async function getPlayerStats(patientId: string, clinicId: string) {
-  const { data, error } = await (supabase.from("gamification_pontos") as any)
+  const { data, error } = await (supabase as any).from("gamification_pontos")
     .select("pontos")
     .eq("paciente_id", patientId)
     .eq("clinica_id", clinicId);

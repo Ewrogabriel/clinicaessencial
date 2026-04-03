@@ -84,10 +84,10 @@ export class AutomationEngine {
   async processSessionConfirmations(): Promise<number> {
     let sent = 0;
 
-    const { data: clinics, error: clinicsError } = await (supabase
+    const { data: clinics, error: clinicsError } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .select("clinic_id, session_confirmation_enabled, session_confirmation_hours_before")
-      .eq("session_confirmation_enabled", true) as any);
+      .eq("session_confirmation_enabled", true);
 
     if (clinicsError || !clinics) {
       handleError(clinicsError, "[AutomationEngine] Erro ao buscar clínicas para confirmação de sessão.");
@@ -116,13 +116,13 @@ export class AutomationEngine {
 
       for (const ag of appointments as Array<{ id: string }>) {
         // De-duplicate: skip if a confirmation was already sent
-        const { data: existingLog } = await (supabase
+        const { data: existingLog } = await (supabase as any)
           .from("whatsapp_message_logs")
           .select("id")
           .eq("appointment_id", ag.id)
           .eq("message_type", "session_confirmation")
           .in("status", ["sent", "delivered", "read"])
-          .maybeSingle() as any);
+          .maybeSingle();
 
         if (existingLog) continue;
 
@@ -142,10 +142,10 @@ export class AutomationEngine {
   async processMonthlyReminders(): Promise<number> {
     let processed = 0;
 
-    const { data: clinics, error } = await (supabase
+    const { data: clinics, error } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .select("clinic_id")
-      .eq("monthly_reminder_enabled", true) as any);
+      .eq("monthly_reminder_enabled", true);
 
     if (error || !clinics) {
       handleError(error, "[AutomationEngine] Erro ao buscar clínicas para lembrete de mensalidade.");
@@ -168,10 +168,10 @@ export class AutomationEngine {
   async processOverdueAlerts(): Promise<number> {
     let processed = 0;
 
-    const { data: clinics, error } = await (supabase
+    const { data: clinics, error } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .select("clinic_id")
-      .eq("overdue_alert_enabled", true) as any);
+      .eq("overdue_alert_enabled", true);
 
     if (error || !clinics) {
       handleError(error, "[AutomationEngine] Erro ao buscar clínicas para alerta de inadimplência.");

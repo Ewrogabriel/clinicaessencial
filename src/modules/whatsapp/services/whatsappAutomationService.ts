@@ -40,7 +40,7 @@ async function logMessage(params: {
   errorMessage?: string | null;
 }): Promise<void> {
   try {
-    await (supabase.from("whatsapp_message_logs").insert({
+    await (supabase as any).from("whatsapp_message_logs").insert({
       clinic_id: params.clinicId,
       patient_id: params.patientId ?? null,
       appointment_id: params.appointmentId ?? null,
@@ -49,7 +49,7 @@ async function logMessage(params: {
       message_content: params.content,
       phone_number: params.phoneNumber,
       error_message: params.errorMessage ?? null,
-    }) as any);
+    });
   } catch (_err) {
     // Logging failures must never propagate
   }
@@ -232,7 +232,7 @@ export async function sendMonthlyReminder(clinicId: string): Promise<void> {
       patientPhone: phone,
       amount: row.valor,
       dueDate: row.data_vencimento
-        ? formatDate(row.data_vencimento)
+        ? new Date(row.data_vencimento).toLocaleDateString("pt-BR")
         : "—",
     };
 

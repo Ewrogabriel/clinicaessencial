@@ -43,7 +43,7 @@ export function useRedemptionHistory() {
   return useQuery({
     queryKey: ["gamification-redemptions", patientId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("gamification_resgates") as any)
+      const { data, error } = await (supabase as any).from("gamification_resgates")
         .select("*, gamification_recompensas(titulo, icone, custo_pontos)")
         .eq("paciente_id", patientId!)
         .order("created_at", { ascending: false });

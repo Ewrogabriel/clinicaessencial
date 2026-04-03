@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, Landmark, BarChart3, Receipt, Users2, DollarSign } from "lucide-react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import { ReconciliationPage } from "./ReconciliationPage";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 // Lazy-load heavy sub-pages
 const FinanceDashboard = lazy(() =>
@@ -50,6 +51,7 @@ export function FinancialTabs({
   dreContent,
   defaultTab = "visao-geral",
 }: FinancialTabsProps) {
+  const { activeClinicId } = useClinic();
   return (
     <Tabs defaultValue={defaultTab} className="space-y-4">
       <TabsList className="flex flex-wrap w-full max-w-5xl gap-1 h-auto p-1">
@@ -124,7 +126,7 @@ export function FinancialTabs({
 
       <TabsContent value="integracao" className="space-y-4">
         <Suspense fallback={<LazyLoadFallback />}>
-          <IntegrationStatus />
+          <IntegrationStatus clinicId={activeClinicId || ""} />
         </Suspense>
       </TabsContent>
     </Tabs>

@@ -31,7 +31,7 @@ export function useCreateChallenge() {
       data_fim: string;
       tipo?: string;
     }) => {
-      const { data, error } = await (supabase.from("gamification_desafios") as any)
+      const { data, error } = await (supabase as any).from("gamification_desafios")
         .insert([{ ...payload, clinica_id: activeClinicId, criado_por: user?.id, ativo: true }])
         .select()
         .single();
@@ -55,7 +55,7 @@ export function useCompleteChallenge() {
 
   return useMutation({
     mutationFn: async (challengeId: string) => {
-      const { data, error } = await (supabase.from("gamification_progresso_desafios") as any)
+      const { data, error } = await (supabase as any).from("gamification_progresso_desafios")
         .upsert([{
           desafio_id: challengeId,
           paciente_id: patientId,
