@@ -69,11 +69,11 @@ export const autoReconciliationService = {
 
           if (score >= autoThreshold) {
             // Auto-reconcile
-            await matchingService.manualMatch({
-              transactionId: tx.id,
-              paymentId: best.paymentId,
-              notas: `Auto-reconciliado (score: ${score.toFixed(0)}%)`,
-            });
+            await matchingService.manualMatch(
+              tx.id,
+              best.paymentId,
+              `Auto-reconciliado (score: ${score.toFixed(0)}%)`,
+            );
 
             // Log it
             await (supabase as any).from("auto_reconciliation_log").insert({

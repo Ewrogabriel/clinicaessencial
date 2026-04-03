@@ -102,7 +102,7 @@ const createTestQueryClient = () =>
 
 const renderProfessionalDashboard = async () => {
   const queryClient = createTestQueryClient();
-  const ProfessionalDashboard = (await import("@/pages/ProfessionalDashboard")).default;
+  const ProfessionalDashboard = (await import("@/pages/Dashboard/professional/ProfessionalDashboard")).default;
 
   return render(
     <QueryClientProvider client={queryClient}>
