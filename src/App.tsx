@@ -31,7 +31,7 @@ const Matriculas = lazy(() => import("./pages/Matriculas"));
 const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
 const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
-const InteligenciaBI = lazy(() => import("./pages/InteligenciaBI"));
+
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const Inventario = lazy(() => import("./pages/Inventario"));
 const Modalidades = lazy(() => import("./pages/Modalidades"));
@@ -145,7 +145,7 @@ const App = () => (
                         <Route path="/inventario" element={<Inventario />} />
                         <Route path="/financeiro" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><Financeiro /></RequireRole>} />
                         <Route path="/conciliacao-bancaria" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConciliacaoBancaria /></RequireRole>} />
-                        <Route path="/inteligencia-bi" element={<RequireRole roles={["admin", "gestor", "master"]}><InteligenciaBI /></RequireRole>} />
+                        <Route path="/inteligencia-bi" element={<Navigate to="/relatorios" replace />} />
                         <Route path="/relatorios" element={<RequireRole roles={["admin", "gestor", "master"]}><Relatorios /></RequireRole>} />
                         <Route path="/modalidades" element={<Modalidades />} />
                         <Route path="/profissionais" element={<RequireRole roles={["admin", "gestor", "master"]}><Profissionais /></RequireRole>} />

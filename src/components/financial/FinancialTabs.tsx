@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, BarChart3, Receipt, Users2, DollarSign } from "lucide-react";
+import { Zap, BarChart3, Receipt, DollarSign } from "lucide-react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
@@ -16,7 +16,7 @@ const IntegrationStatus = lazy(() =>
   }))
 );
 const Despesas = lazy(() => import("@/pages/Despesas"));
-const Comissoes = lazy(() => import("@/pages/Comissoes"));
+
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 
 interface FinancialTabsProps {
@@ -65,10 +65,6 @@ export function FinancialTabs({
         </TabsTrigger>
         <TabsTrigger value="previsao">Previsão</TabsTrigger>
         <TabsTrigger value="despesas">Despesas</TabsTrigger>
-        <TabsTrigger value="comissoes" className="gap-1.5">
-          <Users2 className="h-3.5 w-3.5" />
-          Comissões
-        </TabsTrigger>
         <TabsTrigger value="notas-fiscais">Notas Fiscais</TabsTrigger>
         <TabsTrigger value="dre" className="gap-1.5">
           <DollarSign className="h-3.5 w-3.5" />
@@ -100,11 +96,8 @@ export function FinancialTabs({
         </Suspense>
       </TabsContent>
 
-      <TabsContent value="comissoes">
-        <Suspense fallback={<LazyLoadFallback />}>
-          <Comissoes />
-        </Suspense>
-      </TabsContent>
+
+
 
       <TabsContent value="notas-fiscais">
         <Suspense fallback={<LazyLoadFallback />}>
