@@ -131,10 +131,10 @@ export const dashboardService = {
         (() => {
           let q = (supabase as any)
             .from("pagamentos")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "vencido");
+            .select("id, data_vencimento", { count: "exact", head: false })
+            .eq("status", "pendente");
           if (clinicId) q = q.eq("clinic_id", clinicId);
-          return q;
+          return q.lt("data_vencimento", new Date().toISOString().split("T")[0]);
         })(),
 
         // Current month appointments (for occupancy)
