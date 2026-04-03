@@ -44,14 +44,14 @@ export async function updateConfig(
   updates: Partial<Pick<WhatsAppConfig, "api_token" | "phone_number_id" | "is_active">>
 ): Promise<WhatsAppConfig | null> {
   try {
-    const { data, error } = await (supabase
+    const { data, error } = await (supabase as any)
       .from("whatsapp_config")
       .upsert(
         { clinic_id: clinicId, ...updates, updated_at: new Date().toISOString() },
         { onConflict: "clinic_id" }
       )
       .select("id, clinic_id, api_token, phone_number_id, is_active, created_at, updated_at")
-      .single() as any);
+      .single();
 
     if (error) throw error;
     return data as WhatsAppConfig;
