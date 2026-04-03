@@ -210,43 +210,39 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", on
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
+                  disabled={sendingReceipt}
                   onClick={async () => {
-                    const numero = getReceiptNumber(payment.id, payment.created_at);
-                    const dateStr2 = payment.data_pagamento || payment.created_at;
-                    const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
-                    const pdf = await generateReceiptPDF({
-                      numero,
-                      pacienteNome,
-                      cpf: pacienteCpf,
-                      descricao: payment.descricao || "Serviço",
-                      valor: Math.abs(payment.valor),
-                      formaPagamento: payment.forma_pagamento || "",
-                      dataPagamento: dataPgto,
-                      referencia: payment.descricao || "Serviço",
-                    });
-                    const blob = pdf.output("blob");
-                    const url = URL.createObjectURL(blob);
-
-                    // Try Web Share API for mobile
-                    if (navigator.share && navigator.canShare) {
-                      try {
-                        const file = new File([blob], `Recibo_${numero}.pdf`, { type: "application/pdf" });
-                        await navigator.share({ title: `Recibo ${numero}`, files: [file] });
-                        toast.success("Recibo enviado!");
-                        return;
-                      } catch {}
+                    setSendingReceipt(true);
+                    try {
+                      const numero = getReceiptNumber(payment.id, payment.created_at);
+                      const dateStr2 = payment.data_pagamento || payment.created_at;
+                      const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
+                      const pdf = await generateReceiptPDF({
+                        numero,
+                        pacienteNome,
+                        cpf: pacienteCpf,
+                        descricao: payment.descricao || "Serviço",
+                        valor: Math.abs(payment.valor),
+                        formaPagamento: payment.forma_pagamento || "",
+                        dataPagamento: dataPgto,
+                        referencia: payment.descricao || "Serviço",
+                      });
+                      const blob = pdf.output("blob");
+                      const publicUrl = await uploadReceiptToStorage(blob, numero);
+                      const text = encodeURIComponent(
+                        `Olá! Segue o recibo nº ${numero} no valor de R$ ${Math.abs(payment.valor).toFixed(2)}.\n\nBaixe aqui: ${publicUrl}`
+                      );
+                      window.open(`https://wa.me/?text=${text}`, "_blank");
+                      toast.success("Link do recibo gerado e enviado!");
+                    } catch (err: any) {
+                      toast.error(err.message || "Erro ao enviar recibo.");
+                    } finally {
+                      setSendingReceipt(false);
                     }
-                    // Fallback: open WhatsApp with text
-                    const text = encodeURIComponent(`Segue o recibo nº ${numero} no valor de R$ ${Math.abs(payment.valor).toFixed(2)}.`);
-                    window.open(`https://wa.me/?text=${text}`, "_blank");
-                    // Also download so user can attach
-                    pdf.save(`Recibo_${numero}.pdf`);
-                    toast.info("Recibo baixado. Anexe manualmente no WhatsApp.");
-                    URL.revokeObjectURL(url);
                   }}
                 >
                   <Send className="h-4 w-4" />
-                  Enviar Recibo
+                  {sendingReceipt ? "Enviando..." : "Enviar Recibo"}
                 </Button>
               </>
             )}
