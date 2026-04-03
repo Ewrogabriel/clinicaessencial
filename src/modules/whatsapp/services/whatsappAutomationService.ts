@@ -40,7 +40,7 @@ async function logMessage(params: {
   errorMessage?: string | null;
 }): Promise<void> {
   try {
-    await (supabase.from("whatsapp_message_logs").insert({
+    await (supabase as any).from("whatsapp_message_logs").insert({
       clinic_id: params.clinicId,
       patient_id: params.patientId ?? null,
       appointment_id: params.appointmentId ?? null,
