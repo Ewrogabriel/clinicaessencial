@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, Landmark, BarChart3, Receipt, Users2, DollarSign } from "lucide-react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
 import { ReconciliationPage } from "./ReconciliationPage";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 // Lazy-load heavy sub-pages
 const FinanceDashboard = lazy(() =>
