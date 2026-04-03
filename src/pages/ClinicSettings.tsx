@@ -128,6 +128,7 @@ function UpgradePlanButton({ clinicId, currentPlan }: { clinicId?: string; curre
 
 const ClinicSettings = () => {
   const { data: settings, isLoading } = useClinicSettings();
+  const { activeClinicId } = useClinic();
   const { saasStatus, isLoading: loadingSaaS } = useSaaS();
   const updateMutation = useUpdateClinicSettings();
   const [form, setForm] = useState({
