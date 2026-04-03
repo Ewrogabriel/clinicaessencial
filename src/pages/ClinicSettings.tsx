@@ -75,12 +75,12 @@ function UpgradePlanButton({ clinicId, currentPlan }: { clinicId?: string; curre
       }
     },
     onSuccess: () => {
-      toast({ title: "Solicitação enviada!", description: "O administrador master será notificado para aprovar." });
+      toast.success("Solicitação enviada!", { description: "O administrador master será notificado para aprovar." });
       setOpen(false);
       setSelectedPlanId("");
       setMotivo("");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   return (
@@ -161,8 +161,8 @@ const ClinicSettings = () => {
   const handleSave = () => {
     if (!settings?.id) return;
     updateMutation.mutate({ id: settings.id, ...form }, {
-      onSuccess: () => toast({ title: "Dados da clínica atualizados!" }),
-      onError: () => toast({ title: "Erro ao salvar", variant: "destructive" }),
+      onSuccess: () => toast.success("Dados da clínica atualizados!"),
+      onError: () => toast.error("Erro ao salvar"),
     });
   };
 
@@ -174,16 +174,16 @@ const ClinicSettings = () => {
       const ext = file.name.split(".").pop();
       const path = `clinic/logo-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
-      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      if (upErr) { toast.error("Erro no upload", { description: upErr.message }); return; }
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const logo_url = urlData.publicUrl;
       setForm(f => ({ ...f, logo_url }));
       updateMutation.mutate({ id: settings.id, logo_url }, {
-        onSuccess: () => toast({ title: "Logo atualizada!" }),
-        onError: (err: any) => toast({ title: "Erro ao salvar logo", description: err.message, variant: "destructive" }),
+        onSuccess: () => toast.success("Logo atualizada!"),
+        onError: (err: any) => toast.error("Erro ao salvar logo", { description: err.message }),
       });
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast.error("Erro no upload", { description: err.message });
     } finally {
       setUploading(false);
     }
@@ -197,16 +197,16 @@ const ClinicSettings = () => {
       const ext = file.name.split(".").pop();
       const path = `clinic/signature-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
-      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      if (upErr) { toast.error("Erro no upload", { description: upErr.message }); return; }
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const assinatura_url = urlData.publicUrl;
       setForm(f => ({ ...f, assinatura_url }));
       updateMutation.mutate({ id: settings.id, assinatura_url }, {
-        onSuccess: () => toast({ title: "Assinatura atualizada!" }),
-        onError: (err: any) => toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" }),
+        onSuccess: () => toast.success("Assinatura atualizada!"),
+        onError: (err: any) => toast.error("Erro ao salvar assinatura", { description: err.message }),
       });
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast.error("Erro no upload", { description: err.message });
     } finally {
       setUploading(false);
     }
@@ -220,16 +220,16 @@ const ClinicSettings = () => {
       const ext = file.name.split(".").pop();
       const path = `clinic/rubrica-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("essencialfisiopilatesbq").upload(path, file, { upsert: false });
-      if (upErr) { toast({ title: "Erro no upload", description: upErr.message, variant: "destructive" }); return; }
+      if (upErr) { toast.error("Erro no upload", { description: upErr.message }); return; }
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const rubrica_url = urlData.publicUrl;
       setForm(f => ({ ...f, rubrica_url }));
       updateMutation.mutate({ id: settings.id, rubrica_url }, {
-        onSuccess: () => toast({ title: "Rubrica atualizada!" }),
-        onError: (err: any) => toast({ title: "Erro ao salvar rubrica", description: err.message, variant: "destructive" }),
+        onSuccess: () => toast.success("Rubrica atualizada!"),
+        onError: (err: any) => toast.error("Erro ao salvar rubrica", { description: err.message }),
       });
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast.error("Erro no upload", { description: err.message });
     } finally {
       setUploading(false);
     }
@@ -241,7 +241,7 @@ const ClinicSettings = () => {
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
-      if (data.erro) { toast({ title: "CEP não encontrado", variant: "destructive" }); return; }
+      if (data.erro) { toast.error("CEP não encontrado"); return; }
       setForm(f => ({
         ...f,
         endereco: data.logradouro || f.endereco,
@@ -249,7 +249,7 @@ const ClinicSettings = () => {
         cidade: data.localidade || f.cidade,
         estado: data.uf || f.estado,
       }));
-    } catch { toast({ title: "Erro ao buscar endereço", variant: "destructive" }); }
+    } catch { toast.error("Erro ao buscar endereço"); }
   };
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -561,9 +561,9 @@ const NfeConfigTab = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["config-nfe-settings"] });
-      toast({ title: "Configuração de NF-e salva!" });
+      toast.success("Configuração de NF-e salva!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const setNfe = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>

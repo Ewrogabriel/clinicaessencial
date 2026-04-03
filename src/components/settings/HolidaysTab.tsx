@@ -39,7 +39,7 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
   const saveMutation = useMutation({
     mutationFn: async (h: typeof newEvent) => {
       if (!clinicId) {
-        toast({ title: "Erro", description: "ID da clínica não identificado. Tente atualizar a página.", variant: "destructive" });
+        toast.error("Erro", { description: "ID da clínica não identificado. Tente atualizar a página." });
         throw new Error("Clinic ID missing");
       }
 
@@ -58,9 +58,9 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
       setNewEvent({ nome: "", data_inicio: "", data_fim: "" });
-      toast({ title: "Evento adicionado!" });
+      toast.success("Evento adicionado!");
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro", { description: err.message }),
   });
 
   const deleteMutation = useMutation({
@@ -70,16 +70,16 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
-      toast({ title: "Evento removido." });
+      toast.success("Evento removido.");
     },
   });
 
   const fetchHolidaysAI = async () => {
     if (!clinicId) {
-      toast({ title: "Selecione uma clínica primeiro", variant: "destructive" });
+      toast.error("Selecione uma clínica primeiro");
       return;
     }
-    toast({ title: "🤖 Buscando feriados nacionais..." });
+    toast.success("🤖 Buscando feriados nacionais...");
     try {
       const year = new Date().getFullYear();
       const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
@@ -101,12 +101,12 @@ export const HolidaysTab = ({ clinicId }: { clinicId: string }) => {
         if (error) throw error;
 
         queryClient.invalidateQueries({ queryKey: ["clinic-holidays"] });
-        toast({ title: `${toInsert.length} feriados nacionais importados!` });
+        toast.success(`${toInsert.length} feriados nacionais importados!`);
       } else {
-        toast({ title: "Nenhum feriado encontrado.", variant: "destructive" });
+        toast.error("Nenhum feriado encontrado.");
       }
     } catch (err: any) {
-      toast({ title: "Erro ao importar feriados", description: err.message, variant: "destructive" });
+      toast.error("Erro ao importar feriados", { description: err.message });
     }
   };
 

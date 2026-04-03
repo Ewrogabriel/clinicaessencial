@@ -211,7 +211,7 @@ export function TransactionDetailModal({
   const handleCopyId = useCallback(() => {
     if (!transaction) return;
     navigator.clipboard.writeText(transaction.id).then(() => {
-      toast({ title: "✓ ID copiado para área de transferência" });
+      toast.success("✓ ID copiado para área de transferência");
     });
   }, [transaction]);
 
@@ -816,16 +816,16 @@ export function TransactionDetailModal({
                       setIsSavingNote(true);
                       try {
                         await onSaveNote(transaction.id, note.trim());
-                        toast({ title: "✓ Nota salva com sucesso" });
+                        toast.success("✓ Nota salva com sucesso");
                         setNote("");
                       } catch {
-                        toast({ title: "Erro ao salvar nota", variant: "destructive" });
+                        toast.error("Erro ao salvar nota");
                       } finally {
                         setIsSavingNote(false);
                       }
                     } else {
                       // No persistence handler: show info
-                      toast({ title: "ℹ️ Para salvar notas, configure o handler onSaveNote" });
+                      toast.success("ℹ️ Para salvar notas, configure o handler onSaveNote");
                     }
                   }}
                 >

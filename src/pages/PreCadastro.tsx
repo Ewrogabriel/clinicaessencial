@@ -53,7 +53,7 @@ const PreCadastro = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || !telefone.trim()) {
-      toast({ title: "Preencha nome e telefone", variant: "destructive" });
+      toast.error("Preencha nome e telefone");
       return;
     }
     setLoading(true);
@@ -75,7 +75,7 @@ const PreCadastro = () => {
       if (error) throw error;
       setSubmitted(true);
     } catch (err: any) {
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao enviar", { description: err.message });
     } finally {
       setLoading(false);
     }

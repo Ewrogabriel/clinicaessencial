@@ -47,14 +47,10 @@ export const usePacientes = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["pacientes"] });
-            toast({ title: "Status do paciente atualizado com sucesso" });
+            toast.success("Status do paciente atualizado com sucesso");
         },
         onError: (error: any) => {
-            toast({ 
-                title: "Erro ao atualizar status", 
-                description: error.message, 
-                variant: "destructive" 
-            });
+            toast.error("Erro ao atualizar status", { description: error.message });
         }
     });
 

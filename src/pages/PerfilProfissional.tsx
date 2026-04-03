@@ -145,10 +145,10 @@ const PerfilProfissional = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: t("profile.updated") });
+      toast.success(t("profile.updated"));
       queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
     },
-    onError: (e: any) => toast({ title: t("common.error"), description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error(t("common.error"), { description: e.message }),
   });
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,11 +156,11 @@ const PerfilProfissional = () => {
     if (!file || !user) return;
     const filePath = `${user.id}/avatar.${file.name.split(".").pop()}`;
     const { error: uploadError } = await supabase.storage.from("professional-documents").upload(filePath, file, { upsert: true });
-    if (uploadError) { toast({ title: t("common.error"), description: uploadError.message, variant: "destructive" }); return; }
+    if (uploadError) { toast.error(t("common.error"), { description: uploadError.message }); return; }
     const { data: urlData } = supabase.storage.from("professional-documents").getPublicUrl(filePath);
     await supabase.from("profiles").update({ foto_url: urlData.publicUrl } as any).eq("user_id", user.id);
     queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
-    toast({ title: t("profile.photo_updated") });
+    toast.success(t("profile.photo_updated"));
   };
 
   const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,9 +177,9 @@ const PerfilProfissional = () => {
       setAssinaturaUrl(url);
       await supabase.from("profiles").update({ assinatura_url: url } as any).eq("user_id", user.id);
       queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
-      toast({ title: "Assinatura atualizada com sucesso!" });
+      toast.success("Assinatura atualizada com sucesso!");
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast.error("Erro no upload", { description: err.message });
     } finally {
       setUploadingSignature(false);
     }
@@ -199,9 +199,9 @@ const PerfilProfissional = () => {
       setRubricaUrl(url);
       await supabase.from("profiles").update({ rubrica_url: url } as any).eq("user_id", user.id);
       queryClient.invalidateQueries({ queryKey: ["my-professional-profile"] });
-      toast({ title: "Rubrica atualizada com sucesso!" });
+      toast.success("Rubrica atualizada com sucesso!");
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast.error("Erro no upload", { description: err.message });
     } finally {
       setUploadingRubrica(false);
     }
@@ -212,7 +212,7 @@ const PerfilProfissional = () => {
     if (!file || !user) return;
     const filePath = `${user.id}/docs/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage.from("professional-documents").upload(filePath, file);
-    if (uploadError) { toast({ title: t("common.error"), description: uploadError.message, variant: "destructive" }); return; }
+    if (uploadError) { toast.error(t("common.error"), { description: uploadError.message }); return; }
     await (supabase.from("professional_documents") as any).insert({
       profissional_id: user.id,
       nome: file.name,
@@ -222,14 +222,14 @@ const PerfilProfissional = () => {
       file_size: file.size,
     });
     queryClient.invalidateQueries({ queryKey: ["my-professional-docs"] });
-    toast({ title: t("profile.doc_attached") });
+    toast.success(t("profile.doc_attached"));
   };
 
   const handleDeleteDoc = async (doc: any) => {
     await supabase.storage.from("professional-documents").remove([doc.file_path]);
     await (supabase.from("professional_documents") as any).delete().eq("id", doc.id);
     queryClient.invalidateQueries({ queryKey: ["my-professional-docs"] });
-    toast({ title: t("profile.doc_removed") });
+    toast.success(t("profile.doc_removed"));
   };
 
   const initials = nome ? nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "P";

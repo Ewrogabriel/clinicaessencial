@@ -247,10 +247,10 @@ const Matriculas = () => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       queryClient.invalidateQueries({ queryKey: ["current-patient"] });
       setEditOpen(false);
-      toast({ title: "✅ Matrícula atualizada com sucesso!" });
+      toast.success("✅ Matrícula atualizada com sucesso!");
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao atualizar matrícula", description: err.message, variant: "destructive" });
+      toast.error("Erro ao atualizar matrícula", { description: err.message });
     }
   });
 
@@ -352,11 +352,11 @@ const Matriculas = () => {
       queryClient.invalidateQueries({ queryKey: ["current-patient"] });
       setFormOpen(false);
       setFormData(getEmptyForm());
-      toast({ title: "✅ Matrícula criada com sucesso!" });
+      toast.success("✅ Matrícula criada com sucesso!");
     },
     onError: (err: any) => {
       const msg = err?.message || err?.details || JSON.stringify(err);
-      toast({ title: "Erro ao criar matrícula", description: msg, variant: "destructive" });
+      toast.error("Erro ao criar matrícula", { description: msg });
     },
   });
 
@@ -368,7 +368,7 @@ const Matriculas = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
       setSuspendTarget(null);
-      toast({ title: "Matrícula suspensa." });
+      toast.success("Matrícula suspensa.");
     },
   });
 
@@ -383,7 +383,7 @@ const Matriculas = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
       setCancelTarget(null);
-      toast({ title: "Matrícula cancelada." });
+      toast.success("Matrícula cancelada.");
     },
   });
 
@@ -394,7 +394,7 @@ const Matriculas = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
-      toast({ title: "Matrícula reativada." });
+      toast.success("Matrícula reativada.");
     },
   });
 

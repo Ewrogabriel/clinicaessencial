@@ -118,7 +118,7 @@ export const ReengagementCampaign = () => {
     patients.forEach((p: any) => {
       if (p.telefone) sendWhatsApp(p.telefone, p.nome);
     });
-    toast({ title: `${patients.length} mensagem(ns) preparada(s) para envio!` });
+    toast.success(`${patients.length} mensagem(ns) preparada(s) para envio!`);
   };
 
   return (

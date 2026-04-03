@@ -371,7 +371,7 @@ export function CommissionExtract() {
     },
     onSuccess: async ({ prof, valorFinal, comp, bonus }) => {
       queryClient.invalidateQueries({ queryKey: ["fechamentos-comissao"] });
-      toast({ title: "Comissão fechada!", description: `${prof.nome} — R$ ${valorFinal.toFixed(2)}` });
+      toast.success("Comissão fechada!", { description: `${prof.nome} — R$ ${valorFinal.toFixed(2)}` });
       await generateClosingReceipt(prof, valorFinal, comp, bonus);
       setClosingProf(null);
       setClosingNotes("");
@@ -380,7 +380,7 @@ export function CommissionExtract() {
       setBonusValor("");
       setBonusDesc("");
     },
-    onError: (e: any) => toast({ title: "Erro ao fechar comissão", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro ao fechar comissão", { description: e.message }),
   });
 
   const generateClosingReceipt = async (prof: ProfSummary, valorFinal: number, comp: number, bonus: number) => {
@@ -501,7 +501,7 @@ export function CommissionExtract() {
     doc.text("Clínica", 150, y + 5, { align: "center" });
 
     doc.save(`Comissao_${prof.nome.replace(/\s+/g, "_")}_${mesRef}.pdf`);
-    toast({ title: "Recibo PDF gerado!" });
+    toast.success("Recibo PDF gerado!");
   };
 
   const generateGlobalPDF = async () => {
@@ -557,7 +557,7 @@ export function CommissionExtract() {
     doc.text(`TOTAL COMISSÕES: R$ ${totalComissoes.toFixed(2)}`, 20, y);
 
     doc.save(`Extrato_Comissoes_${mesRef}.pdf`);
-    toast({ title: "PDF gerado!" });
+    toast.success("PDF gerado!");
   };
 
   const openClosing = (prof: ProfSummary) => {

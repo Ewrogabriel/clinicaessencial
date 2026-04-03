@@ -98,9 +98,9 @@ const Convenios = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categorias-parceiros"] });
       setNewCatName("");
-      toast({ title: "Categoria criada!" });
+      toast.success("Categoria criada!");
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const deleteCatMutation = useMutation({
@@ -110,7 +110,7 @@ const Convenios = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categorias-parceiros"] });
-      toast({ title: "Categoria removida" });
+      toast.success("Categoria removida");
     },
   });
 
@@ -154,9 +154,9 @@ const Convenios = () => {
       queryClient.invalidateQueries({ queryKey: ["convenios"] });
       setFormOpen(false);
       resetForm();
-      toast({ title: editId ? "Parceiro atualizado!" : "Parceiro cadastrado!" });
+      toast.success(editId ? "Parceiro atualizado!" : "Parceiro cadastrado!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const deleteMutation = useMutation({
@@ -166,9 +166,9 @@ const Convenios = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["convenios"] });
-      toast({ title: "Parceiro removido" });
+      toast.success("Parceiro removido");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const resetForm = () => {
@@ -201,9 +201,9 @@ const Convenios = () => {
     try {
       const url = await uploadImage(file, "cards");
       setForm((f) => ({ ...f, imagem_card_url: url }));
-      toast({ title: "Imagem do card enviada!" });
+      toast.success("Imagem do card enviada!");
     } catch {
-      toast({ title: "Erro ao enviar imagem", variant: "destructive" });
+      toast.error("Erro ao enviar imagem");
     }
   };
 
@@ -213,9 +213,9 @@ const Convenios = () => {
     try {
       const url = await uploadImage(file, "descricoes");
       setForm((f) => ({ ...f, imagem_descricao_url: url }));
-      toast({ title: "Imagem de descrição enviada!" });
+      toast.success("Imagem de descrição enviada!");
     } catch {
-      toast({ title: "Erro ao enviar imagem", variant: "destructive" });
+      toast.error("Erro ao enviar imagem");
     }
   };
 

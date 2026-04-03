@@ -44,14 +44,14 @@ export function AdminOnboardingWizard() {
     } else {
       await supabase.from("clinic_settings").insert({ nome: clinicName, telefone: clinicPhone });
     }
-    toast({ title: "Clínica configurada! ✅" });
+    toast.success("Clínica configurada! ✅");
     setStep(1);
   };
 
   const handleSaveModalidade = async () => {
     if (!modalidade.trim()) { setStep(2); return; }
     await supabase.from("modalidades").insert({ nome: modalidade, created_by: user!.id });
-    toast({ title: "Modalidade criada! ✅" });
+    toast.success("Modalidade criada! ✅");
     setStep(2);
   };
 

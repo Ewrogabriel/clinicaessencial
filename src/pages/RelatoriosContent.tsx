@@ -148,7 +148,7 @@ const Relatorios = () => {
       headStyles: { fillColor: [34, 139, 115] },
     });
     doc.save(`${title.replace(/\s+/g, "_")}.pdf`);
-    toast({ title: "PDF gerado!" });
+    toast.success("PDF gerado!");
   };
 
   const exportExcel = (title: string, headers: string[], rows: string[][]) => {
@@ -156,7 +156,7 @@ const Relatorios = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Relatório");
     XLSX.writeFile(wb, `${title.replace(/\s+/g, "_")}.xlsx`);
-    toast({ title: "Planilha gerada!" });
+    toast.success("Planilha gerada!");
   };
 
   const exportAtendimentos = (type: "pdf" | "xlsx") => {

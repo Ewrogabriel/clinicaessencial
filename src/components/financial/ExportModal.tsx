@@ -59,12 +59,9 @@ export function ExportModal({ open, clinicId, onClose }: ExportModalProps) {
         );
       }
 
-      toast({
-        title: "✓ Exportação concluída",
-        description: `${report.rows.length} transações exportadas`,
-      });
+      toast.success("✓ Exportação concluída", { description: `${report.rows.length} transações exportadas` });
     } catch {
-      toast({ title: "Erro ao exportar", variant: "destructive" });
+      toast.error("Erro ao exportar");
     } finally {
       setIsExporting(false);
     }

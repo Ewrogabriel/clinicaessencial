@@ -16,7 +16,7 @@ export default function PacienteAccess() {
   const handleAccessSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!codigoAcesso.trim()) {
-      toast({ title: "Erro", description: "Digite o código de acesso", variant: "destructive" });
+      toast.error("Erro", { description: "Digite o código de acesso" });
       return;
     }
 
@@ -31,13 +31,13 @@ export default function PacienteAccess() {
       
       if (searchError) {
         console.error("Search error:", searchError);
-        toast({ title: "Erro", description: "Erro ao buscar código", variant: "destructive" });
+        toast.error("Erro", { description: "Erro ao buscar código" });
         setLoading(false);
         return;
       }
       
       if (!pacientes || pacientes.length === 0) {
-        toast({ title: "Erro", description: "Código de acesso inválido", variant: "destructive" });
+        toast.error("Erro", { description: "Código de acesso inválido" });
         setLoading(false);
         return;
       }
@@ -46,7 +46,7 @@ export default function PacienteAccess() {
       const cpfClean = paciente.cpf?.replace(/\D/g, "");
 
       if (!cpfClean || cpfClean.length !== 11) {
-        toast({ title: "Erro", description: "Paciente sem CPF cadastrado. Entre em contato com a clínica.", variant: "destructive" });
+        toast.error("Erro", { description: "Paciente sem CPF cadastrado. Entre em contato com a clínica." });
         setLoading(false);
         return;
       }
@@ -60,16 +60,16 @@ export default function PacienteAccess() {
 
       if (signInError) {
         console.error("Sign in error:", signInError);
-        toast({ title: "Erro", description: "Erro ao autenticar. Sua conta pode não estar configurada. Entre em contato com a clínica.", variant: "destructive" });
+        toast.error("Erro", { description: "Erro ao autenticar. Sua conta pode não estar configurada. Entre em contato com a clínica." });
         setLoading(false);
         return;
       }
 
-      toast({ title: "Bem-vindo!", description: `Olá ${paciente.nome}!` });
+      toast.success("Bem-vindo!", { description: `Olá ${paciente.nome}!` });
       navigate("/dashboard");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erro ao acessar";
-      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
+      toast.error("Erro", { description: errorMessage });
     }
     setLoading(false);
   };

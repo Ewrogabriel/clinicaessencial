@@ -164,14 +164,14 @@ const Contratos = () => {
   const valorFinal = (matricula?.valor_mensal || (plano ? plano.valor : 0)) * (1 - (desconto?.percentual_desconto || 0) / 100);
 
   const handleDownload = async () => {
-    if (!paciente) { toast({ title: "Selecione um paciente", variant: "destructive" }); return; }
+    if (!paciente) { toast.error("Selecione um paciente"); return; }
     const pdf = await generateContractPDF(getContractData());
     pdf.save(`Contrato_${paciente.nome.replace(/\s/g, "_")}.pdf`);
-    toast({ title: "Contrato gerado com sucesso!" });
+    toast.success("Contrato gerado com sucesso!");
   };
 
   const handleWhatsAppSend = async () => {
-    if (!paciente?.telefone) { toast({ title: "Paciente sem telefone cadastrado", variant: "destructive" }); return; }
+    if (!paciente?.telefone) { toast.error("Paciente sem telefone cadastrado"); return; }
     await handleDownload();
     const phone = paciente.telefone.replace(/\D/g, "");
     const fullPhone = phone.startsWith("55") ? phone : `55${phone}`;
@@ -180,7 +180,7 @@ const Contratos = () => {
   };
 
   const handleProfissionalDownload = async () => {
-    if (!profissional) { toast({ title: "Selecione um profissional", variant: "destructive" }); return; }
+    if (!profissional) { toast.error("Selecione um profissional"); return; }
     const endParts = [profissional.endereco, profissional.numero ? `nº ${profissional.numero}` : "", profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ");
     const doc = await generateProfessionalContractPDF({
       profissionalNome: profissional.nome,
@@ -196,7 +196,7 @@ const Contratos = () => {
       telefone: profissional.telefone || "",
     });
     doc.save(`contrato-profissional-${profissional.nome.replace(/\s+/g, "-").toLowerCase()}.pdf`);
-    toast({ title: "Contrato profissional gerado!" });
+    toast.success("Contrato profissional gerado!");
   };
 
   useEffect(() => {
@@ -586,7 +586,7 @@ const Contratos = () => {
               onSave={(dataUrl) => {
                 setPacienteSignature(dataUrl);
                 setIsSignatureDialogOpen(false);
-                toast({ title: "Assinatura capturada com sucesso!" });
+                toast.success("Assinatura capturada com sucesso!");
               }}
               initialValue={pacienteSignature || undefined}
             />

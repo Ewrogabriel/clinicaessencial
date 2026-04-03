@@ -29,9 +29,9 @@ export default function ContasBancarias() {
   const handleDelete = async (id: string) => {
     try {
       await deleteAccount(id);
-      toast({ title: "✓ Conta bancária removida" });
+      toast.success("✓ Conta bancária removida");
     } catch {
-      toast({ title: "Erro ao remover conta", variant: "destructive" });
+      toast.error("Erro ao remover conta");
     }
   };
 

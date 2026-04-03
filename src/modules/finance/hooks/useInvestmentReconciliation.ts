@@ -56,30 +56,22 @@ export function useInvestmentReconciliation() {
         activeClinicId ?? ""
       ),
     onSuccess: () => {
-      toast({ title: "Transação vinculada ao investimento!" });
+      toast.success("Transação vinculada ao investimento!");
       invalidate();
     },
     onError: (e: any) =>
-      toast({
-        title: "Erro ao vincular",
-        description: e.message,
-        variant: "destructive",
-      }),
+      toast.error("Erro ao vincular", { description: e.message }),
   });
 
   const unlinkMutation = useMutation({
     mutationFn: (transactionId: string) =>
       investmentReconciliationService.unlinkFromInvestment(transactionId),
     onSuccess: () => {
-      toast({ title: "Vínculo com investimento removido." });
+      toast.success("Vínculo com investimento removido.");
       invalidate();
     },
     onError: (e: any) =>
-      toast({
-        title: "Erro ao desvincular",
-        description: e.message,
-        variant: "destructive",
-      }),
+      toast.error("Erro ao desvincular", { description: e.message }),
   });
 
   const createFromTransactionMutation = useMutation({
@@ -96,15 +88,11 @@ export function useInvestmentReconciliation() {
         dto
       ),
     onSuccess: () => {
-      toast({ title: "Investimento criado e vinculado!" });
+      toast.success("Investimento criado e vinculado!");
       invalidate();
     },
     onError: (e: any) =>
-      toast({
-        title: "Erro ao criar investimento",
-        description: e.message,
-        variant: "destructive",
-      }),
+      toast.error("Erro ao criar investimento", { description: e.message }),
   });
 
   return {

@@ -134,11 +134,11 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props
             queryClient.invalidateQueries({ queryKey: ["enrollment-sessions", enrollmentId] });
             queryClient.invalidateQueries({ queryKey: ["enrollment-credits", enrollmentId] });
             queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-            toast({ title: "✅ Sessão reagendada com sucesso!" });
+            toast.success("✅ Sessão reagendada com sucesso!");
             onClose();
         },
         onError: (err: any) => {
-            toast({ title: "Erro ao reagendar", description: err?.message || "Erro desconhecido", variant: "destructive" });
+            toast.error("Erro ao reagendar", { description: err?.message || "Erro desconhecido" });
         },
     });
 

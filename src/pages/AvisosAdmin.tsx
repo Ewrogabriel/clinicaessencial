@@ -39,7 +39,7 @@ const AvisosAdmin = () => {
     if (!user) return;
 
     if (!titulo.trim() || !mensagem.trim()) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      toast.error("Preencha todos os campos");
       return;
     }
 
@@ -54,9 +54,9 @@ const AvisosAdmin = () => {
     } as any);
 
     if (error) {
-       toast({ title: "Erro ao publicar aviso", description: error.message, variant: "destructive" });
+       toast.error("Erro ao publicar aviso", { description: error.message });
     } else {
-       toast({ title: "Aviso publicado no mural dos pacientes!" });
+       toast.success("Aviso publicado no mural dos pacientes!");
        setTitulo("");
        setMensagem("");
        setImageUrl("");
@@ -69,7 +69,7 @@ const AvisosAdmin = () => {
   const toggleAtivo = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase.from("avisos").update({ ativo: !currentStatus }).eq("id", id);
     if (!error) {
-      toast({ title: currentStatus ? "Aviso ocultado" : "Aviso reativado" });
+      toast.success(currentStatus ? "Aviso ocultado" : "Aviso reativado");
       queryClient.invalidateQueries({ queryKey: ["admin-avisos"] });
     }
   };
@@ -78,7 +78,7 @@ const AvisosAdmin = () => {
     if (!confirm("Tem certeza que deseja apagar este aviso permanentemente?")) return;
     const { error } = await supabase.from("avisos").delete().eq("id", id);
     if (!error) {
-      toast({ title: "Aviso excluído" });
+      toast.success("Aviso excluído");
       queryClient.invalidateQueries({ queryKey: ["admin-avisos"] });
     }
   };

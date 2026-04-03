@@ -79,10 +79,10 @@ export function ManualTab() {
         });
       }
 
-      toast({ title: "Manual gerado com sucesso! 📖", description: `${parsed.length} seções criadas.` });
+      toast.success("Manual gerado com sucesso! 📖", { description: `${parsed.length} seções criadas.` });
       queryClient.invalidateQueries({ queryKey: ["manual-sections"] });
     } catch (e: any) {
-      toast({ title: "Erro ao gerar manual", description: e.message, variant: "destructive" });
+      toast.error("Erro ao gerar manual", { description: e.message });
     } finally {
       setGeneratingAll(false);
     }
@@ -102,10 +102,10 @@ export function ManualTab() {
         .update({ imagem_url: data.imageUrl })
         .eq("id", section.id);
 
-      toast({ title: "Imagem gerada! 🎨" });
+      toast.success("Imagem gerada! 🎨");
       queryClient.invalidateQueries({ queryKey: ["manual-sections"] });
     } catch (e: any) {
-      toast({ title: "Erro ao gerar imagem", description: e.message, variant: "destructive" });
+      toast.error("Erro ao gerar imagem", { description: e.message });
     } finally {
       setGeneratingImage(null);
     }
@@ -121,28 +121,28 @@ export function ManualTab() {
       })
       .eq("id", editingSection.id);
 
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Seção atualizada! ✅" });
+    if (error) { toast.error("Erro", { description: error.message }); return; }
+    toast.success("Seção atualizada! ✅");
     setEditingSection(null);
     queryClient.invalidateQueries({ queryKey: ["manual-sections"] });
   };
 
   const handleDelete = async (id: string) => {
     await (supabase.from("manual_sections") as any).delete().eq("id", id);
-    toast({ title: "Seção removida" });
+    toast.success("Seção removida");
     queryClient.invalidateQueries({ queryKey: ["manual-sections"] });
   };
 
   const handleAddSection = async () => {
-    if (!newForm.titulo) { toast({ title: "Título obrigatório", variant: "destructive" }); return; }
+    if (!newForm.titulo) { toast.error("Título obrigatório"); return; }
     const maxOrdem = sections.reduce((max, s) => Math.max(max, s.ordem), 0);
     const { error } = await (supabase.from("manual_sections") as any).insert({
       titulo: newForm.titulo,
       conteudo: newForm.conteudo,
       ordem: maxOrdem + 1,
     });
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Seção adicionada! ✅" });
+    if (error) { toast.error("Erro", { description: error.message }); return; }
+    toast.success("Seção adicionada! ✅");
     setNewForm({ titulo: "", conteudo: "" });
     setAddDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["manual-sections"] });

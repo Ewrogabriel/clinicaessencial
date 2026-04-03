@@ -49,10 +49,10 @@ const CheckInProfissional = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agendamentos-dia"] });
-      toast({ title: "Status atualizado com sucesso!" });
+      toast.success("Status atualizado com sucesso!");
     },
     onError: (error) => {
-      toast({ title: "Erro ao atualizar", description: String(error), variant: "destructive" });
+      toast.error("Erro ao atualizar", { description: String(error) });
     },
   });
 

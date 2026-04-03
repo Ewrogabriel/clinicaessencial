@@ -96,7 +96,7 @@ const MeusPagamentos = () => {
       referencia: ref.charAt(0).toUpperCase() + ref.slice(1),
     });
     pdf.save(`Recibo_${numero}.pdf`);
-    toast({ title: "Recibo baixado com sucesso!" });
+    toast.success("Recibo baixado com sucesso!");
   };
 
   return (

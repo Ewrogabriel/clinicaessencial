@@ -20,10 +20,10 @@ export function ClinicReportButton() {
       if (data?.error) throw new Error(data.error);
 
       await generateClinicReportPDF(data.report, data.metrics);
-      toast({ title: "Relatório gerado com sucesso!", description: "O PDF foi baixado automaticamente." });
+      toast.success("Relatório gerado com sucesso!", { description: "O PDF foi baixado automaticamente." });
     } catch (err: any) {
       console.error("Report error:", err);
-      toast({ title: "Erro ao gerar relatório", description: err.message || "Tente novamente.", variant: "destructive" });
+      toast.error("Erro ao gerar relatório", { description: err.message || "Tente novamente." });
     } finally {
       setLoading(false);
     }

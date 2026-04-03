@@ -149,7 +149,7 @@ const Profissionais = () => {
       try {
         const cleaned = await cleanSignatureImage(url);
         setAssinaturaUrl(cleaned);
-        toast({ title: "Assinatura otimizada automaticamente! ✨" });
+        toast.success("Assinatura otimizada automaticamente! ✨");
       } catch { /* keep original */ }
       finally { setCleaningAssinatura(false); }
     }
@@ -162,7 +162,7 @@ const Profissionais = () => {
       try {
         const cleaned = await cleanSignatureImage(url);
         setRubricaUrl(cleaned);
-        toast({ title: "Rubrica otimizada automaticamente! ✨" });
+        toast.success("Rubrica otimizada automaticamente! ✨");
       } catch { /* keep original */ }
       finally { setCleaningRubrica(false); }
     }
@@ -270,7 +270,7 @@ const Profissionais = () => {
     const rawCpf = unmask(cpf);
     if (rawCpf.length > 0) {
       if (!isValidCPF(rawCpf)) {
-        toast({ title: "CPF inválido", description: "O CPF informado não é válido. Verifique os dígitos.", variant: "destructive" });
+        toast.error("CPF inválido", { description: "O CPF informado não é válido. Verifique os dígitos." });
         return false;
       }
       // Check duplicate in profiles
@@ -280,7 +280,7 @@ const Profissionais = () => {
         .eq("cpf", cpf);
       const duplicates = (existing ?? []).filter(p => !currentUserId || p.id !== currentUserId);
       if (duplicates.length > 0) {
-        toast({ title: "CPF já cadastrado", description: `Este CPF já pertence a: ${duplicates[0].nome}`, variant: "destructive" });
+        toast.error("CPF já cadastrado", { description: `Este CPF já pertence a: ${duplicates[0].nome}` });
         return false;
       }
     }
@@ -289,11 +289,11 @@ const Profissionais = () => {
 
   const handleCreate = async () => {
     if (!nome.trim() || !createEmail.trim() || !createPassword.trim()) {
-      toast({ title: "Erro", description: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      toast.error("Erro", { description: "Preencha todos os campos obrigatórios" });
       return;
     }
     if (createPassword !== createPasswordConfirm) {
-      toast({ title: "Erro", description: "As senhas não coincidem", variant: "destructive" });
+      toast.error("Erro", { description: "As senhas não coincidem" });
       return;
     }
     if (!(await validateCpf())) return;
@@ -331,11 +331,11 @@ const Profissionais = () => {
       }
       if (result?.error) throw new Error(result.error);
 
-      toast({ title: "Usuário criado com sucesso!" });
+      toast.success("Usuário criado com sucesso!");
       await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
       setDialogOpen(false);
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -376,11 +376,11 @@ const Profissionais = () => {
         await supabase.from("user_roles").insert({ user_id: editedUser.user_id, role: selectedRole as any });
       }
 
-      toast({ title: "Dados atualizados!" });
+      toast.success("Dados atualizados!");
       await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
       setDialogOpen(false);
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -401,11 +401,11 @@ const Profissionais = () => {
         const { error } = await supabase.from("user_permissions").insert(rows as any);
         if (error) throw error;
       }
-      toast({ title: "Permissões atualizadas!" });
+      toast.success("Permissões atualizadas!");
       await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
       setPermDialogOpen(false);
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
     } finally {
       setLoading(false);
     }
@@ -834,9 +834,9 @@ const Profissionais = () => {
                                 try {
                                   const cleaned = await cleanSignatureImage(assinaturaUrl);
                                   setAssinaturaUrl(cleaned);
-                                  toast({ title: "Assinatura otimizada!" });
+                                  toast.success("Assinatura otimizada!");
                                 } catch (e) {
-                                  toast({ title: "Erro ao limpar", variant: "destructive" });
+                                  toast.error("Erro ao limpar");
                                 } finally {
                                   setCleaningAssinatura(false);
                                 }
@@ -869,9 +869,9 @@ const Profissionais = () => {
                                 try {
                                   const cleaned = await cleanSignatureImage(rubricaUrl);
                                   setRubricaUrl(cleaned);
-                                  toast({ title: "Rubrica otimizada!" });
+                                  toast.success("Rubrica otimizada!");
                                 } catch (e) {
-                                  toast({ title: "Erro ao limpar", variant: "destructive" });
+                                  toast.error("Erro ao limpar");
                                 } finally {
                                   setCleaningRubrica(false);
                                 }

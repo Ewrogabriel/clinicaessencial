@@ -186,9 +186,9 @@ const Planos = () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setConfirmDialog(null);
-      toast({ title: "Pagamento confirmado!" });
+      toast.success("Pagamento confirmado!");
     },
-    onError: (e: Error) => toast({ title: "Erro ao confirmar", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro ao confirmar", { description: e.message }),
   });
 
   const planosAtivos = planos.filter((p) => p.status === "ativo");

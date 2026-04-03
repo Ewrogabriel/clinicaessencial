@@ -70,12 +70,12 @@ const Despesas = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
-            toast({ title: "Despesa registrada!" });
+            toast.success("Despesa registrada!");
             setDialogOpen(false);
             setFormData({ descricao: "", valor: "", data_vencimento: format(new Date(), "yyyy-MM-dd"), categoria: "outros", status: "pendente" });
         },
         onError: (error: Error) => {
-            toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+            toast.error("Erro ao salvar", { description: error.message });
         },
     });
 
@@ -86,7 +86,7 @@ const Despesas = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
-            toast({ title: "Despesa excluída" });
+            toast.success("Despesa excluída");
         },
     });
 
@@ -100,7 +100,7 @@ const Despesas = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["despesas"] });
-            toast({ title: "Status atualizado" });
+            toast.success("Status atualizado");
         },
     });
 

@@ -127,10 +127,10 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Configuração do Banco Inter salva com sucesso!" });
+      toast.success("Configuração do Banco Inter salva com sucesso!");
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     },
   });
 
@@ -162,10 +162,10 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Configuração do Nibo salva com sucesso!" });
+      toast.success("Configuração do Nibo salva com sucesso!");
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     },
   });
 
@@ -197,10 +197,10 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Configuração do TransmiteNota salva com sucesso!" });
+      toast.success("Configuração do TransmiteNota salva com sucesso!");
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     },
   });
 
@@ -222,13 +222,13 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
       );
 
       if (response.ok) {
-        toast({ title: "✅ Conexão com Banco Inter bem-sucedida!" });
+        toast.success("✅ Conexão com Banco Inter bem-sucedida!");
       } else {
         const error = await response.json();
-        toast({ title: "❌ Erro na conexão", description: error.error || "Verifique suas credenciais", variant: "destructive" });
+        toast.error("❌ Erro na conexão", { description: error.error || "Verifique suas credenciais" });
       }
     } catch (err: any) {
-      toast({ title: "Erro ao testar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao testar", { description: err.message });
     } finally {
       setTestingIntegration(null);
     }
@@ -251,13 +251,13 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
       );
 
       if (response.ok) {
-        toast({ title: "✅ Conexão com Nibo bem-sucedida!" });
+        toast.success("✅ Conexão com Nibo bem-sucedida!");
       } else {
         const error = await response.json();
-        toast({ title: "❌ Erro na conexão", description: error.error || "Verifique sua chave de API", variant: "destructive" });
+        toast.error("❌ Erro na conexão", { description: error.error || "Verifique sua chave de API" });
       }
     } catch (err: any) {
-      toast({ title: "Erro ao testar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao testar", { description: err.message });
     } finally {
       setTestingIntegration(null);
     }
@@ -280,13 +280,13 @@ export const IntegrationTabs = ({ clinicId }: { clinicId: string }) => {
       );
 
       if (response.ok) {
-        toast({ title: "✅ Configuração do TransmiteNota válida!" });
+        toast.success("✅ Configuração do TransmiteNota válida!");
       } else {
         const error = await response.json();
-        toast({ title: "❌ Erro na configuração", description: error.error || "Verifique seus dados", variant: "destructive" });
+        toast.error("❌ Erro na configuração", { description: error.error || "Verifique seus dados" });
       }
     } catch (err: any) {
-      toast({ title: "Erro ao testar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao testar", { description: err.message });
     } finally {
       setTestingIntegration(null);
     }

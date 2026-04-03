@@ -35,22 +35,18 @@ No text in the image, only visual elements. Bright, inviting colors.`;
       if (error) throw error;
 
       if (data?.error) {
-        toast({ title: "Aviso", description: data.error, variant: "destructive" });
+        toast.error("Aviso", { description: data.error });
         return;
       }
 
       if (data?.imageUrl) {
         setImageUrl(data.imageUrl);
         setDialogOpen(true);
-        toast({ title: "Imagem gerada com sucesso! 🎨" });
+        toast.success("Imagem gerada com sucesso! 🎨");
       }
     } catch (err: any) {
       console.error("Image generation error:", err);
-      toast({
-        title: "Erro ao gerar imagem",
-        description: err.message || "Tente novamente",
-        variant: "destructive",
-      });
+      toast.error("Erro ao gerar imagem", { description: err.message || "Tente novamente" });
     } finally {
       setLoading(false);
     }
@@ -68,7 +64,7 @@ No text in the image, only visual elements. Bright, inviting colors.`;
   const copyImageUrl = () => {
     if (!imageUrl) return;
     navigator.clipboard.writeText(imageUrl);
-    toast({ title: "URL copiada!" });
+    toast.success("URL copiada!");
   };
 
   return (

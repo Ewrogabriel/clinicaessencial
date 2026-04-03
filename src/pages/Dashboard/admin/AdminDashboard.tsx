@@ -276,7 +276,7 @@ const Dashboard = () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-past-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-today-stats"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] });
-      toast({ title: "Status atualizado!" });
+      toast.success("Status atualizado!");
     },
   });
 
@@ -288,7 +288,7 @@ const Dashboard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-today-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-past-agenda"] });
-      toast({ title: "Profissional alterado com sucesso!" });
+      toast.success("Profissional alterado com sucesso!");
     },
   });
 

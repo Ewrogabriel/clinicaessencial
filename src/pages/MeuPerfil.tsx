@@ -151,14 +151,14 @@ const MeuPerfil = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Solicitação enviada", description: "Suas alterações foram enviadas para aprovação do administrador." });
+      toast.success("Solicitação enviada", { description: "Suas alterações foram enviadas para aprovação do administrador." });
       setEditMode(false);
       setEditData(null);
       refetch();
       refetchPending();
     },
     onError: (error: any) => {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
     }
   });
 
@@ -185,10 +185,10 @@ const MeuPerfil = () => {
 
       if (updateErr) throw updateErr;
 
-      toast({ title: "Foto atualizada com sucesso!" });
+      toast.success("Foto atualizada com sucesso!");
       refetch();
     } catch (error: any) {
-      toast({ title: "Erro ao fazer upload", description: error.message, variant: "destructive" });
+      toast.error("Erro ao fazer upload", { description: error.message });
     } finally {
       setUploadingPhoto(false);
     }

@@ -195,7 +195,7 @@ const PacienteForm = () => {
                   size="sm"
                   onClick={() => {
                     navigator.clipboard.writeText(codigoAcesso);
-                    toast({ title: "Código copiado! ✓" });
+                    toast.success("Código copiado! ✓");
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" /> Copiar

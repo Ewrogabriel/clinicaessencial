@@ -79,10 +79,10 @@ export const IntegrationStatus = ({ clinicId }: { clinicId: string }) => {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "✅ Sincronização com Banco Inter iniciada!" });
+      toast.success("✅ Sincronização com Banco Inter iniciada!");
     },
     onError: (err: any) => {
-      toast({ title: "❌ Erro na sincronização", description: err.message, variant: "destructive" });
+      toast.error("❌ Erro na sincronização", { description: err.message });
     },
   });
 
@@ -110,10 +110,10 @@ export const IntegrationStatus = ({ clinicId }: { clinicId: string }) => {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "✅ Sincronização com Nibo iniciada!" });
+      toast.success("✅ Sincronização com Nibo iniciada!");
     },
     onError: (err: any) => {
-      toast({ title: "❌ Erro na sincronização", description: err.message, variant: "destructive" });
+      toast.error("❌ Erro na sincronização", { description: err.message });
     },
   });
 

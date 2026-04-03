@@ -27,7 +27,7 @@ const statusLabel: Record<string, string> = {
 export const FinanceExportButton = ({ pagamentos }: FinanceExportButtonProps) => {
   const handleExport = () => {
     if (!pagamentos.length) {
-      toast({ title: "Nenhum dado para exportar", variant: "destructive" });
+      toast.error("Nenhum dado para exportar");
       return;
     }
 
@@ -45,7 +45,7 @@ export const FinanceExportButton = ({ pagamentos }: FinanceExportButtonProps) =>
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
     XLSX.writeFile(wb, `financeiro_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast({ title: "Relatório exportado com sucesso!" });
+    toast.success("Relatório exportado com sucesso!");
   };
 
   return (

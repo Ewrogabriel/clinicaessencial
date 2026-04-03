@@ -123,11 +123,11 @@ const DocumentosClinicos = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: editingDoc ? "Documento atualizado!" : "Documento salvo!" });
+      toast.success(editingDoc ? "Documento atualizado!" : "Documento salvo!");
       queryClient.invalidateQueries({ queryKey: ["documentos-clinicos"] });
       resetForm();
     },
-    onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro ao salvar", { description: e.message }),
   });
 
   // Delete document
@@ -137,7 +137,7 @@ const DocumentosClinicos = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Documento excluído!" });
+      toast.success("Documento excluído!");
       queryClient.invalidateQueries({ queryKey: ["documentos-clinicos"] });
     },
   });
@@ -145,7 +145,7 @@ const DocumentosClinicos = () => {
   // AI suggestion
   const handleAISuggest = async () => {
     if (!conteudo.trim() || !pacienteId) {
-      toast({ title: "Preencha o conteúdo e selecione o paciente para obter sugestões.", variant: "destructive" });
+      toast.error("Preencha o conteúdo e selecione o paciente para obter sugestões.");
       return;
     }
     setAiLoading(true);
@@ -175,10 +175,10 @@ const DocumentosClinicos = () => {
       if (error) throw error;
       if (data?.suggestion) {
         setConteudo(data.suggestion);
-        toast({ title: "Sugestão de IA aplicada! Revise o conteúdo." });
+        toast.success("Sugestão de IA aplicada! Revise o conteúdo.");
       }
     } catch (e: any) {
-      toast({ title: "Erro na sugestão de IA", description: e.message, variant: "destructive" });
+      toast.error("Erro na sugestão de IA", { description: e.message });
     } finally {
       setAiLoading(false);
     }
@@ -187,7 +187,7 @@ const DocumentosClinicos = () => {
   // Generate initial document text
   const handleAIGenerate = async () => {
     if (!pacienteId) {
-      toast({ title: "Selecione um paciente primeiro.", variant: "destructive" });
+      toast.error("Selecione um paciente primeiro.");
       return;
     }
     setAiGenerating(true);
@@ -223,10 +223,10 @@ const DocumentosClinicos = () => {
       if (error) throw error;
       if (data?.suggestion || data?.response) {
         setConteudo(data.suggestion || data.response);
-        toast({ title: "Texto gerado! Revise e personalize conforme necessário." });
+        toast.success("Texto gerado! Revise e personalize conforme necessário.");
       }
     } catch (e: any) {
-      toast({ title: "Erro ao gerar texto", description: e.message, variant: "destructive" });
+      toast.error("Erro ao gerar texto", { description: e.message });
     } finally {
       setAiGenerating(false);
     }

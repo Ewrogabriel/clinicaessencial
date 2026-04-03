@@ -27,7 +27,7 @@ export function TeleconsultaButton({
   const copyLink = () => {
     const url = `${window.location.origin}/teleconsulta?agendamento=${agendamentoId}`;
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copiado!", description: "Envie para o paciente via WhatsApp ou mensagem." });
+    toast.success("Link copiado!", { description: "Envie para o paciente via WhatsApp ou mensagem." });
   };
 
   const sendWhatsApp = () => {

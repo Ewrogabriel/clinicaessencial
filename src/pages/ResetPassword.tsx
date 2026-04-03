@@ -15,15 +15,15 @@ const ResetPassword = () => {
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password.length < 6) {
-            toast({ title: "Senha curta", description: "A senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+            toast.error("Senha curta", { description: "A senha deve ter pelo menos 6 caracteres." });
             return;
         }
         setLoading(true);
         const { error } = await supabase.auth.updateUser({ password });
         if (error) {
-            toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+            toast.error("Erro ao atualizar", { description: error.message });
         } else {
-            toast({ title: "Senha atualizada!", description: "Sua nova senha já está valendo." });
+            toast.success("Senha atualizada!", { description: "Sua nova senha já está valendo." });
             navigate("/login");
         }
         setLoading(false);

@@ -54,7 +54,7 @@ export default function FeatureFlagsPanel() {
       queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
     },
     onError: (e: Error) =>
-      toast({ title: "Erro ao atualizar flag", description: e.message, variant: "destructive" }),
+      toast.error("Erro ao atualizar flag", { description: e.message }),
   });
 
   const createMutation = useMutation({
@@ -69,13 +69,13 @@ export default function FeatureFlagsPanel() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Feature flag criada ✅" });
+      toast.success("Feature flag criada ✅");
       setDialogOpen(false);
       setForm({ nome: "", descricao: "", categoria: "misc", plano_minimo: "", ativo: false });
       queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
     },
     onError: (e: Error) =>
-      toast({ title: "Erro ao criar flag", description: e.message, variant: "destructive" }),
+      toast.error("Erro ao criar flag", { description: e.message }),
   });
 
   const grouped = useMemo(() => {

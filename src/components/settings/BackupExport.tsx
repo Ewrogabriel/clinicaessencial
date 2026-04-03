@@ -23,7 +23,7 @@ export function BackupExport() {
       const { data, error } = await (supabase.from(table as any) as any).select("*");
       if (error) throw error;
       if (!data?.length) {
-        toast({ title: "Tabela vazia", description: `Nenhum dado encontrado em ${table}.` });
+        toast.success("Tabela vazia", { description: `Nenhum dado encontrado em ${table}.` });
         return;
       }
 
@@ -49,9 +49,9 @@ export function BackupExport() {
       a.click();
       URL.revokeObjectURL(url);
 
-      toast({ title: "Exportação concluída! ✅", description: `${data.length} registros exportados de ${table}.` });
+      toast.success("Exportação concluída! ✅", { description: `${data.length} registros exportados de ${table}.` });
     } catch (err: any) {
-      toast({ title: "Erro na exportação", description: err.message, variant: "destructive" });
+      toast.error("Erro na exportação", { description: err.message });
     } finally {
       setExporting(null);
     }

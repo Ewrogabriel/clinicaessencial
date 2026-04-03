@@ -49,10 +49,10 @@ export function AutoReconcileSettings({
     try {
       setIsSaving(true);
       await configurationService.saveConfig(config);
-      toast({ title: "✓ Configurações salvas" });
+      toast.success("✓ Configurações salvas");
       onClose();
     } catch {
-      toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+      toast.error("Erro ao salvar configurações");
     } finally {
       setIsSaving(false);
     }

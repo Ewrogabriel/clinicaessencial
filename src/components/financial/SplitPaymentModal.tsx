@@ -85,11 +85,11 @@ export function SplitPaymentModal({
     try {
       setIsSaving(true);
       await splitService.createSplits(clinicId, transaction.id, transaction.valor, splits);
-      toast({ title: "✓ Splits criados com sucesso" });
+      toast.success("✓ Splits criados com sucesso");
       onSaved();
       onClose();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Erro ao criar splits", variant: "destructive" });
+      toast.error(err?.message ?? "Erro ao criar splits");
     } finally {
       setIsSaving(false);
     }

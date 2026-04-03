@@ -199,7 +199,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["enrollment-sessions", enrollment.id] });
             setJustificationDialog({ open: false, sessionId: "", text: "" });
-            toast({ title: "Justificativa enviada para aprovação." });
+            toast.success("Justificativa enviada para aprovação.");
         },
     });
 
@@ -229,7 +229,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
         onSuccess: (_, vars) => {
             queryClient.invalidateQueries({ queryKey: ["enrollment-sessions", enrollment.id] });
             queryClient.invalidateQueries({ queryKey: ["enrollment-credits", enrollment.id] });
-            toast({ title: vars.action === "approved" ? "Justificativa aprovada. Crédito gerado!" : "Justificativa negada." });
+            toast.success(vars.action === "approved" ? "Justificativa aprovada. Crédito gerado!" : "Justificativa negada.");
         },
     });
 

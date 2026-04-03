@@ -166,11 +166,11 @@ const SolicitacoesAlteracao = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Solicitação aprovada!", description: "Os dados do paciente foram atualizados." });
+      toast.success("Solicitação aprovada!", { description: "Os dados do paciente foram atualizados." });
       queryClient.invalidateQueries({ queryKey: ["solicitacoes-alteracao"] });
       setDetailOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro ao aprovar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao aprovar", { description: err.message }),
   });
 
   const rejeitarDadosMutation = useMutation({
@@ -181,11 +181,11 @@ const SolicitacoesAlteracao = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Solicitação rejeitada." });
+      toast.success("Solicitação rejeitada.");
       queryClient.invalidateQueries({ queryKey: ["solicitacoes-alteracao"] });
       setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
     },
-    onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao rejeitar", { description: err.message }),
   });
 
   const aprovarRemarcacaoMutation = useMutation({
@@ -209,11 +209,11 @@ const SolicitacoesAlteracao = () => {
       });
     },
     onSuccess: () => {
-      toast({ title: "Solicitação aprovada!", description: "A sessão foi atualizada." });
+      toast.success("Solicitação aprovada!", { description: "A sessão foi atualizada." });
       queryClient.invalidateQueries({ queryKey: ["solicitacoes-remarcacao-admin"] });
       setDetailOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro ao aprovar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao aprovar", { description: err.message }),
   });
 
   const rejeitarRemarcacaoMutation = useMutation({
@@ -232,11 +232,11 @@ const SolicitacoesAlteracao = () => {
       });
     },
     onSuccess: () => {
-      toast({ title: "Solicitação rejeitada." });
+      toast.success("Solicitação rejeitada.");
       queryClient.invalidateQueries({ queryKey: ["solicitacoes-remarcacao-admin"] });
       setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
     },
-    onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao rejeitar", { description: err.message }),
   });
 
   // ── Reserva Mutations ──
@@ -268,12 +268,12 @@ const SolicitacoesAlteracao = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Reserva aprovada!", description: "O estoque foi atualizado e o paciente notificado." });
+      toast.success("Reserva aprovada!", { description: "O estoque foi atualizado e o paciente notificado." });
       queryClient.invalidateQueries({ queryKey: ["reservas-produtos-admin"] });
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
       setDetailOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro ao aprovar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao aprovar", { description: err.message }),
   });
 
   const rejeitarReservaMutation = useMutation({
@@ -295,11 +295,11 @@ const SolicitacoesAlteracao = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Reserva rejeitada." });
+      toast.success("Reserva rejeitada.");
       queryClient.invalidateQueries({ queryKey: ["reservas-produtos-admin"] });
       setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
     },
-    onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao rejeitar", { description: err.message }),
   });
 
   // ── Agendamento Mutations ──
@@ -320,11 +320,11 @@ const SolicitacoesAlteracao = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Agendamento aprovado!" });
+      toast.success("Agendamento aprovado!");
       queryClient.invalidateQueries({ queryKey: ["agendamentos-pendentes-admin"] });
       setDetailOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro ao aprovar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao aprovar", { description: err.message }),
   });
 
   const rejeitarAgendamentoMutation = useMutation({
@@ -344,11 +344,11 @@ const SolicitacoesAlteracao = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Agendamento rejeitado." });
+      toast.success("Agendamento rejeitado.");
       queryClient.invalidateQueries({ queryKey: ["agendamentos-pendentes-admin"] });
       setRejectOpen(false); setDetailOpen(false); setMotivoRejeicao("");
     },
-    onError: (err: any) => toast({ title: "Erro ao rejeitar", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro ao rejeitar", { description: err.message }),
   });
 
   // ── Helpers ──

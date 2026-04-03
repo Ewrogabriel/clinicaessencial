@@ -63,10 +63,10 @@ export function useCreateModalidade() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-            toast({ title: "Modalidade criada!" });
+            toast.success("Modalidade criada!");
         },
         onError: (error: Error) => {
-            toast({ title: "Erro", description: error.message, variant: "destructive" });
+            toast.error("Erro", { description: error.message });
         },
     });
 }
@@ -87,10 +87,10 @@ export function useUpdateModalidade() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-            toast({ title: "Modalidade atualizada!" });
+            toast.success("Modalidade atualizada!");
         },
         onError: (error: Error) => {
-            toast({ title: "Erro", description: error.message, variant: "destructive" });
+            toast.error("Erro", { description: error.message });
         },
     });
 }
@@ -108,10 +108,10 @@ export function useDeleteModalidade() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["modalidades"] });
-            toast({ title: "Modalidade excluída!" });
+            toast.success("Modalidade excluída!");
         },
         onError: (error: Error) => {
-            toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+            toast.error("Erro ao excluir", { description: error.message });
         },
     });
 }

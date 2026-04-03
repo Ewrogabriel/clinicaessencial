@@ -128,9 +128,9 @@ export function LandingSiteEditor() {
         );
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["landing-content"] });
-      toast({ title: "Seção salva!", description: `A seção "${secao}" foi atualizada.` });
+      toast.success("Seção salva!", { description: `A seção "${secao}" foi atualizada.` });
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao salvar", { description: err.message });
     } finally {
       setSaving(false);
     }
@@ -159,10 +159,10 @@ export function LandingSiteEditor() {
         else if (section === "planos") setPlanos(content);
         else if (section === "depoimentos") setDepoimentos(content);
         else if (section === "contato") setContato(content);
-        toast({ title: "Conteúdo gerado!", description: "Revise e salve as alterações." });
+        toast.success("Conteúdo gerado!", { description: "Revise e salve as alterações." });
       }
     } catch (err: any) {
-      toast({ title: "Erro na IA", description: err.message, variant: "destructive" });
+      toast.error("Erro na IA", { description: err.message });
     } finally {
       setAiLoading(null);
     }

@@ -95,11 +95,11 @@ export function CommissionRules() {
       }
     },
     onSuccess: () => {
-      toast({ title: editingRule ? "Regra atualizada!" : "Regra criada!" });
+      toast.success(editingRule ? "Regra atualizada!" : "Regra criada!");
       closeRuleDialog();
       queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro", { description: err.message }),
   });
 
   const deleteRule = useMutation({
@@ -108,7 +108,7 @@ export function CommissionRules() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Regra removida!" });
+      toast.success("Regra removida!");
       queryClient.invalidateQueries({ queryKey: ["regras-comissao"] });
     },
   });

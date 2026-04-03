@@ -166,9 +166,9 @@ const Financeiro = () => {
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setFormOpen(false);
       setFormData({ paciente_id: "", plano_id: "", valor: "", data_pagamento: format(new Date(), "yyyy-MM-dd"), data_vencimento: "", forma_pagamento: "", status: "pendente", descricao: "", observacoes: "" });
-      toast({ title: "Pagamento registrado!" });
+      toast.success("Pagamento registrado!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const kpis = useMemo(() => {
@@ -305,9 +305,9 @@ const Financeiro = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setConfirmDialog(null);
-      toast({ title: "Pagamento confirmado!" });
+      toast.success("Pagamento confirmado!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const refundPayment = useMutation({
@@ -316,9 +316,9 @@ const Financeiro = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-      toast({ title: "Pagamento reembolsado!" });
+      toast.success("Pagamento reembolsado!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const formatDate = (d: string | null) => {
@@ -425,7 +425,7 @@ const Financeiro = () => {
                               const ref = pagamento.descricao || "Serviço";
                               const pdf = await generateReceiptPDF({ numero, pacienteNome: pagamento.paciente_nome, cpf: "", descricao: pagamento.descricao || "Serviço", valor: pagamento.valor, formaPagamento: pagamento.forma_pagamento || "", dataPagamento: dataPgto, referencia: ref });
                               pdf.save(`Recibo_${numero}.pdf`);
-                              toast({ title: "Recibo gerado!" });
+                              toast.success("Recibo gerado!");
                             }}>
                               <Download className="h-4 w-4" />
                             </Button>

@@ -66,7 +66,7 @@ export default function ClinicManagement() {
       await activateMutation.mutateAsync(id);
     }
     setSelectedIds(new Set());
-    toast({ title: `${selectedIds.size} clínica(s) ativada(s) ✅` });
+    toast.success(`${selectedIds.size} clínica(s) ativada(s) ✅`);
     queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
   };
 
@@ -75,7 +75,7 @@ export default function ClinicManagement() {
       await deactivateMutation.mutateAsync(id);
     }
     setSelectedIds(new Set());
-    toast({ title: `${selectedIds.size} clínica(s) desativada(s)` });
+    toast.success(`${selectedIds.size} clínica(s) desativada(s)`);
     queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
   };
 

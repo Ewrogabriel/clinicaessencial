@@ -101,10 +101,10 @@ export function CancellationPolicies() {
       setFormOpen(false);
       setEditingId(null);
       setForm(emptyForm);
-      toast({ title: editingId ? "Política atualizada!" : "Política criada!" });
+      toast.success(editingId ? "Política atualizada!" : "Política criada!");
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast.error("Erro", { description: err.message });
     },
   });
 
@@ -118,7 +118,7 @@ export function CancellationPolicies() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["politicas-cancelamento"] });
       setDeleteTarget(null);
-      toast({ title: "Política removida." });
+      toast.success("Política removida.");
     },
   });
 

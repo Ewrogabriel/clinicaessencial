@@ -101,7 +101,7 @@ const NotasFiscais = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
-      toast({ title: "Emissão confirmada! ✓" });
+      toast.success("Emissão confirmada! ✓");
     },
   });
 
@@ -120,16 +120,9 @@ const NotasFiscais = () => {
       if (data?.error) throw new Error(data.error);
 
       queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
-      toast({
-        title: "NFS-e enviada para emissão!",
-        description: `Status: ${data.status}. O PDF ficará disponível em instantes.`,
-      });
+      toast.success("NFS-e enviada para emissão!", { description: `Status: ${data.status}. O PDF ficará disponível em instantes.` });
     } catch (e: any) {
-      toast({
-        title: "Erro ao emitir NFS-e",
-        description: e.message || "Verifique a configuração do Focus NFe",
-        variant: "destructive",
-      });
+      toast.error("Erro ao emitir NFS-e", { description: e.message || "Verifique a configuração do Focus NFe" });
     } finally {
       setEmitting(null);
     }
@@ -142,9 +135,9 @@ const NotasFiscais = () => {
       });
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
-      toast({ title: `Status: ${data?.status || "verificado"}` });
+      toast.success(`Status: ${data?.status || "verificado"}`);
     } catch (e: any) {
-      toast({ title: "Erro ao verificar status", description: e.message, variant: "destructive" });
+      toast.error("Erro ao verificar status", { description: e.message });
     }
   };
 
@@ -175,9 +168,9 @@ const NotasFiscais = () => {
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["emissoes-nf"] });
-      toast({ title: "PDF da NF enviado com sucesso!" });
+      toast.success("PDF da NF enviado com sucesso!");
     } catch (e: any) {
-      toast({ title: "Erro ao enviar PDF", description: e.message, variant: "destructive" });
+      toast.error("Erro ao enviar PDF", { description: e.message });
     } finally {
       setUploading(null);
     }
@@ -318,7 +311,7 @@ const NotasFiscais = () => {
                                     valor,
                                   }, { onConflict: "paciente_id,mes_referencia" }).select().single();
                                   eId = newE?.id;
-                                  if (!eId) { toast({ title: "Erro ao criar registro", variant: "destructive" }); return; }
+                                  if (!eId) { toast.error("Erro ao criar registro"); return; }
                                 }
                                 handleEmitNfe(p.id, eId);
                               }}

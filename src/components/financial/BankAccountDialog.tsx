@@ -135,7 +135,7 @@ export function BankAccountDialog({
             ativo: form.ativo,
           },
         });
-        toast({ title: "Conta bancária atualizada com sucesso." });
+        toast.success("Conta bancária atualizada com sucesso.");
       } else {
         await createAccount({
           apelido: form.apelido,
@@ -146,14 +146,11 @@ export function BankAccountDialog({
           tipo: form.tipo,
           ativo: form.ativo,
         });
-        toast({ title: "Conta bancária cadastrada com sucesso." });
+        toast.success("Conta bancária cadastrada com sucesso.");
       }
       onOpenChange(false);
     } catch {
-      toast({
-        title: isEditing ? "Erro ao atualizar conta" : "Erro ao cadastrar conta",
-        variant: "destructive",
-      });
+      toast.error(isEditing ? "Erro ao atualizar conta" : "Erro ao cadastrar conta");
     }
   };
 

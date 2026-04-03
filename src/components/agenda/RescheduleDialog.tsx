@@ -208,29 +208,21 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       }
     },
     onSuccess: () => {
-      toast({
-        title: isStaff ? `${tipoLabel} realizado!` : "Solicitação enviada!",
-        description: isStaff
-          ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada"} com sucesso.`
-          : `Sua solicitação de ${tipoLabelLower} foi enviada para análise da clínica.`,
-      });
+      toast.success(isStaff ? `${tipoLabel, { description: isStaff
+          ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada" });
       queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       onSuccess();
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({
-        title: `Erro ao solicitar ${tipoLabelLower}`,
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Erro ao solicitar ${tipoLabelLower}`, { description: error.message });
     }
   });
 
   const handleReschedule = () => {
     if (!date) {
-      toast({ title: "Selecione uma data", variant: "destructive" });
+      toast.error("Selecione uma data");
       return;
     }
     requestReschedule.mutate();

@@ -122,9 +122,9 @@ const Produtos = () => {
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
       setFormOpen(false);
       resetForm();
-      toast({ title: editingId ? "Produto atualizado!" : "Produto criado!" });
+      toast.success(editingId ? "Produto atualizado!" : "Produto criado!");
     },
-    onError: (error) => toast({ title: "Erro", description: String(error), variant: "destructive" }),
+    onError: (error) => toast.error("Erro", { description: String(error) }),
   });
 
   const deleteProduto = useMutation({
@@ -134,7 +134,7 @@ const Produtos = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
-      toast({ title: "Produto deletado!" });
+      toast.success("Produto deletado!");
     },
   });
 
@@ -165,9 +165,9 @@ const Produtos = () => {
       queryClient.invalidateQueries({ queryKey: ["vendas-produtos"] });
       setSaleOpen(false);
       setSaleData({ produto_id: "", paciente_id: "", quantidade: "1", data_venda: format(new Date(), "yyyy-MM-dd"), observacoes: "" });
-      toast({ title: "Venda registrada!" });
+      toast.success("Venda registrada!");
     },
-    onError: (error) => toast({ title: "Erro", description: String(error), variant: "destructive" }),
+    onError: (error) => toast.error("Erro", { description: String(error) }),
   });
 
   const saveEntrada = useMutation({
@@ -191,15 +191,15 @@ const Produtos = () => {
       queryClient.invalidateQueries({ queryKey: ["entradas-estoque"] });
       setStockOpen(false);
       setStockData({ produto_id: "", quantidade: "", data_entrada: format(new Date(), "yyyy-MM-dd"), observacoes: "" });
-      toast({ title: "Entrada de estoque registrada!" });
+      toast.success("Entrada de estoque registrada!");
     },
-    onError: (error) => toast({ title: "Erro", description: String(error), variant: "destructive" }),
+    onError: (error) => toast.error("Erro", { description: String(error) }),
   });
 
   const resetForm = () => { setFormData({ nome: "", descricao: "", preco: "", estoque: "", foto_url: "" }); setEditingId(null); setDescSuggestions([]); };
 
   const generateDescriptions = async () => {
-    if (!formData.nome) { toast({ title: "Informe o nome do produto primeiro", variant: "destructive" }); return; }
+    if (!formData.nome) { toast.error("Informe o nome do produto primeiro"); return; }
     setAiDescLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-product", {
@@ -208,16 +208,16 @@ const Produtos = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setDescSuggestions(data.suggestions || []);
-      toast({ title: "Sugestões geradas!" });
+      toast.success("Sugestões geradas!");
     } catch (err: any) {
-      toast({ title: "Erro ao gerar", description: err.message, variant: "destructive" });
+      toast.error("Erro ao gerar", { description: err.message });
     } finally {
       setAiDescLoading(false);
     }
   };
 
   const generateProductImage = async () => {
-    if (!formData.nome) { toast({ title: "Informe o nome do produto primeiro", variant: "destructive" }); return; }
+    if (!formData.nome) { toast.error("Informe o nome do produto primeiro"); return; }
     setAiImageLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-product", {
@@ -227,10 +227,10 @@ const Produtos = () => {
       if (data?.error) throw new Error(data.error);
       if (data?.imageUrl) {
         setFormData(prev => ({ ...prev, foto_url: data.imageUrl }));
-        toast({ title: "Imagem gerada com sucesso!" });
+        toast.success("Imagem gerada com sucesso!");
       }
     } catch (err: any) {
-      toast({ title: "Erro ao gerar imagem", description: err.message, variant: "destructive" });
+      toast.error("Erro ao gerar imagem", { description: err.message });
     } finally {
       setAiImageLoading(false);
     }

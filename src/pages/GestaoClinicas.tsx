@@ -97,9 +97,9 @@ const GestaoClinicas = () => {
       setFormOpen(false);
       setEditingId(null);
       setForm(emptyForm);
-      toast({ title: editingId ? "Clínica atualizada!" : "Clínica criada!" });
+      toast.success(editingId ? "Clínica atualizada!" : "Clínica criada!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const addUserMutation = useMutation({
@@ -111,9 +111,9 @@ const GestaoClinicas = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-users"] });
       setAddUserId("");
-      toast({ title: "Usuário vinculado!" });
+      toast.success("Usuário vinculado!");
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const removeUserMutation = useMutation({
@@ -123,7 +123,7 @@ const GestaoClinicas = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic-users"] });
-      toast({ title: "Usuário desvinculado!" });
+      toast.success("Usuário desvinculado!");
     },
   });
 

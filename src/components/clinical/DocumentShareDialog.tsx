@@ -31,10 +31,10 @@ const DocumentShareDialog = ({
     try {
       await navigator.clipboard.writeText(verifyUrl);
       setCopied(true);
-      toast({ title: "Link copiado com sucesso!" });
+      toast.success("Link copiado com sucesso!");
       setTimeout(() => setCopied(false), 3000);
     } catch {
-      toast({ title: "Erro ao copiar link", variant: "destructive" });
+      toast.error("Erro ao copiar link");
     }
   };
 

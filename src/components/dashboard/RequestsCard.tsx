@@ -79,7 +79,7 @@ export function RequestsCard() {
         });
       }
     },
-    onSuccess: () => { toast({ title: "Aprovado!" }); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
+    onSuccess: () => { toast.success("Aprovado!"); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
   });
 
   const rejectAgendamento = useMutation({
@@ -87,7 +87,7 @@ export function RequestsCard() {
       const { error } = await (supabase.from("agendamentos") as any).update({ status: "cancelado" }).eq("id", item.id);
       if (error) throw error;
     },
-    onSuccess: () => { toast({ title: "Rejeitado." }); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
+    onSuccess: () => { toast.success("Rejeitado."); queryClient.invalidateQueries({ queryKey: ["dashboard-all-requests"] }); queryClient.invalidateQueries({ queryKey: ["dashboard-pending-sessions"] }); },
   });
 
   const typeIcon: Record<string, any> = {

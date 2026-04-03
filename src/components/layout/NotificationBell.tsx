@@ -131,11 +131,11 @@ export const NotificationBell = memo(function NotificationBell() {
     onSuccess: (_, { action }) => {
       queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-      toast({ title: action === "aprovar" ? "Agendamento aprovado!" : "Agendamento rejeitado." });
+      toast.success(action === "aprovar" ? "Agendamento aprovado!" : "Agendamento rejeitado.");
       setDetail(null);
     },
     onError: () => {
-      toast({ title: "Erro ao processar", variant: "destructive" });
+      toast.error("Erro ao processar");
     },
   });
 

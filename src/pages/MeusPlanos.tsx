@@ -219,9 +219,9 @@ const MeusPlanos = () => {
       setSelectedDate(undefined);
       setSelectedTime("");
       setAvailabilityResult(null);
-      toast({ title: "Solicitação enviada!", description: "Aguarde a aprovação do administrador." });
+      toast.success("Solicitação enviada!", { description: "Aguarde a aprovação do administrador." });
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
   const planoAtivo = planos.find((p: any) => p.status === "ativo");

@@ -141,14 +141,14 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
                 const parsed = JSON.parse(cleaned);
                 if (parsed.descricao) setDescricao(parsed.descricao);
                 if (parsed.conduta) setConduta(parsed.conduta);
-                toast({ title: "Sugestão de evolução gerada pela IA!", description: "Revise e ajuste conforme necessário antes de salvar." });
+                toast.success("Sugestão de evolução gerada pela IA!", { description: "Revise e ajuste conforme necessário antes de salvar." });
             } catch {
                 // If not JSON, put it all in descricao
                 setDescricao(resultText);
-                toast({ title: "Sugestão gerada pela IA!", description: "Revise o texto antes de salvar." });
+                toast.success("Sugestão gerada pela IA!", { description: "Revise o texto antes de salvar." });
             }
         } catch (err: any) {
-            toast({ title: "Erro ao gerar sugestão", description: err.message, variant: "destructive" });
+            toast.error("Erro ao gerar sugestão", { description: err.message });
         } finally {
             setAiLoading(false);
         }
@@ -173,25 +173,21 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["evolucoes", pacienteId] });
             queryClient.invalidateQueries({ queryKey: ["evolucoes-ai", pacienteId] });
-            toast({ title: "Evolução registrada com sucesso!" });
+            toast.success("Evolução registrada com sucesso!");
             setDescricao("");
             setConduta("");
             setAssinaturaUrl("");
             onOpenChange(false);
         },
         onError: (error: any) => {
-            toast({
-                title: "Erro ao registrar evolução",
-                description: error.message,
-                variant: "destructive",
-            });
+            toast.error("Erro ao registrar evolução", { description: error.message });
         },
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!descricao) {
-            toast({ title: "A descrição é obrigatória", variant: "destructive" });
+            toast.error("A descrição é obrigatória");
             return;
         }
         evolutionMutation.mutate();

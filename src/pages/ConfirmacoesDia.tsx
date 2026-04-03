@@ -97,11 +97,7 @@ const ConfirmacoesDia = () => {
     const telefone = paciente?.telefone;
 
     if (!telefone) {
-      toast({
-        title: "Telefone não cadastrado",
-        description: "O paciente não possui WhatsApp ou telefone cadastrado.",
-        variant: "destructive",
-      });
+      toast.error("Telefone não cadastrado", { description: "O paciente não possui WhatsApp ou telefone cadastrado." });
       return;
     }
 
@@ -121,7 +117,7 @@ const ConfirmacoesDia = () => {
       window.open(`https://wa.me/${numeroComDDI}?text=${encodeURIComponent(mensagem)}`, "_blank");
 
       await markSentMutation.mutateAsync(ag.id);
-      toast({ title: "WhatsApp aberto com a mensagem pronta!" });
+      toast.success("WhatsApp aberto com a mensagem pronta!");
     } finally {
       setSending(null);
     }

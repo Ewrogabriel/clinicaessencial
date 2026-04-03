@@ -83,11 +83,11 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
       }
     },
     onSuccess: () => {
-      toast({ title: editingId ? "Formação atualizada!" : "Formação adicionada!" });
+      toast.success(editingId ? "Formação atualizada!" : "Formação adicionada!");
       queryClient.invalidateQueries({ queryKey: ["profissional-formacoes", profissionalId] });
       resetForm();
     },
-    onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro ao salvar", { description: e.message }),
   });
 
   const deleteMutation = useMutation({
@@ -99,7 +99,7 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Formação removida!" });
+      toast.success("Formação removida!");
       queryClient.invalidateQueries({ queryKey: ["profissional-formacoes", profissionalId] });
     },
   });

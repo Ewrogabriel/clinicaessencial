@@ -137,9 +137,9 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setFormOpen(false);
       resetForm();
-      toast({ title: "Pagamento registrado com sucesso!" });
+      toast.success("Pagamento registrado com sucesso!");
     },
-    onError: (e: Error) => toast({ title: "Erro ao registrar pagamento", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro ao registrar pagamento", { description: e.message }),
   });
 
   const updateStatus = useMutation({
@@ -161,9 +161,9 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
       queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-      toast({ title: "Status atualizado com sucesso!" });
+      toast.success("Status atualizado com sucesso!");
     },
-    onError: (e: Error) => toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast.error("Erro ao atualizar status", { description: e.message }),
   });
 
   const resetForm = () => {
