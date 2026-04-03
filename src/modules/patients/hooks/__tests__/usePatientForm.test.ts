@@ -43,9 +43,6 @@ vi.mock("@/modules/clinic/hooks/useClinic", () => ({
   useClinic: () => ({ activeClinicId: "clinic-1" }),
 }));
 
-vi.mock("@/modules/shared/hooks/use-toast", () => ({
-  toast: vi.fn(),
-}));
 
 // Mock UI components required by the hook (JSX in toast action)
 vi.mock("@/components/ui/button", () => ({
