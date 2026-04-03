@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Video, Home, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { TimeSlotCards, type TimeSlot } from "@/components/ui/time-slot-cards";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -325,76 +326,59 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
 
               {/* Time + Duration (single) */}
               {!isRecorrente && (
-                <div className="grid grid-cols-2 gap-4">
-                  {availableSlots && availableSlots.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Horário</Label>
+                      {(!availableSlots || availableSlots.length === 0) && (
+                        <FormField
+                          control={form.control}
+                          name="horario"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl><Input type="time" {...field} className="mt-1" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
                     <FormField
                       control={form.control}
-                      name="slot_id"
+                      name="duracao_minutos"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Horário (Vagas)</FormLabel>
-                          <Select
-                            onValueChange={(val) => {
-                              field.onChange(val);
-                              const slot = availableSlots?.find((s: any) => s.id === val);
-                              if (slot) form.setValue("horario", slot.start_time.slice(0, 5));
-                            }}
-                            value={field.value}
-                            disabled={isLoadingSlots || !watchedDate || !watchedProfId}
-                          >
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder={isLoadingSlots ? "Carregando..." : !watchedDate || !watchedProfId ? "Selecione data e profissional" : "Selecione o horário"} /></SelectTrigger>
-                            </FormControl>
+                          <FormLabel>Duração</FormLabel>
+                          <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                             <SelectContent>
-                              {availableSlots?.map((slot: any) => (
-                                <SelectItem key={slot.id} value={slot.id} disabled={slot.status === 'full' || slot.status === 'blocked'}>
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="h-3 w-3 text-muted-foreground" />
-                                    <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
-                                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border", slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200")}>
-                                      {slot.current_capacity}/{slot.max_capacity} pacientes
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="30">30 min</SelectItem>
+                              <SelectItem value="45">45 min</SelectItem>
+                              <SelectItem value="50">50 min</SelectItem>
+                              <SelectItem value="60">60 min</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="horario"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Horário</FormLabel>
-                          <FormControl><Input type="time" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  </div>
+                  {availableSlots && availableSlots.length > 0 && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">Selecione o horário</Label>
+                      <TimeSlotCards
+                        slots={availableSlots as TimeSlot[]}
+                        selectedSlotId={form.watch("slot_id") || ""}
+                        onSelect={(slot) => {
+                          form.setValue("slot_id", slot.id);
+                          form.setValue("horario", slot.start_time.slice(0, 5));
+                        }}
+                        isLoading={isLoadingSlots}
+                        emptyMessage="Selecione data e profissional para ver horários"
+                        disabled={!watchedDate || !watchedProfId}
+                      />
+                    </div>
                   )}
-                  <FormField
-                    control={form.control}
-                    name="duracao_minutos"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Duração</FormLabel>
-                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="30">30 min</SelectItem>
-                            <SelectItem value="45">45 min</SelectItem>
-                            <SelectItem value="50">50 min</SelectItem>
-                            <SelectItem value="60">60 min</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               )}
 
