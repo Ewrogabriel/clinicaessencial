@@ -698,7 +698,7 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
     }
   };
 
-  const patientLink = session ? `${window.location.origin}/teleconsulta?room=${session.room_id}` : "";
+  const patientLink = session ? `${window.location.origin}/sala/${session.room_id}` : "";
 
   const copyPatientLink = () => {
     navigator.clipboard.writeText(patientLink);
