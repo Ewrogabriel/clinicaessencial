@@ -116,13 +116,13 @@ export class AutomationEngine {
 
       for (const ag of appointments as Array<{ id: string }>) {
         // De-duplicate: skip if a confirmation was already sent
-        const { data: existingLog } = await (supabase
+        const { data: existingLog } = await (supabase as any)
           .from("whatsapp_message_logs")
           .select("id")
           .eq("appointment_id", ag.id)
           .eq("message_type", "session_confirmation")
           .in("status", ["sent", "delivered", "read"])
-          .maybeSingle() as any);
+          .maybeSingle();
 
         if (existingLog) continue;
 
