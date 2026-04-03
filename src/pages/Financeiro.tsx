@@ -321,10 +321,7 @@ const Financeiro = () => {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
-  const formatDate = (d: string | null) => {
-    if (!d) return "—";
-    try { return format(new Date(d), "dd/MM/yyyy"); } catch { return "—"; }
-  };
+  // formatDate is now imported from shared utils
 
   // ── Extracted tab content as variables ──────────────────────────────────────
   const pagamentosTabContent = (

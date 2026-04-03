@@ -35,15 +35,7 @@ const ACTION_LABELS: Record<string, string> = {
   config_change: "Config. alterada",
 };
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+// formatDate is now imported from shared utils
 
 export function AuditTrail({ clinicId, resourceId, limit = 20 }: AuditTrailProps) {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
