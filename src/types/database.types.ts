@@ -12,9 +12,10 @@ export type Payment = Tables<"pagamentos">;
 export type Professional = Tables<"profiles">;
 export type Clinic = Tables<"clinicas">;
 export type Enrollment = Tables<"matriculas">;
+// Bank reconciliation types
+export type BankAccount = Tables<"bank_accounts">;
+export type BankTransaction = Tables<"bank_transactions">;
 // Legacy aliases (tables may not exist yet)
-export type BankAccount = any;
-export type BankTransaction = any;
 export type FinancialCategory = any;
 export type SaaSPlan = any;
 export type SaasSubscription = any;
