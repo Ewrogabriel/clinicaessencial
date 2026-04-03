@@ -106,7 +106,8 @@ function getStatusConfig(status?: string | null) {
   }
 }
 
-// formatDate is now imported from shared utils
+const formatDate = (dateStr: string | null | undefined, withTime = false) =>
+  withTime ? dateFormats.full(dateStr) : dateFormats.date(dateStr);
 
 function confidenceStars(confidence: number) {
   const stars = Math.round(confidence * 5);

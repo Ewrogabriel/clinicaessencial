@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<
   failed: { label: "Falha", variant: "destructive" },
 };
 
-// formatDate is now imported from shared utils
+const formatDate = dateFormats.full;
 
 function truncate(text: string | null | undefined, max = 60) {
   if (!text) return "—";

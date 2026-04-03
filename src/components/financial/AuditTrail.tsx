@@ -36,7 +36,7 @@ const ACTION_LABELS: Record<string, string> = {
   config_change: "Config. alterada",
 };
 
-// formatDate is now imported from shared utils
+const formatDate = dateFormats.full;
 
 export function AuditTrail({ clinicId, resourceId, limit = 20 }: AuditTrailProps) {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
