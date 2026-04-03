@@ -41,6 +41,7 @@ import {
   Lightbulb,
   Plus,
   Link,
+  Banknote,
 } from "lucide-react";
 import { useBankTransactions } from "@/modules/finance/hooks/useBankTransactions";
 import { useMatching } from "@/modules/finance/hooks/useMatching";
@@ -49,6 +50,7 @@ import { toast } from "@/modules/shared/hooks/use-toast";
 import { formatBRL } from "@/modules/finance/utils/reconciliationHelpers";
 import { Label } from "@/components/ui/label";
 import { ImportStatementDialog } from "@/components/financial/ImportStatementDialog";
+import { BankAccountDialog } from "@/components/financial/BankAccountDialog";
 import type { BankTransactionRow } from "@/modules/finance/services/bankTransactionService";
 import { matchingService } from "@/modules/finance/services/matchingService";
 import type { PossibleMatch } from "@/modules/finance/services/matchingService";
@@ -98,6 +100,7 @@ export default function ConciliacaoBancaria() {
     search: "",
     dataInicio: "",
     dataFim: "",
+    conta: "todos",
   });
 
   // ── Seleção / diálogos ───────────────────────────────────────────────────
@@ -146,6 +149,9 @@ export default function ConciliacaoBancaria() {
   // Importar
   const [showImportDialog, setShowImportDialog] = useState(false);
 
+  // Nova Conta Bancária
+  const [showBankAccountDialog, setShowBankAccountDialog] = useState(false);
+
   // ── Derivados ────────────────────────────────────────────────────────────
   const unreconciledTransactions = useMemo(
     () =>
@@ -180,6 +186,8 @@ export default function ConciliacaoBancaria() {
         filters.dataFim &&
         new Date(tx.data_transacao) > new Date(filters.dataFim)
       )
+        return false;
+      if (filters.conta !== "todos" && tx.bank_account_id !== filters.conta)
         return false;
       return true;
     });
@@ -402,7 +410,7 @@ export default function ConciliacaoBancaria() {
             Gerencie e concilie suas transações bancárias
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             onClick={handleAutoMatch}
             disabled={isAutoMatching || unreconciledTransactions.length === 0}
@@ -418,6 +426,14 @@ export default function ConciliacaoBancaria() {
           >
             <Upload className="h-4 w-4" />
             Importar
+          </Button>
+          <Button
+            variant="default"
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+            onClick={() => setShowBankAccountDialog(true)}
+          >
+            <Banknote className="h-4 w-4" />
+            Nova Conta Bancária
           </Button>
         </div>
       </div>
@@ -485,7 +501,7 @@ export default function ConciliacaoBancaria() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-medium">Filtros</h3>
           </div>
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             <Input
               placeholder="Pesquisar..."
               value={filters.search}
@@ -534,6 +550,22 @@ export default function ConciliacaoBancaria() {
                 setFilters((p) => ({ ...p, dataFim: e.target.value }))
               }
             />
+            <Select
+              value={filters.conta}
+              onValueChange={(v) => setFilters((p) => ({ ...p, conta: v }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todas as contas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as contas</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.apelido || a.banco_nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -561,10 +593,18 @@ export default function ConciliacaoBancaria() {
               </div>
             ) : (
               filtered.map((tx: BankTransactionRow) => {
-                const isPending = !tx.status || tx.status === "pendente";
+                const isConciliated = tx.status === "conciliado";
+                const isRejected = tx.status === "rejeitado";
                 const isExpanded = expandedIds.has(tx.id);
                 const txSuggestions = suggestions[tx.id] ?? [];
                 const hasSuggestions = txSuggestions.length > 0;
+
+                // Label for reconcile button based on current status
+                const reconcileLabel = isConciliated
+                  ? "Re-conciliar"
+                  : isRejected
+                  ? "Aceitar"
+                  : "Conciliar";
 
                 return (
                   <div key={tx.id} className="border-b last:border-b-0">
@@ -587,7 +627,7 @@ export default function ConciliacaoBancaria() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm">{tx.descricao}</p>
-                          {isPending && hasSuggestions && (
+                          {hasSuggestions && (
                             <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                               <Lightbulb className="h-3 w-3" />
                               {txSuggestions.length} {txSuggestions.length === 1 ? "sugestão" : "sugestões"}
@@ -630,7 +670,7 @@ export default function ConciliacaoBancaria() {
                       </div>
 
                       {/* Ações */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {/* Editar */}
                         <Button
                           size="sm"
@@ -655,28 +695,35 @@ export default function ConciliacaoBancaria() {
                           Excluir
                         </Button>
 
-                        {isPending && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => handleOpenMatchDialog(tx)}
-                              className="h-8 gap-1.5 px-3 text-xs font-semibold shadow-sm"
-                            >
-                              <Link className="h-3.5 w-3.5" />
-                              Conciliar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenRejectDialog(tx)}
-                              className="h-8 gap-1.5 px-2.5 text-xs border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                              title="Rejeitar"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                              Rejeitar
-                            </Button>
-                          </>
+                        {/* Conciliar — available for ALL statuses */}
+                        <Button
+                          size="sm"
+                          variant={isConciliated ? "outline" : "default"}
+                          onClick={() => handleOpenMatchDialog(tx)}
+                          className={`h-8 gap-1.5 px-3 text-xs font-semibold shadow-sm${
+                            isConciliated
+                              ? " border-green-200 text-green-700 hover:bg-green-50"
+                              : isRejected
+                              ? " bg-orange-600 hover:bg-orange-700"
+                              : ""
+                          }`}
+                        >
+                          <Link className="h-3.5 w-3.5" />
+                          {reconcileLabel}
+                        </Button>
+
+                        {/* Rejeitar — only for non-rejected transactions */}
+                        {!isRejected && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenRejectDialog(tx)}
+                            className="h-8 gap-1.5 px-2.5 text-xs border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                            title="Rejeitar"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                            Rejeitar
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -685,72 +732,68 @@ export default function ConciliacaoBancaria() {
                     {isExpanded && (
                       <div className="px-12 pb-4 bg-muted/30 border-t space-y-3">
                         {/* Vincular Paciente */}
-                        {isPending && (
-                          <div className="pt-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm font-medium">Vincular Paciente</span>
-                            </div>
-                            <PatientCombobox
-                              value={linkedPatientId}
-                              onValueChange={setLinkedPatientId}
-                              placeholder="Buscar paciente..."
-                              className="max-w-sm"
-                            />
+                        <div className="pt-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Vincular Paciente</span>
                           </div>
-                        )}
+                          <PatientCombobox
+                            value={linkedPatientId}
+                            onValueChange={setLinkedPatientId}
+                            placeholder="Buscar paciente..."
+                            className="max-w-sm"
+                          />
+                        </div>
 
                         {/* Sugestões de Matching */}
-                        {isPending && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Lightbulb className="h-4 w-4 text-blue-500" />
-                              <span className="text-sm font-medium">Sugestões de Correspondência</span>
-                            </div>
-                            {suggestionsLoading[tx.id] ? (
-                              <p className="text-xs text-muted-foreground">Buscando sugestões...</p>
-                            ) : txSuggestions.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">Nenhuma sugestão encontrada para esta transação.</p>
-                            ) : (
-                              <div className="space-y-2">
-                                {txSuggestions.map((s) => (
-                                  <div
-                                    key={s.paymentId}
-                                    className="flex items-center justify-between bg-white border rounded p-2 text-sm"
-                                  >
-                                    <div className="flex-1">
-                                      <p className="font-medium text-xs">{s.descricao}</p>
-                                      <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-xs text-muted-foreground">
-                                          {formatBRL(s.valor)}
-                                        </span>
-                                        {s.data_pagamento && (
-                                          <span className="text-xs text-muted-foreground">
-                                            • {new Date(s.data_pagamento).toLocaleDateString("pt-BR")}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 ml-3">
-                                      <span className={`text-xs ${confidenceColor(s.confianca)}`}>
-                                        {Math.round(s.confianca * 100)}%
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Lightbulb className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm font-medium">Sugestões de Correspondência</span>
+                          </div>
+                          {suggestionsLoading[tx.id] ? (
+                            <p className="text-xs text-muted-foreground">Buscando sugestões...</p>
+                          ) : txSuggestions.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Nenhuma sugestão encontrada para esta transação.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {txSuggestions.map((s) => (
+                                <div
+                                  key={s.paymentId}
+                                  className="flex items-center justify-between bg-white border rounded p-2 text-sm"
+                                >
+                                  <div className="flex-1">
+                                    <p className="font-medium text-xs">{s.descricao}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <span className="text-xs text-muted-foreground">
+                                        {formatBRL(s.valor)}
                                       </span>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 text-xs gap-1"
-                                        onClick={() => handleAcceptSuggestion(tx.id, s.paymentId)}
-                                      >
-                                        <Check className="h-3 w-3" />
-                                        Aceitar
-                                      </Button>
+                                      {s.data_pagamento && (
+                                        <span className="text-xs text-muted-foreground">
+                                          • {new Date(s.data_pagamento).toLocaleDateString("pt-BR")}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                  <div className="flex items-center gap-2 ml-3">
+                                    <span className={`text-xs ${confidenceColor(s.confianca)}`}>
+                                      {Math.round(s.confianca * 100)}%
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs gap-1"
+                                      onClick={() => handleAcceptSuggestion(tx.id, s.paymentId)}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                      Aceitar
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         {/* Observações existentes */}
                         {tx.observacoes && (
@@ -1128,6 +1171,12 @@ export default function ConciliacaoBancaria() {
       <ImportStatementDialog
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
+      />
+
+      {/* ── Nova Conta Bancária Dialog ─────────────────────────────────────── */}
+      <BankAccountDialog
+        open={showBankAccountDialog}
+        onOpenChange={setShowBankAccountDialog}
       />
     </div>
   );

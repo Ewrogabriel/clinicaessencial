@@ -178,12 +178,12 @@ export const protectedRoutes: RouteDefinition[] = [
   },
   {
     path: "/financeiro",
-    description: "Financial overview, invoices, payments and bank reconciliation (tabs).",
+    description: "Financial overview, invoices, payments (tabs).",
     roles: ["admin", "gestor", "master", "secretario"],
   },
   {
-    path: "/financeiro/conciliacao",
-    description: "Bank reconciliation interface with dashboard, filters, match/reject dialogs and import.",
+    path: "/conciliacao-bancaria",
+    description: "Bank reconciliation: main menu entry with full integration (transactions, patients, payments, accounts).",
     roles: ["admin", "gestor", "master", "secretario"],
   },
   {

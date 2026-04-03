@@ -1,8 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Landmark, BarChart3, Receipt, Users2, DollarSign } from "lucide-react";
+import { Zap, BarChart3, Receipt, Users2, DollarSign } from "lucide-react";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
-import { ReconciliationPage } from "./ReconciliationPage";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 // Lazy-load heavy sub-pages
@@ -41,9 +40,10 @@ interface FinancialTabsProps {
  *  - Despesas
  *  - Comissões
  *  - Notas Fiscais
- *  - Conciliação  (NEW: uses ReconciliationPage)
  *  - DRE          (passed as children)
  *  - Integrações
+ *
+ * Note: Conciliação Bancária is now a dedicated page accessible from the main menu.
  */
 export function FinancialTabs({
   pagamentosContent,
@@ -70,10 +70,6 @@ export function FinancialTabs({
           Comissões
         </TabsTrigger>
         <TabsTrigger value="notas-fiscais">Notas Fiscais</TabsTrigger>
-        <TabsTrigger value="conciliacao" className="gap-1.5">
-          <Landmark className="h-3.5 w-3.5" />
-          Conciliação
-        </TabsTrigger>
         <TabsTrigger value="dre" className="gap-1.5">
           <DollarSign className="h-3.5 w-3.5" />
           DRE
@@ -114,10 +110,6 @@ export function FinancialTabs({
         <Suspense fallback={<LazyLoadFallback />}>
           <NotasFiscais />
         </Suspense>
-      </TabsContent>
-
-      <TabsContent value="conciliacao">
-        <ReconciliationPage />
       </TabsContent>
 
       <TabsContent value="dre" className="space-y-4">
