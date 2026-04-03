@@ -827,6 +827,28 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
                     <p className="text-muted-foreground">
                       Paciente: <strong>{session.paciente_nome || "Aguardando..."}</strong>
                     </p>
+
+                    {/* Link para enviar ao paciente */}
+                    <Card className="text-left border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <LinkIcon className="h-4 w-4 text-primary" />
+                          Link para o paciente
+                        </div>
+                        <div className="flex gap-2">
+                          <Input readOnly value={patientLink} className="text-xs font-mono" />
+                          <Button variant="outline" size="icon" onClick={copyPatientLink} title="Copiar link">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-green-700 border-green-200 hover:bg-green-50" onClick={sendWhatsAppLink}>
+                            <Share2 className="h-3.5 w-3.5" /> Enviar via WhatsApp
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     <Button onClick={admitPatient} size="lg" className="gap-2">
                       <DoorOpen className="h-5 w-5" /> Iniciar Teleconsulta
                     </Button>
