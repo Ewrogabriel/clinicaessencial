@@ -633,4 +633,5 @@ const Dashboard = () => {
   );
 };
 
+export { Dashboard as AdminDashboard };
 export default Dashboard;

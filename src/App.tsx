@@ -39,7 +39,6 @@ const Profissionais = lazy(() => import("./pages/Profissionais"));
 const Prontuarios = lazy(() => import("./pages/Prontuarios"));
 const PacienteDetalhes = lazy(() => import("./pages/PacienteDetalhes"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const MinhaAgenda = lazy(() => import("./pages/MinhaAgenda"));
 const MeusPagamentos = lazy(() => import("./pages/MeusPagamentos"));
 const Automacoes = lazy(() => import("./pages/Automacoes"));
@@ -53,7 +52,6 @@ const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
 const MensagensInternas = lazy(() => import("./pages/MensagensInternas"));
 const PacienteAccess = lazy(() => import("./pages/PacienteAccess"));
 const SolicitacoesAlteracao = lazy(() => import("./pages/SolicitacoesAlteracao"));
-const ProfessionalDashboard = lazy(() => import("./pages/ProfessionalDashboard"));
 const Convenios = lazy(() => import("./pages/Convenios"));
 const PreCadastro = lazy(() => import("./pages/PreCadastro"));
 const PreCadastrosAdmin = lazy(() => import("./pages/PreCadastrosAdmin"));
@@ -79,13 +77,6 @@ const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
 const Investimentos = lazy(() => import("./pages/Investimentos"));
 const ConciliacaoBancaria = lazy(() => import("./pages/finance/ConciliacaoBancaria"));
 
-const DashboardToggle = () => {
-  const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
-  if (isMaster && !isAdmin) return <MasterPanel />;
-  if (isAdmin || isGestor || isSecretario) return <Dashboard />;
-  if (isProfissional) return <ProfessionalDashboard />;
-  return <PatientDashboard />;
-};
 
 const MeuPerfilToggle = () => {
   const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
@@ -137,7 +128,7 @@ const App = () => (
                           </ProtectedRoute>
                         }
                       >
-                        <Route path="/dashboard" element={<DashboardToggle />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/pacientes" element={<Pacientes />} />
                         <Route path="/pacientes/novo" element={<PacienteForm />} />
                         <Route path="/pacientes/:id" element={<PacienteForm />} />
