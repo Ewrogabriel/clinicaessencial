@@ -421,7 +421,8 @@ const Financeiro = () => {
                               const numero = getReceiptNumber(pagamento.id, pagamento.created_at);
                               const dataPgto = formatDate(pagamento.data_pagamento);
                               const ref = pagamento.descricao || "Serviço";
-                              const pdf = await generateReceiptPDF({ numero, pacienteNome: pagamento.paciente_nome, cpf: "", descricao: pagamento.descricao || "Serviço", valor: pagamento.valor, formaPagamento: pagamento.forma_pagamento || "", dataPagamento: dataPgto, referencia: ref });
+                              const pacienteCpf = pacientes.find((p: any) => p.nome === pagamento.paciente_nome)?.cpf || "";
+                              const pdf = await generateReceiptPDF({ numero, pacienteNome: pagamento.paciente_nome, cpf: pacienteCpf, descricao: pagamento.descricao || "Serviço", valor: pagamento.valor, formaPagamento: pagamento.forma_pagamento || "", dataPagamento: dataPgto, referencia: ref });
                               pdf.save(`Recibo_${numero}.pdf`);
                               toast.success("Recibo gerado!");
                             }}>
