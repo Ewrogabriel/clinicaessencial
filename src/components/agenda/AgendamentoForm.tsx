@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { format, addWeeks, setHours as setH, setMinutes as setM, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Repeat, DollarSign, AlertTriangle, CheckCircle2, Video, Home, Clock, Layers } from "lucide-react";
+import { CalendarIcon, Video, Home, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,216 +14,80 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
-
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useAgendamentos, useScheduleSlots, useBookAppointment } from "@/modules/appointments/hooks/useAppointments";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useScheduleSlots, useBookAppointment } from "@/modules/appointments/hooks/useAppointments";
 import { toast } from "sonner";
 
-const DIAS_SEMANA = [
-  { value: 1, label: "Seg" },
-  { value: 2, label: "Ter" },
-  { value: 3, label: "Qua" },
-  { value: 4, label: "Qui" },
-  { value: 5, label: "Sex" },
-  { value: 6, label: "Sáb" },
-  { value: 0, label: "Dom" },
-];
-
-const formSchema = z.object({
-  paciente_id: z.string().min(1, "Selecione um paciente"),
-  profissional_id: z.string().min(1, "Selecione um profissional"),
-  data: z.date({ required_error: "Selecione a data" }),
-  horario: z.string().min(1, "Informe o horário"),
-  slot_id: z.string().optional(),
-  duracao_minutos: z.number().min(15).max(120),
-  tipo_atendimento: z.string().min(1, "Selecione a modalidade"),
-  tipo_sessao: z.enum(["individual", "grupo"]),
-  observacoes: z.string().optional(),
-  recorrente: z.boolean().default(false),
-  dias_semana: z.array(z.number()).default([]),
-  frequencia_semanal: z.number().min(1).max(7).default(1),
-  recorrencia_semanas: z.number().min(1).max(200).default(52),
-  horarios_por_dia: z.record(z.string(), z.string()).default({}),
-  valor_sessao: z.number().min(0).optional(),
-  valor_mensal: z.number().min(0).optional(),
-  forma_pagamento: z.string().optional(),
-  data_vencimento: z.string().optional(),
-  repetir: z.boolean().default(false),
-  repetir_tipo: z.enum(["vezes", "semanas"]).default("vezes"),
-  repetir_quantidade: z.number().min(1).max(52).default(4),
-}).superRefine((values, ctx) => {
-  if (values.data_vencimento && values.data) {
-    const [year, month, day] = values.data_vencimento.split("-").map(Number);
-    const vencimento = new Date(year, month - 1, day);
-    const appointmentDate = new Date(values.data);
-    appointmentDate.setHours(0, 0, 0, 0);
-    if (vencimento < appointmentDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Data de vencimento não pode ser anterior à data do agendamento.",
-        path: ["data_vencimento"],
-      });
-    }
-  }
-});
-
-type FormData = z.infer<typeof formSchema>;
-
-interface Paciente {
-  id: string;
-  nome: string;
-  cpf?: string | null;
-}
-
-
-interface Profissional {
-  id: string;
-  user_id: string;
-  nome: string;
-}
-
-interface Modalidade {
-  id: string;
-  nome: string;
-}
-
-interface FormaPagamento {
-  id: string;
-  nome: string;
-}
-
-interface AgendamentoFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
-  defaultDate?: Date;
-  defaultProfissionalId?: string;
-  appointmentType?: "sessao_avulsa" | "sessao_plano";
-}
+// Sub-components
+import { formSchema, type FormData, type AgendamentoFormProps, DIAS_SEMANA } from "./agendamento-form/types";
+import { useAgendamentoFormData } from "./agendamento-form/useAgendamentoFormData";
+import { OverCapacityDialog } from "./agendamento-form/OverCapacityDialog";
+import { PlanSelectorSection } from "./agendamento-form/PlanSelectorSection";
+import { FinancialSection } from "./agendamento-form/FinancialSection";
+import { RepeatSection } from "./agendamento-form/RepeatSection";
+import { RecurrenceSection } from "./agendamento-form/RecurrenceSection";
 
 export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId, appointmentType }: AgendamentoFormProps) {
   const { user } = useAuth();
   const { activeClinicId } = useClinic();
-  const [pacientes, setPacientes] = useState<Paciente[]>([]);
-  const [profissionais, setProfissionais] = useState<Profissional[]>([]);
-  const [modalidades, setModalidades] = useState<Modalidade[]>([]);
-  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [availabilityResult, setAvailabilityResult] = useState<AvailabilityCheckResult | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [monthlyAvail, setMonthlyAvail] = useState<Record<number, number>>({});
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [overCapacityPending, setOverCapacityPending] = useState<FormData | null>(null);
-  const [planos, setPlanos] = useState<Array<{ id: string; paciente_id: string; profissional_id: string; tipo_atendimento: string; total_sessoes: number; sessoes_utilizadas: number; paciente_nome?: string }>>([]);
   const [selectedPlanoId, setSelectedPlanoId] = useState<string>("");
+
+  const { pacientes, profissionais, modalidades, formasPagamento, planos } =
+    useAgendamentoFormData(open, appointmentType === "sessao_plano");
+
   const selectedPlano = planos.find(p => p.id === selectedPlanoId) ?? null;
   const planoSessoesRestantes = selectedPlano ? selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas : null;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      duracao_minutos: 50,
-      tipo_atendimento: "",
-      tipo_sessao: "grupo",
-      horario: "",
-      slot_id: "",
-      observacoes: "",
-      recorrente: false,
-      dias_semana: [],
-      frequencia_semanal: 1,
-      recorrencia_semanas: 52,
-      horarios_por_dia: {},
-      valor_sessao: undefined,
-      valor_mensal: undefined,
-      repetir: false,
-      repetir_tipo: "vezes",
-      repetir_quantidade: 4,
+      duracao_minutos: 50, tipo_atendimento: "", tipo_sessao: "grupo",
+      horario: "", slot_id: "", observacoes: "",
+      recorrente: false, dias_semana: [], frequencia_semanal: 1,
+      recorrencia_semanas: 52, horarios_por_dia: {},
+      valor_sessao: undefined, valor_mensal: undefined,
+      repetir: false, repetir_tipo: "vezes", repetir_quantidade: 4,
     },
   });
 
   const watchedProfId = form.watch("profissional_id");
   const watchedDate = form.watch("data");
   const watchedHorario = form.watch("horario");
-  const watchedSlotId = form.watch("slot_id");
   const isRecorrente = form.watch("recorrente");
-  const diasSelecionados = form.watch("dias_semana");
-  const freqSemanal = form.watch("frequencia_semanal");
-  const tipoAtendimento = form.watch("tipo_atendimento");
-  const isRepetir = form.watch("repetir");
-  const repetirTipo = form.watch("repetir_tipo");
-  const repetirQuantidade = form.watch("repetir_quantidade");
   const watchedTipoSessao = form.watch("tipo_sessao");
 
   const formattedDate = watchedDate ? format(watchedDate, "yyyy-MM-dd") : "";
   const { data: availableSlots, isLoading: isLoadingSlots } = useScheduleSlots({
     professionalId: watchedProfId,
     date: formattedDate,
-    clinicId: activeClinicId
+    clinicId: activeClinicId,
   });
   const bookAppointmentMutation = useBookAppointment();
 
-  // Fetch monthly availability summary
+  // Monthly availability
   useEffect(() => {
-    if (!watchedProfId) {
-      setMonthlyAvail({});
-      return;
-    }
+    if (!watchedProfId) { setMonthlyAvail({}); return; }
     const fetchMonthly = async () => {
-      const result = await getMonthlyAvailability(
-        watchedProfId,
-        currentMonth.getFullYear(),
-        currentMonth.getMonth(),
-        watchedHorario
-      );
+      const result = await getMonthlyAvailability(watchedProfId, currentMonth.getFullYear(), currentMonth.getMonth(), watchedHorario);
       setMonthlyAvail(result);
     };
     fetchMonthly();
   }, [watchedProfId, currentMonth, watchedHorario]);
 
-  // Check availability when professional, date, or time changes (single appointments only)
+  // Single-appointment availability check
   useEffect(() => {
-    if (!watchedProfId || !watchedDate || !watchedHorario || isRecorrente) {
-      setAvailabilityResult(null);
-      return;
-    }
+    if (!watchedProfId || !watchedDate || !watchedHorario || isRecorrente) { setAvailabilityResult(null); return; }
     const timer = setTimeout(async () => {
       setCheckingAvailability(true);
       const [h, m] = watchedHorario.split(":").map(Number);
@@ -237,247 +100,79 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
     return () => clearTimeout(timer);
   }, [watchedProfId, watchedDate, watchedHorario, isRecorrente]);
 
-
-  useEffect(() => {
-    if (defaultDate) {
-      form.setValue("data", defaultDate);
-    }
-  }, [defaultDate, form]);
-
-  useEffect(() => {
-    if (open && defaultProfissionalId) {
-      form.setValue("profissional_id", defaultProfissionalId);
-    }
-  }, [open, defaultProfissionalId, form]);
-
-  useEffect(() => {
-    if (open) {
-      fetchPacientes();
-      fetchProfissionais();
-      fetchModalidades();
-      fetchFormasPagamento();
-      if (appointmentType === "sessao_plano") fetchPlanos();
-    } else {
-      setSelectedPlanoId("");
-    }
-  }, [open]);
-
-  const freqLabel = freqSemanal === 1 ? "1x" : freqSemanal === 2 ? "2x" : freqSemanal === 3 ? "3x" : `${freqSemanal}x`;
-
-  const fetchPacientes = async () => {
-    const { data } = await supabase.from("pacientes")
-      .select("id, nome, cpf")
-      .eq("status", "ativo")
-      .order("nome");
-    setPacientes((data ?? []) as Paciente[]);
-  };
-
-
-  const fetchProfissionais = async () => {
-    const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
-    const ids = (roles || []).map(r => r.user_id);
-    if (!ids.length) { setProfissionais([]); return; }
-    const { data } = await supabase.from("profiles").select("id, user_id, nome").in("user_id", ids).order("nome");
-    setProfissionais((data ?? []) as Profissional[]);
-  };
-
-  const fetchModalidades = async () => {
-    const { data } = await supabase
-      .from("modalidades")
-      .select("id, nome")
-      .eq("ativo", true)
-      .order("nome");
-    setModalidades(data ?? []);
-  };
-
-  const fetchFormasPagamento = async () => {
-    const { data } = await supabase
-      .from("formas_pagamento")
-      .select("id, nome")
-      .eq("ativo", true)
-      .order("nome");
-    setFormasPagamento(data ?? []);
-  };
-
-  const fetchPlanos = async () => {
-    const { data: planosData } = await supabase
-      .from("planos")
-      .select("id, paciente_id, profissional_id, tipo_atendimento, total_sessoes, sessoes_utilizadas")
-      .eq("status", "ativo");
-    if (!planosData) { setPlanos([]); return; }
-
-    const pacienteIds = [...new Set(planosData.map(p => p.paciente_id))];
-    const { data: pacientesData } = await supabase
-      .from("pacientes")
-      .select("id, nome")
-      .in("id", pacienteIds);
-    const pacienteMap: Record<string, string> = {};
-    (pacientesData ?? []).forEach(p => { pacienteMap[p.id] = p.nome; });
-
-    setPlanos(planosData.map(p => ({ ...p, paciente_nome: pacienteMap[p.paciente_id] ?? p.paciente_id })));
-  };
-
-  const toggleDia = (dia: number) => {
-    const current = form.getValues("dias_semana");
-    const currentHorarios = form.getValues("horarios_por_dia");
-    if (current.includes(dia)) {
-      form.setValue("dias_semana", current.filter((d) => d !== dia));
-      const { [String(dia)]: _, ...rest } = currentHorarios;
-      form.setValue("horarios_por_dia", rest);
-    } else {
-      form.setValue("dias_semana", [...current, dia].sort());
-      form.setValue("horarios_por_dia", { ...currentHorarios, [String(dia)]: "08:00" });
-    }
-  };
+  useEffect(() => { if (defaultDate) form.setValue("data", defaultDate); }, [defaultDate, form]);
+  useEffect(() => { if (open && defaultProfissionalId) form.setValue("profissional_id", defaultProfissionalId); }, [open, defaultProfissionalId, form]);
+  useEffect(() => { if (!open) setSelectedPlanoId(""); }, [open]);
 
   const generateRecurringDates = (values: FormData): Date[] => {
     const dates: Date[] = [];
-    const startDate = values.data;
-    const totalWeeks = values.recorrencia_semanas;
-
     if (!values.recorrente) return dates;
-
-    for (let week = 0; week < totalWeeks; week++) {
+    const startDate = values.data;
+    for (let week = 0; week < values.recorrencia_semanas; week++) {
       for (const dia of values.dias_semana) {
         const diaHorario = values.horarios_por_dia[String(dia)] || values.horario || "08:00";
         const [h, m] = diaHorario.split(":").map(Number);
-
         const weekStart = addWeeks(startDate, week);
         const dayOffset = (dia - weekStart.getDay() + 7) % 7;
         const targetDate = addDays(weekStart, dayOffset);
-
         if (targetDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
-          const dt = setM(setH(targetDate, h), m);
-          dates.push(dt);
+          dates.push(setM(setH(targetDate, h), m));
         }
       }
     }
-
-    const unique = Array.from(
-      new Set(dates.map((d) => d.toISOString()))
-    ).map((iso) => new Date(iso));
-    unique.sort((a, b) => a.getTime() - b.getTime());
-
-    return unique;
-  };
-
-  const onSubmit = async (values: FormData) => {
-    if (!user) return;
-    if (!activeClinicId) {
-      toast.error("Selecione uma clínica antes de criar um agendamento.");
-      return;
-    }
-
-    // For single (non-recurring) appointments: check capacity and ask for confirmation
-    const isSingleAppointment = !values.recorrente && (!values.repetir || values.repetir_quantidade <= 1);
-    if (isSingleAppointment && availabilityResult?.isOverCapacity) {
-      setOverCapacityPending(values);
-      return;
-    }
-
-    await doSubmit(values);
+    return Array.from(new Set(dates.map(d => d.toISOString()))).map(iso => new Date(iso)).sort((a, b) => a.getTime() - b.getTime());
   };
 
   const doSubmit = async (values: FormData) => {
     if (!user || !activeClinicId) return;
     setLoading(true);
-
     try {
-      const formaPagamentoId = formasPagamento.find(
-        f => f.nome.toLowerCase() === values.forma_pagamento?.toLowerCase()
-      )?.id;
+      const formaPagamentoId = formasPagamento.find(f => f.nome.toLowerCase() === values.forma_pagamento?.toLowerCase())?.id;
+      const basePayload = {
+        paciente_id: values.paciente_id,
+        profissional_id: values.profissional_id,
+        duracao_minutos: values.duracao_minutos,
+        tipo_atendimento: values.tipo_atendimento,
+        tipo_sessao: values.tipo_sessao,
+        observacoes: values.observacoes,
+        created_by: user.id,
+        clinic_id: activeClinicId,
+        valor_sessao: values.valor_sessao,
+        forma_pagamento: values.forma_pagamento,
+        forma_pagamento_id: formaPagamentoId,
+        data_vencimento: values.data_vencimento,
+        slot_id: undefined,
+      };
 
       if (values.recorrente) {
         const dates = generateRecurringDates(values);
-        if (dates.length === 0) {
-          toast.error("Nenhuma data gerada para a recorrência.");
-          setLoading(false);
-          return;
-        }
-
+        if (dates.length === 0) { toast.error("Nenhuma data gerada para a recorrência."); setLoading(false); return; }
         toast.info(`Agendando ${dates.length} sessões...`);
         for (const dt of dates) {
-          await bookAppointmentMutation.mutateAsync({
-            paciente_id: values.paciente_id,
-            profissional_id: values.profissional_id,
-            data_horario: dt.toISOString(),
-            duracao_minutos: values.duracao_minutos,
-            tipo_atendimento: values.tipo_atendimento,
-            tipo_sessao: values.tipo_sessao,
-            observacoes: values.observacoes,
-            created_by: user.id,
-            clinic_id: activeClinicId,
-            valor_sessao: values.valor_sessao,
-            forma_pagamento: values.forma_pagamento,
-            forma_pagamento_id: formaPagamentoId,
-            data_vencimento: values.data_vencimento,
-            slot_id: undefined,
-          } as any);
+          await bookAppointmentMutation.mutateAsync({ ...basePayload, data_horario: dt.toISOString() } as any);
         }
         toast.success(`${dates.length} sessões agendadas com sucesso!`);
       } else if (values.repetir && values.repetir_quantidade > 1) {
-        // Simple repetition loop
         const [hours, minutes] = values.horario.split(":").map(Number);
         const startDate = new Date(values.data);
         startDate.setHours(hours, minutes, 0, 0);
-
         toast.info(`Agendando ${values.repetir_quantidade} sessões repetidas...`);
         for (let i = 0; i < values.repetir_quantidade; i++) {
           const targetDate = addWeeks(startDate, i);
-          await bookAppointmentMutation.mutateAsync({
-            paciente_id: values.paciente_id,
-            profissional_id: values.profissional_id,
-            data_horario: targetDate.toISOString(),
-            duracao_minutos: values.duracao_minutos,
-            tipo_atendimento: values.tipo_atendimento,
-            tipo_sessao: values.tipo_sessao,
-            observacoes: values.observacoes,
-            created_by: user.id,
-            clinic_id: activeClinicId,
-            valor_sessao: values.valor_sessao,
-            forma_pagamento: values.forma_pagamento,
-            forma_pagamento_id: formaPagamentoId,
-            data_vencimento: values.data_vencimento,
-            slot_id: undefined,
-          } as any);
+          await bookAppointmentMutation.mutateAsync({ ...basePayload, data_horario: targetDate.toISOString() } as any);
         }
         toast.success(`${values.repetir_quantidade} sessões agendadas com sucesso!`);
       } else {
         const [hours, minutes] = values.horario.split(":").map(Number);
         const dataHorario = new Date(values.data);
         dataHorario.setHours(hours, minutes, 0, 0);
-
-        await bookAppointmentMutation.mutateAsync({
-          paciente_id: values.paciente_id,
-          profissional_id: values.profissional_id,
-          data_horario: dataHorario.toISOString(),
-          duracao_minutos: values.duracao_minutos,
-          tipo_atendimento: values.tipo_atendimento,
-          tipo_sessao: values.tipo_sessao,
-          observacoes: values.observacoes,
-          created_by: user.id,
-          clinic_id: activeClinicId,
-          slot_id: undefined,
-          valor_sessao: values.valor_sessao,
-          forma_pagamento: values.forma_pagamento,
-          forma_pagamento_id: formaPagamentoId,
-          data_vencimento: values.data_vencimento,
-        } as any);
-
+        await bookAppointmentMutation.mutateAsync({ ...basePayload, data_horario: dataHorario.toISOString() } as any);
         if (appointmentType === "sessao_plano" && selectedPlanoId && selectedPlano) {
-          const { error: updateError } = await supabase
-            .from("planos")
-            .update({ sessoes_utilizadas: selectedPlano.sessoes_utilizadas + 1 })
-            .eq("id", selectedPlanoId);
-          if (updateError) {
-            console.error("Erro ao atualizar sessões do plano:", updateError);
-            toast.error("Agendamento criado, mas não foi possível atualizar o contador do plano.");
-          }
+          const { error: updateError } = await supabase.from("planos").update({ sessoes_utilizadas: selectedPlano.sessoes_utilizadas + 1 }).eq("id", selectedPlanoId);
+          if (updateError) { console.error("Erro ao atualizar sessões do plano:", updateError); toast.error("Agendamento criado, mas não foi possível atualizar o contador do plano."); }
         }
-
         toast.success("Agendamento realizado com sucesso!");
       }
-
       form.reset();
       onOpenChange(false);
       onSuccess();
@@ -488,32 +183,39 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
       setLoading(false);
     }
   };
-  const previewCount = isRecorrente && diasSelecionados.length > 0
-    ? diasSelecionados.length * form.watch("recorrencia_semanas")
-    : 0;
+
+  const onSubmit = async (values: FormData) => {
+    if (!user) return;
+    if (!activeClinicId) { toast.error("Selecione uma clínica antes de criar um agendamento."); return; }
+    const isSingleAppointment = !values.recorrente && (!values.repetir || values.repetir_quantidade <= 1);
+    if (isSingleAppointment && availabilityResult?.isOverCapacity) { setOverCapacityPending(values); return; }
+    await doSubmit(values);
+  };
+
+  const isRepetir = form.watch("repetir");
+  const repetirQuantidade = form.watch("repetir_quantidade");
+  const diasSelecionados = form.watch("dias_semana");
+  const freqSemanal = form.watch("frequencia_semanal");
+  const previewCount = isRecorrente && diasSelecionados.length > 0 ? diasSelecionados.length * form.watch("recorrencia_semanas") : 0;
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-[Plus_Jakarta_Sans]">
-            {appointmentType === "sessao_plano" ? "Sessão do Plano" : "Nova Sessão Avulsa"}
-          </DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-[Plus_Jakarta_Sans]">
+              {appointmentType === "sessao_plano" ? "Sessão do Plano" : "Nova Sessão Avulsa"}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-            {/* Plan selector for sessao_plano */}
-            {appointmentType === "sessao_plano" && (
-              <div className="rounded-lg border p-4 space-y-2 bg-green-50/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <Layers className="h-4 w-4 text-green-600" />
-                  <Label className="font-medium text-sm">Pacote de Sessões</Label>
-                </div>
-                <Select
-                  value={selectedPlanoId}
-                  onValueChange={(val) => {
+              {/* Plan selector */}
+              {appointmentType === "sessao_plano" && (
+                <PlanSelectorSection
+                  planos={planos}
+                  selectedPlanoId={selectedPlanoId}
+                  onPlanoChange={(val) => {
                     setSelectedPlanoId(val);
                     const plano = planos.find(p => p.id === val);
                     if (plano) {
@@ -522,268 +224,45 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                       form.setValue("tipo_atendimento", plano.tipo_atendimento);
                     }
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o pacote" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {planos.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        <span className="font-medium">{p.paciente_nome}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          · {p.tipo_atendimento} · {p.sessoes_utilizadas}/{p.total_sessoes} sessões usadas
-                        </span>
-                      </SelectItem>
-                    ))}
-                    {planos.length === 0 && (
-                      <SelectItem value="_none" disabled>
-                        Nenhum pacote ativo encontrado
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                {selectedPlanoId && selectedPlano && (
-                  <p className={cn(
-                    "text-xs mt-1",
-                    planoSessoesRestantes <= 0 ? "text-destructive" : planoSessoesRestantes <= 2 ? "text-amber-600" : "text-green-700"
-                  )}>
-                    {planoSessoesRestantes <= 0
-                      ? "⚠️ Pacote esgotado — sem sessões disponíveis."
-                      : `✅ ${planoSessoesRestantes} sessão(ões) restante(s) neste pacote.`}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <FormField
-              control={form.control}
-              name="paciente_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Paciente</FormLabel>
-                  <FormControl>
-                    <PatientCombobox
-                      patients={pacientes}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  selectedPlano={selectedPlano}
+                  planoSessoesRestantes={planoSessoesRestantes}
+                />
               )}
-            />
 
-
-            <FormField
-              control={form.control}
-              name="profissional_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Profissional</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o profissional" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {profissionais.map((p) => (
-                        <SelectItem key={p.id} value={p.user_id}>{p.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {!isRecorrente && (
+              {/* Patient */}
               <FormField
                 control={form.control}
-                name="data"
+                name="paciente_id"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? format(field.value, "dd/MM/yyyy") : "Selecione"}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          locale={ptBR}
-                          selected={field.value}
-                          onSelect={(date) => {
-                            field.onChange(date);
-                            if (date) setCurrentMonth(date);
-                          }}
-                          onMonthChange={setCurrentMonth}
-                          disabled={(date) =>
-                            date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0
-                          }
-                          className="rounded-md border shadow-sm"
-                          components={{
-                            DayContent: ({ date }) => {
-                              const vacancies = monthlyAvail[date.getDate()];
-                              const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                              const isSunday = date.getDay() === 0;
-
-                              return (
-                                <div className="relative w-full h-full flex flex-col items-center justify-center">
-                                  <span>{date.getDate()}</span>
-                                  {watchedProfId && !isPast && !isSunday && (
-                                    <span className={cn(
-                                      "text-[9px] mt-0.5 px-1 rounded-full",
-                                      vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
-                                    )}>
-                                      {vacancies}v
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            }
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem>
+                    <FormLabel>Paciente</FormLabel>
+                    <FormControl>
+                      <PatientCombobox
+                        patients={pacientes}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
 
-            {!isRecorrente && (
-              <div className="grid grid-cols-2 gap-4">
-                {/* Show slot picker when slots exist, otherwise manual time input */}
-                {availableSlots && availableSlots.length > 0 ? (
-                  <FormField
-                    control={form.control}
-                    name="slot_id"
-                    render={({ field }) => {
-                      let slotPlaceholder = "Selecione o horário";
-                      if (isLoadingSlots) slotPlaceholder = "Carregando...";
-                      else if (!watchedDate || !watchedProfId) slotPlaceholder = "Selecione data e profissional";
-                      return (
-                      <FormItem>
-                        <FormLabel>Horário (Vagas)</FormLabel>
-                        <Select
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            const slot = availableSlots?.find((s: any) => s.id === val);
-                            if (slot) {
-                              form.setValue("horario", slot.start_time.slice(0, 5));
-                            }
-                          }}
-                          value={field.value}
-                          disabled={isLoadingSlots || !watchedDate || !watchedProfId}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={slotPlaceholder} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {availableSlots?.map((slot: any) => (
-                              <SelectItem
-                                key={slot.id}
-                                value={slot.id}
-                                disabled={slot.status === 'full' || slot.status === 'blocked'}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-3 w-3 text-muted-foreground" />
-                                  <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
-                                  <span className={cn(
-                                    "text-[10px] px-1.5 py-0.5 rounded-full border",
-                                    slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200"
-                                  )}>
-                                    {slot.current_capacity}/{slot.max_capacity} pacientes
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    ); }}
-                  />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="horario"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Horário</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="duracao_minutos"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duração</FormLabel>
-                      <Select
-                        onValueChange={(v) => field.onChange(Number(v))}
-                        value={String(field.value)}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="30">30 min</SelectItem>
-                          <SelectItem value="45">45 min</SelectItem>
-                          <SelectItem value="50">50 min</SelectItem>
-                          <SelectItem value="60">60 min</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
+              {/* Professional */}
               <FormField
                 control={form.control}
-                name="tipo_atendimento"
+                name="profissional_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Modalidade</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Profissional</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={appointmentType === "sessao_plano" && !!selectedPlanoId}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Selecione o profissional" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {modalidades.map((mod) => (
-                          <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
+                        {profissionais.map((p) => (
+                          <SelectItem key={p.id} value={p.user_id}>{p.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -792,197 +271,164 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="tipo_sessao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Sessão</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="individual">Individual</SelectItem>
-                        <SelectItem value="grupo">Grupo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Tipo de consulta: Teleconsulta / Domiciliar */}
-            <div className="rounded-lg border p-4 space-y-3">
-              <Label className="font-medium text-sm">Tipo de Consulta</Label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={form.watch("observacoes")?.includes("[TELECONSULTA]") ? "default" : "outline"}
-                  className="gap-2"
-                  onClick={() => {
-                    const obs = form.getValues("observacoes") || "";
-                    if (obs.includes("[TELECONSULTA]")) {
-                      form.setValue("observacoes", obs.replace("[TELECONSULTA]", "").trim());
-                    } else {
-                      form.setValue("observacoes", `[TELECONSULTA] ${obs.replace("[DOMICILIAR]", "").trim()}`.trim());
-                    }
-                  }}
-                >
-                  <Video className="h-4 w-4" />
-                  Teleconsulta
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={form.watch("observacoes")?.includes("[DOMICILIAR]") ? "default" : "outline"}
-                  className="gap-2"
-                  onClick={() => {
-                    const obs = form.getValues("observacoes") || "";
-                    if (obs.includes("[DOMICILIAR]")) {
-                      form.setValue("observacoes", obs.replace("[DOMICILIAR]", "").trim());
-                    } else {
-                      form.setValue("observacoes", `[DOMICILIAR] ${obs.replace("[TELECONSULTA]", "").trim()}`.trim());
-                    }
-                  }}
-                >
-                  <Home className="h-4 w-4" />
-                  Consulta Domiciliar
-                </Button>
-              </div>
-              {form.watch("observacoes")?.includes("[TELECONSULTA]") && (
-                <p className="text-xs text-muted-foreground">📹 Um link de teleconsulta será gerado para esta sessão.</p>
-              )}
-              {form.watch("observacoes")?.includes("[DOMICILIAR]") && (
-                <p className="text-xs text-muted-foreground">🏠 Esta sessão será realizada no domicílio do paciente.</p>
-              )}
-            </div>
-
-            {availabilityResult && (
-              <Alert variant={availabilityResult.isOverCapacity ? "destructive" : (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? "destructive" : "default"}>
-                <div className="flex items-center gap-2">
-                  {availabilityResult.isOverCapacity || (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? (
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  )}
-                  <AlertDescription>
-                    {availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual'
-                      ? "⚠️ Este horário já possui pacientes agendados. Para sessão individual, o horário deve estar vazio."
-                      : availabilityResult.message}
-                  </AlertDescription>
-                </div>
-              </Alert>
-            )}
-
-
-
-            {isRecorrente && (
-              <FormField
-                control={form.control}
-                name="duracao_minutos"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duração por sessão</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(Number(v))}
-                      value={String(field.value)}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="30">30 min</SelectItem>
-                        <SelectItem value="45">45 min</SelectItem>
-                        <SelectItem value="50">50 min</SelectItem>
-                        <SelectItem value="60">60 min</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Financeiro — sessão única */}
-            {!isRecorrente && appointmentType !== "sessao_plano" && (
-              <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <Label className="font-medium">Financeiro da Sessão</Label>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="valor_sessao"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Valor (R$)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder="0,00"
-                              className="pl-10"
-                              value={field.value ?? ""}
-                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="data_vencimento"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Data de Vencimento</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+              {/* Date picker (single) */}
+              {!isRecorrente && (
                 <FormField
                   control={form.control}
-                  name="forma_pagamento"
+                  name="data"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                              {field.value ? format(field.value, "dd/MM/yyyy") : "Selecione"}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            locale={ptBR}
+                            selected={field.value}
+                            onSelect={(date) => { field.onChange(date); if (date) setCurrentMonth(date); }}
+                            onMonthChange={setCurrentMonth}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0}
+                            className="rounded-md border shadow-sm"
+                            components={{
+                              DayContent: ({ date }) => {
+                                const vacancies = monthlyAvail[date.getDate()];
+                                const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                                const isSunday = date.getDay() === 0;
+                                return (
+                                  <div className="relative w-full h-full flex flex-col items-center justify-center">
+                                    <span>{date.getDate()}</span>
+                                    {watchedProfId && !isPast && !isSunday && (
+                                      <span className={cn("text-[9px] mt-0.5 px-1 rounded-full", vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600")}>
+                                        {vacancies}v
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Time + Duration (single) */}
+              {!isRecorrente && (
+                <div className="grid grid-cols-2 gap-4">
+                  {availableSlots && availableSlots.length > 0 ? (
+                    <FormField
+                      control={form.control}
+                      name="slot_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Horário (Vagas)</FormLabel>
+                          <Select
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              const slot = availableSlots?.find((s: any) => s.id === val);
+                              if (slot) form.setValue("horario", slot.start_time.slice(0, 5));
+                            }}
+                            value={field.value}
+                            disabled={isLoadingSlots || !watchedDate || !watchedProfId}
+                          >
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder={isLoadingSlots ? "Carregando..." : !watchedDate || !watchedProfId ? "Selecione data e profissional" : "Selecione o horário"} /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {availableSlots?.map((slot: any) => (
+                                <SelectItem key={slot.id} value={slot.id} disabled={slot.status === 'full' || slot.status === 'blocked'}>
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="font-medium">{slot.start_time.slice(0, 5)}</span>
+                                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border", slot.status === 'full' ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-600 border-green-200")}>
+                                      {slot.current_capacity}/{slot.max_capacity} pacientes
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="horario"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Horário</FormLabel>
+                          <FormControl><Input type="time" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="duracao_minutos"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Duração</FormLabel>
+                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="30">30 min</SelectItem>
+                            <SelectItem value="45">45 min</SelectItem>
+                            <SelectItem value="50">50 min</SelectItem>
+                            <SelectItem value="60">60 min</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Modality + Session type */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="tipo_atendimento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione (opcional)" />
-                          </SelectTrigger>
-                        </FormControl>
+                      <FormLabel>Modalidade</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {formasPagamento.map((f) => (
-                            <SelectItem key={f.id} value={f.nome.toLowerCase()}>{f.nome}</SelectItem>
+                          {modalidades.map((mod) => (
+                            <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
                           ))}
-                          {formasPagamento.length === 0 && (
-                            <>
-                              <SelectItem value="pix">PIX</SelectItem>
-                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                              <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                              <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                              <SelectItem value="transferencia">Transferência Bancária</SelectItem>
-                              <SelectItem value="convenio">Convênio</SelectItem>
-                              <SelectItem value="boleto">Boleto</SelectItem>
-                            </>
-                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="tipo_sessao"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Sessão</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="individual">Individual</SelectItem>
+                          <SelectItem value="grupo">Grupo</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -990,484 +436,132 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                   )}
                 />
               </div>
-            )}
 
-            {/* Repetir sessão (para agendamento único) */}
-            {!isRecorrente && appointmentType !== "sessao_plano" && (
-              <div className="rounded-lg border p-4 space-y-4">
-                <div className="flex items-center justify-between">
+              {/* Consultation type toggle */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <Label className="font-medium text-sm">Tipo de Consulta</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[{ tag: "[TELECONSULTA]", icon: Video, label: "Teleconsulta", hint: "📹 Um link de teleconsulta será gerado para esta sessão." },
+                    { tag: "[DOMICILIAR]", icon: Home, label: "Consulta Domiciliar", hint: "🏠 Esta sessão será realizada no domicílio do paciente." }
+                  ].map(({ tag, icon: Icon, label, hint }) => {
+                    const obs = form.watch("observacoes") || "";
+                    const active = obs.includes(tag);
+                    const otherTag = tag === "[TELECONSULTA]" ? "[DOMICILIAR]" : "[TELECONSULTA]";
+                    return (
+                      <div key={tag}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          className="gap-2"
+                          onClick={() => {
+                            if (active) form.setValue("observacoes", obs.replace(tag, "").trim());
+                            else form.setValue("observacoes", `${tag} ${obs.replace(otherTag, "").trim()}`.trim());
+                          }}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {label}
+                        </Button>
+                        {active && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Availability alert (single) */}
+              {availabilityResult && (
+                <Alert variant={availabilityResult.isOverCapacity || (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual') ? "destructive" : "default"}>
                   <div className="flex items-center gap-2">
-                    <Repeat className="h-4 w-4 text-muted-foreground" />
-                    <Label className="font-medium">Repetir esta sessão</Label>
+                    {availabilityResult.isOverCapacity || (availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual')
+                      ? <AlertTriangle className="h-4 w-4 text-destructive" />
+                      : <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                    <AlertDescription>
+                      {availabilityResult.currentCount > 0 && watchedTipoSessao === 'individual'
+                        ? "⚠️ Este horário já possui pacientes agendados. Para sessão individual, o horário deve estar vazio."
+                        : availabilityResult.message}
+                    </AlertDescription>
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="repetir"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                </Alert>
+              )}
 
-                {isRepetir && (
-                  <div className="space-y-3 pt-1">
-                    <p className="text-xs text-muted-foreground">
-                      Repete no mesmo dia da semana e horário, semanalmente.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Repetir por</Label>
-                        <Input
-                          type="number"
-                          min={2}
-                          max={52}
-                          className="mt-1"
-                          value={repetirQuantidade}
-                          onChange={(e) => form.setValue("repetir_quantidade", Number(e.target.value) || 4)}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Tipo</Label>
-                        <Select
-                          value={repetirTipo}
-                          onValueChange={(v) => form.setValue("repetir_tipo", v as "vezes" | "semanas")}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="vezes">vezes</SelectItem>
-                            <SelectItem value="semanas">semanas</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
-                      Serão criadas <span className="font-semibold text-foreground">{repetirQuantidade}</span> sessões no mesmo dia/horário, uma por semana.
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+              {/* Financial (single) */}
+              {!isRecorrente && appointmentType !== "sessao_plano" && (
+                <FinancialSection form={form} formasPagamento={formasPagamento} />
+              )}
 
-            {appointmentType !== "sessao_plano" && (
-            <div className="rounded-lg border p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Repeat className="h-4 w-4 text-muted-foreground" />
-                  <Label className="font-medium">Atendimento Recorrente</Label>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="recorrente"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
+              {/* Repeat section (single) */}
+              {!isRecorrente && appointmentType !== "sessao_plano" && (
+                <RepeatSection form={form} />
+              )}
+
+              {/* Recurrence section */}
+              {appointmentType !== "sessao_plano" && (
+                <RecurrenceSection
+                  form={form}
+                  formasPagamento={formasPagamento}
+                  monthlyAvail={monthlyAvail}
+                  currentMonth={currentMonth}
+                  setCurrentMonth={setCurrentMonth}
+                  watchedProfId={watchedProfId}
                 />
-              </div>
-
-              {isRecorrente && (
-                <div className="space-y-4 pt-2">
-                  {/* Frequência semanal */}
-                  <FormField
-                    control={form.control}
-                    name="frequencia_semanal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Quantidade por semana
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            (ex: {tipoAtendimento || "Sessão"} {freqLabel}/semana)
-                          </span>
-                        </FormLabel>
-                        <Select
-                          onValueChange={(v) => field.onChange(Number(v))}
-                          value={String(field.value)}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="1">1x por semana</SelectItem>
-                            <SelectItem value="2">2x por semana</SelectItem>
-                            <SelectItem value="3">3x por semana</SelectItem>
-                            <SelectItem value="4">4x por semana</SelectItem>
-                            <SelectItem value="5">5x por semana</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Dias da semana */}
-                  <div>
-                    <Label className="text-sm font-medium">
-                      Dias da semana
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        (selecione {freqSemanal} dia{freqSemanal > 1 ? "s" : ""})
-                      </span>
-                    </Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {DIAS_SEMANA.map((dia) => {
-                        const selected = diasSelecionados.includes(dia.value);
-                        return (
-                          <button
-                            key={dia.value}
-                            type="button"
-                            onClick={() => toggleDia(dia.value)}
-                            className={cn(
-                              "px-3 py-2 rounded-md text-sm font-medium border transition-colors",
-                              selected
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background text-muted-foreground border-border hover:bg-muted"
-                            )}
-                          >
-                            {dia.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {diasSelecionados.length > 0 && diasSelecionados.length !== freqSemanal && (
-                      <p className="text-xs text-destructive mt-1">
-                        Selecione exatamente {freqSemanal} dia{freqSemanal > 1 ? "s" : ""} para combinar com a frequência
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Horários individuais por dia */}
-                  {diasSelecionados.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Horário por dia</Label>
-                      <div className="space-y-2">
-                        {DIAS_SEMANA.filter(d => diasSelecionados.includes(d.value)).map((dia) => {
-                          const horariosDia = form.watch("horarios_por_dia");
-                          const horarioDia = horariosDia[String(dia.value)] || "08:00";
-                          return (
-                            <div key={dia.value} className="flex items-center gap-3 rounded-md border p-2">
-                              <span className="text-sm font-medium w-12">{dia.label}</span>
-                              <Input
-                                type="time"
-                                value={horarioDia}
-                                onChange={(e) => {
-                                  const current = form.getValues("horarios_por_dia");
-                                  form.setValue("horarios_por_dia", {
-                                    ...current,
-                                    [String(dia.value)]: e.target.value,
-                                  });
-                                }}
-                                className="w-32"
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  <FormField
-                    control={form.control}
-                    name="data"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Início a partir de</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? format(field.value, "dd/MM/yyyy") : "Selecione"}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                               mode="single"
-                               selected={field.value}
-                               onSelect={(date) => {
-                                 field.onChange(date);
-                                 if (date) setCurrentMonth(date);
-                               }}
-                               onMonthChange={setCurrentMonth}
-                               locale={ptBR}
-                               disabled={(date) =>
-                                 date < new Date(new Date().setHours(0, 0, 0, 0)) || date.getDay() === 0
-                               }
-                               className="rounded-md border shadow-sm"
-                               components={{
-                                 Day: ({ date, ...props }: any) => {
-                                   const vacancies = monthlyAvail[date.getDate()];
-                                   const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                                   const isSunday = date.getDay() === 0;
-
-                                   return (
-                                     <div {...props} className="relative w-full h-full flex flex-col items-center justify-center pt-1">
-                                       <span>{date.getDate()}</span>
-                                       {watchedProfId && !isPast && !isSunday && (
-                                         <span className={cn(
-                                           "text-[9px] mt-0.5 px-1 rounded-full",
-                                           vacancies > 0 ? "bg-green-100 text-green-700 font-bold" : "bg-red-100 text-red-600"
-                                         )}>
-                                           {vacancies}v
-                                         </span>
-                                       )}
-                                     </div>
-                                   );
-                                 }
-                               }}
-                               initialFocus
-                             />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Valor Sessão e Pagamento Mensal */}
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <Label className="font-medium">Financeiro Recorrente</Label>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="valor_sessao"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Valor p/ Sessão (R$)</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  placeholder="0,00"
-                                  className="pl-10"
-                                  value={field.value ?? ""}
-                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="valor_mensal"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Valor Mensal (Pacote)</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  placeholder="Opcional"
-                                  className="pl-10"
-                                  value={field.value ?? ""}
-                                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="data_vencimento"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Data de Vencimento</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} value={field.value ?? ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="forma_pagamento"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {formasPagamento.map((f) => (
-                                  <SelectItem key={f.id} value={f.nome.toLowerCase()}>{f.nome}</SelectItem>
-                                ))}
-                                {formasPagamento.length === 0 && (
-                                  <>
-                                    <SelectItem value="pix">PIX</SelectItem>
-                                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                                    <SelectItem value="transferencia">Transferência Bancária</SelectItem>
-                                    <SelectItem value="convenio">Convênio</SelectItem>
-                                    <SelectItem value="boleto">Boleto</SelectItem>
-                                  </>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Preview - tempo indeterminado */}
-                  {diasSelecionados.length > 0 && diasSelecionados.length === freqSemanal && (
-                    <div className="rounded-md bg-muted/50 p-3 text-sm">
-                      <p className="font-medium text-foreground">
-                        ♾️ Agendamento recorrente por tempo indeterminado
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {freqLabel}/semana · {DIAS_SEMANA.filter(d => diasSelecionados.includes(d.value)).map(d => d.label).join(", ")}
-                        {form.watch("valor_mensal") ? ` · R$ ${form.watch("valor_mensal")?.toFixed(2)}/mês` : ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Serão criadas {previewCount} sessões ({form.watch("recorrencia_semanas")} semanas iniciais)
-                      </p>
-                    </div>
-                  )}
-                </div>
               )}
-            </div>
-            )}
 
-            <FormField
-              control={form.control}
-              name="observacoes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Observações sobre o agendamento..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Availability Alert */}
-            {!isRecorrente && availabilityResult && (
-              <Alert variant={availabilityResult.isWithinSchedule && !availabilityResult.isOverCapacity ? "default" : "destructive"} className="flex items-start gap-2">
-                {availabilityResult.isWithinSchedule && !availabilityResult.isOverCapacity ? (
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4 mt-0.5" />
+              {/* Observations */}
+              <FormField
+                control={form.control}
+                name="observacoes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observações</FormLabel>
+                    <FormControl><Textarea placeholder="Observações sobre o agendamento..." {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <AlertDescription className="text-sm">
-                  {availabilityResult.message}
-                  {availabilityResult.isOverCapacity && (
-                    <span className="block text-xs mt-1 opacity-80">
-                      O agendamento será criado, mas excederá a capacidade configurada.
-                    </span>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
+              />
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading || (appointmentType === "sessao_plano" && planoSessoesRestantes !== null && planoSessoesRestantes <= 0)}
-              >
-                {loading
-                  ? "Salvando..."
-                  : isRecorrente
-                    ? `Agendar ${previewCount} sessões`
-                    : isRepetir
-                      ? `Agendar ${repetirQuantidade} sessões`
-                      : "Agendar"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              {/* Final availability alert */}
+              {!isRecorrente && availabilityResult && (
+                <Alert variant={availabilityResult.isWithinSchedule && !availabilityResult.isOverCapacity ? "default" : "destructive"} className="flex items-start gap-2">
+                  {availabilityResult.isWithinSchedule && !availabilityResult.isOverCapacity
+                    ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600" />
+                    : <AlertTriangle className="h-4 w-4 mt-0.5" />}
+                  <AlertDescription className="text-sm">
+                    {availabilityResult.message}
+                    {availabilityResult.isOverCapacity && (
+                      <span className="block text-xs mt-1 opacity-80">O agendamento será criado, mas excederá a capacidade configurada.</span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-    {/* Over-capacity confirmation dialog */}
-    <AlertDialog open={!!overCapacityPending} onOpenChange={(o) => { if (!o) setOverCapacityPending(null); }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            ⚠️ Capacidade excedida
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {availabilityResult && (
-              <>
-                <strong>Você está agendando além da capacidade definida.</strong>
-                <br />
-                {availabilityResult.currentCount >= availabilityResult.maxCapacity
-                  ? `Este horário já atingiu ${availabilityResult.currentCount}/${availabilityResult.maxCapacity} pacientes.`
-                  : availabilityResult.message}
-                <br /><br />
-                Deseja continuar mesmo assim?
-              </>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setOverCapacityPending(null)}>
-            Cancelar
-          </AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-amber-500 hover:bg-amber-600 text-white"
-            onClick={() => {
-              if (overCapacityPending) {
-                const pending = overCapacityPending;
-                setOverCapacityPending(null);
-                doSubmit(pending);
-              }
-            }}
-          >
-            Continuar
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </>
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button
+                  type="submit"
+                  disabled={loading || (appointmentType === "sessao_plano" && planoSessoesRestantes !== null && planoSessoesRestantes <= 0)}
+                >
+                  {loading ? "Salvando..." : isRecorrente ? `Agendar ${previewCount} sessões` : isRepetir ? `Agendar ${repetirQuantidade} sessões` : "Agendar"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <OverCapacityDialog
+        open={!!overCapacityPending}
+        onCancel={() => setOverCapacityPending(null)}
+        onConfirm={() => {
+          if (overCapacityPending) {
+            const pending = overCapacityPending;
+            setOverCapacityPending(null);
+            doSubmit(pending);
+          }
+        }}
+        availabilityResult={availabilityResult}
+      />
+    </>
   );
 }
