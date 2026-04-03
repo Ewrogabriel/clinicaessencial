@@ -11,7 +11,7 @@ const getLevel = (points: number) => {
 };
 
 async function getLeaderboard(clinicId: string, period: LeaderboardPeriod) {
-  const query = (supabase.from("gamification_pontos") as any)
+  const query = (supabase as any).from("gamification_pontos")
     .select("paciente_id, pontos, pacientes(nome)")
     .eq("clinica_id", clinicId);
 
