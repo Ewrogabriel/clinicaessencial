@@ -215,7 +215,7 @@ const PreCadastrosAdmin = () => {
     setSelectedIds(new Set());
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
     queryClient.invalidateQueries({ queryKey: ["pacientes", activeClinicId] });
-    toast.success(`${successCount} paciente(s) aprovado(s) e cadastrado(s)${errorCount > 0 ? `);
+    toast.success(`${successCount} paciente(s) aprovado(s) e cadastrado(s)${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`);
   };
 
   // Bulk reject selected pending pre-cadastros
