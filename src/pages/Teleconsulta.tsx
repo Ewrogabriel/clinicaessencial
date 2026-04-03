@@ -16,6 +16,7 @@ import {
   Video, VideoOff, Phone, MessageSquare, Users,
   Send, Clock, CheckCircle2, ArrowLeft, DoorOpen,
   Mic, MicOff, FileText, Download, Sparkles, Loader2,
+  Copy, Share2, Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
