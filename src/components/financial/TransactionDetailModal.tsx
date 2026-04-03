@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -31,13 +30,10 @@ import {
   Pencil,
   Scissors,
   RotateCcw,
-  Download,
   Copy,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   Archive,
-  Upload,
   Star,
   AlertCircle,
   XCircle,
@@ -45,9 +41,6 @@ import {
   CheckCircle2,
   Loader2,
   User,
-  Phone,
-  Mail,
-  Calendar,
   Keyboard,
 } from "lucide-react";
 import { toast } from "@/modules/shared/hooks/use-toast";
@@ -79,6 +72,7 @@ interface TransactionDetailModalProps {
   onDelete?: (tx: BankTransactionRow) => void;
   onAcceptSuggestion?: (transactionId: string, paymentId: string) => void;
   onNavigate?: (tx: BankTransactionRow) => void;
+  onSaveNote?: (transactionId: string, note: string) => Promise<void>;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -188,10 +182,11 @@ export function TransactionDetailModal({
   onDelete,
   onAcceptSuggestion,
   onNavigate,
+  onSaveNote,
 }: TransactionDetailModalProps) {
   const [note, setNote] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
 
   const currentIndex = transaction
     ? transactions.findIndex((t) => t.id === transaction.id)
@@ -237,7 +232,11 @@ export function TransactionDetailModal({
       } else if (e.key === "ArrowRight" && !e.ctrlKey && !e.metaKey) {
         goToNext();
       } else if ((e.ctrlKey || e.metaKey) && e.key === "c") {
-        handleCopyId();
+        // Only copy ID when no text is selected
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) {
+          handleCopyId();
+        }
       } else if (e.key === "?" || e.key === "h") {
         setShowShortcuts((v) => !v);
       }
@@ -252,14 +251,8 @@ export function TransactionDetailModal({
   const statusCfg = getStatusConfig(transaction.status);
   const isConciliated = transaction.status === "conciliado";
   const isRejected = transaction.status === "rejeitado";
-  const isPending = !transaction.status || transaction.status === "pendente";
   const isCredit = transaction.tipo === "credito";
-
-  // Approximate gross/net value display (1.41% gateway fee example)
   const valor = Math.abs(transaction.valor);
-  const gatewayFeeRate = 0; // Real app: fetch from account config
-  const gatewayFee = valor * gatewayFeeRate;
-  const netValue = valor - gatewayFee;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -324,7 +317,6 @@ export function TransactionDetailModal({
         {/* ── Scrollable content ───────────────────────────────────────────── */}
         <ScrollArea className="flex-1 min-h-0">
           <div
-            ref={contentRef}
             className="px-6 py-4 space-y-5 animate-in fade-in-0 duration-200"
           >
             {/* ── Layout: 2 columns on lg+ ─────────────────────────────────── */}
@@ -585,27 +577,20 @@ export function TransactionDetailModal({
                   title="Detalhes Financeiros"
                 />
                 <div className="space-y-0">
-                  <InfoRow label="Valor Bruto" value={formatBRL(valor)} />
-                  <InfoRow
-                    label="Taxa Gateway"
-                    value={
-                      gatewayFee > 0 ? (
-                        <span className="text-red-600">
-                          -{formatBRL(gatewayFee)} ({(gatewayFeeRate * 100).toFixed(2)}%)
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">R$ 0,00</span>
-                      )
-                    }
-                  />
-                  <InfoRow label="Taxa Banco" value={<span className="text-muted-foreground">R$ 0,00</span>} />
-                  <InfoRow
-                    label="Valor Líquido"
-                    value={<span className="font-bold text-foreground">{formatBRL(netValue)}</span>}
-                  />
+                  <InfoRow label="Valor" value={
+                    <span className={`font-bold ${isCredit ? "text-green-600" : "text-red-600"}`}>
+                      {isCredit ? "+" : "-"}{formatBRL(valor)}
+                    </span>
+                  } />
+                  <InfoRow label="Tipo" value={isCredit ? "Crédito" : "Débito"} />
                   <InfoRow label="Moeda" value="BRL" />
-                  <InfoRow label="Taxa Conversão" value="1,0000" />
+                  {transaction.saldo != null && (
+                    <InfoRow label="Saldo Pós-Tx" value={formatBRL(transaction.saldo)} />
+                  )}
                 </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  * Taxas de gateway e banco serão exibidas quando configuradas na conta bancária.
+                </p>
               </div>
             </div>
 
@@ -805,13 +790,31 @@ export function TransactionDetailModal({
                   size="sm"
                   variant="outline"
                   className="gap-1.5 text-xs"
-                  onClick={() => {
+                  disabled={!note.trim() || isSavingNote}
+                  onClick={async () => {
                     if (!note.trim()) return;
-                    toast({ title: "✓ Nota adicionada" });
-                    setNote("");
+                    if (onSaveNote) {
+                      setIsSavingNote(true);
+                      try {
+                        await onSaveNote(transaction.id, note.trim());
+                        toast({ title: "✓ Nota salva com sucesso" });
+                        setNote("");
+                      } catch {
+                        toast({ title: "Erro ao salvar nota", variant: "destructive" });
+                      } finally {
+                        setIsSavingNote(false);
+                      }
+                    } else {
+                      // No persistence handler: show info
+                      toast({ title: "ℹ️ Para salvar notas, configure o handler onSaveNote" });
+                    }
                   }}
                 >
-                  <MessageSquare className="h-3.5 w-3.5" />
+                  {isSavingNote ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  )}
                   Adicionar Nota
                 </Button>
 
@@ -893,16 +896,6 @@ export function TransactionDetailModal({
             >
               <Copy className="h-3.5 w-3.5" />
               Copiar ID
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => window.location.reload()}
-              title="Recarregar"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Recarregar
             </Button>
             <Button
               size="sm"
