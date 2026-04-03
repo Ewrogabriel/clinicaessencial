@@ -212,7 +212,7 @@ const Agenda = () => {
     const ag = agendamentos.find((a) => a.id === agId);
     const profissionalId = ag?.profissional_id || user?.id || "";
     rescheduleMutation.mutate({ id: agId, newDate, profissionalId }, {
-      onSuccess: () => { toast.success("Sessão reagendada! 📅", { description: format(newDate }); refetchAgendamentos(); },
+      onSuccess: () => { toast.success("Sessão reagendada! 📅", { description: format(newDate, "dd/MM/yyyy HH:mm") }); refetchAgendamentos(); },
     });
   };
 
