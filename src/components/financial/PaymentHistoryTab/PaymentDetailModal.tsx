@@ -22,10 +22,11 @@ import type { PaymentEntry } from "./types";
 interface PaymentDetailModalProps {
   payment: PaymentEntry;
   pacienteNome: string;
+  pacienteCpf?: string;
   onClose: () => void;
 }
 
-export function PaymentDetailModal({ payment, pacienteNome, onClose }: PaymentDetailModalProps) {
+export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", onClose }: PaymentDetailModalProps) {
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
   const statusInfo = labelStatus[payment.status] ?? {
@@ -188,7 +189,7 @@ export function PaymentDetailModal({ payment, pacienteNome, onClose }: PaymentDe
                     const pdf = await generateReceiptPDF({
                       numero,
                       pacienteNome,
-                      cpf: "",
+                      cpf: pacienteCpf,
                       descricao: payment.descricao || "Serviço",
                       valor: Math.abs(payment.valor),
                       formaPagamento: payment.forma_pagamento || "",
@@ -213,7 +214,7 @@ export function PaymentDetailModal({ payment, pacienteNome, onClose }: PaymentDe
                     const pdf = await generateReceiptPDF({
                       numero,
                       pacienteNome,
-                      cpf: "",
+                      cpf: pacienteCpf,
                       descricao: payment.descricao || "Serviço",
                       valor: Math.abs(payment.valor),
                       formaPagamento: payment.forma_pagamento || "",
