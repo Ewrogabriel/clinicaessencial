@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Search, ChevronDown, ChevronUp, X,
+  Search, ChevronDown, X,
   TrendingDown, TrendingUp, Clock, AlertCircle,
-  CheckCircle2, AlertTriangle, Ban, Minus,
+  CheckCircle2, AlertTriangle, Ban, Minus, User,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ import {
 
 interface PaymentEntry {
   id: string;
-  source_table: "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
+  source_table: "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes" | "matriculas" | "planos";
   data_pagamento: string | null;
   data_vencimento: string | null;
   descricao: string;
@@ -36,6 +36,9 @@ interface PaymentEntry {
   bank_status?: string | null;
   bank_data_conciliacao?: string | null;
   created_at: string;
+  dias_atraso?: number;
+  profissional?: string | null;
+  mes_referencia?: string | null;
 }
 
 interface PaymentHistoryTabProps {
@@ -49,9 +52,11 @@ const formatBRL = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 const labelOrigem: Record<string, string> = {
-  plano: "Plano de Saúde",
+  plano: "Plano / Pacote",
   mensalidade: "Matrícula",
+  matricula: "Matrícula",
   sessao: "Sessão Avulsa",
+  sessao_avulsa: "Sessão Avulsa",
   manual: "Pagamento Manual",
   reembolso: "Reembolso",
   ajuste: "Ajuste",
@@ -61,6 +66,8 @@ const labelStatus: Record<string, { label: string; variant: "default" | "seconda
   pago: { label: "Pago", variant: "default" },
   pendente: { label: "Pendente", variant: "secondary" },
   vencido: { label: "Atrasado", variant: "destructive" },
+  atrasado: { label: "Atrasado", variant: "destructive" },
+  nao_iniciado: { label: "Não Pago", variant: "secondary" },
   cancelado: { label: "Cancelado", variant: "outline" },
   reembolsado: { label: "Reembolsado", variant: "outline" },
   aberto: { label: "Em Aberto", variant: "secondary" },
@@ -157,6 +164,21 @@ function PaymentDetailModal({
             </div>
           </div>
 
+          {/* Atraso */}
+          {payment.dias_atraso !== undefined && payment.dias_atraso > 0 && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm font-medium">
+                Atrasado há {payment.dias_atraso} {payment.dias_atraso === 1 ? "dia" : "dias"}
+              </span>
+              {payment.data_vencimento && (
+                <span className="text-xs text-red-500 ml-auto">
+                  Venc.: {format(new Date(payment.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Origem + Forma */}
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -168,6 +190,25 @@ function PaymentDetailModal({
               <p>{payment.forma_pagamento || "—"}</p>
             </div>
           </div>
+
+          {/* Profissional (if session) */}
+          {payment.profissional && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase font-semibold mb-0.5">Profissional</p>
+              <p className="flex items-center gap-1">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                {payment.profissional}
+              </p>
+            </div>
+          )}
+
+          {/* Mês referência */}
+          {payment.mes_referencia && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase font-semibold mb-0.5">Mês de Referência</p>
+              <p>{payment.mes_referencia}</p>
+            </div>
+          )}
 
           {/* Descrição */}
           <div>
@@ -182,6 +223,14 @@ function PaymentDetailModal({
               {tipo === "Débito" ? "-" : "+"}{formatBRL(Math.abs(payment.valor))}
             </p>
           </div>
+
+          {/* Data de vencimento */}
+          {payment.data_vencimento && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase font-semibold mb-0.5">Data de Vencimento</p>
+              <p>{format(new Date(payment.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}</p>
+            </div>
+          )}
 
           {/* Reconciliação bancária */}
           <div>
@@ -221,16 +270,29 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
   const [filterTipo, setFilterTipo] = useState("todos");
   const [selectedPayment, setSelectedPayment] = useState<PaymentEntry | null>(null);
 
-  // ── Fetch all 3 payment tables for this patient ──────────────────────────
+  // ── Fetch all payment tables + pending items for this patient ────────────
   const { data: payments = [], isLoading } = useQuery<PaymentEntry[]>({
     queryKey: ["patient-payment-history", pacienteId],
     queryFn: async () => {
       const results: PaymentEntry[] = [];
+      const now = new Date();
 
-      // 1. pagamentos
+      // ── Helper: compute effective status and dias_atraso ─────────────────
+      function resolveStatus(status: string, dataVencimento: string | null): { status: string; dias_atraso?: number } {
+        if ((status === "pendente" || status === "aberto") && dataVencimento) {
+          const venc = new Date(dataVencimento);
+          if (venc < now) {
+            const dias = differenceInDays(now, venc);
+            return { status: "atrasado", dias_atraso: dias };
+          }
+        }
+        return { status };
+      }
+
+      // 1. pagamentos (includes sessao_avulsa, matricula, plano, manual)
       const { data: pgtos } = await supabase
         .from("pagamentos")
-        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, bank_transaction_id")
+        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, bank_transaction_id, origem_tipo, agendamento_id, profissional_id")
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
 
@@ -252,49 +314,76 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         });
       }
 
+      // Fetch profissional names for sessions
+      const profissionalIds: string[] = [];
+      (pgtos || []).forEach((p: any) => {
+        if (p.profissional_id && (p.origem_tipo === "sessao_avulsa" || p.origem_tipo === "plano")) {
+          if (!profissionalIds.includes(p.profissional_id)) profissionalIds.push(p.profissional_id);
+        }
+      });
+      const profissionalMap: Record<string, string> = {};
+      if (profissionalIds.length > 0) {
+        const { data: profs } = await (supabase as any)
+          .from("profiles")
+          .select("id, nome")
+          .in("id", profissionalIds);
+        (profs || []).forEach((pr: any) => {
+          profissionalMap[pr.id] = pr.nome;
+        });
+      }
+
       (pgtos || []).forEach((p: any) => {
         const bt = p.bank_transaction_id ? bankMap[p.bank_transaction_id] : null;
+        const { status, dias_atraso } = resolveStatus(p.status ?? "pendente", p.data_vencimento);
         results.push({
           id: p.id,
           source_table: "pagamentos",
           data_pagamento: p.data_pagamento,
           data_vencimento: p.data_vencimento,
           descricao: p.descricao || "Pagamento",
-          status: p.status ?? "pendente",
+          status,
+          dias_atraso,
           forma_pagamento: p.forma_pagamento,
           valor: Number(p.valor),
-          origem_tipo: "manual",
+          origem_tipo: p.origem_tipo ?? "manual",
           observacoes: p.observacoes,
           bank_transaction_id: p.bank_transaction_id,
           bank_status: bt?.status ?? null,
           bank_data_conciliacao: bt?.data_conciliacao ?? null,
           created_at: p.created_at ?? "",
+          profissional: p.profissional_id ? (profissionalMap[p.profissional_id] ?? null) : null,
         });
       });
 
       // 2. pagamentos_mensalidade
       const { data: mensalidades } = await supabase
         .from("pagamentos_mensalidade")
-        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, mes_referencia, observacoes, created_at")
+        .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento_id, mes_referencia, observacoes, created_at")
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
 
       (mensalidades || []).forEach((m: any) => {
+        const mesRef = m.mes_referencia
+          ? format(new Date(m.mes_referencia), "MM/yyyy", { locale: ptBR })
+          : null;
+        const { status, dias_atraso } = resolveStatus(m.status ?? "aberto", m.data_vencimento ?? m.mes_referencia);
         results.push({
           id: m.id,
           source_table: "pagamentos_mensalidade",
           data_pagamento: m.data_pagamento,
           data_vencimento: m.data_vencimento ?? m.mes_referencia,
-          descricao: m.mes_referencia ? `Matrícula - ${m.mes_referencia}` : "Matrícula",
-          status: m.status ?? "aberto",
-          forma_pagamento: m.forma_pagamento ?? null,
+          descricao: mesRef ? `Matrícula - ${mesRef}` : "Matrícula",
+          status,
+          dias_atraso,
+          forma_pagamento: m.forma_pagamento_id ?? null,
           valor: Number(m.valor),
-          origem_tipo: "mensalidade",
+          origem_tipo: "matricula",
           observacoes: m.observacoes,
           bank_transaction_id: null,
           bank_status: null,
           bank_data_conciliacao: null,
           created_at: m.created_at ?? "",
+          mes_referencia: mesRef,
         });
       });
 
@@ -306,16 +395,18 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         .order("created_at", { ascending: false });
 
       (sessoes || []).forEach((s: any) => {
+        const { status, dias_atraso } = resolveStatus(s.status ?? "aberto", null);
         results.push({
           id: s.id,
           source_table: "pagamentos_sessoes",
           data_pagamento: s.data_pagamento,
           data_vencimento: null,
           descricao: s.observacoes || "Sessão Avulsa",
-          status: s.status ?? "aberto",
+          status,
+          dias_atraso,
           forma_pagamento: s.forma_pagamento_id ?? null,
           valor: Number(s.valor),
-          origem_tipo: "sessao",
+          origem_tipo: "sessao_avulsa",
           observacoes: s.observacoes,
           bank_transaction_id: null,
           bank_status: null,
@@ -324,9 +415,95 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
         });
       });
 
-      return results.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      // 4. Active matriculas with no payment record (nao_iniciado / atrasado)
+      const { data: matriculas } = await (supabase as any)
+        .from("matriculas")
+        .select("id, tipo, valor_mensal, data_inicio, data_vencimento, status, created_at")
+        .eq("paciente_id", pacienteId)
+        .eq("status", "ativa");
+
+      // Collect matricula IDs that already have payment entries in pagamentos
+      const paidMatriculaIds = new Set(
+        (pgtos || [])
+          .filter((p: any) => p.origem_tipo === "matricula")
+          .map((p: any) => p.id)
       );
+      // Also collect from pagamentos_mensalidade (matricula_id field)
+      const { data: pgMensalWithMatricula } = await (supabase as any)
+        .from("pagamentos_mensalidade")
+        .select("matricula_id")
+        .eq("paciente_id", pacienteId)
+        .not("matricula_id", "is", null);
+      const paidMatriculaRefIds = new Set(
+        (pgMensalWithMatricula || []).map((r: any) => r.matricula_id)
+      );
+
+      (matriculas || []).forEach((m: any) => {
+        if (paidMatriculaRefIds.has(m.id)) return; // already has payment records
+        const { status, dias_atraso } = resolveStatus("pendente", m.data_vencimento);
+        const effectiveStatus = status === "atrasado" ? "atrasado" : "nao_iniciado";
+        results.push({
+          id: m.id,
+          source_table: "matriculas",
+          data_pagamento: null,
+          data_vencimento: m.data_vencimento,
+          descricao: `Matrícula ${m.tipo ? `(${m.tipo})` : ""}`.trim(),
+          status: effectiveStatus,
+          dias_atraso,
+          forma_pagamento: null,
+          valor: Number(m.valor_mensal),
+          origem_tipo: "matricula",
+          observacoes: null,
+          bank_transaction_id: null,
+          bank_status: null,
+          bank_data_conciliacao: null,
+          created_at: m.created_at ?? "",
+        });
+      });
+
+      // 5. Active planos (session packages) with no payment record
+      const { data: planos } = await (supabase as any)
+        .from("planos")
+        .select("id, tipo_atendimento, total_sessoes, sessoes_utilizadas, valor, status, data_inicio, data_vencimento, created_at, profissional_id")
+        .eq("paciente_id", pacienteId)
+        .eq("status", "ativo");
+
+      const paidPlanoIds = new Set(
+        (pgtos || [])
+          .filter((p: any) => p.origem_tipo === "plano")
+          .map((p: any) => p.id)
+      );
+
+      (planos || []).forEach((pl: any) => {
+        if (paidPlanoIds.has(pl.id)) return; // already has payment records
+        const { status, dias_atraso } = resolveStatus("pendente", pl.data_vencimento);
+        const effectiveStatus = status === "atrasado" ? "atrasado" : "nao_iniciado";
+        const sessoesPendentes = (pl.total_sessoes || 0) - (pl.sessoes_utilizadas || 0);
+        results.push({
+          id: pl.id,
+          source_table: "planos",
+          data_pagamento: null,
+          data_vencimento: pl.data_vencimento,
+          descricao: `Plano ${pl.tipo_atendimento || ""} (${pl.sessoes_utilizadas}/${pl.total_sessoes} sessões)`.trim(),
+          status: effectiveStatus,
+          dias_atraso,
+          forma_pagamento: null,
+          valor: Number(pl.valor),
+          origem_tipo: "plano",
+          observacoes: sessoesPendentes > 0 ? `${sessoesPendentes} sessão(ões) restante(s)` : null,
+          bank_transaction_id: null,
+          bank_status: null,
+          bank_data_conciliacao: null,
+          created_at: pl.created_at ?? "",
+          profissional: pl.profissional_id ? (profissionalMap[pl.profissional_id] ?? null) : null,
+        });
+      });
+
+      return results.sort((a, b) => {
+        const dateA = a.data_pagamento || a.data_vencimento || a.created_at;
+        const dateB = b.data_pagamento || b.data_vencimento || b.created_at;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
     },
     staleTime: 1000 * 60 * 5, // 5 min
   });
@@ -399,10 +576,13 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
       .filter((p) => p.status === "reembolsado")
       .reduce((sum, p) => sum + p.valor, 0);
     const totalPendente = filtered
-      .filter((p) => p.status === "pendente" || p.status === "aberto" || p.status === "vencido")
+      .filter((p) => ["pendente", "aberto", "nao_iniciado"].includes(p.status))
+      .reduce((sum, p) => sum + p.valor, 0);
+    const totalAtrasado = filtered
+      .filter((p) => p.status === "atrasado" || p.status === "vencido")
       .reduce((sum, p) => sum + p.valor, 0);
     const saldo = totalDebito - totalCredito;
-    return { totalDebito, totalCredito, saldo, totalPendente };
+    return { totalDebito, totalCredito, saldo, totalPendente, totalAtrasado };
   }, [filtered]);
 
   const clearFilters = () => {
@@ -514,7 +694,9 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
                 <SelectItem value="todos">Todos status</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="vencido">Atrasado</SelectItem>
+                <SelectItem value="aberto">Em Aberto</SelectItem>
+                <SelectItem value="atrasado">Atrasado</SelectItem>
+                <SelectItem value="nao_iniciado">Não Pago</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
                 <SelectItem value="reembolsado">Reembolsado</SelectItem>
               </SelectContent>
@@ -526,9 +708,9 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos tipos</SelectItem>
-                <SelectItem value="mensalidade">Matrícula</SelectItem>
-                <SelectItem value="plano">Plano de Saúde</SelectItem>
-                <SelectItem value="sessao">Sessão Avulsa</SelectItem>
+                <SelectItem value="matricula">Matrícula</SelectItem>
+                <SelectItem value="plano">Plano / Pacote</SelectItem>
+                <SelectItem value="sessao_avulsa">Sessão Avulsa</SelectItem>
                 <SelectItem value="manual">Pagamento Manual</SelectItem>
               </SelectContent>
             </Select>
