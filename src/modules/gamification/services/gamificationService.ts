@@ -56,7 +56,7 @@ async function getPlayerAchievements(patientId: string) {
 
 async function getChallenges(clinicId: string) {
   const today = new Date().toISOString().split("T")[0];
-  const { data, error } = await (supabase.from("gamification_desafios") as any)
+  const { data, error } = await (supabase as any).from("gamification_desafios")
     .select("*")
     .eq("clinica_id", clinicId)
     .eq("ativo", true)
