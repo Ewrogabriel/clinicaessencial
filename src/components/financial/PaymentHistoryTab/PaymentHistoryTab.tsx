@@ -63,6 +63,7 @@ export function PaymentHistoryTab({ pacienteId, pacienteNome }: PaymentHistoryTa
           payment={selectedPayment}
           pacienteNome={pacienteNome}
           pacienteCpf={pacienteCpf}
+          pacienteWhatsapp={pacienteWhatsapp}
           onClose={() => setSelectedPayment(null)}
         />
       )}
