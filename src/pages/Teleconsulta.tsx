@@ -698,6 +698,19 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
     }
   };
 
+  const patientLink = session ? `${window.location.origin}/teleconsulta?room=${session.room_id}` : "";
+
+  const copyPatientLink = () => {
+    navigator.clipboard.writeText(patientLink);
+    toast.success("Link copiado!", { description: "Envie para o paciente." });
+  };
+
+  const sendWhatsAppLink = () => {
+    const nome = session?.paciente_nome?.split(" ")[0] || "Paciente";
+    const msg = `Olá, ${nome}! Segue o link da sua teleconsulta:\n\n📹 ${patientLink}\n\nBasta clicar no link no horário agendado.`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   // ─── Render ───
   if (loading) {
     return (
@@ -722,6 +735,11 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
             {errorState?.canCreateAvulsa && (
               <Button onClick={createAvulsaSession} className="gap-2">
                 <Video className="h-4 w-4" /> Criar Sessão Avulsa
+              </Button>
+            )}
+            {isProfOrAdmin && !errorState?.canCreateAvulsa && (
+              <Button onClick={createAvulsaSession} className="gap-2">
+                <Video className="h-4 w-4" /> Nova Sessão Avulsa
               </Button>
             )}
             <Button variant="outline" onClick={() => navigate(-1)}>
