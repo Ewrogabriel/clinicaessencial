@@ -16,6 +16,7 @@ import {
   Video, VideoOff, Phone, MessageSquare, Users,
   Send, Clock, CheckCircle2, ArrowLeft, DoorOpen,
   Mic, MicOff, FileText, Download, Sparkles, Loader2,
+  Copy, Share2, Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -310,10 +311,27 @@ export default function Teleconsulta() {
   useEffect(() => { transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [transcriptLines, interimText]);
 
   // ─── Speech Recognition ───
-  const startTranscription = () => {
+  const micPermissionDeniedRef = useRef(false);
+
+  const startTranscription = async () => {
+    if (micPermissionDeniedRef.current) {
+      toast.error("Permissão de microfone negada. Habilite nas configurações do navegador e recarregue a página.");
+      return;
+    }
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error("Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.");
+      return;
+    }
+
+    // Check microphone permission first
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+    } catch {
+      micPermissionDeniedRef.current = true;
+      toast.error("Permissão de microfone negada. Habilite nas configurações do navegador.");
       return;
     }
 
@@ -344,15 +362,17 @@ export default function Teleconsulta() {
     recognition.onerror = (event: any) => {
       if (event.error === "no-speech") return;
       console.error("Speech recognition error:", event.error);
-      if (event.error === "not-allowed") {
-        toast.error("Permissão de microfone negada para transcrição.");
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        micPermissionDeniedRef.current = true;
+        recognitionRef.current = null;
         setIsTranscribing(false);
+        toast.error("Permissão de microfone negada para transcrição.");
+        return;
       }
     };
 
     recognition.onend = () => {
-      // Auto-restart if still transcribing
-      if (recognitionRef.current && isTranscribing) {
+      if (recognitionRef.current && !micPermissionDeniedRef.current) {
         try { recognition.start(); } catch { /* ignore */ }
       }
     };
@@ -678,6 +698,19 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
     }
   };
 
+  const patientLink = session ? `${window.location.origin}/teleconsulta?room=${session.room_id}` : "";
+
+  const copyPatientLink = () => {
+    navigator.clipboard.writeText(patientLink);
+    toast.success("Link copiado!", { description: "Envie para o paciente." });
+  };
+
+  const sendWhatsAppLink = () => {
+    const nome = session?.paciente_nome?.split(" ")[0] || "Paciente";
+    const msg = `Olá, ${nome}! Segue o link da sua teleconsulta:\n\n📹 ${patientLink}\n\nBasta clicar no link no horário agendado.`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   // ─── Render ───
   if (loading) {
     return (
@@ -702,6 +735,11 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
             {errorState?.canCreateAvulsa && (
               <Button onClick={createAvulsaSession} className="gap-2">
                 <Video className="h-4 w-4" /> Criar Sessão Avulsa
+              </Button>
+            )}
+            {isProfOrAdmin && !errorState?.canCreateAvulsa && (
+              <Button onClick={createAvulsaSession} className="gap-2">
+                <Video className="h-4 w-4" /> Nova Sessão Avulsa
               </Button>
             )}
             <Button variant="outline" onClick={() => navigate(-1)}>
@@ -789,6 +827,28 @@ ${postConsultNotes ? `**Observações pós-consulta:**\n${postConsultNotes}` : "
                     <p className="text-muted-foreground">
                       Paciente: <strong>{session.paciente_nome || "Aguardando..."}</strong>
                     </p>
+
+                    {/* Link para enviar ao paciente */}
+                    <Card className="text-left border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <LinkIcon className="h-4 w-4 text-primary" />
+                          Link para o paciente
+                        </div>
+                        <div className="flex gap-2">
+                          <Input readOnly value={patientLink} className="text-xs font-mono" />
+                          <Button variant="outline" size="icon" onClick={copyPatientLink} title="Copiar link">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-green-700 border-green-200 hover:bg-green-50" onClick={sendWhatsAppLink}>
+                            <Share2 className="h-3.5 w-3.5" /> Enviar via WhatsApp
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     <Button onClick={admitPatient} size="lg" className="gap-2">
                       <DoorOpen className="h-5 w-5" /> Iniciar Teleconsulta
                     </Button>
