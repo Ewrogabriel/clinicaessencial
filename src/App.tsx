@@ -77,6 +77,7 @@ const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
 
 
 const Investimentos = lazy(() => import("./pages/Investimentos"));
+const ConciliacaoBancaria = lazy(() => import("./pages/finance/ConciliacaoBancaria"));
 
 const DashboardToggle = () => {
   const { isAdmin, isGestor, isProfissional, isSecretario, isMaster } = useAuth();
@@ -152,6 +153,7 @@ const App = () => (
                         <Route path="/matriculas" element={<Matriculas />} />
                         <Route path="/inventario" element={<Inventario />} />
                         <Route path="/financeiro" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><Financeiro /></RequireRole>} />
+                        <Route path="/financeiro/conciliacao" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConciliacaoBancaria /></RequireRole>} />
                         <Route path="/inteligencia-bi" element={<RequireRole roles={["admin", "gestor", "master"]}><InteligenciaBI /></RequireRole>} />
                         <Route path="/relatorios" element={<RequireRole roles={["admin", "gestor", "master"]}><Relatorios /></RequireRole>} />
                         <Route path="/modalidades" element={<Modalidades />} />

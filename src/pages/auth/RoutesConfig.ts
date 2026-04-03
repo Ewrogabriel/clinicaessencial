@@ -182,6 +182,11 @@ export const protectedRoutes: RouteDefinition[] = [
     roles: ["admin", "gestor", "master", "secretario"],
   },
   {
+    path: "/financeiro/conciliacao",
+    description: "Bank reconciliation interface with dashboard, filters, match/reject dialogs and import.",
+    roles: ["admin", "gestor", "master", "secretario"],
+  },
+  {
     path: "/inteligencia-bi",
     description: "Business-intelligence charts and KPIs.",
     roles: ["admin", "gestor", "master"],
