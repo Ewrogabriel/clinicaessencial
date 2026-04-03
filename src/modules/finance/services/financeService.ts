@@ -138,33 +138,14 @@ export const financeService = {
 
     /**
      * Mark a single pending payment as overdue ('vencido').
-     * Only 'pendente' payments with an expired data_vencimento are affected.
+     * Since 'vencido' is not a DB enum value, overdue status is computed
+     * at read time by comparing data_vencimento with today's date.
+     * This method is a no-op kept for backward compatibility.
      */
-    async markPaymentOverdue(id: string): Promise<void> {
-        try {
-            const today = new Date().toISOString().split("T")[0];
-            const { data: current, error: fetchError } = await supabase
-                .from("pagamentos")
-                .select("id, status, data_vencimento")
-                .eq("id", id)
-                .single();
-            if (fetchError) throw fetchError;
-            if (!current || current.status !== "pendente") {
-                throw new Error("Apenas pagamentos pendentes podem ser marcados como vencidos.");
-            }
-            if (!current.data_vencimento || current.data_vencimento > today) {
-                throw new Error("O pagamento ainda não está vencido.");
-            }
-
-            const { error } = await supabase
-                .from("pagamentos")
-                .update({ status: "vencido" } as any)
-                .eq("id", id);
-            if (error) throw error;
-        } catch (error) {
-            handleError(error, "Erro ao marcar pagamento como vencido.");
-            throw error;
-        }
+    async markPaymentOverdue(_id: string): Promise<void> {
+        // Overdue status is computed at read time, not stored in DB.
+        // The status_pagamento enum only supports: pendente, pago, cancelado.
+        return;
     },
 
     /**
