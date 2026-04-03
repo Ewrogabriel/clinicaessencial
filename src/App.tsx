@@ -26,7 +26,6 @@ const Pacientes = lazy(() => import("./pages/Pacientes"));
 const PacienteForm = lazy(() => import("./pages/PacienteForm"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const Matriculas = lazy(() => import("./pages/Matriculas"));
-// CheckInProfissional removed
 const MeusPlanos = lazy(() => import("./pages/MeusPlanos"));
 const HistoricoSessoes = lazy(() => import("./pages/HistoricoSessoes"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
