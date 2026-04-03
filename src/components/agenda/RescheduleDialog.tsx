@@ -208,8 +208,13 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       }
     },
     onSuccess: () => {
-      toast.success(isStaff ? `${tipoLabel, { description: isStaff
-          ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada" });
+      const msg = isStaff
+        ? `${tipoLabel} realizado com sucesso!`
+        : `Solicitação de ${tipoLabelLower} enviada!`;
+      const desc = isStaff
+        ? `A sessão foi ${tipoLabelLower === "remarcação" ? "remarcada" : "reagendada"} com sucesso.`
+        : "Aguarde a aprovação do profissional.";
+      toast.success(msg, { description: desc });
       queryClient.invalidateQueries({ queryKey: ["patient-agenda"] });
       queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       onSuccess();

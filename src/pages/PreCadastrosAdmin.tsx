@@ -241,7 +241,7 @@ const PreCadastrosAdmin = () => {
     setBulkActing(false);
     setSelectedIds(new Set());
     queryClient.invalidateQueries({ queryKey: ["pre-cadastros"] });
-    toast.success(`${successCount} pré-cadastro(s) rejeitado(s)${errorCount > 0 ? `);
+    toast.success(`${successCount} pré-cadastro(s) rejeitado(s)${errorCount > 0 ? `, ${errorCount} erro(s)` : ""}`);
   };
 
   // Collect unique batch IDs from pre-cadastros that have one
