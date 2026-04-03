@@ -64,6 +64,7 @@ const DocumentosClinicos = lazy(() => import("./pages/DocumentosClinicos"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Teleconsulta = lazy(() => import("./pages/Teleconsulta"));
 const TeleconsultaHub = lazy(() => import("./pages/TeleconsultaHub"));
+const TeleconsultaPublica = lazy(() => import("./pages/TeleconsultaPublica"));
 const PlanosExercicios = lazy(() => import("./pages/PlanosExercicios"));
 const Planos = lazy(() => import("./pages/Planos"));
 const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadeProfissional"));
@@ -114,6 +115,7 @@ const App = () => (
                       <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
                       <Route path="/verificar-documento/:id" element={<VerificarDocumento />} />
                       <Route path="/verificar-documento" element={<VerificarDocumento />} />
+                      <Route path="/sala/:roomId" element={<TeleconsultaPublica />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
                         <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
