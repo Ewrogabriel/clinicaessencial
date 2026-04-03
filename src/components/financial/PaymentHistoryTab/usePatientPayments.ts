@@ -35,23 +35,8 @@ export function usePatientPayments(pacienteId: string) {
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
 
-      // Gather bank transaction IDs from pagamentos
-      const bankIds: string[] = [];
-      (pgtos || []).forEach((p: any) => {
-        if (p.bank_transaction_id) bankIds.push(p.bank_transaction_id);
-      });
-
-      // Fetch bank transactions for reconciliation info
+      // Bank reconciliation map (no longer stored on pagamentos table)
       const bankMap: Record<string, { status: string; data_conciliacao: string | null }> = {};
-      if (bankIds.length > 0) {
-        const { data: bts } = await (supabase as any)
-          .from("bank_transactions")
-          .select("id, status, data_conciliacao")
-          .in("id", bankIds);
-        (bts || []).forEach((bt: any) => {
-          bankMap[bt.id] = { status: bt.status, data_conciliacao: bt.data_conciliacao };
-        });
-      }
 
       // Fetch profissional names for sessions
       const profissionalIds: string[] = [];
