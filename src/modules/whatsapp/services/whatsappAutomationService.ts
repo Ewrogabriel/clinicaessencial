@@ -197,7 +197,7 @@ export async function sendMonthlyReminder(clinicId: string): Promise<void> {
       pacientes (id, nome, telefone, whatsapp)
     `)
     .eq("clinic_id", clinicId)
-    .in("status", ["pendente", "vencido"])
+    .eq("status", "pendente")
     .lte("data_vencimento", cutoffIso) as any);
 
   if (settings.monthly_reminder_patient_ids && settings.monthly_reminder_patient_ids.length > 0) {
