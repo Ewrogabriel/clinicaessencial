@@ -79,7 +79,7 @@ export function usePatientPayments(pacienteId: string) {
           valor: Number(p.valor),
           origem_tipo: p.origem_tipo ?? "manual",
           observacoes: p.observacoes,
-          bank_transaction_id: p.bank_transaction_id,
+          bank_transaction_id: null,
           bank_status: bt?.status ?? null,
           bank_data_conciliacao: bt?.data_conciliacao ?? null,
           created_at: p.created_at ?? "",
