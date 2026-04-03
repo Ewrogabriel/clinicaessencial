@@ -17,7 +17,7 @@ import {
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   FileCheck, Handshake, Video,
   Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
-  Clock, CheckCheck, Banknote, type LucideIcon,
+  Clock, CheckCheck, Banknote, type LucideIcon, Settings,
 } from "lucide-react";
 
 export type AppRole = "admin" | "gestor" | "profissional" | "secretario" | "paciente" | "master";
@@ -97,44 +97,42 @@ export const adminGroups: MenuGroup[] = [
     labelKey: "group.finance",
     defaultCollapsed: false,
     items: [
-      { labelKey: "nav.finance",            url: "/financeiro",              icon: DollarSign },
-      { labelKey: "nav.reconciliation",     url: "/conciliacao-bancaria",    icon: Banknote },
-      { labelKey: "nav.commissions",        url: "/comissoes",               icon: Calculator },
-      { labelKey: "nav.investments",        url: "/investimentos",           icon: Activity },
+      { labelKey: "nav.finance",        url: "/financeiro",           icon: DollarSign },
+      { labelKey: "nav.reconciliation", url: "/conciliacao-bancaria", icon: Banknote },
+      { labelKey: "nav.commissions",    url: "/comissoes",            icon: Calculator },
+      { labelKey: "nav.investments",    url: "/investimentos",        icon: Activity },
     ],
   },
   {
     labelKey: "group.insights",
     defaultCollapsed: false,
     items: [
-      { labelKey: "nav.reports",        url: "/relatorios",     icon: BarChart3 },
-      { labelKey: "nav.bi_intelligence", url: "/inteligencia-bi", icon: BarChart3 },
-      { labelKey: "nav.automations",    url: "/automacoes",     icon: Send },
+      { labelKey: "nav.reports",     url: "/relatorios", icon: BarChart3 },
+      { labelKey: "nav.automations", url: "/automacoes",  icon: Send },
     ],
   },
   {
     labelKey: "group.clinic",
     defaultCollapsed: false,
     items: [
-      { labelKey: "nav.clinic_payment",    url: "/clinica",                   icon: Activity },
-      { labelKey: "nav.units",             url: "/gestao-clinicas",           icon: Building2 },
-      { labelKey: "nav.pre_registrations", url: "/pre-cadastros",             icon: UserCog },
-      { labelKey: "nav.requests",          url: "/solicitacoes-alteracao",    icon: FileCheck },
-      { labelKey: "nav.inventory",         url: "/inventario",                icon: Tag },
+      { labelKey: "nav.clinic_payment",    url: "/clinica",                icon: Settings },
+      { labelKey: "nav.units",             url: "/gestao-clinicas",        icon: Building2 },
+      { labelKey: "nav.pre_registrations", url: "/pre-cadastros",          icon: UserCog },
+      { labelKey: "nav.requests",          url: "/solicitacoes-alteracao", icon: FileCheck },
+      { labelKey: "nav.inventory",         url: "/inventario",             icon: Tag },
     ],
   },
   {
     labelKey: "group.settings",
     defaultCollapsed: true,
     items: [
-      { labelKey: "nav.partners",     url: "/convenios",          icon: Handshake },
-      { labelKey: "nav.contracts",    url: "/contratos",          icon: FileText },
-      { labelKey: "nav.marketing",    url: "/marketing",          icon: Target },
-      { labelKey: "nav.goals",        url: "/metas",              icon: Trophy },
-      { labelKey: "nav.gamification", url: "/gamificacao-admin",  icon: Trophy },
-      { labelKey: "nav.import",       url: "/importacao",         icon: Upload },
-      { labelKey: "nav.messages",     url: "/mensagens",          icon: MessageSquare },
-      { labelKey: "nav.notices",      url: "/avisos",             icon: Megaphone },
+      { labelKey: "nav.partners",     url: "/convenios",         icon: Handshake },
+      { labelKey: "nav.contracts",    url: "/contratos",         icon: FileText },
+      { labelKey: "nav.marketing",    url: "/marketing",         icon: Target },
+      { labelKey: "nav.gamification", url: "/gamificacao-admin", icon: Trophy },
+      { labelKey: "nav.import",       url: "/importacao",        icon: Upload },
+      { labelKey: "nav.messages",     url: "/mensagens",         icon: MessageSquare },
+      { labelKey: "nav.notices",      url: "/avisos",            icon: Megaphone },
     ],
   },
 ];
@@ -144,23 +142,28 @@ export const adminGroups: MenuGroup[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 export const profissionalGroups: MenuGroup[] = [
   {
+    labelKey: "group.home",
+    items: [
+      { labelKey: "nav.home",      url: "/dashboard",    icon: LayoutDashboard },
+      { labelKey: "nav.my_agenda", url: "/minha-agenda",  icon: Calendar },
+    ],
+  },
+  {
     labelKey: "group.clinical",
     items: [
-      { labelKey: "nav.home",            url: "/dashboard",           icon: LayoutDashboard },
-      { labelKey: "nav.agenda",          url: "/agenda",              icon: Calendar },
-      { labelKey: "nav.my_agenda",       url: "/minha-agenda",        icon: Calendar },
-      { labelKey: "nav.patients",        url: "/pacientes",           icon: Users },
-      { labelKey: "nav.records",         url: "/prontuarios",         icon: ClipboardList },
-      { labelKey: "nav.documents",       url: "/documentos-clinicos", icon: Stethoscope },
-      { labelKey: "nav.session_plans",   url: "/planos",              icon: ClipboardList },
-      { labelKey: "nav.exercise_plans",  url: "/planos-exercicios",   icon: Dumbbell },
-      { labelKey: "nav.teleconsulta",    url: "/teleconsulta-hub",    icon: Video },
+      { labelKey: "nav.patients",       url: "/pacientes",           icon: Users },
+      { labelKey: "nav.records",        url: "/prontuarios",         icon: ClipboardList },
+      { labelKey: "nav.documents",      url: "/documentos-clinicos", icon: Stethoscope },
+      { labelKey: "nav.session_plans",  url: "/planos",              icon: ClipboardList },
+      { labelKey: "nav.exercise_plans", url: "/planos-exercicios",   icon: Dumbbell },
+      { labelKey: "nav.teleconsulta",   url: "/teleconsulta-hub",    icon: Video },
     ],
   },
   {
     labelKey: "group.admin",
     defaultCollapsed: true,
     items: [
+      { labelKey: "nav.agenda",      url: "/agenda",     icon: Calendar },
       { labelKey: "nav.enrollments", url: "/matriculas", icon: Receipt },
       { labelKey: "nav.inventory",   url: "/inventario", icon: Tag },
     ],
@@ -175,10 +178,10 @@ export const profissionalGroups: MenuGroup[] = [
     labelKey: "group.settings",
     defaultCollapsed: true,
     items: [
-      { labelKey: "nav.contracts",   url: "/contratos",             icon: FileText },
-      { labelKey: "nav.messages",    url: "/mensagens",             icon: MessageSquare },
-      { labelKey: "nav.notices",     url: "/avisos",                icon: Megaphone },
-      { labelKey: "nav.my_profile",  url: "/perfil-profissional",   icon: User },
+      { labelKey: "nav.contracts",  url: "/contratos",           icon: FileText },
+      { labelKey: "nav.messages",   url: "/mensagens",           icon: MessageSquare },
+      { labelKey: "nav.notices",    url: "/avisos",              icon: Megaphone },
+      { labelKey: "nav.my_profile", url: "/perfil-profissional", icon: User },
     ],
   },
 ];
@@ -188,19 +191,30 @@ export const profissionalGroups: MenuGroup[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 export const patientGroups: MenuGroup[] = [
   {
+    labelKey: "group.home",
+    items: [
+      { labelKey: "nav.home",       url: "/dashboard",       icon: LayoutDashboard },
+      { labelKey: "nav.my_agenda",  url: "/minha-agenda",    icon: Calendar },
+    ],
+  },
+  {
     labelKey: "group.my_portal",
     items: [
-      { labelKey: "nav.home",            url: "/dashboard",       icon: LayoutDashboard },
-      { labelKey: "nav.my_agenda",       url: "/minha-agenda",    icon: Calendar },
-      { labelKey: "nav.my_plans",        url: "/meus-planos",     icon: ClipboardList },
-      { labelKey: "nav.my_history",      url: "/meu-historico",   icon: ClipboardList },
-      { labelKey: "nav.my_payments",     url: "/meus-pagamentos", icon: CreditCard },
-      { labelKey: "nav.exercise_plans",  url: "/planos-exercicios", icon: Dumbbell },
-      { labelKey: "nav.teleconsulta",    url: "/teleconsulta-hub",  icon: Video },
-      { labelKey: "nav.partners",        url: "/convenios",       icon: Handshake },
-      { labelKey: "nav.messages",        url: "/mensagens",       icon: MessageSquare },
-      { labelKey: "nav.my_contract",     url: "/contratos",       icon: FileText },
-      { labelKey: "nav.my_profile",      url: "/meu-perfil",      icon: Users },
+      { labelKey: "nav.my_plans",       url: "/meus-planos",      icon: ClipboardList },
+      { labelKey: "nav.my_history",     url: "/meu-historico",    icon: ClipboardList },
+      { labelKey: "nav.my_payments",    url: "/meus-pagamentos",  icon: CreditCard },
+      { labelKey: "nav.exercise_plans", url: "/planos-exercicios", icon: Dumbbell },
+      { labelKey: "nav.teleconsulta",   url: "/teleconsulta-hub",  icon: Video },
+    ],
+  },
+  {
+    labelKey: "group.settings",
+    defaultCollapsed: true,
+    items: [
+      { labelKey: "nav.partners",     url: "/convenios",  icon: Handshake },
+      { labelKey: "nav.messages",     url: "/mensagens",  icon: MessageSquare },
+      { labelKey: "nav.my_contract",  url: "/contratos",  icon: FileText },
+      { labelKey: "nav.my_profile",   url: "/meu-perfil", icon: User },
     ],
   },
 ];
