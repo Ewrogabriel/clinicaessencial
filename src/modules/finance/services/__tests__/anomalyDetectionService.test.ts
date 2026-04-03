@@ -21,6 +21,9 @@ function makeTx(overrides: Partial<BankTransactionRow> = {}): BankTransactionRow
     import_batch_id: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    investimento_id: null,
+    movement_type: null,
+    is_investment: null,
     ...overrides,
   };
 }
