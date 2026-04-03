@@ -82,11 +82,11 @@ export async function getAutomationSettings(
   clinicId: string
 ): Promise<WhatsAppAutomationSettings | null> {
   try {
-    const { data, error } = await (supabase
+    const { data, error } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .select("*")
       .eq("clinic_id", clinicId)
-      .maybeSingle() as any);
+      .maybeSingle();
 
     if (error) throw error;
     return data as WhatsAppAutomationSettings | null;
