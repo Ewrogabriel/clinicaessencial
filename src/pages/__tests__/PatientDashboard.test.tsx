@@ -38,10 +38,6 @@ vi.mock("@/modules/shared/hooks/useI18n", () => ({
   }),
 }));
 
-vi.mock("@/modules/shared/hooks/use-toast", () => ({
-  toast: vi.fn(),
-  useToast: () => ({ toast: vi.fn() }),
-}));
 
 vi.mock("sonner", () => ({
   toast: {

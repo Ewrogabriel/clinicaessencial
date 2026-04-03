@@ -34,9 +34,6 @@ vi.mock("@/modules/shared/hooks/useI18n", () => ({
   }),
 }));
 
-vi.mock("@/modules/shared/hooks/use-toast", () => ({
-  toast: vi.fn(),
-}));
 
 const renderLogin = () =>
   render(
