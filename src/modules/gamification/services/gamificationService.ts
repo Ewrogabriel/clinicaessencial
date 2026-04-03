@@ -46,7 +46,7 @@ async function getLeaderboard(clinicId: string, period: LeaderboardPeriod) {
 }
 
 async function getPlayerAchievements(patientId: string) {
-  const { data, error } = await (supabase.from("gamification_conquistas") as any)
+  const { data, error } = await (supabase as any).from("gamification_conquistas")
     .select("*")
     .eq("paciente_id", patientId)
     .order("created_at", { ascending: false });
