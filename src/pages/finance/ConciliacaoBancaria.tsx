@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,12 @@ import {
   Plus,
   Link,
   Banknote,
+  Scissors,
+  RotateCcw,
+  Download,
+  Settings,
+  RefreshCw,
+  History,
 } from "lucide-react";
 import { useBankTransactions } from "@/modules/finance/hooks/useBankTransactions";
 import { useMatching } from "@/modules/finance/hooks/useMatching";
@@ -57,6 +63,20 @@ import type { PossibleMatch } from "@/modules/finance/services/matchingService";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
+// Enterprise features
+import { AnomalyBadge } from "@/components/financial/AnomalyBadge";
+import { SplitPaymentModal } from "@/components/financial/SplitPaymentModal";
+import { AdjustmentDialog } from "@/components/financial/AdjustmentDialog";
+import { ReconciliationDashboard } from "@/components/financial/ReconciliationDashboard";
+import { AdvancedFiltersPanel, AdvancedFilters, DEFAULT_ADVANCED_FILTERS } from "@/components/financial/AdvancedFiltersPanel";
+import { AuditTrail } from "@/components/financial/AuditTrail";
+import { RefundDialog } from "@/components/financial/RefundDialog";
+import { ExportModal } from "@/components/financial/ExportModal";
+import { AutoReconcileSettings } from "@/components/financial/AutoReconcileSettings";
+import { detectLocalAnomalies } from "@/modules/finance/services/anomalyDetectionService";
+import type { Anomaly } from "@/modules/finance/services/anomalyDetectionService";
+import { autoReconciliationService } from "@/modules/finance/services/autoReconciliationService";
+import { auditService } from "@/modules/finance/services/auditService";
 
 const EXPENSE_CATEGORIES = [
   "aluguel", "luz", "agua", "internet", "limpeza",
@@ -93,15 +113,8 @@ export default function ConciliacaoBancaria() {
   const { accounts } = useBankAccounts();
   const { autoMatch, manualMatch, isAutoMatching } = useMatching();
 
-  // ── Filtros ──────────────────────────────────────────────────────────────
-  const [filters, setFilters] = useState({
-    tipo: "todos",
-    status: "todos",
-    search: "",
-    dataInicio: "",
-    dataFim: "",
-    conta: "todos",
-  });
+  // ── Filtros avançados ─────────────────────────────────────────────────────
+  const [filters, setFilters] = useState<AdvancedFilters>(DEFAULT_ADVANCED_FILTERS);
 
   // ── Seleção / diálogos ───────────────────────────────────────────────────
   const [selectedTransaction, setSelectedTransaction] =
@@ -152,6 +165,17 @@ export default function ConciliacaoBancaria() {
   // Nova Conta Bancária
   const [showBankAccountDialog, setShowBankAccountDialog] = useState(false);
 
+  // ── Enterprise features state ─────────────────────────────────────────────
+  const [anomalies, setAnomalies] = useState<Record<string, Anomaly[]>>({});
+  const [showSplitModal, setShowSplitModal] = useState(false);
+  const [showAdjustmentDialog, setShowAdjustmentDialog] = useState(false);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showAutoReconcileSettings, setShowAutoReconcileSettings] = useState(false);
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
+  const [isRunningAutoReconcile, setIsRunningAutoReconcile] = useState(false);
+  const [autoStats, setAutoStats] = useState<{ autoReconciled: number; suggested: number; totalProcessed: number } | undefined>();
+
   // ── Derivados ────────────────────────────────────────────────────────────
   const unreconciledTransactions = useMemo(
     () =>
@@ -162,7 +186,23 @@ export default function ConciliacaoBancaria() {
     [transactions]
   );
 
+  // Detect anomalies whenever transactions change
+  useEffect(() => {
+    if (transactions.length > 0) {
+      const detected = detectLocalAnomalies(transactions);
+      setAnomalies(detected);
+    }
+  }, [transactions]);
+
+  // Load auto-stats on mount
+  useEffect(() => {
+    if (activeClinicId) {
+      autoReconciliationService.getTodayStats(activeClinicId).then(setAutoStats);
+    }
+  }, [activeClinicId]);
+
   const filtered = useMemo(() => {
+    const now = new Date();
     return transactions.filter((tx: BankTransactionRow) => {
       if (filters.tipo !== "todos" && tx.tipo !== filters.tipo) return false;
       if (filters.status !== "todos") {
@@ -189,9 +229,20 @@ export default function ConciliacaoBancaria() {
         return false;
       if (filters.conta !== "todos" && tx.bank_account_id !== filters.conta)
         return false;
+      // Advanced: filter by anomaly type
+      if (filters.anomalyType !== "todos") {
+        const txAnomalies = anomalies[tx.id] ?? [];
+        if (!txAnomalies.some((a) => a.anomaly_type === filters.anomalyType)) return false;
+      }
+      // Advanced: filter by days unreconciled
+      if (filters.daysUnreconciled !== "todos" && (tx.status !== "conciliado" && tx.status !== "rejeitado")) {
+        const days = Math.floor((now.getTime() - new Date(tx.data_transacao).getTime()) / (1000 * 60 * 60 * 24));
+        const minDays = parseInt(filters.daysUnreconciled);
+        if (days < minDays) return false;
+      }
       return true;
     });
-  }, [transactions, filters]);
+  }, [transactions, filters, anomalies]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -204,6 +255,45 @@ export default function ConciliacaoBancaria() {
       });
     } catch {
       toast({ title: "Erro ao fazer auto-matching", variant: "destructive" });
+    }
+  };
+
+  const handleRunAutoReconcile = async () => {
+    if (!activeClinicId) return;
+    try {
+      setIsRunningAutoReconcile(true);
+      const result = await autoReconciliationService.runAutoReconcile(activeClinicId);
+      setAutoStats((prev) => ({
+        autoReconciled: (prev?.autoReconciled ?? 0) + result.reconciled,
+        suggested: (prev?.suggested ?? 0) + result.suggested,
+        totalProcessed: (prev?.totalProcessed ?? 0) + result.reconciled + result.suggested + result.skipped,
+      }));
+      toast({
+        title: "✓ Auto-reconciliação concluída",
+        description: `${result.reconciled} conciliadas, ${result.suggested} sugeridas`,
+      });
+    } catch {
+      toast({ title: "Erro na auto-reconciliação", variant: "destructive" });
+    } finally {
+      setIsRunningAutoReconcile(false);
+    }
+  };
+
+  const handleUndoReconcile = async (tx: BankTransactionRow) => {
+    try {
+      await matchingService.undoMatch(tx.id);
+      await auditService.log({
+        clinic_id: activeClinicId ?? "",
+        action: "undo",
+        resource_type: "transaction",
+        resource_id: tx.id,
+        before_state: { status: tx.status, pagamento_id: tx.pagamento_id },
+        after_state: { status: "pendente", pagamento_id: null },
+        reason: "Conciliação desfeita manualmente",
+      });
+      toast({ title: "✓ Conciliação desfeita" });
+    } catch {
+      toast({ title: "Erro ao desfazer conciliação", variant: "destructive" });
     }
   };
 
@@ -412,6 +502,15 @@ export default function ConciliacaoBancaria() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button
+            onClick={handleRunAutoReconcile}
+            disabled={isRunningAutoReconcile}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRunningAutoReconcile ? "animate-spin" : ""}`} />
+            {isRunningAutoReconcile ? "Reconciliando..." : "Auto-reconciliar"}
+          </Button>
+          <Button
             onClick={handleAutoMatch}
             disabled={isAutoMatching || unreconciledTransactions.length === 0}
             className="gap-2"
@@ -428,6 +527,30 @@ export default function ConciliacaoBancaria() {
             Importar
           </Button>
           <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowExportModal(true)}
+          >
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowAuditTrail(true)}
+          >
+            <History className="h-4 w-4" />
+            Auditoria
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowAutoReconcileSettings(true)}
+          >
+            <Settings className="h-4 w-4" />
+            Configurações
+          </Button>
+          <Button
             variant="default"
             className="gap-2 bg-emerald-600 hover:bg-emerald-700"
             onClick={() => setShowBankAccountDialog(true)}
@@ -438,135 +561,21 @@ export default function ConciliacaoBancaria() {
         </div>
       </div>
 
-      {/* Resumo KPIs */}
-      {summary && (
-        <div className="grid gap-4 md:grid-cols-5">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-3xl font-bold mt-2">{summary.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">transações</p>
-            </CardContent>
-          </Card>
+      {/* Dashboard KPIs (Enterprise) */}
+      <ReconciliationDashboard
+        transactions={transactions}
+        anomalies={anomalies}
+        autoStats={autoStats}
+      />
 
-          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-transparent">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-green-700">Conciliadas</p>
-              <p className="text-3xl font-bold text-green-700 mt-2">
-                {summary.conciliados}
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                {summary.total > 0
-                  ? ((summary.conciliados / summary.total) * 100).toFixed(0)
-                  : 0}
-                %
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-yellow-200 bg-gradient-to-br from-yellow-50 to-transparent">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-yellow-700">A Conciliar</p>
-              <p className="text-3xl font-bold text-yellow-700 mt-2">
-                {summary.pendentes}
-              </p>
-              <p className="text-xs text-yellow-600 mt-1">pendentes</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-100 bg-gradient-to-br from-green-50 to-transparent">
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-green-700">Entradas</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">
-                {formatBRL(summary.totalCreditos)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Saídas</p>
-              <p className="text-2xl font-bold text-red-600 mt-2">
-                {formatBRL(summary.totalDebitos)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Filtros */}
+      {/* Filtros Avançados */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium">Filtros</h3>
-          </div>
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <Input
-              placeholder="Pesquisar..."
-              value={filters.search}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, search: e.target.value }))
-              }
-            />
-            <Select
-              value={filters.tipo}
-              onValueChange={(v) => setFilters((p) => ({ ...p, tipo: v }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os tipos</SelectItem>
-                <SelectItem value="credito">Crédito</SelectItem>
-                <SelectItem value="debito">Débito</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={filters.status}
-              onValueChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                <SelectItem value="pendente">Pendentes</SelectItem>
-                <SelectItem value="conciliado">Conciliadas</SelectItem>
-                <SelectItem value="rejeitado">Rejeitadas</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={filters.dataInicio}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, dataInicio: e.target.value }))
-              }
-            />
-            <Input
-              type="date"
-              value={filters.dataFim}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, dataFim: e.target.value }))
-              }
-            />
-            <Select
-              value={filters.conta}
-              onValueChange={(v) => setFilters((p) => ({ ...p, conta: v }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Todas as contas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas as contas</SelectItem>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.apelido || a.banco_nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <AdvancedFiltersPanel
+            filters={filters}
+            onChange={setFilters}
+            accounts={accounts}
+          />
         </CardContent>
       </Card>
 
@@ -625,13 +634,16 @@ export default function ConciliacaoBancaria() {
 
                       {/* Descrição e Data */}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm">{tx.descricao}</p>
                           {hasSuggestions && (
                             <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                               <Lightbulb className="h-3 w-3" />
                               {txSuggestions.length} {txSuggestions.length === 1 ? "sugestão" : "sugestões"}
                             </span>
+                          )}
+                          {anomalies[tx.id] && anomalies[tx.id].length > 0 && (
+                            <AnomalyBadge anomalies={anomalies[tx.id]} />
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
@@ -696,7 +708,7 @@ export default function ConciliacaoBancaria() {
                         </Button>
 
                         {/* Conciliar — available for ALL statuses */}
-                        <Button
+                         <Button
                           size="sm"
                           variant={isConciliated ? "outline" : "default"}
                           onClick={() => handleOpenMatchDialog(tx)}
@@ -711,6 +723,46 @@ export default function ConciliacaoBancaria() {
                           <Link className="h-3.5 w-3.5" />
                           {reconcileLabel}
                         </Button>
+
+                        {/* Split */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setSelectedTransaction(tx); setShowSplitModal(true); }}
+                          title="Dividir pagamento"
+                          className="h-8 gap-1.5 px-2.5 text-xs border-purple-200 text-purple-700 hover:bg-purple-50"
+                        >
+                          <Scissors className="h-3.5 w-3.5" />
+                          Split
+                        </Button>
+
+                        {/* Refund */}
+                        {tx.tipo === "credito" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setSelectedTransaction(tx); setShowRefundDialog(true); }}
+                            title="Registrar reembolso"
+                            className="h-8 gap-1.5 px-2.5 text-xs border-orange-200 text-orange-600 hover:bg-orange-50"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Reembolso
+                          </Button>
+                        )}
+
+                        {/* Undo reconciliation */}
+                        {isConciliated && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUndoReconcile(tx)}
+                            title="Desfazer conciliação"
+                            className="h-8 gap-1.5 px-2.5 text-xs border-gray-200 text-gray-600 hover:bg-gray-50"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Desfazer
+                          </Button>
+                        )}
 
                         {/* Rejeitar — only for non-rejected transactions */}
                         {!isRejected && (
@@ -1178,6 +1230,75 @@ export default function ConciliacaoBancaria() {
         open={showBankAccountDialog}
         onOpenChange={setShowBankAccountDialog}
       />
+
+      {/* ── Enterprise: Split Payment Modal ───────────────────────────────── */}
+      <SplitPaymentModal
+        open={showSplitModal}
+        transaction={selectedTransaction}
+        clinicId={activeClinicId ?? ""}
+        onClose={() => setShowSplitModal(false)}
+        onSaved={() => {
+          setShowSplitModal(false);
+          setSelectedTransaction(null);
+        }}
+      />
+
+      {/* ── Enterprise: Adjustment Dialog ─────────────────────────────────── */}
+      <AdjustmentDialog
+        open={showAdjustmentDialog}
+        clinicId={activeClinicId ?? ""}
+        transactionId={selectedTransaction?.id}
+        onClose={() => setShowAdjustmentDialog(false)}
+        onSaved={() => {
+          setShowAdjustmentDialog(false);
+        }}
+      />
+
+      {/* ── Enterprise: Refund Dialog ─────────────────────────────────────── */}
+      <RefundDialog
+        open={showRefundDialog}
+        transaction={selectedTransaction}
+        clinicId={activeClinicId ?? ""}
+        onClose={() => setShowRefundDialog(false)}
+        onSaved={() => {
+          setShowRefundDialog(false);
+          setSelectedTransaction(null);
+        }}
+      />
+
+      {/* ── Enterprise: Export Modal ───────────────────────────────────────── */}
+      <ExportModal
+        open={showExportModal}
+        clinicId={activeClinicId ?? ""}
+        onClose={() => setShowExportModal(false)}
+      />
+
+      {/* ── Enterprise: Auto-reconcile Settings ───────────────────────────── */}
+      <AutoReconcileSettings
+        open={showAutoReconcileSettings}
+        clinicId={activeClinicId ?? ""}
+        onClose={() => setShowAutoReconcileSettings(false)}
+      />
+
+      {/* ── Enterprise: Audit Trail Dialog ────────────────────────────────── */}
+      <Dialog open={showAuditTrail} onOpenChange={setShowAuditTrail}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Histórico de Auditoria
+            </DialogTitle>
+            <DialogDescription>
+              Registro imutável de todas as ações realizadas
+            </DialogDescription>
+          </DialogHeader>
+          <AuditTrail
+            clinicId={activeClinicId ?? ""}
+            resourceId={selectedTransaction?.id}
+            limit={50}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
