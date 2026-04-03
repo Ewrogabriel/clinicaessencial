@@ -185,7 +185,7 @@ export const FinanceDashboard = () => {
       let q = supabase
         .from("pagamentos")
         .select("valor, status, data_vencimento")
-        .eq("status", "pendente" as any)
+        .eq("status", "pendente")
         .gte("data_vencimento", todayStr)
         .lte("data_vencimento", in30DaysStr);
       if (activeClinicId) q = q.eq("clinic_id", activeClinicId);

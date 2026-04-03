@@ -61,7 +61,7 @@ export function usePatientPayments(pacienteId: string) {
       }
 
       (pgtos || []).forEach((p: any) => {
-        const bt = p.bank_transaction_id ? bankMap[p.bank_transaction_id] : null;
+        const bt = null;
         const { status, dias_atraso } = resolveStatus(
           p.status ?? "pendente",
           p.data_vencimento,
