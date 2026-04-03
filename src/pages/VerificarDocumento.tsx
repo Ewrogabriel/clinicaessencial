@@ -297,7 +297,7 @@ const VerificarDocumento = () => {
                 </div>
                 {(profissional?.registro_conselho || profissional?.registro_profissional) && (
                   <p className="text-sm text-blue-700 mt-0.5 font-medium">
-                    {profissional.conselho_profissional ? `\${profissional.conselho_profissional}: ` : "Registro: "}
+                    {profissional.conselho_profissional ? `${profissional.conselho_profissional}: ` : "Registro: "}
                     {profissional.registro_conselho || profissional.registro_profissional}
                   </p>
                 )}
