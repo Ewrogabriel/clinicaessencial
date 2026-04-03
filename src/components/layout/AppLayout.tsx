@@ -21,7 +21,6 @@ export function AppLayout() {
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <LanguageSwitcher />
               <ThemeToggle />
-              <NotificationCenter />
               <NotificationBell />
             </div>
           </header>
