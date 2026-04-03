@@ -46,8 +46,9 @@ const Relatorios = () => {
   });
 
   const { data: profissionais = [] } = useQuery({
-    queryKey: ["rel-profissionais"],
-    queryFn: () => reportService.getProfissionais(),
+    queryKey: ["rel-profissionais", activeClinicId],
+    queryFn: () => reportService.getProfissionais(activeClinicId),
+    enabled: !!activeClinicId,
   });
 
   // Advanced report: by patient (using RPC)
