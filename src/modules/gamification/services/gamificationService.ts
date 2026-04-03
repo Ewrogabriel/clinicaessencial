@@ -68,7 +68,7 @@ async function getChallenges(clinicId: string) {
 }
 
 async function getRewardsCatalog(clinicId: string) {
-  const { data, error } = await (supabase.from("gamification_recompensas") as any)
+  const { data, error } = await (supabase as any).from("gamification_recompensas")
     .select("*")
     .eq("clinica_id", clinicId)
     .eq("ativo", true)
