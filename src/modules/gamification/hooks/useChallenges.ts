@@ -55,7 +55,7 @@ export function useCompleteChallenge() {
 
   return useMutation({
     mutationFn: async (challengeId: string) => {
-      const { data, error } = await (supabase.from("gamification_progresso_desafios") as any)
+      const { data, error } = await (supabase as any).from("gamification_progresso_desafios")
         .upsert([{
           desafio_id: challengeId,
           paciente_id: patientId,

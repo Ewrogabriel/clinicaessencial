@@ -104,14 +104,14 @@ export async function updateAutomationSettings(
   updates: Partial<Omit<WhatsAppAutomationSettings, "id" | "clinic_id" | "created_at" | "updated_at">>
 ): Promise<WhatsAppAutomationSettings | null> {
   try {
-    const { data, error } = await (supabase
+    const { data, error } = await (supabase as any)
       .from("whatsapp_automation_settings")
       .upsert(
         { clinic_id: clinicId, ...updates, updated_at: new Date().toISOString() },
         { onConflict: "clinic_id" }
       )
       .select("*")
-      .single() as any);
+      .single();
 
     if (error) throw error;
     return data as WhatsAppAutomationSettings;

@@ -87,7 +87,7 @@ async function redeemReward(patientId: string, rewardId: string, clinicId: strin
 }
 
 async function getPlayerStats(patientId: string, clinicId: string) {
-  const { data, error } = await (supabase.from("gamification_pontos") as any)
+  const { data, error } = await (supabase as any).from("gamification_pontos")
     .select("pontos")
     .eq("paciente_id", patientId)
     .eq("clinica_id", clinicId);

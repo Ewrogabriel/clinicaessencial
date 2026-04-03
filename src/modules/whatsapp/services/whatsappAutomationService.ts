@@ -49,7 +49,7 @@ async function logMessage(params: {
       message_content: params.content,
       phone_number: params.phoneNumber,
       error_message: params.errorMessage ?? null,
-    }) as any);
+    });
   } catch (_err) {
     // Logging failures must never propagate
   }
