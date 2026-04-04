@@ -107,7 +107,6 @@ const Profissionais = () => {
   const [loading, setLoading] = useState(false);
 
   const { profissionais: users, isLoading } = useProfissionais();
-  const { profissionais: users, isLoading } = useProfissionais();
 
 
   const filtered = useMemo(() => users.filter(u => {
