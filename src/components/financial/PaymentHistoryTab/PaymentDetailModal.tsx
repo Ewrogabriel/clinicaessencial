@@ -213,13 +213,10 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   className="gap-1.5"
                   disabled={sendingReceipt}
                   onClick={async () => {
-                    const whatsappWindow = window.open("", "_blank", "noopener,noreferrer");
-
                     setSendingReceipt(true);
                     try {
                       const phoneNumber = pacienteTelefone.replace(/\D/g, "");
                       if (!phoneNumber) {
-                        whatsappWindow?.close();
                         toast.error("Paciente não possui telefone cadastrado.");
                         return;
                       }
@@ -254,17 +251,11 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                         `Se precisar de algo, estou à disposição.`;
 
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`;
-
-                      if (whatsappWindow) {
-                        whatsappWindow.location.href = whatsappUrl;
-                      } else {
-                        window.location.href = whatsappUrl;
-                      }
+                      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensagem)}`;
 
                       toast.success("Redirecionando para o WhatsApp...");
+                      window.location.assign(whatsappUrl);
                     } catch (err: any) {
-                      whatsappWindow?.close();
                       toast.error(err.message || "Erro ao enviar recibo.");
                     } finally {
                       setSendingReceipt(false);
