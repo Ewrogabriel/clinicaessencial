@@ -71,6 +71,7 @@ const DisponibilidadeProfissional = lazy(() => import("./pages/DisponibilidadePr
 const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
 const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
+const PublicReceipt = lazy(() => import("./pages/PublicReceipt"));
 
 
 const Investimentos = lazy(() => import("./pages/Investimentos"));
@@ -116,6 +117,7 @@ const App = () => (
                       <Route path="/confirmar-agendamento/:id" element={<ConfirmarAgendamento />} />
                       <Route path="/verificar-documento/:id" element={<VerificarDocumento />} />
                       <Route path="/verificar-documento" element={<VerificarDocumento />} />
+                      <Route path="/recibo/:id" element={<PublicReceipt />} />
                       <Route path="/sala/:roomId" element={<TeleconsultaPublica />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={

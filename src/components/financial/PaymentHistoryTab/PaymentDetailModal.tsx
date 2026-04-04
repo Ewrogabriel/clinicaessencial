@@ -16,19 +16,10 @@ import {
 } from "@/modules/finance/utils/paymentHelpers";
 import { ReconciliationBadge } from "./ReconciliationBadge";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
-import { uploadReceiptToStorage } from "@/lib/uploadReceiptToStorage";
 import { toast } from "sonner";
 import { useState } from "react";
 import type { PaymentEntry } from "./types";
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
-  return await Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      setTimeout(() => reject(new Error(errorMessage)), ms);
-    }),
-  ]);
-}
 
 interface PaymentDetailModalProps {
   payment: PaymentEntry;
@@ -235,46 +226,26 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                       return;
                     }
 
-                    const whatsappWindow = window.open("", "_blank");
-                    if (whatsappWindow) {
-                      whatsappWindow.document.write("Preparando recibo...");
-                    }
-
                     setSendingReceipt(true);
 
                     try {
-                      const { numero, pdf } = await withTimeout(
-                        buildReceiptPdf(),
-                        15000,
-                        "O recibo demorou demais para ser gerado."
-                      );
-                      const receiptUrl = await withTimeout(
-                        uploadReceiptToStorage(pdf.output("blob"), numero),
-                        15000,
-                        "Não foi possível preparar o link do recibo."
-                      );
+                      // No need to generate PDF here anymore! 
+                      // We just send a link to the public receipt page.
+                      const receiptUrl = `${window.location.origin}/recibo/${payment.id}?source=${payment.source_table || "pagamentos"}`;
+                      
                       const firstName = pacienteNome.trim().split(/\s+/)[0] || pacienteNome;
                       const mensagem =
                         `Olá ${firstName}! 😊\n\n` +
                         `Segue o link para acessar seu recibo:\n\n` +
                         `${receiptUrl}\n\n` +
-                        `Se precisar de algo, estou à disposição.`;
+                        `Ao abrir o link, seu recibo será gerado automaticamente.`;
 
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`;
+                      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensagem)}`;
 
-                      if (whatsappWindow && !whatsappWindow.closed) {
-                        whatsappWindow.location.replace(whatsappUrl);
-                      } else {
-                        window.location.href = whatsappUrl;
-                      }
-
-                      toast.success("WhatsApp aberto com sucesso!");
+                      window.open(whatsappUrl, "_blank");
+                      toast.success("WhatsApp aberto!");
                     } catch (err: any) {
-                      if (whatsappWindow && !whatsappWindow.closed) {
-                        whatsappWindow.close();
-                      }
-
                       toast.error(err.message || "Erro ao enviar recibo.");
                     } finally {
                       setSendingReceipt(false);
