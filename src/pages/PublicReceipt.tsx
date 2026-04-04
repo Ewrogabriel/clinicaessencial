@@ -1,184 +1,175 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { generateReceiptPDF } from "@/lib/generateReceiptPDF";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, Download, CheckCircle2, AlertCircle } from "lucide-react";
-import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
-import { formatBRL } from "@/modules/shared/utils/currencyFormatters";
-import { dateFormats } from "@/modules/shared/utils/dateFormatters";
+import { FileDown, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const PublicReceipt = () => {
-  const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const source = searchParams.get("source") || "pagamentos";
-  
-  const [loading, setLoading] = useState(true);
-  const [payment, setPayment] = useState<any>(null);
-  const [paciente, setPaciente] = useState<any>(null);
-  const [clinic, setClinic] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+    const { id } = useParams();
+    const [searchParams] = useSearchParams();
+    const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
+    const [payment, setPayment] = useState<any>(null);
+    const [paciente, setPaciente] = useState<any>(null);
+    const [clinic, setClinic] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchReceiptData(id);
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!id) return;
+            setLoading(true);
+            try {
+                // Fetch payment
+                const { data: payData, error: payErr } = await supabase
+                    .from("pagamentos")
+                    .select("*")
+                    .eq("id", id)
+                    .single();
+
+                if (payErr) throw new Error("Pagamento não encontrado.");
+                setPayment(payData);
+
+                // Fetch paciente
+                if (payData && (payData as any).paciente_id) {
+                    const { data: pacData, error: pacErr } = await supabase
+                        .from("pacientes")
+                        .select("*")
+                        .eq("id", (payData as any).paciente_id)
+                        .single();
+                    if (!pacErr) setPaciente(pacData);
+                }
+
+                // Fetch clinic settings
+                const { data: clinicData } = await supabase
+                    .from("clinic_settings")
+                    .select("*")
+                    .limit(1)
+                    .single();
+                if (clinicData) setClinic(clinicData);
+
+            } catch (err: any) {
+                console.error("Error fetching receipt data:", err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [id]);
+
+    const handleDownload = async () => {
+        if (!payment || !paciente || !clinic) {
+            toast.error("Dados incompletos para gerar o recibo.");
+            return;
+        }
+
+        setGenerating(true);
+        try {
+            const doc = generateReceiptPDF({
+                payment,
+                paciente,
+                clinic
+            });
+            doc.save(`recibo-${paciente.nome.replace(/\s+/g, "-")}.pdf`);
+            toast.success("Recibo gerado com sucesso!");
+        } catch (err) {
+            console.error("Error generating PDF:", err);
+            toast.error("Erro ao gerar PDF.");
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse text-sm font-medium">Carregando seu recibo...</p>
+            </div>
+        );
     }
-  }, [id]);
 
-  const fetchReceiptData = async (paymentId: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // 1. Fetch payment data from specific source
-      const { data: payData, error: payError } = await supabase
-        .from(source as any)
-        .select("*")
-        .eq("id", paymentId)
-        .maybeSingle();
-
-      if (payError || !payData) {
-        setError("Recibo não encontrado ou link expirado.");
-        setLoading(false);
-        return;
-      }
-
-      setPayment(payData);
-
-      // 2. Fetch patient data
-      const { data: pacData } = await supabase
-        .from("pacientes")
-        .select("nome, cpf")
-        .eq("id", payData.paciente_id)
-        .maybeSingle();
-
-      setPaciente(pacData);
-
-      // 3. Fetch clinic settings
-      const { data: clinicData } = await supabase
-        .from("clinic_settings")
-        .select("nome, cnpj")
-        .maybeSingle();
-      
-      setClinic(clinicData);
-    } catch (err) {
-      setError("Erro ao carregar os dados do recibo.");
-    } finally {
-      setLoading(false);
+    if (error || !payment) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+                <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+                <h1 className="text-xl font-bold mb-2">Ops! Recibo não encontrado</h1>
+                <p className="text-muted-foreground max-w-md">
+                    Não foi possível carregar as informações deste recibo. Por favor, verifique o link ou entre em contato com a clínica.
+                </p>
+                <div className="mt-8 p-4 bg-muted/30 rounded-lg border border-dashed text-xs text-muted-foreground">
+                    ID: {id}
+                </div>
+            </div>
+        );
     }
-  };
 
-  const handleDownload = async () => {
-    if (!payment || !paciente) return;
-    setDownloading(true);
-    try {
-      const numero = getReceiptNumber(payment.id, payment.created_at);
-      const dateStr = payment.data_pagamento || payment.created_at;
-      const dataPgto = dateStr ? dateFormats.date(dateStr) : "—";
-
-      const doc = await generateReceiptPDF({
-        numero,
-        pacienteNome: paciente.nome || "Paciente",
-        cpf: paciente.cpf || "",
-        descricao: payment.descricao || "Serviço",
-        valor: Math.abs(Number(payment.valor)),
-        formaPagamento: payment.forma_pagamento || payment.forma_pagamento_id || "",
-        dataPagamento: dataPgto,
-        referencia: payment.descricao || "Serviço",
-      });
-
-      doc.save(`Recibo_${numero}.pdf`);
-    } catch (err) {
-      console.error("Erro ao gerar PDF:", err);
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground animate-pulse">Preparando seu recibo...</p>
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-8">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <div className="p-8 text-center space-y-6">
+                    <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                        <FileDown className="h-8 w-8 text-primary" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <h1 className="text-2xl font-bold text-slate-900">Seu Recibo está pronto!</h1>
+                        <p className="text-slate-500 text-sm">
+                            Clique no botão abaixo para baixar o recibo do seu pagamento realizado em{" "}
+                            <span className="font-semibold text-slate-700">
+                                {new Date(payment.data_pagamento || payment.created_at).toLocaleDateString("pt-BR")}
+                            </span>
+                        </p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                        <div className="flex justify-between text-sm italic">
+                            <span className="text-slate-500">Valor</span>
+                            <span className="font-bold text-slate-900">
+                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.valor)}
+                            </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-slate-500">Método</span>
+                            <span className="capitalize text-slate-900 font-medium">{payment.metodo_pagamento || "Não informado"}</span>
+                        </div>
+                    </div>
+
+                    <Button 
+                        onClick={handleDownload} 
+                        disabled={generating}
+                        className="w-full h-12 text-md font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        {generating ? (
+                            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Gerando PDF...</>
+                        ) : (
+                            <><FileDown className="h-5 w-5 mr-2" /> Baixar Recibo (PDF)</>
+                        )}
+                    </Button>
+
+                    {clinic?.nome && (
+                        <div className="pt-4 border-t border-slate-100">
+                            <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Emitido por</p>
+                            <p className="text-sm font-medium text-slate-600">{clinic.nome}</p>
+                        </div>
+                    )}
+                </div>
+                
+                <div className="bg-slate-900 p-4 text-center">
+                    <p className="text-white/40 text-[10px] font-medium tracking-tight">
+                        FISIO FLOW CARE — SISTEMA DE GESTÃO CLÍNICA
+                    </p>
+                </div>
+            </div>
+            
+            <p className="mt-8 text-slate-400 text-xs text-center max-w-xs">
+                Este link é temporário e destina-se apenas ao destinatário original.
+            </p>
         </div>
-      </div>
     );
-  }
-
-  if (error || !payment) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4">
-        <Card className="max-w-md w-full shadow-lg border-red-100">
-          <CardContent className="py-12 text-center space-y-4">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-            <h2 className="text-xl font-bold">Ops! Algo deu errado.</h2>
-            <p className="text-muted-foreground">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-4 flex items-start justify-center pt-10">
-      <div className="max-w-lg w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col items-center text-center space-y-2 mb-4">
-          <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-            <CheckCircle2 className="h-10 w-10 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Recibo Disponível</h1>
-          <p className="text-muted-foreground">Seu pagamento foi confirmado com sucesso.</p>
-        </div>
-
-        <Card className="shadow-xl border-none ring-1 ring-gray-200">
-          <CardHeader className="border-b bg-muted/30 pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Informações do Pagamento</CardTitle>
-              </div>
-              <p className="text-xs font-mono text-muted-foreground">
-                #{payment.id.substring(0, 8).toUpperCase()}
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Valor Recebido</p>
-              <p className="text-3xl font-bold text-primary">{formatBRL(Math.abs(Number(payment.valor)))}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground uppercase font-semibold">Paciente</p>
-                <p className="font-medium">{paciente?.nome || "—"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground uppercase font-semibold">Data</p>
-                <p className="font-medium">{payment.data_pagamento ? dateFormats.date(payment.data_pagamento) : dateFormats.date(payment.created_at)}</p>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Descrição</p>
-              <p className="font-medium">{payment.descricao || "Serviço realizado"}</p>
-            </div>
-
-            <Button onClick={handleDownload} disabled={downloading} className="w-full h-12 text-base font-semibold gap-2 shadow-lg hover:shadow-xl transition-all">
-              {downloading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
-              {downloading ? "Gerando..." : "Baixar Recibo (PDF)"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-[10px] text-muted-foreground px-8 leading-relaxed">
-          Este documento é uma representação digital do seu recibo. 
-          A autenticidade deste registro pode ser verificada junto à administração da clínica.
-        </p>
-      </div>
-    </div>
-  );
 };
 
 export default PublicReceipt;
