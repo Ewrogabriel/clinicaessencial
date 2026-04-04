@@ -241,10 +241,14 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                         `\n📄 Baixe seu recibo aqui:\n${publicUrl}\n\n` +
                         `Qualquer dúvida, estamos à disposição! 🙏`;
                       const phoneNumber = pacienteTelefone.replace(/\D/g, "");
+                      if (!phoneNumber) {
+                        toast.error("Paciente não possui telefone cadastrado.");
+                        return;
+                      }
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensagem)}`;
-                      window.location.href = whatsappUrl;
-                      toast.success("Link do recibo gerado e enviado!");
+                      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`;
+                      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+                      toast.success("WhatsApp aberto com o recibo!");
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar recibo.");
                     } finally {
