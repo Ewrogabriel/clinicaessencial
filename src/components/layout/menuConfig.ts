@@ -157,6 +157,7 @@ export const profissionalGroups: MenuGroup[] = [
       { labelKey: "nav.session_plans",  url: "/planos",              icon: ClipboardList },
       { labelKey: "nav.exercise_plans", url: "/planos-exercicios",   icon: Dumbbell },
       { labelKey: "nav.teleconsulta",   url: "/teleconsulta-hub",    icon: Video },
+      { labelKey: "nav.availability",   url: "/disponibilidade",     icon: Clock },
     ],
   },
   {
