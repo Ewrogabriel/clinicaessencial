@@ -251,10 +251,8 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                         `Se precisar de algo, estou à disposição.`;
 
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensagem)}`;
-
-                      toast.success("Redirecionando para o WhatsApp...");
-                      window.location.assign(whatsappUrl);
+                      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`, "_blank");
+                      toast.success("WhatsApp aberto com sucesso!");
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar recibo.");
                     } finally {
