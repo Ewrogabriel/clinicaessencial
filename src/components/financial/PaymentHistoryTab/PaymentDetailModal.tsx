@@ -213,8 +213,17 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   className="gap-1.5"
                   disabled={sendingReceipt}
                   onClick={async () => {
+                    const whatsappWindow = window.open("", "_blank", "noopener,noreferrer");
+
                     setSendingReceipt(true);
                     try {
+                      const phoneNumber = pacienteTelefone.replace(/\D/g, "");
+                      if (!phoneNumber) {
+                        whatsappWindow?.close();
+                        toast.error("Paciente não possui telefone cadastrado.");
+                        return;
+                      }
+
                       const numero = getReceiptNumber(payment.id, payment.created_at);
                       const dateStr2 = payment.data_pagamento || payment.created_at;
                       const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
@@ -231,25 +240,31 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                       const blob = pdf.output("blob");
                       const publicUrl = await uploadReceiptToStorage(blob, numero);
                       const firstName = pacienteNome.split(" ")[0];
-                      const valorFormatado = Math.abs(payment.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                      const valorFormatado = Math.abs(payment.valor).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      });
                       const mensagem =
                         `Olá ${firstName}! 😊\n\n` +
-                        `Segue o recibo referente ao seu pagamento:\n\n` +
+                        `Segue o link do seu recibo de pagamento:\n\n` +
                         `🧾 *Recibo nº ${numero}*\n` +
                         `💰 Valor: *${valorFormatado}*\n` +
                         (payment.forma_pagamento ? `💳 Forma: *${payment.forma_pagamento}*\n` : "") +
-                        `\n📄 Baixe seu recibo aqui:\n${publicUrl}\n\n` +
-                        `Qualquer dúvida, estamos à disposição! 🙏`;
-                      const phoneNumber = pacienteTelefone.replace(/\D/g, "");
-                      if (!phoneNumber) {
-                        toast.error("Paciente não possui telefone cadastrado.");
-                        return;
-                      }
+                        `\n🔗 Acesse seu recibo aqui:\n${publicUrl}\n\n` +
+                        `Se precisar de algo, estou à disposição.`;
+
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
                       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`;
-                      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-                      toast.success("WhatsApp aberto com o recibo!");
+
+                      if (whatsappWindow) {
+                        whatsappWindow.location.href = whatsappUrl;
+                      } else {
+                        window.location.href = whatsappUrl;
+                      }
+
+                      toast.success("Redirecionando para o WhatsApp...");
                     } catch (err: any) {
+                      whatsappWindow?.close();
                       toast.error(err.message || "Erro ao enviar recibo.");
                     } finally {
                       setSendingReceipt(false);
