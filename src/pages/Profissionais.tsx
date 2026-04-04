@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import DisponibilidadeProfissional from "./DisponibilidadeProfissional";
-import { CommissionRules } from "@/components/profissionais/CommissionRules";
 import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
+import { ProfessionalForm } from "@/components/profissionais/ProfessionalForm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -104,69 +104,9 @@ const Profissionais = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
 
-  // Form state
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [createEmail, setCreateEmail] = useState("");
-  const [createPassword, setCreatePassword] = useState("");
-  const [createPasswordConfirm, setCreatePasswordConfirm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("profissional");
-  const [selectedPermissions, setSelectedPermissions] = useState<PermissionEntry[]>([]);
-  const [especialidade, setEspecialidade] = useState<string | null>(null);
-  const [commissionRate, setCommissionRate] = useState("0");
-  const [commissionFixed, setCommissionFixed] = useState("0");
-  const [corAgenda, setCorAgenda] = useState("#3b82f6");
-  const [registroProfissional, setRegistroProfissional] = useState("");
-  const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
-  const [cnpj, setCnpj] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [rg, setRg] = useState("");
-  const [dataNascimento, setDataNascimento] = useState("");
-  const [estadoCivil, setEstadoCivil] = useState<string | null>(null);
-  const [endereco, setEndereco] = useState("");
-  const [numero, setNumero] = useState("");
-  const [bairro, setBairro] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
-  const [cep, setCep] = useState("");
   const [loading, setLoading] = useState(false);
-  const [assinaturaUrl, setAssinaturaUrl] = useState("");
-  const [rubricaUrl, setRubricaUrl] = useState("");
-  const [conselhoProfissional, setConselhoProfissional] = useState("");
-  const [registroConselho, setRegistroConselho] = useState("");
-  const [fotoUrl, setFotoUrl] = useState("");
-  const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
-  const [cleaningRubrica, setCleaningRubrica] = useState(false);
 
-  // Auto-clean signature on upload
-  const handleAssinaturaChange = async (url: string) => {
-    setAssinaturaUrl(url);
-    if (url && url.startsWith("data:")) {
-      setCleaningAssinatura(true);
-      try {
-        const cleaned = await cleanSignatureImage(url);
-        setAssinaturaUrl(cleaned);
-        toast.success("Assinatura otimizada automaticamente! ✨");
-      } catch { /* keep original */ }
-      finally { setCleaningAssinatura(false); }
-    }
-  };
-
-  const handleRubricaChange = async (url: string) => {
-    setRubricaUrl(url);
-    if (url && url.startsWith("data:")) {
-      setCleaningRubrica(true);
-      try {
-        const cleaned = await cleanSignatureImage(url);
-        setRubricaUrl(cleaned);
-        toast.success("Rubrica otimizada automaticamente! ✨");
-      } catch { /* keep original */ }
-      finally { setCleaningRubrica(false); }
-    }
-  };
+  const { profissionais: users, isLoading } = useProfissionais();
   const { profissionais: users, isLoading } = useProfissionais();
 
 
@@ -180,48 +120,17 @@ const Profissionais = () => {
   const resetForm = useCallback(() => {
     setEditingId(null);
     setIsCreating(false);
-    setNome(""); setEmail(""); setTelefone("");
-    setCreateEmail(""); setCreatePassword(""); setCreatePasswordConfirm("");
-    setSelectedRole("profissional");
-    setSelectedPermissions(toPermEntries(DEFAULT_PERMISSIONS.profissional || []));
-    setEspecialidade(null); setCommissionRate("0"); setCommissionFixed("0");
-    setCorAgenda("#3b82f6"); setRegistroProfissional("");
-    setTipoContratacao(null); setCnpj(""); setCpf(""); setRg("");
-    setDataNascimento(""); setEstadoCivil(null);
-    setEndereco(""); setNumero(""); setBairro(""); setCidade(""); setEstado(""); setCep("");
-    setAssinaturaUrl(""); setRubricaUrl("");
-    setConselhoProfissional(""); setRegistroConselho("");
-    setFotoUrl("");
   }, []);
 
   const openCreate = () => {
     resetForm();
     setIsCreating(true);
-    setSelectedPermissions(toPermEntries(DEFAULT_PERMISSIONS.profissional || []));
     setDialogOpen(true);
   };
 
   const openEdit = (u: UserRecord) => {
     resetForm();
     setEditingId(u.id);
-    setNome(u.nome); setEmail(u.email || ""); setTelefone(u.telefone || "");
-    setSelectedRole(u.role);
-    setEspecialidade(u.especialidade || null);
-    setCommissionRate(String(u.commission_rate || 0));
-    setCommissionFixed(String(u.commission_fixed || 0));
-    setCorAgenda(u.cor_agenda || "#3b82f6");
-    setRegistroProfissional(u.registro_profissional || "");
-    setTipoContratacao(u.tipo_contratacao || null);
-    setCnpj(u.cnpj || ""); setCpf(u.cpf || ""); setRg(u.rg || "");
-    setDataNascimento(u.data_nascimento || ""); setEstadoCivil(u.estado_civil || null);
-    setEndereco(u.endereco || ""); setNumero(u.numero || "");
-    setBairro(u.bairro || ""); setCidade(u.cidade || "");
-    setEstado(u.estado || ""); setCep(u.cep || "");
-    setAssinaturaUrl((u as any).assinatura_url || "");
-    setRubricaUrl((u as any).rubrica_url || "");
-    setConselhoProfissional(u.conselho_profissional || "");
-    setRegistroConselho(u.registro_conselho || "");
-    setFotoUrl((u as any).foto_url || "");
     setDialogOpen(true);
   };
 
@@ -232,14 +141,6 @@ const Profissionais = () => {
     setPermDialogOpen(true);
   };
 
-  const handleRoleChange = (role: string) => {
-    setSelectedRole(role);
-    if (role === "admin") {
-      setSelectedPermissions(toPermEntries(ALL_RESOURCES.map(r => r.key)));
-    } else {
-      setSelectedPermissions(toPermEntries(DEFAULT_PERMISSIONS[role] || []));
-    }
-  };
 
   // Permission helpers for PermissionEntry[]
   const findPerm = (list: PermissionEntry[], key: string) => list.find(p => p.resource === key);
@@ -266,18 +167,14 @@ const Profissionais = () => {
     setter(prev => prev.map(p => p.resource === key ? { ...p, access_level: level } : p));
   };
 
-  const validateCpf = async (currentUserId?: string): Promise<boolean> => {
+  const validateCpf = async (cpf: string, currentUserId?: string): Promise<boolean> => {
     const rawCpf = unmask(cpf);
     if (rawCpf.length > 0) {
       if (!isValidCPF(rawCpf)) {
         toast.error("CPF inválido", { description: "O CPF informado não é válido. Verifique os dígitos." });
         return false;
       }
-      // Check duplicate in profiles
-      const { data: existing } = await supabase
-        .from("profiles")
-        .select("id, nome")
-        .eq("cpf", cpf);
+      const { data: existing } = await supabase.from("profiles").select("id, nome").eq("cpf", cpf);
       const duplicates = (existing ?? []).filter(p => !currentUserId || p.id !== currentUserId);
       if (duplicates.length > 0) {
         toast.error("CPF já cadastrado", { description: `Este CPF já pertence a: ${duplicates[0].nome}` });
@@ -287,102 +184,83 @@ const Profissionais = () => {
     return true;
   };
 
-  const handleCreate = async () => {
-    if (!nome.trim() || !createEmail.trim() || !createPassword.trim()) {
-      toast.error("Erro", { description: "Preencha todos os campos obrigatórios" });
-      return;
-    }
-    if (createPassword !== createPasswordConfirm) {
-      toast.error("Erro", { description: "As senhas não coincidem" });
-      return;
-    }
-    if (!(await validateCpf())) return;
-    setLoading(true);
-    try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("create-professional", {
-        body: {
-          email: createEmail.trim(),
-          password: createPassword.trim(),
-          nome: nome.trim(),
-          telefone: telefone || null,
-          especialidade,
-          commission_rate: parseFloat(commissionRate) || 0,
-          commission_fixed: parseFloat(commissionFixed) || 0,
-          cor_agenda: corAgenda,
-          registro_profissional: registroProfissional || null,
-          tipo_contratacao: tipoContratacao || null,
-          cnpj: cnpj || null, cpf: cpf || null, rg: rg || null,
-          data_nascimento: dataNascimento || null,
-          estado_civil: estadoCivil || null,
-          endereco: endereco || null, numero: numero || null,
-          bairro: bairro || null, cidade: cidade || null,
-          estado: estado || null, cep: cep || null,
-          role: selectedRole,
-          permissions: selectedRole === "admin" ? [] : selectedPermissions,
-          clinic_id: activeClinicId || null,
-          conselho_profissional: conselhoProfissional || null,
-          registro_conselho: registroConselho || null,
-        },
-      });
-
-      if (fnError) {
-        const errorMsg = result?.error || fnError.message || "Erro ao criar usuário";
-        throw new Error(errorMsg);
+  const handleFormSubmit = async (data: any) => {
+    if (isCreating) {
+      if (!data.nome.trim() || !data.createEmail.trim() || !data.createPassword.trim()) {
+        toast.error("Erro", { description: "Preencha todos os campos obrigatórios" });
+        return;
       }
-      if (result?.error) throw new Error(result.error);
-
-      toast.success("Usuário criado com sucesso!");
-      await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
-      setDialogOpen(false);
-    } catch (error: any) {
-      toast.error("Erro", { description: error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!editingId || !nome.trim()) return;
-    if (!(await validateCpf(editingId))) return;
-    setLoading(true);
-    try {
-      const editedUser = users.find(u => u.id === editingId);
-      if (!editedUser) throw new Error("Usuário não encontrado");
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          nome: nome.trim(), email: email || null, telefone: telefone || null,
-          especialidade, commission_rate: parseFloat(commissionRate) || 0,
-          commission_fixed: parseFloat(commissionFixed) || 0,
-          cor_agenda: corAgenda, registro_profissional: registroProfissional || null,
-          tipo_contratacao: tipoContratacao || null,
-          cnpj: cnpj || null, cpf: cpf || null, rg: rg || null,
-          data_nascimento: dataNascimento || null, estado_civil: estadoCivil || null,
-          endereco: endereco || null, numero: numero || null,
-          bairro: bairro || null, cidade: cidade || null,
-          estado: estado || null, cep: cep || null,
-          assinatura_url: assinaturaUrl || null,
-          rubrica_url: rubricaUrl || null,
-          conselho_profissional: conselhoProfissional || null,
-          registro_conselho: registroConselho || null,
-          foto_url: fotoUrl || null,
-        } as any)
-        .eq("id", editingId);
-      if (error) throw error;
-
-      if (selectedRole !== editedUser.role) {
-        await supabase.from("user_roles").delete().eq("user_id", editedUser.user_id);
-        await supabase.from("user_roles").insert({ user_id: editedUser.user_id, role: selectedRole as any });
+      if (data.createPassword !== data.createPasswordConfirm) {
+        toast.error("Erro", { description: "As senhas não coincidem" });
+        return;
       }
+      if (!(await validateCpf(data.cpf))) return;
+      setLoading(true);
+      try {
+        const { data: result, error: fnError } = await supabase.functions.invoke("create-professional", {
+          body: {
+            ...data,
+            email: data.createEmail.trim(),
+            password: data.createPassword.trim(),
+            nome: data.nome.trim(),
+            commission_rate: parseFloat(data.commission_rate) || 0,
+            commission_fixed: parseFloat(data.commission_fixed) || 0,
+            permissions: data.role === "admin" ? [] : toPermEntries(DEFAULT_PERMISSIONS[data.role] || []),
+            clinic_id: activeClinicId || null,
+          }
+        });
+        if (fnError) throw new Error(result?.error || fnError.message || "Erro ao criar usuário");
+        toast.success("Usuário criado com sucesso!");
+        await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
+        setDialogOpen(false);
+      } catch (error: any) {
+        toast.error("Erro", { description: error.message });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!editingId || !data.nome.trim()) return;
+      if (!(await validateCpf(data.cpf, editingId))) return;
+      setLoading(true);
+      try {
+        const editedUser = users.find(u => u.id === editingId);
+        if (!editedUser) throw new Error("Usuário não encontrado");
 
-      toast.success("Dados atualizados!");
-      await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
-      setDialogOpen(false);
-    } catch (error: any) {
-      toast.error("Erro", { description: error.message });
-    } finally {
-      setLoading(false);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            nome: data.nome.trim(), email: data.email || null, telefone: data.telefone || null,
+            especialidade: data.especialidade, commission_rate: parseFloat(data.commission_rate) || 0,
+            commission_fixed: parseFloat(data.commission_fixed) || 0,
+            cor_agenda: data.cor_agenda, registro_profissional: data.registro_profissional || null,
+            tipo_contratacao: data.tipo_contratacao || null,
+            cnpj: data.cnpj || null, cpf: data.cpf || null, rg: data.rg || null,
+            data_nascimento: data.data_nascimento || null, estado_civil: data.estado_civil || null,
+            endereco: data.endereco || null, numero: data.numero || null,
+            bairro: data.bairro || null, cidade: data.cidade || null,
+            estado: data.estado || null, cep: data.cep || null,
+            assinatura_url: data.assinatura_url || null,
+            rubrica_url: data.rubrica_url || null,
+            conselho_profissional: data.conselho_profissional || null,
+            registro_conselho: data.registro_conselho || null,
+            foto_url: data.foto_url || null,
+          } as any)
+          .eq("id", editingId);
+        if (error) throw error;
+
+        if (data.role !== editedUser.role) {
+          await supabase.from("user_roles").delete().eq("user_id", editedUser.user_id);
+          await supabase.from("user_roles").insert({ user_id: editedUser.user_id, role: data.role as any });
+        }
+
+        toast.success("Dados atualizados!");
+        await queryClient.invalidateQueries({ queryKey: ["staff-users"] });
+        setDialogOpen(false);
+      } catch (error: any) {
+        toast.error("Erro", { description: error.message });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -411,19 +289,6 @@ const Profissionais = () => {
     }
   };
 
-  const fetchAddressFor = async (cepCode: string) => {
-    const cleanCep = cepCode.replace(/\D/g, "");
-    if (cleanCep.length !== 8) return;
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await res.json();
-      if (data.erro) return;
-      setEndereco(data.logradouro || ""); setBairro(data.bairro || "");
-      setCidade(data.localidade || ""); setEstado(data.uf || "");
-    } catch {
-      // Ignore CEP lookup errors
-    }
-  };
 
   // Render permission row with view/edit toggle
   const renderPermissionRow = (
@@ -605,7 +470,6 @@ const Profissionais = () => {
         </CardContent>
       </Card>
 
-      {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
           <DialogHeader>
@@ -614,318 +478,12 @@ const Profissionais = () => {
               {isCreating ? "Cadastre um novo membro da equipe" : "Atualize os dados do membro"}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] pr-4">
-            <Tabs defaultValue="dados" className="w-full">
-              <TabsList className={`grid w-full mb-4 ${isCreating ? 'grid-cols-5' : 'grid-cols-4'}`}>
-                <TabsTrigger value="dados">Dados</TabsTrigger>
-                <TabsTrigger value="endereco">Endereço</TabsTrigger>
-                <TabsTrigger value="profissional">Profissional</TabsTrigger>
-                <TabsTrigger value="formacoes" className="gap-1">
-                  <GraduationCap className="h-3 w-3" /> Formações
-                </TabsTrigger>
-                {isCreating && <TabsTrigger value="acesso">Acesso</TabsTrigger>}
-              </TabsList>
-
-              <TabsContent value="dados" className="space-y-4">
-                {isCreating && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Cargo *</Label>
-                      <Select value={selectedRole} onValueChange={handleRoleChange}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="profissional">Profissional</SelectItem>
-                          <SelectItem value="secretario">Secretário(a)</SelectItem>
-                          <SelectItem value="gestor">Gestor</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email de login *</Label>
-                      <Input type="email" value={createEmail} onChange={e => setCreateEmail(e.target.value)} placeholder="email@exemplo.com" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Senha *</Label>
-                        <Input type="password" value={createPassword} onChange={e => setCreatePassword(e.target.value)} placeholder="••••••••" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Confirmar Senha *</Label>
-                        <Input type="password" value={createPasswordConfirm} onChange={e => setCreatePasswordConfirm(e.target.value)} placeholder="••••••••" />
-                      </div>
-                    </div>
-                  </>
-                )}
-                {!isCreating && (
-                  <div className="space-y-2">
-                    <Label>Cargo</Label>
-                    <Select value={selectedRole} onValueChange={setSelectedRole}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="profissional">Profissional</SelectItem>
-                        <SelectItem value="secretario">Secretário(a)</SelectItem>
-                        <SelectItem value="gestor">Gestor</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label>Foto de Perfil</Label>
-                  <ImageUpload
-                    value={fotoUrl}
-                    onChange={setFotoUrl}
-                    folder="profile-photos"
-                    className="w-24 h-24 rounded-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nome *</Label>
-                  <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>CPF</Label>
-                    <Input value={cpf} onChange={e => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>RG</Label>
-                    <Input value={rg} onChange={e => setRg(maskRG(e.target.value))} placeholder="00.000.000-0" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Data de Nascimento</Label>
-                    <Input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
-                    <Input value={telefone} onChange={e => setTelefone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" />
-                  </div>
-                </div>
-                {!isCreating && (
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="endereco" className="space-y-4">
-                <div className="space-y-2 max-w-[200px]">
-                  <Label>CEP</Label>
-                  <Input value={cep} onChange={e => { const v = maskCEP(e.target.value); setCep(v); fetchAddressFor(v); }} placeholder="00000-000" />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2 col-span-2">
-                    <Label>Endereço</Label>
-                    <Input value={endereco} onChange={e => setEndereco(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Número</Label>
-                    <Input value={numero} onChange={e => setNumero(e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>Bairro</Label><Input value={bairro} onChange={e => setBairro(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Cidade</Label><Input value={cidade} onChange={e => setCidade(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Estado</Label><Input value={estado} onChange={e => setEstado(e.target.value)} maxLength={2} /></div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="profissional" className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Especialidade</Label>
-                  <Input
-                    value={especialidade || ""}
-                    onChange={e => setEspecialidade(e.target.value || null)}
-                    placeholder="Ex: Fisioterapia, Psicologia, Nutrição, Pilates..."
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Conselho Profissional</Label>
-                    <CouncilCombobox
-                      value={conselhoProfissional}
-                      onValueChange={setConselhoProfissional}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nº Registro no Conselho</Label>
-                    <Input 
-                      value={registroConselho} 
-                      onChange={e => setRegistroConselho(e.target.value)} 
-                      placeholder="Ex: 123456-F" 
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Registro Interno/Outros</Label>
-                  <Input value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} placeholder="Outros registros..." />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Comissão (%)</Label>
-                    <Input type="number" step="0.01" value={commissionRate} onChange={e => setCommissionRate(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor Fixo (R$)</Label>
-                    <Input type="number" step="0.01" value={commissionFixed} onChange={e => setCommissionFixed(e.target.value)} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Tipo de Contratação</Label>
-                  <Select value={tipoContratacao || "none"} onValueChange={v => setTipoContratacao(v === "none" ? null : v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum</SelectItem>
-                      <SelectItem value="clt">CLT</SelectItem>
-                      <SelectItem value="autonomo">Autônomo</SelectItem>
-                      <SelectItem value="mei">MEI</SelectItem>
-                      <SelectItem value="pj">PJ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {tipoContratacao === "pj" && (
-                  <div className="space-y-2">
-                    <Label>CNPJ</Label>
-                    <Input value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label>Cor na Agenda</Label>
-                  <div className="flex items-center gap-3">
-                    <input 
-                      id="cor-agenda"
-                      type="color" 
-                      value={corAgenda} 
-                      onChange={e => setCorAgenda(e.target.value)} 
-                      className="w-10 h-10 rounded cursor-pointer border-0 p-0"
-                      title="Escolha a cor para a agenda"
-                    />
-                    <label htmlFor="cor-agenda" className="text-sm text-muted-foreground">{corAgenda}</label>
-                  </div>
-                </div>
-
-                {/* Signature & Rubric */}
-                {!isCreating && editingId && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <h4 className="font-semibold text-sm">Assinatura e Rubrica</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Imagem da Assinatura</Label>
-                        <ImageUpload
-                          value={assinaturaUrl}
-                          onChange={handleAssinaturaChange}
-                          folder="assinaturas"
-                        />
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-muted-foreground">Envie a imagem da assinatura.</p>
-                          {assinaturaUrl && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[10px] gap-1 w-fit"
-                              disabled={cleaningAssinatura}
-                              onClick={async () => {
-                                setCleaningAssinatura(true);
-                                try {
-                                  const cleaned = await cleanSignatureImage(assinaturaUrl);
-                                  setAssinaturaUrl(cleaned);
-                                  toast.success("Assinatura otimizada!");
-                                } catch (e) {
-                                  toast.error("Erro ao limpar");
-                                } finally {
-                                  setCleaningAssinatura(false);
-                                }
-                              }}
-                            >
-                              {cleaningAssinatura ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                              Otimizar Assinatura (Fundo Transparente)
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Imagem da Rubrica</Label>
-                        <ImageUpload
-                          value={rubricaUrl}
-                          onChange={handleRubricaChange}
-                          folder="rubricas"
-                        />
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-muted-foreground">Será utilizada dentro do carimbo profissional.</p>
-                          {rubricaUrl && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-[10px] gap-1 w-fit"
-                              disabled={cleaningRubrica}
-                              onClick={async () => {
-                                setCleaningRubrica(true);
-                                try {
-                                  const cleaned = await cleanSignatureImage(rubricaUrl);
-                                  setRubricaUrl(cleaned);
-                                  toast.success("Rubrica otimizada!");
-                                } catch (e) {
-                                  toast.error("Erro ao limpar");
-                                } finally {
-                                  setCleaningRubrica(false);
-                                }
-                              }}
-                            >
-                              {cleaningRubrica ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                              Otimizar Rubrica (Fundo Transparente)
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="formacoes" className="space-y-4">
-                {editingId ? (
-                  <FormacoesManager 
-                    profissionalId={users.find(u => u.id === editingId)?.user_id || ""} 
-                  />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                    <p>Salve o cadastro primeiro para adicionar formações</p>
-                  </div>
-                )}
-              </TabsContent>
-
-              {isCreating && (
-                <TabsContent value="acesso" className="space-y-4">
-                  <div className="rounded-lg border p-4">
-                    <h4 className="font-medium mb-1">Recursos disponíveis</h4>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      {selectedRole === "admin"
-                        ? "Administradores têm acesso total a todos os recursos."
-                        : "Selecione quais recursos e o nível de acesso (visualizar ou editar)."}
-                    </p>
-                    <div className="space-y-0.5">
-                      {ALL_RESOURCES.map(r =>
-                        renderPermissionRow(r, selectedPermissions, setSelectedPermissions, selectedRole === "admin")
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-              )}
-            </Tabs>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={isCreating ? handleCreate : handleSave} disabled={loading || !nome.trim()}>
-                {loading ? "Salvando..." : isCreating ? "Criar Membro" : "Salvar"}
-              </Button>
-            </div>
-          </ScrollArea>
+          <ProfessionalForm 
+            isCreating={isCreating}
+            initialData={editingId ? users.find(u => u.id === editingId) : null}
+            onSubmit={handleFormSubmit}
+            loading={loading}
+          />
         </DialogContent>
       </Dialog>
 

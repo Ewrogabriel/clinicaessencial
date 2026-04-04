@@ -27,6 +27,7 @@ const Contratos = () => {
   const { activeClinicId } = useClinic();
   const { data: clinicSettings } = useClinicSettings();
   const canManage = isAdmin || isGestor;
+  const isProfissional = !canManage && !isPatient;
   const [selectedPaciente, setSelectedPaciente] = useState("");
   const [selectedPlano, setSelectedPlano] = useState("");
   const [selectedMatricula, setSelectedMatricula] = useState("");
@@ -75,6 +76,10 @@ const Contratos = () => {
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profissionais-contrato"],
     queryFn: async () => {
+      if (isProfissional) {
+        const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").eq("id", user?.id).order("nome");
+        return (data as any[]) ?? [];
+      }
       if (!canManage) return [];
       const { data: roleData } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
       const userIds = roleData?.map(r => r.user_id) ?? [];
@@ -82,7 +87,7 @@ const Contratos = () => {
       const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").in("user_id", userIds).order("nome");
       return (data as any[]) ?? [];
     },
-    enabled: canManage,
+    enabled: canManage || isProfissional,
   });
 
   const { data: currentUserProfile } = useQuery({
@@ -220,9 +225,9 @@ const Contratos = () => {
           <TabsTrigger value="paciente" className="flex items-center gap-2">
             <FileText className="h-4 w-4" /> Paciente
           </TabsTrigger>
-          {canManage && (
+          {(canManage || isProfissional) && (
             <TabsTrigger value="profissional" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Profissional
+              <Users className="h-4 w-4" /> {isProfissional ? "Meu Contrato" : "Profissional"}
             </TabsTrigger>
           )}
         </TabsList>
@@ -451,7 +456,7 @@ const Contratos = () => {
         </TabsContent>
 
         {/* ===== PROFISSIONAL TAB ===== */}
-        {canManage && (
+        {(canManage || isProfissional) && (
           <TabsContent value="profissional">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-1">

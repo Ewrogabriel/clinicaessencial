@@ -146,7 +146,8 @@ export const profissionalGroups: MenuGroup[] = [
     labelKey: "group.home",
     items: [
       { labelKey: "nav.home",      url: "/dashboard",    icon: LayoutDashboard },
-      { labelKey: "nav.my_agenda", url: "/minha-agenda",  icon: Calendar },
+      { labelKey: "nav.agenda",    url: "/agenda",       icon: Calendar },
+      { labelKey: "nav.confirmacoes", url: "/confirmacoes-dia", icon: CheckCheck },
     ],
   },
   {
@@ -162,10 +163,8 @@ export const profissionalGroups: MenuGroup[] = [
     ],
   },
   {
-    labelKey: "group.admin",
-    defaultCollapsed: true,
+    labelKey: "group.management",
     items: [
-      { labelKey: "nav.agenda",           url: "/agenda",          icon: Calendar },
       { labelKey: "nav.enrollments",      url: "/matriculas",       icon: Receipt },
       { labelKey: "nav.inventory",        url: "/inventario",       icon: Tag },
       { labelKey: "nav.whatsapp_inbox",   url: "/whatsapp-inbox",   icon: MessageCircle },
@@ -179,12 +178,11 @@ export const profissionalGroups: MenuGroup[] = [
   },
   {
     labelKey: "group.settings",
-    defaultCollapsed: true,
     items: [
+      { labelKey: "nav.my_profile", url: "/perfil-profissional", icon: User },
       { labelKey: "nav.contracts",  url: "/contratos",           icon: FileText },
       { labelKey: "nav.messages",   url: "/mensagens",           icon: MessageSquare },
       { labelKey: "nav.notices",    url: "/avisos",              icon: Megaphone },
-      { labelKey: "nav.my_profile", url: "/perfil-profissional", icon: User },
     ],
   },
 ];

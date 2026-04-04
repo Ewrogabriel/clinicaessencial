@@ -166,7 +166,7 @@ const PacienteDetalhes = () => {
                         <Calendar className="h-4 w-4" />
                         <span className="hidden sm:inline">Agenda</span>
                     </TabsTrigger>
-                    {(isAdmin || isGestor || isSecretario || isMaster) && (
+                    {(isAdmin || isGestor || isSecretario || isMaster || isProfissional) && (
                         <TabsTrigger value="pagamentos" className="gap-2">
                             <DollarSign className="h-4 w-4" />
                             <span className="hidden sm:inline">Pagamentos</span>
@@ -334,7 +334,7 @@ const PacienteDetalhes = () => {
                     <PatientScheduleTab pacienteId={id!} pacienteTelefone={paciente?.telefone} pacienteNome={paciente?.nome} />
                 </TabsContent>
 
-                {(isAdmin || isGestor || isSecretario || isMaster) && (
+                {(isAdmin || isGestor || isSecretario || isMaster || isProfissional) && (
                     <TabsContent value="pagamentos" className="space-y-4">
                         {activeTab === "pagamentos" && (
                             <PaymentHistoryTab pacienteId={id!} pacienteNome={paciente.nome} />

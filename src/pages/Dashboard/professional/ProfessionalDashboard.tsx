@@ -92,8 +92,9 @@ const ProfessionalDashboard = () => {
 
       const totalSessoes = (data as any[])?.length || 0;
       const valorTotal = (data as any[])?.reduce((acc: number, s: any) => acc + (Number(s.valor_sessao) || 0), 0) || 0;
-      // Assumindo comissão média de 40%
-      const comissaoEstimada = valorTotal * 0.4;
+      // Usar comissão do perfil ou padrão de 40%
+      const taxaComissao = profile?.commission_rate ? Number(profile.commission_rate) / 100 : 0.4;
+      const comissaoEstimada = valorTotal * taxaComissao;
 
       return { totalSessoes, valorTotal, comissaoEstimada };
     },

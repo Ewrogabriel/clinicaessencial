@@ -173,7 +173,7 @@ const App = () => (
                         <Route path="/teleconsulta-hub" element={<TeleconsultaHub />} />
                         <Route path="/planos-exercicios" element={<PlanosExercicios />} />
                         <Route path="/planos" element={<Planos />} />
-                        <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConfirmacoesDia /></RequireRole>} />
+                        <Route path="/confirmacoes-dia" element={<RequireRole roles={["admin", "gestor", "master", "secretario", "profissional"]}><ConfirmacoesDia /></RequireRole>} />
                         <Route path="/agenda-premium" element={<Navigate to="/agenda?tab=vagas" replace />} />
                         <Route path="/gamificacao/ranking" element={<LeaderboardPatient />} />
                         <Route path="/gamificacao/recompensas" element={<RewardsCatalog />} />

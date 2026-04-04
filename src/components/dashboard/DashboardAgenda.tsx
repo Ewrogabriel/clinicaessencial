@@ -119,7 +119,9 @@ export function DashboardAgenda({ isAdmin, defaultProfissionalId }: DashboardAge
                 <SelectValue placeholder="Profissional" />
               </SelectTrigger>
               <SelectContent>
-                {isAdmin && <SelectItem value="all">Todos profissionais</SelectItem>}
+                {(!isAdmin && profissionais.length > 0) || isAdmin ? (
+                  <SelectItem value="all">Todos profissionais</SelectItem>
+                ) : null}
                 {profissionais.map((p) => (
                   <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
                 ))}

@@ -79,7 +79,6 @@ export const useProfessionalAnalytics = () => {
                     .lte("created_at", `${mesAntFim}T23:59:59`),
                 supabase.from("matriculas")
                     .select("paciente_id", { count: "exact", head: true })
-                    .eq("profissional_id", userId!)
                     .eq("status", "ativa"),
                 supabase.from("agendamentos")
                     .select("paciente_id")
@@ -109,9 +108,11 @@ export const useProfessionalAnalytics = () => {
             const totalValorSessoes = all.filter(a => a.status === "realizado").reduce((s, a) => s + Number(a.valor_sessao || 0), 0);
             const ticketMedio = realizadas > 0 ? totalValorSessoes / realizadas : 0;
 
-            const taxaPresenca = all.length > 0 ? Math.round((realizadas / all.length) * 100) : 0;
-            const taxaFalta = all.length > 0 ? Math.round((faltas / all.length) * 100) : 0;
-            const taxaFaltaAnt = allAnt.length > 0 ? Math.round((faltasAnt / allAnt.length) * 100) : 0;
+            const totalCompare = realizadas + faltas;
+            const taxaPresenca = totalCompare > 0 ? Math.round((realizadas / totalCompare) * 100) : 0;
+            const taxaFalta = totalCompare > 0 ? Math.round((faltas / totalCompare) * 100) : 0;
+            const totalCompareAnt = realizadasAnt + faltasAnt;
+            const taxaFaltaAnt = totalCompareAnt > 0 ? Math.round((faltasAnt / totalCompareAnt) * 100) : 0;
 
             return {
                 pacientesAtivos: pacientesAtivos ?? 0,
