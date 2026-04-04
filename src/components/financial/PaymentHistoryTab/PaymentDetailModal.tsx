@@ -18,7 +18,7 @@ import { ReconciliationBadge } from "./ReconciliationBadge";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import { uploadReceiptToStorage } from "@/lib/uploadReceiptToStorage";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { PaymentEntry } from "./types";
 
 interface PaymentDetailModalProps {
@@ -31,8 +31,6 @@ interface PaymentDetailModalProps {
 
 export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pacienteTelefone = "", onClose }: PaymentDetailModalProps) {
   const [sendingReceipt, setSendingReceipt] = useState(false);
-  const [receiptUrl, setReceiptUrl] = useState("");
-  const [preparingReceipt, setPreparingReceipt] = useState(false);
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
   const statusInfo = labelStatus[payment.status] ?? {
@@ -58,52 +56,6 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
 
     return { numero, pdf };
   };
-
-  useEffect(() => {
-    let isActive = true;
-
-    if (payment.status !== "pago") {
-      setReceiptUrl("");
-      setPreparingReceipt(false);
-      return;
-    }
-
-    setReceiptUrl("");
-    setPreparingReceipt(true);
-
-    void (async () => {
-      try {
-        const { numero, pdf } = await buildReceiptPdf();
-        const publicUrl = await uploadReceiptToStorage(pdf.output("blob"), numero);
-
-        if (isActive) {
-          setReceiptUrl(publicUrl);
-        }
-      } catch {
-        if (isActive) {
-          setReceiptUrl("");
-        }
-      } finally {
-        if (isActive) {
-          setPreparingReceipt(false);
-        }
-      }
-    })();
-
-    return () => {
-      isActive = false;
-    };
-  }, [
-    payment.id,
-    payment.status,
-    payment.created_at,
-    payment.data_pagamento,
-    payment.descricao,
-    payment.valor,
-    payment.forma_pagamento,
-    pacienteNome,
-    pacienteCpf,
-  ]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -266,21 +218,24 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  disabled={sendingReceipt || preparingReceipt}
+                  disabled={sendingReceipt}
                   onClick={async () => {
+                    const phoneNumber = pacienteTelefone.replace(/\D/g, "");
+                    if (!phoneNumber) {
+                      toast.error("Paciente não possui telefone cadastrado.");
+                      return;
+                    }
+
+                    const whatsappWindow = window.open("", "_blank");
+                    if (whatsappWindow) {
+                      whatsappWindow.document.write("Abrindo WhatsApp...");
+                    }
+
                     setSendingReceipt(true);
+
                     try {
-                      const phoneNumber = pacienteTelefone.replace(/\D/g, "");
-                      if (!phoneNumber) {
-                        toast.error("Paciente não possui telefone cadastrado.");
-                        return;
-                      }
-
-                      if (!receiptUrl) {
-                        toast.error("Aguarde alguns segundos e tente novamente.");
-                        return;
-                      }
-
+                      const { numero, pdf } = await buildReceiptPdf();
+                      const receiptUrl = await uploadReceiptToStorage(pdf.output("blob"), numero);
                       const firstName = pacienteNome.split(" ")[0];
                       const mensagem =
                         `Olá ${firstName}! 😊\n\n` +
@@ -289,9 +244,20 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                         `Se precisar de algo, estou à disposição.`;
 
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
-                      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`, "_blank");
+                      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`;
+
+                      if (whatsappWindow) {
+                        whatsappWindow.location.href = whatsappUrl;
+                      } else {
+                        window.open(whatsappUrl, "_blank");
+                      }
+
                       toast.success("WhatsApp aberto com sucesso!");
                     } catch (err: any) {
+                      if (whatsappWindow && !whatsappWindow.closed) {
+                        whatsappWindow.close();
+                      }
+
                       toast.error(err.message || "Erro ao enviar recibo.");
                     } finally {
                       setSendingReceipt(false);
@@ -299,7 +265,7 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   }}
                 >
                   <Send className="h-4 w-4" />
-                  {sendingReceipt ? "Enviando..." : preparingReceipt ? "Preparando..." : "Enviar Recibo"}
+                  {sendingReceipt ? "Enviando..." : "Enviar Recibo"}
                 </Button>
               </>
             )}
