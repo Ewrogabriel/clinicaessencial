@@ -18,7 +18,7 @@ import { ReconciliationBadge } from "./ReconciliationBadge";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import { uploadReceiptToStorage } from "@/lib/uploadReceiptToStorage";
 import { toast } from "sonner";
-import { useState as useStateReact } from "react";
+import { useEffect, useState } from "react";
 import type { PaymentEntry } from "./types";
 
 interface PaymentDetailModalProps {
@@ -30,13 +30,80 @@ interface PaymentDetailModalProps {
 }
 
 export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pacienteTelefone = "", onClose }: PaymentDetailModalProps) {
-  const [sendingReceipt, setSendingReceipt] = useStateReact(false);
+  const [sendingReceipt, setSendingReceipt] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [preparingReceipt, setPreparingReceipt] = useState(false);
   const dateStr = payment.data_pagamento || payment.data_vencimento || payment.created_at;
   const { tipo, cor } = getMovimentacaoTipo(payment.valor, payment.status);
   const statusInfo = labelStatus[payment.status] ?? {
     label: payment.status,
     variant: "secondary" as const,
   };
+
+  const buildReceiptPdf = async () => {
+    const numero = getReceiptNumber(payment.id, payment.created_at);
+    const dateStr2 = payment.data_pagamento || payment.created_at;
+    const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
+
+    const pdf = await generateReceiptPDF({
+      numero,
+      pacienteNome,
+      cpf: pacienteCpf,
+      descricao: payment.descricao || "Serviço",
+      valor: Math.abs(payment.valor),
+      formaPagamento: payment.forma_pagamento || "",
+      dataPagamento: dataPgto,
+      referencia: payment.descricao || "Serviço",
+    });
+
+    return { numero, pdf };
+  };
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (payment.status !== "pago") {
+      setReceiptUrl("");
+      setPreparingReceipt(false);
+      return;
+    }
+
+    setReceiptUrl("");
+    setPreparingReceipt(true);
+
+    void (async () => {
+      try {
+        const { numero, pdf } = await buildReceiptPdf();
+        const publicUrl = await uploadReceiptToStorage(pdf.output("blob"), numero);
+
+        if (isActive) {
+          setReceiptUrl(publicUrl);
+        }
+      } catch {
+        if (isActive) {
+          setReceiptUrl("");
+        }
+      } finally {
+        if (isActive) {
+          setPreparingReceipt(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    payment.id,
+    payment.status,
+    payment.created_at,
+    payment.data_pagamento,
+    payment.descricao,
+    payment.valor,
+    payment.forma_pagamento,
+    pacienteNome,
+    pacienteCpf,
+  ]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -187,19 +254,7 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   size="sm"
                   className="gap-1.5"
                   onClick={async () => {
-                    const numero = getReceiptNumber(payment.id, payment.created_at);
-                    const dateStr2 = payment.data_pagamento || payment.created_at;
-                    const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
-                    const pdf = await generateReceiptPDF({
-                      numero,
-                      pacienteNome,
-                      cpf: pacienteCpf,
-                      descricao: payment.descricao || "Serviço",
-                      valor: Math.abs(payment.valor),
-                      formaPagamento: payment.forma_pagamento || "",
-                      dataPagamento: dataPgto,
-                      referencia: payment.descricao || "Serviço",
-                    });
+                    const { numero, pdf } = await buildReceiptPdf();
                     pdf.save(`Recibo_${numero}.pdf`);
                     toast.success("Recibo gerado!");
                   }}
@@ -211,7 +266,7 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  disabled={sendingReceipt}
+                  disabled={sendingReceipt || preparingReceipt}
                   onClick={async () => {
                     setSendingReceipt(true);
                     try {
@@ -221,33 +276,16 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                         return;
                       }
 
-                      const numero = getReceiptNumber(payment.id, payment.created_at);
-                      const dateStr2 = payment.data_pagamento || payment.created_at;
-                      const dataPgto = dateStr2 ? dateFormats.date(dateStr2) : "—";
-                      const pdf = await generateReceiptPDF({
-                        numero,
-                        pacienteNome,
-                        cpf: pacienteCpf,
-                        descricao: payment.descricao || "Serviço",
-                        valor: Math.abs(payment.valor),
-                        formaPagamento: payment.forma_pagamento || "",
-                        dataPagamento: dataPgto,
-                        referencia: payment.descricao || "Serviço",
-                      });
-                      const blob = pdf.output("blob");
-                      const publicUrl = await uploadReceiptToStorage(blob, numero);
+                      if (!receiptUrl) {
+                        toast.error("Aguarde alguns segundos e tente novamente.");
+                        return;
+                      }
+
                       const firstName = pacienteNome.split(" ")[0];
-                      const valorFormatado = Math.abs(payment.valor).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      });
                       const mensagem =
                         `Olá ${firstName}! 😊\n\n` +
-                        `Segue o link do seu recibo de pagamento:\n\n` +
-                        `🧾 *Recibo nº ${numero}*\n` +
-                        `💰 Valor: *${valorFormatado}*\n` +
-                        (payment.forma_pagamento ? `💳 Forma: *${payment.forma_pagamento}*\n` : "") +
-                        `\n🔗 Acesse seu recibo aqui:\n${publicUrl}\n\n` +
+                        `Segue o link para acessar seu recibo:\n\n` +
+                        `${receiptUrl}\n\n` +
                         `Se precisar de algo, estou à disposição.`;
 
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
@@ -261,7 +299,7 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                   }}
                 >
                   <Send className="h-4 w-4" />
-                  {sendingReceipt ? "Enviando..." : "Enviar Recibo"}
+                  {sendingReceipt ? "Enviando..." : preparingReceipt ? "Preparando..." : "Enviar Recibo"}
                 </Button>
               </>
             )}
