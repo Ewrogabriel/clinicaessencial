@@ -12,6 +12,36 @@ interface ReceiptData {
   referencia: string;
 }
 
+const fallbackClinicSettings = {
+  nome: "Essencial Fisio Pilates",
+  cnpj: "61.080.977/0001-50",
+  endereco: "Rua Capitão Antônio Ferreira Campos",
+  numero: "46",
+  bairro: "Carmo",
+  cidade: "Barbacena",
+  estado: "MG",
+  whatsapp: "(32) 98415-2802",
+  instagram: "@essencialfisiopilatesbq",
+  email: null,
+  telefone: null,
+  logo_url: null,
+  rubrica_url: null,
+  assinatura_url: null,
+};
+
+async function runReceiptStep<T>(step: () => Promise<T>, fallback: T, timeoutMs = 4000): Promise<T> {
+  try {
+    return await Promise.race([
+      step(),
+      new Promise<T>((resolve) => {
+        setTimeout(() => resolve(fallback), timeoutMs);
+      }),
+    ]);
+  } catch {
+    return fallback;
+  }
+}
+
 const formaLabel: Record<string, string> = {
   dinheiro: "Dinheiro",
   pix: "PIX",
@@ -28,7 +58,7 @@ export async function generateReceiptPDF(data: ReceiptData) {
   let y = 20;
 
   // Get clinic settings
-  const settings = await getClinicSettings();
+  const settings = await runReceiptStep(() => getClinicSettings(), fallbackClinicSettings);
 
   // Border
   doc.setDrawColor(0, 120, 120);
@@ -37,7 +67,7 @@ export async function generateReceiptPDF(data: ReceiptData) {
 
   // Logo
   const logoX = pw / 2 - 15;
-  y = await addLogoToPDF(doc, logoX, y, 30, 25);
+  y = await runReceiptStep(() => addLogoToPDF(doc, logoX, y, 30, 25), y);
   y += 2;
 
   // Header
@@ -140,7 +170,7 @@ export async function generateReceiptPDF(data: ReceiptData) {
     doc.text(`CNPJ: ${settings.cnpj}`, margin, y);
   }
 
-  await addWatermarkToAllPages(doc);
+  await runReceiptStep(() => addWatermarkToAllPages(doc), undefined);
   return doc;
 }
 
