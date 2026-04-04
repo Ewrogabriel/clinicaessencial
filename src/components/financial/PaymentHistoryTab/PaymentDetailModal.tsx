@@ -21,6 +21,15 @@ import { toast } from "sonner";
 import { useState } from "react";
 import type { PaymentEntry } from "./types";
 
+async function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(errorMessage)), ms);
+    }),
+  ]);
+}
+
 interface PaymentDetailModalProps {
   payment: PaymentEntry;
   pacienteNome: string;
@@ -228,15 +237,23 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
 
                     const whatsappWindow = window.open("", "_blank");
                     if (whatsappWindow) {
-                      whatsappWindow.document.write("Abrindo WhatsApp...");
+                      whatsappWindow.document.write("Preparando recibo...");
                     }
 
                     setSendingReceipt(true);
 
                     try {
-                      const { numero, pdf } = await buildReceiptPdf();
-                      const receiptUrl = await uploadReceiptToStorage(pdf.output("blob"), numero);
-                      const firstName = pacienteNome.split(" ")[0];
+                      const { numero, pdf } = await withTimeout(
+                        buildReceiptPdf(),
+                        15000,
+                        "O recibo demorou demais para ser gerado."
+                      );
+                      const receiptUrl = await withTimeout(
+                        uploadReceiptToStorage(pdf.output("blob"), numero),
+                        15000,
+                        "Não foi possível preparar o link do recibo."
+                      );
+                      const firstName = pacienteNome.trim().split(/\s+/)[0] || pacienteNome;
                       const mensagem =
                         `Olá ${firstName}! 😊\n\n` +
                         `Segue o link para acessar seu recibo:\n\n` +
@@ -246,10 +263,10 @@ export function PaymentDetailModal({ payment, pacienteNome, pacienteCpf = "", pa
                       const formattedPhone = phoneNumber.startsWith("55") ? phoneNumber : `55${phoneNumber}`;
                       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(mensagem)}`;
 
-                      if (whatsappWindow) {
-                        whatsappWindow.location.href = whatsappUrl;
+                      if (whatsappWindow && !whatsappWindow.closed) {
+                        whatsappWindow.location.replace(whatsappUrl);
                       } else {
-                        window.open(whatsappUrl, "_blank");
+                        window.location.href = whatsappUrl;
                       }
 
                       toast.success("WhatsApp aberto com sucesso!");
