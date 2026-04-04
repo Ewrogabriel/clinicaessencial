@@ -137,6 +137,75 @@ function normalisePhone(phone: string): string {
   return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
 }
 
+// ── Unified send helper (Meta OR Evolution API) ───────────────
+
+type WaCfg = {
+  provider: "meta" | "evolution";
+  api_token?: string | null;
+  phone_number_id?: string | null;
+  evolution_api_url?: string | null;
+  evolution_instance?: string | null;
+  evolution_api_key?: string | null;
+};
+
+async function sendWhatsAppMessage(
+  cfg: WaCfg,
+  phone: string,
+  content: string
+): Promise<void> {
+  if (cfg.provider === "evolution") {
+    if (!cfg.evolution_api_url || !cfg.evolution_instance || !cfg.evolution_api_key) {
+      throw new Error("Evolution API config incompleta");
+    }
+    const resp = await fetch(
+      `${cfg.evolution_api_url}/message/sendText/${cfg.evolution_instance}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: cfg.evolution_api_key,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          number: phone.replace(/\D/g, ""),
+          text: content,
+        }),
+      }
+    );
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(
+        (err as any)?.response?.message ?? (err as any)?.message ?? `HTTP ${resp.status}`
+      );
+    }
+  } else {
+    // Meta/Facebook Graph API (default)
+    if (!cfg.api_token || !cfg.phone_number_id) {
+      throw new Error("Meta API config incompleta");
+    }
+    const resp = await fetch(
+      `https://graph.facebook.com/v19.0/${cfg.phone_number_id}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cfg.api_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: normalisePhone(phone),
+          type: "text",
+          text: { preview_url: false, body: content },
+        }),
+      }
+    );
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error((err as any)?.error?.message ?? `HTTP ${resp.status}`);
+    }
+  }
+}
+
 // ── Session confirmation ──────────────────────────────────────
 
 async function processSessionConfirmations(
@@ -159,14 +228,17 @@ async function processSessionConfirmations(
 
   if (!appointments?.length) return 0;
 
-  // Load WhatsApp config
+  // Load WhatsApp config (multi-provider)
   const { data: waCfg } = await (supabase as any)
     .from("whatsapp_config")
-    .select("api_token, phone_number_id, is_active")
+    .select("provider, api_token, phone_number_id, evolution_api_url, evolution_instance, evolution_api_key, is_active")
     .eq("clinic_id", clinicId)
     .maybeSingle();
 
-  if (!waCfg?.is_active || !waCfg.api_token || !waCfg.phone_number_id) return 0;
+  if (!waCfg?.is_active) return 0;
+  const isMetaReady = waCfg.provider !== "evolution" && waCfg.api_token && waCfg.phone_number_id;
+  const isEvoReady = waCfg.provider === "evolution" && waCfg.evolution_api_url && waCfg.evolution_instance && waCfg.evolution_api_key;
+  if (!isMetaReady && !isEvoReady) return 0;
 
   const appUrl = Deno.env.get("APP_URL") ?? "";
   let sent = 0;
@@ -243,29 +315,7 @@ async function processSessionConfirmations(
     let errorMessage: string | null = null;
 
     try {
-      await withRetry(async () => {
-        const resp = await fetch(
-          `https://graph.facebook.com/v19.0/${waCfg.phone_number_id}/messages`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${waCfg.api_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              recipient_type: "individual",
-              to: normalisePhone(phone),
-              type: "text",
-              text: { preview_url: false, body: content },
-            }),
-          }
-        );
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          throw new Error((err as any)?.error?.message ?? `HTTP ${resp.status}`);
-        }
-      });
+      await withRetry(() => sendWhatsAppMessage(waCfg, phone, content));
       sent++;
     } catch (err) {
       status = "failed";
@@ -317,11 +367,14 @@ async function processMonthlyReminders(
 
   const { data: waCfg } = await (supabase as any)
     .from("whatsapp_config")
-    .select("api_token, phone_number_id, is_active")
+    .select("provider, api_token, phone_number_id, evolution_api_url, evolution_instance, evolution_api_key, is_active")
     .eq("clinic_id", clinicId)
     .maybeSingle();
 
-  if (!waCfg?.is_active || !waCfg.api_token || !waCfg.phone_number_id) return 0;
+  if (!waCfg?.is_active) return 0;
+  const isMetaReady2 = waCfg.provider !== "evolution" && waCfg.api_token && waCfg.phone_number_id;
+  const isEvoReady2 = waCfg.provider === "evolution" && waCfg.evolution_api_url && waCfg.evolution_instance && waCfg.evolution_api_key;
+  if (!isMetaReady2 && !isEvoReady2) return 0;
 
   const defaultTemplate =
     "Olá, {{patientName}}! 👋\n\n" +
@@ -351,29 +404,7 @@ async function processMonthlyReminders(
     let errorMessage: string | null = null;
 
     try {
-      await withRetry(async () => {
-        const resp = await fetch(
-          `https://graph.facebook.com/v19.0/${waCfg.phone_number_id}/messages`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${waCfg.api_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              recipient_type: "individual",
-              to: normalisePhone(phone),
-              type: "text",
-              text: { preview_url: false, body: content },
-            }),
-          }
-        );
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          throw new Error((err as any)?.error?.message ?? `HTTP ${resp.status}`);
-        }
-      });
+      await withRetry(() => sendWhatsAppMessage(waCfg, phone, content));
       sent++;
     } catch (err) {
       status = "failed";
@@ -424,11 +455,14 @@ async function processOverdueAlerts(
 
   const { data: waCfg } = await (supabase as any)
     .from("whatsapp_config")
-    .select("api_token, phone_number_id, is_active")
+    .select("provider, api_token, phone_number_id, evolution_api_url, evolution_instance, evolution_api_key, is_active")
     .eq("clinic_id", clinicId)
     .maybeSingle();
 
-  if (!waCfg?.is_active || !waCfg.api_token || !waCfg.phone_number_id) return 0;
+  if (!waCfg?.is_active) return 0;
+  const isMetaReady3 = waCfg.provider !== "evolution" && waCfg.api_token && waCfg.phone_number_id;
+  const isEvoReady3 = waCfg.provider === "evolution" && waCfg.evolution_api_url && waCfg.evolution_instance && waCfg.evolution_api_key;
+  if (!isMetaReady3 && !isEvoReady3) return 0;
 
   // Load PIX config when enabled
   let pixKey: string | null = null;
@@ -493,29 +527,7 @@ async function processOverdueAlerts(
     let errorMessage: string | null = null;
 
     try {
-      await withRetry(async () => {
-        const resp = await fetch(
-          `https://graph.facebook.com/v19.0/${waCfg.phone_number_id}/messages`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${waCfg.api_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              recipient_type: "individual",
-              to: normalisePhone(phone),
-              type: "text",
-              text: { preview_url: false, body: content },
-            }),
-          }
-        );
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          throw new Error((err as any)?.error?.message ?? `HTTP ${resp.status}`);
-        }
-      });
+      await withRetry(() => sendWhatsAppMessage(waCfg, phone, content));
       sent++;
     } catch (err) {
       status = "failed";

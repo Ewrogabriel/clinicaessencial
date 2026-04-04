@@ -17,7 +17,7 @@ import {
   FileText, Tag, CreditCard, User, Calculator, MessageSquare,
   FileCheck, Handshake, Video,
   Building2, Crown, Upload, Trophy, Stethoscope, Target, Dumbbell,
-  Clock, CheckCheck, Banknote, type LucideIcon, Settings,
+  Clock, CheckCheck, Banknote, type LucideIcon, Settings, MessageCircle,
 } from "lucide-react";
 
 export type AppRole = "admin" | "gestor" | "profissional" | "secretario" | "paciente" | "master";
@@ -107,8 +107,9 @@ export const adminGroups: MenuGroup[] = [
     labelKey: "group.insights",
     defaultCollapsed: false,
     items: [
-      { labelKey: "nav.reports",     url: "/relatorios", icon: BarChart3 },
-      { labelKey: "nav.automations", url: "/automacoes",  icon: Send },
+      { labelKey: "nav.reports",        url: "/relatorios",      icon: BarChart3 },
+      { labelKey: "nav.automations",    url: "/automacoes",      icon: Send },
+      { labelKey: "nav.whatsapp_inbox", url: "/whatsapp-inbox",  icon: MessageCircle, badge: "INBOX" },
     ],
   },
   {
@@ -164,9 +165,10 @@ export const profissionalGroups: MenuGroup[] = [
     labelKey: "group.admin",
     defaultCollapsed: true,
     items: [
-      { labelKey: "nav.agenda",      url: "/agenda",     icon: Calendar },
-      { labelKey: "nav.enrollments", url: "/matriculas", icon: Receipt },
-      { labelKey: "nav.inventory",   url: "/inventario", icon: Tag },
+      { labelKey: "nav.agenda",           url: "/agenda",          icon: Calendar },
+      { labelKey: "nav.enrollments",      url: "/matriculas",       icon: Receipt },
+      { labelKey: "nav.inventory",        url: "/inventario",       icon: Tag },
+      { labelKey: "nav.whatsapp_inbox",   url: "/whatsapp-inbox",   icon: MessageCircle },
     ],
   },
   {
