@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import DisponibilidadeProfissional from "./DisponibilidadeProfissional";
 import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
 import { ProfessionalForm } from "@/components/profissionais/ProfessionalForm";
+import { CommissionRules } from "@/components/profissionais/CommissionRules";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -105,6 +106,8 @@ const Profissionais = () => {
   const [filterRole, setFilterRole] = useState("all");
 
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { profissionais: users, isLoading } = useProfissionais();
 

@@ -632,8 +632,8 @@ export const ProfessionalForm = ({
 
           <TabsContent value="formacoes" className="pt-2">
             <FormacoesManager 
-              userId={initialData?.user_id} 
-              readonly={!isCreating && !initialData} 
+              profissionalId={initialData?.user_id ?? ""} 
+              readOnly={!isCreating && !initialData} 
             />
           </TabsContent>
 
