@@ -77,29 +77,41 @@ const ProfessionalDashboard = () => {
 
   // Buscar prévia de comissões do mês
   const { data: comissoesMes } = useQuery({
-    queryKey: ["comissoes-previa", user?.id, clinicaAtual?.id],
+    queryKey: ["comissoes-previa", user?.id],
     queryFn: async () => {
       const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
       const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
 
-      const { data } = await (supabase
-        .from("agendamentos") as any)
-        .select("valor_sessao, status")
-        .eq("profissional_id", user?.id)
-        .eq("clinic_id", clinicaAtual?.id)
-        .gte("data_horario", inicioMes.toISOString())
-        .lte("data_horario", fimMes.toISOString())
-        .eq("status", "realizado");
+      // Fetch sessions and commission rate in parallel
+      const [sessResult, profileResult] = await Promise.all([
+        (supabase.from("agendamentos") as any)
+          .select("valor_sessao, status")
+          .eq("profissional_id", user?.id)
+          .gte("data_horario", inicioMes.toISOString())
+          .lte("data_horario", fimMes.toISOString())
+          .eq("status", "realizado"),
+        (supabase.from("profiles") as any)
+          .select("commission_rate, commission_fixed")
+          .eq("user_id", user?.id)
+          .maybeSingle(),
+      ]);
 
-      const totalSessoes = (data as any[])?.length || 0;
-      const valorTotal = (data as any[])?.reduce((acc: number, s: any) => acc + (Number(s.valor_sessao) || 0), 0) || 0;
-      // Usar comissão do perfil ou padrão de 40%
-      const taxaComissao = profile?.commission_rate ? Number(profile.commission_rate) / 100 : 0.4;
-      const comissaoEstimada = valorTotal * taxaComissao;
+      const data = sessResult.data as any[] || [];
+      const profProfile = profileResult.data;
 
-      return { totalSessoes, valorTotal, comissaoEstimada };
+      const totalSessoes = data.length;
+      const valorTotal = data.reduce((acc: number, s: any) => acc + (Number(s.valor_sessao) || 0), 0);
+      
+      // Use commission_rate from profiles table, fallback to 40%
+      const commissionRate = profProfile?.commission_rate ? Number(profProfile.commission_rate) : 40;
+      const commissionFixed = profProfile?.commission_fixed ? Number(profProfile.commission_fixed) : 0;
+      const comissaoEstimada = commissionFixed > 0
+        ? commissionFixed * totalSessoes
+        : valorTotal * (commissionRate / 100);
+
+      return { totalSessoes, valorTotal, comissaoEstimada, commissionRate };
     },
-    enabled: !!user?.id && !!clinicaAtual?.id,
+    enabled: !!user?.id,
   });
 
   const statusPie = kpis ? [

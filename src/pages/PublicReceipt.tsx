@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { FileDown, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
+const PAYMENT_TABLES = ["pagamentos", "pagamentos_sessoes", "pagamentos_mensalidade"] as const;
+
 const PublicReceipt = () => {
     const { id } = useParams();
     const [searchParams] = useSearchParams();
@@ -21,24 +23,37 @@ const PublicReceipt = () => {
             if (!id) return;
             setLoading(true);
             try {
-                // Fetch payment
-                const { data: payData, error: payErr } = await supabase
-                    .from("pagamentos")
-                    .select("*")
-                    .eq("id", id)
-                    .single();
+                let payData: any = null;
+                const source = searchParams.get("source");
 
-                if (payErr) throw new Error("Pagamento não encontrado.");
+                // Try the source table first, then fall back to others
+                const tablesToTry = source
+                    ? [source, ...PAYMENT_TABLES.filter(t => t !== source)]
+                    : [...PAYMENT_TABLES];
+
+                for (const table of tablesToTry) {
+                    const { data, error: err } = await (supabase as any)
+                        .from(table)
+                        .select("*")
+                        .eq("id", id)
+                        .maybeSingle();
+                    if (data) {
+                        payData = data;
+                        break;
+                    }
+                }
+
+                if (!payData) throw new Error("Pagamento não encontrado.");
                 setPayment(payData);
 
                 // Fetch paciente
-                if (payData && (payData as any).paciente_id) {
-                    const { data: pacData, error: pacErr } = await supabase
+                if (payData.paciente_id) {
+                    const { data: pacData } = await supabase
                         .from("pacientes")
                         .select("*")
-                        .eq("id", (payData as any).paciente_id)
-                        .single();
-                    if (!pacErr) setPaciente(pacData);
+                        .eq("id", payData.paciente_id)
+                        .maybeSingle();
+                    if (pacData) setPaciente(pacData);
                 }
 
                 // Fetch clinic settings
@@ -46,7 +61,7 @@ const PublicReceipt = () => {
                     .from("clinic_settings")
                     .select("*")
                     .limit(1)
-                    .single();
+                    .maybeSingle();
                 if (clinicData) setClinic(clinicData);
 
             } catch (err: any) {
@@ -58,10 +73,10 @@ const PublicReceipt = () => {
         };
 
         fetchData();
-    }, [id]);
+    }, [id, searchParams]);
 
     const handleDownload = async () => {
-        if (!payment || !paciente || !clinic) {
+        if (!payment || !paciente) {
             toast.error("Dados incompletos para gerar o recibo.");
             return;
         }
@@ -79,7 +94,7 @@ const PublicReceipt = () => {
                 numero,
                 pacienteNome: paciente.nome,
                 cpf: paciente.cpf || "Não informado",
-                descricao: payment.descricao || "Serviços de fisioterapia",
+                descricao: payment.descricao || payment.observacoes || "Serviços de fisioterapia",
                 valor: payment.valor,
                 formaPagamento: payment.metodo_pagamento || payment.forma_pagamento || "",
                 dataPagamento: dateStr,
@@ -144,10 +159,12 @@ const PublicReceipt = () => {
                                 {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.valor)}
                             </span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Método</span>
-                            <span className="capitalize text-slate-900 font-medium">{payment.metodo_pagamento || "Não informado"}</span>
-                        </div>
+                        {paciente && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-500">Paciente</span>
+                                <span className="text-slate-900 font-medium">{paciente.nome}</span>
+                            </div>
+                        )}
                     </div>
 
                     <Button 
