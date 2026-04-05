@@ -105,6 +105,8 @@ const Profissionais = () => {
   const [filterRole, setFilterRole] = useState("all");
 
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { profissionais: users, isLoading } = useProfissionais();
 
