@@ -51,13 +51,14 @@ const ProfessionalDashboard = () => {
 
   // Buscar aniversariantes do mês
   const { data: aniversariantes } = useQuery({
-    queryKey: ["aniversariantes-prof", clinicaAtual?.id],
+    queryKey: ["aniversariantes-prof", user?.id],
     queryFn: async () => {
       const mesAtual = hoje.getMonth() + 1;
+      // Pacientes don't have clinic_id directly; fetch all active patients
       const { data } = await (supabase
         .from("pacientes") as any)
         .select("id, nome, data_nascimento, telefone")
-        .eq("clinic_id", clinicaAtual?.id)
+        .eq("status", "ativo")
         .not("data_nascimento", "is", null);
 
       // Filtrar aniversariantes do mês
@@ -71,7 +72,7 @@ const ProfessionalDashboard = () => {
         return dayA - dayB;
       });
     },
-    enabled: !!clinicaAtual?.id,
+    enabled: !!user?.id,
   });
 
   // Buscar prévia de comissões do mês
