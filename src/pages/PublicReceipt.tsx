@@ -68,10 +68,22 @@ const PublicReceipt = () => {
 
         setGenerating(true);
         try {
-            const doc = generateReceiptPDF({
-                payment,
-                paciente,
-                clinic
+            const dataPag = payment.data_pagamento || payment.created_at;
+            const dateStr = new Date(dataPag).toLocaleDateString("pt-BR");
+            const yy = new Date(dataPag).getFullYear().toString().slice(-2);
+            const mm = String(new Date(dataPag).getMonth() + 1).padStart(2, "0");
+            const short = payment.id.slice(0, 6).toUpperCase();
+            const numero = `${yy}${mm}-${short}`;
+
+            const doc = await generateReceiptPDF({
+                numero,
+                pacienteNome: paciente.nome,
+                cpf: paciente.cpf || "Não informado",
+                descricao: payment.descricao || "Serviços de fisioterapia",
+                valor: payment.valor,
+                formaPagamento: payment.metodo_pagamento || payment.forma_pagamento || "",
+                dataPagamento: dateStr,
+                referencia: payment.referencia || payment.mes_referencia || "",
             });
             doc.save(`recibo-${paciente.nome.replace(/\s+/g, "-")}.pdf`);
             toast.success("Recibo gerado com sucesso!");

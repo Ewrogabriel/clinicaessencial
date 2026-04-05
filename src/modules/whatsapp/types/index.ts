@@ -132,6 +132,13 @@ export interface ConnectionTestResult {
   error: string | null;
 }
 
+export interface TemplateParams {
+  phoneNumber: string;
+  templateName: string;
+  languageCode?: string;
+  variables: Record<string, string>;
+}
+
 // ── Automation trigger payload shapes ───────────────────────
 
 export interface SessionConfirmationData {
