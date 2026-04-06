@@ -4978,6 +4978,7 @@ export type Database = {
           total_pontos: number
         }[]
       }
+      get_public_receipt: { Args: { p_payment_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

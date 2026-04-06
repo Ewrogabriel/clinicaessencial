@@ -1,21 +1,18 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReceiptPDF } from "@/lib/generateReceiptPDF";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const PAYMENT_TABLES = ["pagamentos", "pagamentos_sessoes", "pagamentos_mensalidade"] as const;
-
 const PublicReceipt = () => {
     const { id } = useParams();
-    const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [payment, setPayment] = useState<any>(null);
     const [paciente, setPaciente] = useState<any>(null);
-    const [clinic, setClinic] = useState<any>(null);
+    const [clinicNome, setClinicNome] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -23,47 +20,16 @@ const PublicReceipt = () => {
             if (!id) return;
             setLoading(true);
             try {
-                let payData: any = null;
-                const source = searchParams.get("source");
+                // Use RPC function that bypasses RLS
+                const { data, error: rpcError } = await (supabase as any)
+                    .rpc("get_public_receipt", { p_payment_id: id });
 
-                // Try the source table first, then fall back to others
-                const tablesToTry = source
-                    ? [source, ...PAYMENT_TABLES.filter(t => t !== source)]
-                    : [...PAYMENT_TABLES];
+                if (rpcError) throw rpcError;
+                if (!data) throw new Error("Pagamento não encontrado.");
 
-                for (const table of tablesToTry) {
-                    const { data, error: err } = await (supabase as any)
-                        .from(table)
-                        .select("*")
-                        .eq("id", id)
-                        .maybeSingle();
-                    if (data) {
-                        payData = data;
-                        break;
-                    }
-                }
-
-                if (!payData) throw new Error("Pagamento não encontrado.");
-                setPayment(payData);
-
-                // Fetch paciente
-                if (payData.paciente_id) {
-                    const { data: pacData } = await supabase
-                        .from("pacientes")
-                        .select("*")
-                        .eq("id", payData.paciente_id)
-                        .maybeSingle();
-                    if (pacData) setPaciente(pacData);
-                }
-
-                // Fetch clinic settings
-                const { data: clinicData } = await supabase
-                    .from("clinic_settings")
-                    .select("*")
-                    .limit(1)
-                    .maybeSingle();
-                if (clinicData) setClinic(clinicData);
-
+                setPayment(data.payment);
+                setPaciente(data.paciente);
+                setClinicNome(data.clinic_nome);
             } catch (err: any) {
                 console.error("Error fetching receipt data:", err);
                 setError(err.message);
@@ -73,7 +39,7 @@ const PublicReceipt = () => {
         };
 
         fetchData();
-    }, [id, searchParams]);
+    }, [id]);
 
     const handleDownload = async () => {
         if (!payment || !paciente) {
@@ -147,7 +113,7 @@ const PublicReceipt = () => {
                         <p className="text-slate-500 text-sm">
                             Clique no botão abaixo para baixar o recibo do seu pagamento realizado em{" "}
                             <span className="font-semibold text-slate-700">
-                                {new Date(payment.data_pagamento || payment.created_at).toLocaleDateString("pt-BR")}
+                                {new Date(payment.data_pagamento).toLocaleDateString("pt-BR")}
                             </span>
                         </p>
                     </div>
@@ -179,10 +145,10 @@ const PublicReceipt = () => {
                         )}
                     </Button>
 
-                    {clinic?.nome && (
+                    {clinicNome && (
                         <div className="pt-4 border-t border-slate-100">
                             <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Emitido por</p>
-                            <p className="text-sm font-medium text-slate-600">{clinic.nome}</p>
+                            <p className="text-sm font-medium text-slate-600">{clinicNome}</p>
                         </div>
                     )}
                 </div>

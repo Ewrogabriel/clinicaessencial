@@ -35,7 +35,7 @@ export function usePatientDashboardData(userId: string | undefined, pacienteId: 
   const meusPlanosServico = useQuery({
     queryKey: ["meus-planos-servico", pacienteId],
     queryFn: async () => {
-      const { data } = await supabase.from("planos" as never).select("id, nome, sessoes_contratadas, sessoes_utilizadas, status")
+      const { data } = await (supabase as any).from("planos").select("id, tipo_atendimento, total_sessoes, sessoes_utilizadas, status, valor")
         .eq("paciente_id", pacienteId!).eq("status", "ativo").limit(5);
       return (data as Record<string, unknown>[]) || [];
     },
