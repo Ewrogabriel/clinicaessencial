@@ -82,10 +82,10 @@ const ProfessionalDashboard = () => {
       const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
       const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
 
-      // Fetch sessions and commission rate in parallel
-      const [sessResult, profileResult] = await Promise.all([
+      // Fetch sessions, commission rules, and profile in parallel
+      const [sessResult, profileResult, regrasResult] = await Promise.all([
         (supabase.from("agendamentos") as any)
-          .select("valor_sessao, status")
+          .select("valor_sessao, status, tipo_atendimento")
           .eq("profissional_id", user?.id)
           .gte("data_horario", inicioMes.toISOString())
           .lte("data_horario", fimMes.toISOString())
@@ -94,22 +94,53 @@ const ProfessionalDashboard = () => {
           .select("commission_rate, commission_fixed")
           .eq("user_id", user?.id)
           .maybeSingle(),
+        (supabase as any).from("regras_comissao")
+          .select("*")
+          .eq("profissional_id", user?.id)
+          .eq("ativo", true),
       ]);
 
-      const data = sessResult.data as any[] || [];
+      const sessions = sessResult.data as any[] || [];
       const profProfile = profileResult.data;
+      const regras = regrasResult.data as any[] || [];
 
-      const totalSessoes = data.length;
-      const valorTotal = data.reduce((acc: number, s: any) => acc + (Number(s.valor_sessao) || 0), 0);
+      const totalSessoes = sessions.length;
+      const valorTotal = sessions.reduce((acc: number, s: any) => acc + (Number(s.valor_sessao) || 0), 0);
       
-      // Use commission_rate from profiles table, fallback to 40%
-      const commissionRate = profProfile?.commission_rate ? Number(profProfile.commission_rate) : 40;
-      const commissionFixed = profProfile?.commission_fixed ? Number(profProfile.commission_fixed) : 0;
-      const comissaoEstimada = commissionFixed > 0
-        ? commissionFixed * totalSessoes
-        : valorTotal * (commissionRate / 100);
+      // Calculate commission per session using regras_comissao rules
+      let comissaoEstimada = 0;
+      
+      if (regras.length > 0) {
+        // Use specific rules per session type
+        for (const s of sessions) {
+          const valorSessao = Number(s.valor_sessao) || 0;
+          const tipoAtend = (s.tipo_atendimento || "").toLowerCase();
+          
+          const specificRule = regras.find((r: any) => r.tipo_atendimento?.toLowerCase() === tipoAtend);
+          const genericRule = regras.find((r: any) => r.tipo_atendimento?.toLowerCase() === "todos");
+          const rule = specificRule || genericRule;
+          
+          if (rule) {
+            const pct = Number(rule.percentual) || 0;
+            const fixo = Number(rule.valor_fixo) || 0;
+            comissaoEstimada += (valorSessao * pct / 100) + fixo;
+          } else {
+            // Fallback to profile rates
+            const rate = Number(profProfile?.commission_rate) || 0;
+            const fixed = Number(profProfile?.commission_fixed) || 0;
+            comissaoEstimada += (valorSessao * rate / 100) + fixed;
+          }
+        }
+      } else {
+        // No regras_comissao: use profile rates
+        const commissionRate = profProfile?.commission_rate ? Number(profProfile.commission_rate) : 0;
+        const commissionFixed = profProfile?.commission_fixed ? Number(profProfile.commission_fixed) : 0;
+        comissaoEstimada = commissionFixed > 0
+          ? commissionFixed * totalSessoes
+          : valorTotal * (commissionRate / 100);
+      }
 
-      return { totalSessoes, valorTotal, comissaoEstimada, commissionRate };
+      return { totalSessoes, valorTotal, comissaoEstimada, commissionRate: 0 };
     },
     enabled: !!user?.id,
   });
