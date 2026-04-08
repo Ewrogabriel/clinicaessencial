@@ -110,7 +110,12 @@ const MeusPagamentos = () => {
         }
       });
 
-      return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      // Sort by best available date (newest first)
+      return results.sort((a, b) => {
+        const dateA = a.data_vencimento || a.data_pagamento || a.created_at;
+        const dateB = b.data_vencimento || b.data_pagamento || b.created_at;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
     },
     enabled: !!patientId,
   });

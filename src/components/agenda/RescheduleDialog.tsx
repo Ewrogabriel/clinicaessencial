@@ -5,6 +5,9 @@ import { CalendarIcon, Clock, CheckCircle2, AlertTriangle, Lightbulb, RefreshCw,
 import { cn } from "@/lib/utils";
 import { checkAvailability, getMonthlyAvailability, type AvailabilityCheckResult } from "@/lib/availabilityCheck";
 import { suggestAvailableSlots, type SuggestedSlot } from "@/lib/suggestSlots";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { useScheduleSlots } from "@/modules/appointments/hooks/useAppointments";
+import { TimeSlotCards, type TimeSlot } from "@/components/ui/time-slot-cards";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -41,6 +44,7 @@ interface RescheduleDialogProps {
 
 export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }: RescheduleDialogProps) {
   const { user, isAdmin, isGestor, isProfissional, isSecretario } = useAuth();
+  const { activeClinicId } = useClinic();
   const isStaff = isAdmin || isGestor || isProfissional || isSecretario;
   const queryClient = useQueryClient();
   const [profissionais, setProfissionais] = useState<any[]>([]);
@@ -55,6 +59,13 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [suggestedSlots, setSuggestedSlots] = useState<SuggestedSlot[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  const formattedDate = date ? format(date, "yyyy-MM-dd") : "";
+  const { data: availableSlots, isLoading: isLoadingSlots } = useScheduleSlots({
+    professionalId: selectedProfId,
+    date: formattedDate,
+    clinicId: activeClinicId,
+  });
 
   // Reseta campos quando o modal abre
   useEffect(() => {
@@ -324,17 +335,36 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
 
             <div className="flex flex-col gap-2">
               <Label className="text-xs font-bold uppercase text-muted-foreground">Novo Horário</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  type="time"
-                  value={horario}
-                  onChange={(e) => setHorario(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              {(!availableSlots || availableSlots.length === 0) && (
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="time"
+                    value={horario}
+                    onChange={(e) => setHorario(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              )}
             </div>
           </div>
+          
+          {availableSlots && availableSlots.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs text-muted-foreground">Selecione o horário</Label>
+              <TimeSlotCards
+                slots={availableSlots as TimeSlot[]}
+                selectedSlotId=""
+                onSelect={(slot) => {
+                  setHorario(slot.start_time.slice(0, 5));
+                }}
+                selectedTime={horario}
+                isLoading={isLoadingSlots}
+                emptyMessage="Selecione data e profissional para ver horários"
+                disabled={!date || !selectedProfId}
+              />
+            </div>
+          )}
 
           {availabilityResult && (
             <div className={cn(

@@ -23,7 +23,8 @@ export interface AvailabilityCheckResult {
  */
 export async function checkAvailability(
   profissionalId: string,
-  dateTime: Date
+  dateTime: Date,
+  requestedTipoSessao: 'individual' | 'grupo' = 'individual'
 ): Promise<AvailabilityCheckResult> {
   const dayOfWeek = dateTime.getDay(); // 0=Sun, 1=Mon...
   const timeStr = `${String(dateTime.getHours()).padStart(2, "0")}:${String(dateTime.getMinutes()).padStart(2, "0")}:00`;
@@ -89,7 +90,13 @@ export async function checkAvailability(
 
   const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
   const currentCount = slotAppointments.length;
-  const isOverCapacity = hasIndividual || currentCount >= matchingSlot.max_pacientes;
+  
+  let isOverCapacity = false;
+  if (requestedTipoSessao === 'individual') {
+    isOverCapacity = currentCount > 0;
+  } else {
+    isOverCapacity = hasIndividual || currentCount >= matchingSlot.max_pacientes;
+  }
 
   return {
     isWithinSchedule: true,
@@ -98,7 +105,9 @@ export async function checkAvailability(
     maxCapacity: matchingSlot.max_pacientes,
     matchingSlot,
     message: isOverCapacity
-      ? `Capacidade máxima atingida: ${currentCount}/${matchingSlot.max_pacientes} pacientes neste horário.`
+      ? (requestedTipoSessao === 'individual' && currentCount > 0 
+          ? `O horário já possui agendamentos. Sessões individuais exigem horário vazio.` 
+          : `Capacidade máxima atingida: ${currentCount}/${matchingSlot.max_pacientes} pacientes neste horário.`)
       : `Disponível: ${currentCount}/${matchingSlot.max_pacientes} pacientes neste horário.`,
   };
 }
@@ -108,7 +117,8 @@ export async function checkAvailability(
  */
 export async function getAvailableSlots(
   profissionalId: string,
-  date: Date
+  date: Date,
+  requestedTipoSessao: 'individual' | 'grupo' = 'individual'
 ): Promise<{ slot: AvailabilitySlot; currentCount: number; available: number }[]> {
   const dayOfWeek = date.getDay();
 
@@ -144,7 +154,13 @@ export async function getAvailableSlots(
 
     const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
     const count = slotAppointments.length;
-    const available = hasIndividual ? 0 : Math.max(0, slot.max_pacientes - count);
+    
+    let available = 0;
+    if (requestedTipoSessao === 'individual') {
+      available = count > 0 ? 0 : slot.max_pacientes;
+    } else {
+      available = hasIndividual ? 0 : Math.max(0, slot.max_pacientes - count);
+    }
 
     return {
       slot,

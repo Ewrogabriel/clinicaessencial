@@ -22,6 +22,7 @@ import { ptBR } from "date-fns/locale";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { buildConfirmationMessage } from "@/lib/whatsapp/confirmationTemplates";
 import { toast } from "sonner";
+import { RescheduleDialog } from "@/components/agenda/RescheduleDialog";
 
 const statusLabel: Record<string, { label: string; color: string }> = {
   confirmado: { label: "Confirmado ✓", color: "bg-green-100 text-green-700 border-green-200" },
@@ -41,6 +42,8 @@ const ConfirmacoesDia = () => {
   const [search, setSearch] = useState("");
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [sending, setSending] = useState<string | null>(null);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleAg, setRescheduleAg] = useState<any>(null);
 
   const today = new Date();
   const rangeStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0).toISOString();
@@ -370,7 +373,8 @@ const ConfirmacoesDia = () => {
                                 variant="outline"
                                 className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
                                 onClick={() => {
-                                  window.open(`/agenda?remarcar=${ag.id}`, "_self");
+                                  setRescheduleAg(ag);
+                                  setRescheduleOpen(true);
                                 }}
                                 data-testid={`remarcar-btn-${ag.id}`}
                               >
@@ -416,6 +420,16 @@ const ConfirmacoesDia = () => {
           Aguardando resposta
         </div>
       </div>
+
+      <RescheduleDialog
+        open={rescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        agendamento={rescheduleAg}
+        onSuccess={() => {
+          setRescheduleAg(null);
+          refetch();
+        }}
+      />
     </div>
   );
 };

@@ -204,13 +204,14 @@ export const financeService = {
             // 1. pagamentos
             let q1 = supabase
                 .from("pagamentos")
-                .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, pacientes(nome)")
+                .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, agendamento_id, tipo_lancamento, pacientes(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q1 = q1.eq("clinic_id", clinicId);
             const { data: pgtos, error: err1 } = await q1;
             if (err1) throw err1;
 
             (pgtos || []).forEach((p: any) => {
+                const isSessao = p.tipo_lancamento === "sessao" || p.agendamento_id != null;
                 results.push({
                     id: p.id,
                     valor: Number(p.valor),
@@ -221,7 +222,7 @@ export const financeService = {
                     descricao: p.descricao,
                     created_at: p.created_at,
                     paciente_nome: p.pacientes?.nome ?? "—",
-                    origem_tipo: p.plano_id ? "plano" : "manual",
+                    origem_tipo: isSessao ? "sessao" : (p.plano_id ? "plano" : "manual"),
                     source_table: "pagamentos",
                 });
             });
@@ -264,7 +265,7 @@ export const financeService = {
                 results.push({
                     id: s.id,
                     valor: Number(s.valor),
-                    data_pagamento: s.data_pagamento,
+                    data_pagamento: s.status === "pago" ? s.data_pagamento : null,
                     data_vencimento: s.status === "pago" ? null : s.data_pagamento,
                     status: s.status ?? "aberto",
                     forma_pagamento: s.forma_pagamento_id,

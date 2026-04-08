@@ -94,12 +94,12 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
       const [h, m] = watchedHorario.split(":").map(Number);
       const dt = new Date(watchedDate);
       dt.setHours(h, m, 0, 0);
-      const result = await checkAvailability(watchedProfId, dt);
+      const result = await checkAvailability(watchedProfId, dt, watchedTipoSessao as 'individual' | 'grupo');
       setAvailabilityResult(result);
       setCheckingAvailability(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [watchedProfId, watchedDate, watchedHorario, isRecorrente]);
+  }, [watchedProfId, watchedDate, watchedHorario, isRecorrente, watchedTipoSessao]);
 
   useEffect(() => { if (defaultDate) form.setValue("data", defaultDate); }, [defaultDate, form]);
   useEffect(() => { if (open && defaultProfissionalId) form.setValue("profissional_id", defaultProfissionalId); }, [open, defaultProfissionalId, form]);

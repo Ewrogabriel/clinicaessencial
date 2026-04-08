@@ -216,7 +216,7 @@ export default function PatientDashboard() {
 
         {/* Session history */}
         {isCardVisible("historico") && (
-          <DashboardListCard title="Histórico de Sessões" icon={CalendarDays} iconColor="text-gray-600" onViewAll={() => navigate("/historico-sessoes")} isEmpty={d.pastSessions.length === 0} emptyMessage="Nenhuma sessão realizada ainda">
+          <DashboardListCard title="Histórico de Sessões" icon={CalendarDays} iconColor="text-gray-600" onViewAll={() => navigate("/meu-historico")} isEmpty={d.pastSessions.length === 0} emptyMessage="Nenhuma sessão realizada ainda">
             <div className="space-y-1">
               {d.pastSessions.map((s: any, idx: number) => {
                 const statusColors: Record<string, string> = { realizado: "bg-green-50 text-green-700", falta: "bg-amber-50 text-amber-700", cancelado: "bg-red-50 text-red-700" };
@@ -242,7 +242,7 @@ export default function PatientDashboard() {
 
         {/* Enrollments */}
         {isCardVisible("matriculas") && (
-          <DashboardListCard title="Matrículas Ativas" icon={Star} iconColor="text-indigo-600" onViewAll={() => navigate("/matriculas")} isEmpty={d.matriculasAtivas.length === 0} emptyMessage="Nenhuma matrícula ativa">
+          <DashboardListCard title="Matrículas Ativas" icon={Star} iconColor="text-indigo-600" isEmpty={d.matriculasAtivas.length === 0} emptyMessage="Nenhuma matrícula ativa">
             <div className="space-y-1">
               {d.matriculasAtivas.map((m: any, idx: number) => (
                 <div key={m.id}>
