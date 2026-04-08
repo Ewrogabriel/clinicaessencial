@@ -200,87 +200,109 @@ export const financeService = {
 
     async getUnifiedPayments(clinicId: string | null): Promise<UnifiedPayment[]> {
         const results: any[] = [];
+        
+        // 1. pagamentos
         try {
-            // 1. pagamentos
             let q1 = supabase
                 .from("pagamentos")
                 .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, agendamento_id, tipo_lancamento, pacientes(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q1 = q1.eq("clinic_id", clinicId);
             const { data: pgtos, error: err1 } = await q1;
-            if (err1) throw err1;
-
-            (pgtos || []).forEach((p: any) => {
-                const isSessao = p.tipo_lancamento === "sessao" || p.agendamento_id != null;
-                results.push({
-                    id: p.id,
-                    valor: Number(p.valor),
-                    data_pagamento: p.data_pagamento,
-                    data_vencimento: p.data_vencimento,
-                    status: p.status,
-                    forma_pagamento: p.forma_pagamento,
-                    descricao: p.descricao,
-                    created_at: p.created_at,
-                    paciente_nome: p.pacientes?.nome ?? "—",
-                    origem_tipo: isSessao ? "sessao" : (p.plano_id ? "plano" : "manual"),
-                    source_table: "pagamentos",
+            
+            if (err1) {
+                console.error("Error fetching 'pagamentos':", err1);
+            } else {
+                (pgtos || []).forEach((p: any) => {
+                    const isSessao = p.tipo_lancamento === "sessao" || p.agendamento_id != null;
+                    results.push({
+                        id: p.id,
+                        valor: Number(p.valor),
+                        data_pagamento: p.data_pagamento,
+                        data_vencimento: p.data_vencimento,
+                        status: p.status,
+                        forma_pagamento: p.forma_pagamento,
+                        descricao: p.descricao,
+                        created_at: p.created_at,
+                        paciente_nome: p.pacientes?.nome ?? "—",
+                        origem_tipo: isSessao ? "sessao" : (p.plano_id ? "plano" : "manual"),
+                        source_table: "pagamentos",
+                    });
                 });
-            });
+            }
+        } catch (e) {
+            console.error("Critical error in 'pagamentos' fetch:", e);
+        }
 
-            // 2. pagamentos_mensalidade
+        // 2. pagamentos_mensalidade
+        try {
             let q2 = supabase
                 .from("pagamentos_mensalidade")
                 .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q2 = q2.eq("clinic_id", clinicId);
             const { data: mensalidades, error: err2 } = await q2;
-            if (err2) throw err2;
-
-            (mensalidades || []).forEach((m: any) => {
-                results.push({
-                    id: m.id,
-                    valor: Number(m.valor),
-                    data_pagamento: m.data_pagamento,
-                    data_vencimento: m.mes_referencia,
-                    status: m.status ?? "aberto",
-                    forma_pagamento: m.forma_pagamento_id,
-                    descricao: `Mensalidade - ${m.mes_referencia}`,
-                    created_at: m.created_at ?? "",
-                    paciente_nome: m.pacientes?.nome ?? "—",
-                    origem_tipo: "mensalidade",
-                    source_table: "pagamentos_mensalidade",
+            
+            if (err2) {
+                console.error("Error fetching 'pagamentos_mensalidade':", err2);
+            } else {
+                (mensalidades || []).forEach((m: any) => {
+                    results.push({
+                        id: m.id,
+                        valor: Number(m.valor),
+                        data_pagamento: m.data_pagamento,
+                        data_vencimento: m.mes_referencia,
+                        status: m.status ?? "aberto",
+                        forma_pagamento: m.forma_pagamento_id,
+                        descricao: `Mensalidade - ${m.mes_referencia}`,
+                        created_at: m.created_at ?? "",
+                        paciente_nome: m.pacientes?.nome ?? "—",
+                        origem_tipo: "mensalidade",
+                        source_table: "pagamentos_mensalidade",
+                    });
                 });
-            });
+            }
+        } catch (e) {
+            console.error("Critical error in 'pagamentos_mensalidade' fetch:", e);
+        }
 
-            // 3. pagamentos_sessoes
+        // 3. pagamentos_sessoes
+        try {
             let q3 = supabase
                 .from("pagamentos_sessoes")
                 .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q3 = q3.eq("clinic_id", clinicId);
             const { data: sessoes, error: err3 } = await q3;
-            if (err3) throw err3;
-
-            (sessoes || []).forEach((s: any) => {
-                results.push({
-                    id: s.id,
-                    valor: Number(s.valor),
-                    data_pagamento: s.status === "pago" ? s.data_pagamento : null,
-                    data_vencimento: s.status === "pago" ? null : s.data_pagamento,
-                    status: s.status ?? "aberto",
-                    forma_pagamento: s.forma_pagamento_id,
-                    descricao: s.observacoes || "Sessão avulsa",
-                    created_at: s.created_at ?? "",
-                    paciente_nome: s.pacientes?.nome ?? "—",
-                    origem_tipo: "sessao",
-                    source_table: "pagamentos_sessoes",
+            
+            if (err3) {
+                console.error("Error fetching 'pagamentos_sessoes':", err3);
+            } else {
+                (sessoes || []).forEach((s: any) => {
+                    results.push({
+                        id: s.id,
+                        valor: Number(s.valor),
+                        data_pagamento: s.status === "pago" ? s.data_pagamento : null,
+                        data_vencimento: s.status === "pago" ? null : s.data_pagamento,
+                        status: s.status ?? "aberto",
+                        forma_pagamento: s.forma_pagamento_id,
+                        descricao: s.observacoes || "Sessão avulsa",
+                        created_at: s.created_at ?? "",
+                        paciente_nome: s.pacientes?.nome ?? "—",
+                        origem_tipo: "sessao",
+                        source_table: "pagamentos_sessoes",
+                    });
                 });
-            });
-
-            return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        } catch (error) {
-            handleError(error, "Erro ao buscar pagamentos unificados.");
-            return [];
+            }
+        } catch (e) {
+            console.error("Critical error in 'pagamentos_sessoes' fetch:", e);
         }
+
+        return results.sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+        });
     }
+
 };
