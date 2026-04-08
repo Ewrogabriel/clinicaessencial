@@ -77,7 +77,7 @@ const Contratos = () => {
     queryKey: ["profissionais-contrato"],
     queryFn: async () => {
       if (isProfissional) {
-        const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").eq("id", user?.id).order("nome");
+        const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").eq("user_id", user?.id).order("nome");
         return (data as any[]) ?? [];
       }
       if (!canManage) return [];
@@ -93,7 +93,7 @@ const Contratos = () => {
   const { data: currentUserProfile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho").eq("id", user?.id).single();
+      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho").eq("user_id", user?.id).single();
       return data;
     },
     enabled: !!user?.id,
@@ -208,6 +208,12 @@ const Contratos = () => {
     if (isPatient && patientId && !selectedPaciente && pacientes.length > 0) setSelectedPaciente(patientId);
   }, [isPatient, patientId, selectedPaciente, pacientes]);
 
+  useEffect(() => {
+    if (isProfissional && profissionais.length > 0 && !selectedProfissional) {
+      setSelectedProfissional(profissionais[0].id);
+    }
+  }, [isProfissional, profissionais, selectedProfissional]);
+
   const tipoLabel = (t: string) => t === "clt" ? "CLT" : t === "mei" ? "MEI" : t === "pj" ? "Pessoa Jurídica" : "Autônomo";
   const estadoCivilLabel = (e: string) => ({ solteiro: "Solteiro(a)", casado: "Casado(a)", divorciado: "Divorciado(a)", viuvo: "Viúvo(a)", uniao_estavel: "União Estável" }[e] || e);
 
@@ -297,6 +303,7 @@ const Contratos = () => {
                   </div>
                 )}
 
+                {!isPatient && (
                 <div className="space-y-3 pt-2 border-t mt-2">
                   <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <div className="space-y-0.5">
@@ -358,6 +365,7 @@ const Contratos = () => {
                     />
                   </div>
                 </div>
+                )}
 
                   <div className="flex flex-col gap-2 pt-2">
                     <Button onClick={() => setIsSignatureDialogOpen(true)} variant="outline" disabled={!paciente} className="w-full border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700">
