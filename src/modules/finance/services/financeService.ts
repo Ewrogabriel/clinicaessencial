@@ -205,7 +205,7 @@ export const financeService = {
         try {
             let q1 = supabase
                 .from("pagamentos")
-                .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, created_at, paciente_id, plano_id, agendamento_id, tipo_lancamento, pacientes(nome)")
+                .select("id, valor, data_pagamento, data_vencimento, origem_tipo, status, forma_pagamento:formas_pagamento(nome_forma), observacoes, created_at, paciente_id, pacientes(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q1 = q1.eq("clinic_id", clinicId);
             const { data: pgtos, error: err1 } = await q1;
@@ -214,18 +214,17 @@ export const financeService = {
                 console.error("Error fetching 'pagamentos':", err1);
             } else {
                 (pgtos || []).forEach((p: any) => {
-                    const isSessao = p.tipo_lancamento === "sessao" || p.agendamento_id != null;
                     results.push({
                         id: p.id,
                         valor: Number(p.valor),
                         data_pagamento: p.data_pagamento,
                         data_vencimento: p.data_vencimento,
                         status: p.status,
-                        forma_pagamento: p.forma_pagamento,
-                        descricao: p.descricao,
+                        forma_pagamento: p.forma_pagamento?.nome_forma || "—",
+                        descricao: p.observacoes || "—",
                         created_at: p.created_at,
                         paciente_nome: p.pacientes?.nome ?? "—",
-                        origem_tipo: isSessao ? "sessao" : (p.plano_id ? "plano" : "manual"),
+                        origem_tipo: p.origem_tipo,
                         source_table: "pagamentos",
                     });
                 });

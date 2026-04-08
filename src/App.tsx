@@ -143,7 +143,7 @@ const App = () => (
                         <Route path="/meus-planos" element={<MeusPlanos />} />
                         <Route path="/meu-perfil" element={<MeuPerfilToggle />} />
                         <Route path="/meu-historico" element={<HistoricoSessoes />} />
-                        <Route path="/matriculas" element={<Matriculas />} />
+                        <Route path="/matriculas" element={<RequireRole roles={["admin", "gestor", "master", "secretario", "profissional"]}><Matriculas /></RequireRole>} />
                         <Route path="/inventario" element={<Inventario />} />
                         <Route path="/financeiro" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><Financeiro /></RequireRole>} />
                         <Route path="/conciliacao-bancaria" element={<RequireRole roles={["admin", "gestor", "master", "secretario"]}><ConciliacaoBancaria /></RequireRole>} />
