@@ -233,7 +233,7 @@ export const financeService = {
         try {
             let q2 = supabase
                 .from("pagamentos_mensalidade")
-                .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome)")
+                .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome), matricula_id")
                 .order("created_at", { ascending: false });
             if (clinicId) q2 = q2.eq("clinic_id", clinicId);
             const { data: mensalidades, error: err2 } = await q2;
@@ -259,11 +259,53 @@ export const financeService = {
             console.error("Critical error in 'pagamentos_mensalidade' fetch:", e);
         }
 
+        // 2.1 Forecast for active matriculas (Virtual Mensualities)
+        try {
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            let qMatriculas = supabase
+                .from("matriculas")
+                .select("id, paciente_id, valor_mensal, data_inicio, status, pacientes(nome)")
+                .eq("status", "ativo");
+            if (clinicId) qMatriculas = qMatriculas.eq("clinic_id", clinicId);
+            
+            const { data: activeMatriculas, error: errM } = await qMatriculas;
+            if (!errM && activeMatriculas) {
+                activeMatriculas.forEach((m: any) => {
+                    // Check if a payment for current month already exists in results
+                    const hasPayment = results.some(r => 
+                        r.source_table === "pagamentos_mensalidade" && 
+                        r.matricula_id === m.id && 
+                        r.mes_referencia === currentMonth
+                    );
+                    
+                    if (!hasPayment) {
+                        results.push({
+                            id: `virtual-m-${m.id}-${currentMonth}`,
+                            valor: Number(m.valor_mensal),
+                            data_pagamento: null,
+                            data_vencimento: `${currentMonth}-10`, // Suggest 10th as default
+                            status: "pendente",
+                            forma_pagamento: "—",
+                            descricao: `Mensalidade Prevista - ${currentMonth}`,
+                            created_at: new Date().toISOString(),
+                            paciente_nome: m.pacientes?.nome ?? "—",
+                            paciente_id: m.paciente_id,
+                            matricula_id: m.id,
+                            origem_tipo: "mensalidade",
+                            source_table: "matriculas_virtual",
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Error in virtual monthly forecast:", e);
+        }
+
         // 3. pagamentos_sessoes (Sessões Avulsas REALIZADAS)
         try {
             let q3 = supabase
                 .from("pagamentos_sessoes")
-                .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome)")
+                .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome), agendamento_id")
                 .order("created_at", { ascending: false });
             if (clinicId) q3 = q3.eq("clinic_id", clinicId);
             const { data: sessoes, error: err3 } = await q3;
@@ -289,14 +331,16 @@ export const financeService = {
             console.error("Critical error in 'pagamentos_sessoes' fetch:", e);
         }
 
-        // 4. agendamentos com valor (Previsão de Sessões Avulsas FUTURAS)
+        // 4. agendamentos com valor (Previsão de Sessões FUTURAS)
         try {
             let q4 = supabase
                 .from("agendamentos")
-                .select("id, valor_sessao, data_horario, status, tipo_sessao, paciente_id, pacientes(nome)")
-                .gt("valor_sessao", 0)
-                .neq("status", "realizado") // Sessões realizadas já devem estar em pagamentos_sessoes
+                .select("id, valor_sessao, data_horario, status, tipo_sessao, paciente_id, pacientes(nome), enrollment_id")
+                // Pegar qualquer agendamento que não esteja realizado/cancelado
+                .neq("status", "realizado")
                 .neq("status", "cancelado")
+                // Filtramos por sessões que não são Matrícula (que já tratamos no Forecast 2.1)
+                .neq("tipo_sessao", "sessao_matricula")
                 .order("data_horario", { ascending: false });
             if (clinicId) q4 = q4.eq("clinic_id", clinicId);
             const { data: upcoming, error: err4 } = await q4;
@@ -305,20 +349,23 @@ export const financeService = {
                 console.error("Error fetching upcoming appointments for forecast:", err4);
             } else {
                 (upcoming || []).forEach((u: any) => {
-                    // Evitar duplicidade: se já existe um pagamento_sessao para este agendamento (raro mas possível se marcado como pendente antes)
-                    const alreadyHasPayment = results.some(r => r.source_table === "pagamentos_sessoes" && r.agendamento_id === u.id);
+                    // Evitar duplicidade com pagamentos_sessoes
+                    const alreadyHasPayment = results.some(r => r.agendamento_id === u.id);
                     if (!alreadyHasPayment) {
+                        const isPlano = u.tipo_sessao === "sessao_plano";
                         results.push({
                             id: u.id,
-                            valor: Number(u.valor_sessao),
+                            valor: Number(u.valor_sessao || 0),
                             data_pagamento: null,
                             data_vencimento: u.data_horario,
                             status: "pendente",
                             forma_pagamento: "—",
-                            descricao: `Sessão Futura (${u.tipo_sessao})`,
+                            descricao: isPlano ? `Sessão Plano (${u.pacientes?.nome})` : `Sessão Avulsa (${u.tipo_sessao})`,
                             created_at: u.data_horario,
                             paciente_nome: u.pacientes?.nome ?? "—",
-                            origem_tipo: "sessao",
+                            paciente_id: u.paciente_id,
+                            agendamento_id: u.id,
+                            origem_tipo: isPlano ? "plano" : "sessao",
                             source_table: "agendamentos",
                         });
                     }

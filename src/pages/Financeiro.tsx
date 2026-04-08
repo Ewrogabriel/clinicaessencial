@@ -301,6 +301,30 @@ const Financeiro = () => {
       } else if (table === "pagamentos_sessoes") {
         const { error } = await supabase.from("pagamentos_sessoes").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", id);
         if (error) throw error;
+      } else if (source === "matriculas_virtual") {
+        const month = existing?.data_vencimento?.substring(0, 7) || format(new Date(), "yyyy-MM");
+        const { error } = await supabase.from("pagamentos_mensalidade").insert({
+          matricula_id: existing?.matricula_id,
+          paciente_id: existing?.paciente_id,
+          clinic_id: activeClinicId,
+          valor: existing?.valor,
+          mes_referencia: month,
+          status: "pago",
+          data_pagamento,
+          forma_pagamento_id: forma_pagamento_id || null,
+        });
+        if (error) throw error;
+      } else if (source === "agendamentos") {
+        const { error } = await supabase.from("pagamentos_sessoes").insert({
+          agendamento_id: id,
+          paciente_id: existing?.paciente_id,
+          clinic_id: activeClinicId,
+          valor: existing?.valor,
+          status: "pago",
+          data_pagamento,
+          forma_pagamento_id: forma_pagamento_id || null,
+        });
+        if (error) throw error;
       }
     },
     onSuccess: () => {
