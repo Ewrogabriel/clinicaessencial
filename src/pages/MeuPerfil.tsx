@@ -613,6 +613,43 @@ const MeuPerfil = () => {
         </Card>
       )}
 
+      {/* Solicitar Prontuário Completo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-5 w-5 text-primary" />
+            Prontuário Completo
+          </CardTitle>
+          <CardDescription>
+            Solicite uma cópia completa do seu prontuário clínico em PDF.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={async () => {
+              try {
+                const { error } = await (supabase
+                  .from("ficha_requests" as any) as any)
+                  .insert([{ paciente_id: patientId, status: "pendente" }]);
+                if (error) throw error;
+                toast.success("Solicitação enviada!", { description: "Aguarde a aprovação do administrador." });
+              } catch (err: any) {
+                if (err.message?.includes("duplicate")) {
+                  toast.info("Você já possui uma solicitação pendente.");
+                } else {
+                  toast.error("Erro ao solicitar prontuário", { description: err.message });
+                }
+              }
+            }}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Solicitar Prontuário Completo
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Documents */}
       <PatientAttachments pacienteId={patientId!} />
 
