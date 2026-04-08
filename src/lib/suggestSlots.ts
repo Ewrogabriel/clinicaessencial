@@ -16,7 +16,7 @@ export interface SuggestedSlot {
 export async function suggestAvailableSlots(
   profissionalId: string,
   daysAhead: number = 14,
-  duracaoMinutos: number = 50
+  duracaoMinutos: number = 60
 ): Promise<SuggestedSlot[]> {
   // 1. Fetch professional availability
   const { data: disponibilidades } = await (supabase

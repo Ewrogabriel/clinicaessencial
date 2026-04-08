@@ -201,11 +201,11 @@ export const financeService = {
     async getUnifiedPayments(clinicId: string | null): Promise<UnifiedPayment[]> {
         const results: any[] = [];
         
-        // 1. pagamentos
+        // 1. pagamentos (Manual, Planos, etc.)
         try {
             let q1 = supabase
                 .from("pagamentos")
-                .select("id, valor, data_pagamento, data_vencimento, origem_tipo, status, forma_pagamento:formas_pagamento(nome_forma), observacoes, created_at, paciente_id, pacientes(nome)")
+                .select("id, valor, data_pagamento, data_vencimento, status, formas_pagamento(nome_forma), observacoes, created_at, paciente_id, pacientes(nome), plano_id")
                 .order("created_at", { ascending: false });
             if (clinicId) q1 = q1.eq("clinic_id", clinicId);
             const { data: pgtos, error: err1 } = await q1;
@@ -215,16 +215,12 @@ export const financeService = {
             } else {
                 (pgtos || []).forEach((p: any) => {
                     results.push({
-                        id: p.id,
+                        ...p,
                         valor: Number(p.valor),
-                        data_pagamento: p.data_pagamento,
-                        data_vencimento: p.data_vencimento,
-                        status: p.status,
-                        forma_pagamento: p.forma_pagamento?.nome_forma || "—",
-                        descricao: p.observacoes || "—",
-                        created_at: p.created_at,
+                        forma_pagamento: p.formas_pagamento?.nome_forma || "—",
+                        descricao: p.observacoes || (p.plano_id ? "Plano de Sessões" : "Pagamento Manual"),
                         paciente_nome: p.pacientes?.nome ?? "—",
-                        origem_tipo: p.origem_tipo,
+                        origem_tipo: p.plano_id ? "plano" : "manual",
                         source_table: "pagamentos",
                     });
                 });
@@ -247,14 +243,12 @@ export const financeService = {
             } else {
                 (mensalidades || []).forEach((m: any) => {
                     results.push({
-                        id: m.id,
+                        ...m,
                         valor: Number(m.valor),
-                        data_pagamento: m.data_pagamento,
                         data_vencimento: m.mes_referencia,
                         status: m.status ?? "aberto",
-                        forma_pagamento: m.forma_pagamento_id,
+                        forma_pagamento: m.forma_pagamento_id || "—",
                         descricao: `Mensalidade - ${m.mes_referencia}`,
-                        created_at: m.created_at ?? "",
                         paciente_nome: m.pacientes?.nome ?? "—",
                         origem_tipo: "mensalidade",
                         source_table: "pagamentos_mensalidade",
@@ -265,7 +259,7 @@ export const financeService = {
             console.error("Critical error in 'pagamentos_mensalidade' fetch:", e);
         }
 
-        // 3. pagamentos_sessoes
+        // 3. pagamentos_sessoes (Sessões Avulsas REALIZADAS)
         try {
             let q3 = supabase
                 .from("pagamentos_sessoes")
@@ -279,14 +273,12 @@ export const financeService = {
             } else {
                 (sessoes || []).forEach((s: any) => {
                     results.push({
-                        id: s.id,
+                        ...s,
                         valor: Number(s.valor),
-                        data_pagamento: s.status === "pago" ? s.data_pagamento : null,
                         data_vencimento: s.status === "pago" ? null : s.data_pagamento,
                         status: s.status ?? "aberto",
-                        forma_pagamento: s.forma_pagamento_id,
+                        forma_pagamento: s.forma_pagamento_id || "—",
                         descricao: s.observacoes || "Sessão avulsa",
-                        created_at: s.created_at ?? "",
                         paciente_nome: s.pacientes?.nome ?? "—",
                         origem_tipo: "sessao",
                         source_table: "pagamentos_sessoes",
@@ -295,6 +287,45 @@ export const financeService = {
             }
         } catch (e) {
             console.error("Critical error in 'pagamentos_sessoes' fetch:", e);
+        }
+
+        // 4. agendamentos com valor (Previsão de Sessões Avulsas FUTURAS)
+        try {
+            let q4 = supabase
+                .from("agendamentos")
+                .select("id, valor_sessao, data_horario, status, tipo_sessao, paciente_id, pacientes(nome)")
+                .gt("valor_sessao", 0)
+                .neq("status", "realizado") // Sessões realizadas já devem estar em pagamentos_sessoes
+                .neq("status", "cancelado")
+                .order("data_horario", { ascending: false });
+            if (clinicId) q4 = q4.eq("clinic_id", clinicId);
+            const { data: upcoming, error: err4 } = await q4;
+
+            if (err4) {
+                console.error("Error fetching upcoming appointments for forecast:", err4);
+            } else {
+                (upcoming || []).forEach((u: any) => {
+                    // Evitar duplicidade: se já existe um pagamento_sessao para este agendamento (raro mas possível se marcado como pendente antes)
+                    const alreadyHasPayment = results.some(r => r.source_table === "pagamentos_sessoes" && r.agendamento_id === u.id);
+                    if (!alreadyHasPayment) {
+                        results.push({
+                            id: u.id,
+                            valor: Number(u.valor_sessao),
+                            data_pagamento: null,
+                            data_vencimento: u.data_horario,
+                            status: "pendente",
+                            forma_pagamento: "—",
+                            descricao: `Sessão Futura (${u.tipo_sessao})`,
+                            created_at: u.data_horario,
+                            paciente_nome: u.pacientes?.nome ?? "—",
+                            origem_tipo: "sessao",
+                            source_table: "agendamentos",
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Critical error in 'agendamentos' forecast fetch:", e);
         }
 
         return results.sort((a, b) => {

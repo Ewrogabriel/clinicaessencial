@@ -114,27 +114,48 @@ export function useScheduleSlots(options: { professionalId?: string; date: strin
                 .lte("data_horario", dateEnd.toISOString())
                 .not("status", "in", '("cancelado","falta")');
 
-            // Map slots with capacity info
-            return slots.map((slot: any) => {
-                const slotAppts = (appointments ?? []).filter((a: any) => {
-                    const aTime = new Date(a.data_horario);
-                    const aTimeStr = `${String(aTime.getHours()).padStart(2, "0")}:${String(aTime.getMinutes()).padStart(2, "0")}:00`;
-                    return aTimeStr >= slot.hora_inicio && aTimeStr < slot.hora_fim;
-                });
+            // Slice the availability blocks into intervals of 60 minutes
+            const slicedSlots: any[] = [];
+            const durationMin = 60;
+            
+            for (const slot of slots) {
+                const [hStart, mStart] = slot.hora_inicio.split(":").map(Number);
+                const [hEnd, mEnd] = slot.hora_fim.split(":").map(Number);
+                const startMin = hStart * 60 + mStart;
+                const endMin = hEnd * 60 + mEnd;
+                
+                for (let t = startMin; t + durationMin <= endMin; t += durationMin) {
+                    const h = Math.floor(t / 60);
+                    const m = t % 60;
+                    const startTimeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+                    
+                    const endT = t + durationMin;
+                    const hE = Math.floor(endT / 60);
+                    const mE = endT % 60;
+                    const endTimeStr = `${String(hE).padStart(2, "0")}:${String(mE).padStart(2, "0")}:00`;
+                    
+                    // Count appointments in this 60 min slice
+                    const slotAppts = (appointments ?? []).filter((a: any) => {
+                        const aTime = new Date(a.data_horario);
+                        const aTimeStr = `${String(aTime.getHours()).padStart(2, "0")}:${String(aTime.getMinutes()).padStart(2, "0")}:00`;
+                        return aTimeStr >= startTimeStr && aTimeStr < endTimeStr;
+                    });
 
-                const currentCount = slotAppts.length;
-                const isFull = currentCount >= slot.max_pacientes;
+                    const currentCount = slotAppts.length;
+                    const isFull = currentCount >= slot.max_pacientes;
 
-                return {
-                    id: slot.id,
-                    start_time: slot.hora_inicio,
-                    end_time: slot.hora_fim,
-                    max_capacity: slot.max_pacientes,
-                    current_capacity: currentCount,
-                    is_available: !isFull,
-                    status: isFull ? "full" : "available",
-                };
-            });
+                    slicedSlots.push({
+                        id: `${slot.id}-${startTimeStr}`, 
+                        start_time: startTimeStr,
+                        end_time: endTimeStr,
+                        max_capacity: slot.max_pacientes,
+                        current_capacity: currentCount,
+                        is_available: !isFull,
+                        status: isFull ? "full" : "available",
+                    });
+                }
+            }
+            return slicedSlots;
         },
         enabled: !!options.date && !!options.professionalId,
         staleTime: 1000 * 60 * 2,
