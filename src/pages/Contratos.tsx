@@ -208,6 +208,12 @@ const Contratos = () => {
     if (isPatient && patientId && !selectedPaciente && pacientes.length > 0) setSelectedPaciente(patientId);
   }, [isPatient, patientId, selectedPaciente, pacientes]);
 
+  useEffect(() => {
+    if (isProfissional && profissionais.length > 0 && !selectedProfissional) {
+      setSelectedProfissional(profissionais[0].id);
+    }
+  }, [isProfissional, profissionais, selectedProfissional]);
+
   const tipoLabel = (t: string) => t === "clt" ? "CLT" : t === "mei" ? "MEI" : t === "pj" ? "Pessoa Jurídica" : "Autônomo";
   const estadoCivilLabel = (e: string) => ({ solteiro: "Solteiro(a)", casado: "Casado(a)", divorciado: "Divorciado(a)", viuvo: "Viúvo(a)", uniao_estavel: "União Estável" }[e] || e);
 
