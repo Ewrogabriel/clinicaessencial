@@ -27,16 +27,27 @@ export default function HistoricoSessoes() {
       const dataInicio = new Date(parseInt(ano), parseInt(mes) - 1, 1);
       const dataFim = new Date(parseInt(ano), parseInt(mes), 0);
 
-      const { data, error } = await supabase
+      const { data: rawData, error } = await supabase
         .from("agendamentos")
-        .select("*, profiles(nome)")
+        .select("*")
         .eq("paciente_id", patientId)
         .gte("data_horario", dataInicio.toISOString())
         .lte("data_horario", dataFim.toISOString())
         .order("data_horario", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      const sessions = rawData || [];
+      
+      // Enrich with professional names
+      const profIds = [...new Set(sessions.map((s: any) => s.profissional_id))] as string[];
+      const profMap: Record<string, string> = {};
+      if (profIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, nome").in("user_id", profIds);
+        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+      }
+      const data = sessions.map((s: any) => ({ ...s, profiles: { nome: profMap[s.profissional_id] || "Profissional" } }));
+
+      return data;
     },
     enabled: !!patientId,
   });

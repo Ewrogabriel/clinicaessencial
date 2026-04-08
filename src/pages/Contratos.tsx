@@ -77,7 +77,7 @@ const Contratos = () => {
     queryKey: ["profissionais-contrato"],
     queryFn: async () => {
       if (isProfissional) {
-        const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").eq("id", user?.id).order("nome");
+        const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").eq("user_id", user?.id).order("nome");
         return (data as any[]) ?? [];
       }
       if (!canManage) return [];
@@ -93,7 +93,7 @@ const Contratos = () => {
   const { data: currentUserProfile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho").eq("id", user?.id).single();
+      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho").eq("user_id", user?.id).single();
       return data;
     },
     enabled: !!user?.id,
