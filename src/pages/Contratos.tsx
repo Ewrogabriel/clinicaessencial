@@ -303,6 +303,7 @@ const Contratos = () => {
                   </div>
                 )}
 
+                {!isPatient && (
                 <div className="space-y-3 pt-2 border-t mt-2">
                   <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <div className="space-y-0.5">
@@ -364,6 +365,7 @@ const Contratos = () => {
                     />
                   </div>
                 </div>
+                )}
 
                   <div className="flex flex-col gap-2 pt-2">
                     <Button onClick={() => setIsSignatureDialogOpen(true)} variant="outline" disabled={!paciente} className="w-full border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700">
