@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Paciente, Profissional, Modalidade, FormaPagamento, PlanoItem } from "./types";
 
-export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean) {
+export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clinicId: string | null) {
+
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [modalidades, setModalidades] = useState<Modalidade[]>([]);
@@ -10,28 +11,56 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean) {
   const [planos, setPlanos] = useState<PlanoItem[]>([]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !clinicId) return;
 
     const loadPacientes = async () => {
       const { data } = await supabase.from("pacientes")
         .select("id, nome, cpf")
+        .eq("clinic_id", clinicId)
         .eq("status", "ativo")
         .order("nome");
       setPacientes((data ?? []) as Paciente[]);
     };
 
     const loadProfissionais = async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
-      const ids = (roles || []).map(r => r.user_id);
-      if (!ids.length) { setProfissionais([]); return; }
-      const { data } = await supabase.from("profiles").select("id, user_id, nome").in("user_id", ids).order("nome");
+      // 1. Fetch user IDs assigned to this clinic
+      const { data: clinicAssigned } = await supabase
+        .from("clinic_users")
+        .select("user_id")
+        .eq("clinic_id", clinicId);
+      
+      const assignedIds = (clinicAssigned || []).map(ca => ca.user_id);
+      if (!assignedIds.length) { setProfissionais([]); return; }
+
+      // 2. Fetch profiles for assigned users who are professionals or admins
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("user_id", assignedIds)
+        .in("role", ["profissional", "admin"]);
+      
+      const filteredIds = (roles || []).map(r => r.user_id);
+      if (!filteredIds.length) { setProfissionais([]); return; }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, user_id, nome")
+        .in("user_id", filteredIds)
+        .order("nome");
+        
       setProfissionais((data ?? []) as Profissional[]);
     };
 
     const loadModalidades = async () => {
-      const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
+      // Modalidades are usually shared or clinic-specific
+      const { data } = await supabase.from("modalidades")
+        .select("id, nome")
+        .eq("ativo", true)
+        .or(`clinic_id.is.null,clinic_id.eq.${clinicId}`)
+        .order("nome");
       setModalidades(data ?? []);
     };
+
 
     const loadFormasPagamento = async () => {
       const { data } = await supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
@@ -42,6 +71,7 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean) {
       const { data: planosData } = await supabase
         .from("planos")
         .select("id, paciente_id, profissional_id, tipo_atendimento, total_sessoes, sessoes_utilizadas")
+        .eq("clinic_id", clinicId)
         .eq("status", "ativo");
       if (!planosData) { setPlanos([]); return; }
 
@@ -58,7 +88,7 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean) {
     loadModalidades();
     loadFormasPagamento();
     if (fetchPlanos) loadPlanos();
-  }, [open, fetchPlanos]);
+  }, [open, fetchPlanos, clinicId]);
 
   return { pacientes, profissionais, modalidades, formasPagamento, planos };
 }

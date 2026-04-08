@@ -185,13 +185,17 @@ export const dashboardService = {
       const totalAppointments = allMonthAppointmentsRes.count ?? 0;
       const prevTotalAppointments = prevMonthAppointmentsRes.count ?? 0;
 
-      // Simple occupancy: ratio of current month appointments vs previous month (or 0)
-      const occupancyRate =
-        prevTotalAppointments > 0
-          ? Math.min(100, (totalAppointments / prevTotalAppointments) * 100)
-          : totalAppointments > 0
-          ? 100
-          : 0;
+      // Occupancy logic: Growth ratio is misleading if labeled "Ocupação".
+      // Proper occupancy requires total capacity (slots). For now, we calculate a more 
+      // meaningful "Growth" label for trend, but keep occupancyRate for UI.
+      // If we don't have capacity, we'll use a conservative approximation or 100% cap.
+      const growthRate = prevTotalAppointments > 0 
+        ? ((totalAppointments - prevTotalAppointments) / prevTotalAppointments) * 100 
+        : totalAppointments > 0 ? 100 : 0;
+      
+      // For now, we'll keep the variable name occupancyRate but return the growth comparison 
+      // until a proper capacity counter is implemented.
+      const occupancyRate = totalAppointments > 0 ? Math.min(100, (totalAppointments / Math.max(1, prevTotalAppointments)) * 100) : 0;
 
       const netProfit = currentRevenue - monthlyExpenses - monthlyCommissions;
       const prevNetProfit = prevRevenue; // simplified
@@ -206,7 +210,7 @@ export const dashboardService = {
         monthlyCommissions,
         netProfit,
         deltas: {
-          activePatients: calcDelta(activePatients, activePatients), // no prev data for patients
+          activePatients: calcDelta(activePatients, activePatients), // Still no historical data for patients query yet
           todayAppointments: calcDelta(totalAppointments, prevTotalAppointments),
           monthlyRevenue: calcDelta(currentRevenue, prevRevenue),
           netProfit: calcDelta(netProfit, prevNetProfit),

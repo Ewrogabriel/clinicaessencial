@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { handleError } from "@/modules/shared/utils/errorHandler";
 
 interface Clinica {
   id: string;
@@ -74,7 +75,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (clinicError) throw clinicError;
         return (data || []) as Clinica[];
       } catch (err) {
-        console.error("[ClinicProvider] Error fetching clinics:", err);
+        handleError(err, "Erro ao carregar lista de clínicas.");
         return [];
       }
     },

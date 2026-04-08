@@ -45,7 +45,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
   const [selectedPlanoId, setSelectedPlanoId] = useState<string>("");
 
   const { pacientes, profissionais, modalidades, formasPagamento, planos } =
-    useAgendamentoFormData(open, appointmentType === "sessao_plano");
+    useAgendamentoFormData(open, appointmentType === "sessao_plano", activeClinicId);
 
   const selectedPlano = planos.find(p => p.id === selectedPlanoId) ?? null;
   const planoSessoesRestantes = selectedPlano ? selectedPlano.total_sessoes - selectedPlano.sessoes_utilizadas : null;
