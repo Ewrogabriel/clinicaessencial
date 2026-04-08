@@ -10,21 +10,107 @@ import { ptBR } from "date-fns/locale";
 import { Download, FileText } from "lucide-react";
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
 import { toast } from "sonner";
+
+interface UnifiedPatientPayment {
+  id: string;
+  valor: number;
+  status: string;
+  descricao: string;
+  data_vencimento: string | null;
+  data_pagamento: string | null;
+  forma_pagamento: string | null;
+  created_at: string;
+  source_table: string;
+}
+
 const MeusPagamentos = () => {
   const { patientId } = useAuth();
 
+  // Unified query: fetch from all 3 payment tables
   const { data: pagamentos = [], isLoading } = useQuery({
-    queryKey: ["patient-payments", patientId],
-    queryFn: async () => {
+    queryKey: ["patient-payments-unified", patientId],
+    queryFn: async (): Promise<UnifiedPatientPayment[]> => {
       if (!patientId) return [];
-      const { data, error } = await supabase
+      const results: UnifiedPatientPayment[] = [];
+
+      // 1. pagamentos (manual/plano)
+      const { data: pgtos } = await supabase
         .from("pagamentos")
-        .select("*")
+        .select("id, valor, status, descricao, data_vencimento, data_pagamento, forma_pagamento, created_at")
         .eq("paciente_id", patientId)
-        .order("data_vencimento", { ascending: false });
-      if (error) throw error;
-      // Show all payments (both pago and pendente)
-      return data || [];
+        .order("created_at", { ascending: false });
+
+      (pgtos || []).forEach((p) => {
+        results.push({
+          id: p.id,
+          valor: Number(p.valor),
+          status: p.status,
+          descricao: p.descricao || "Pagamento",
+          data_vencimento: p.data_vencimento,
+          data_pagamento: p.data_pagamento,
+          forma_pagamento: p.forma_pagamento,
+          created_at: p.created_at,
+          source_table: "pagamentos",
+        });
+      });
+
+      // 2. pagamentos_mensalidade
+      const { data: mensalidades } = await supabase
+        .from("pagamentos_mensalidade")
+        .select("id, valor, status, mes_referencia, data_vencimento, data_pagamento, observacoes, created_at")
+        .eq("paciente_id", patientId)
+        .order("created_at", { ascending: false });
+
+      (mensalidades || []).forEach((m) => {
+        const mesLabel = m.mes_referencia
+          ? format(new Date(m.mes_referencia + "T12:00:00"), "MMMM/yyyy", { locale: ptBR })
+          : "";
+        results.push({
+          id: m.id,
+          valor: Number(m.valor),
+          status: m.status ?? "pendente",
+          descricao: `Mensalidade${mesLabel ? " - " + mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1) : ""}`,
+          data_vencimento: m.data_vencimento ?? m.mes_referencia,
+          data_pagamento: m.data_pagamento,
+          forma_pagamento: null,
+          created_at: m.created_at ?? "",
+          source_table: "pagamentos_mensalidade",
+        });
+      });
+
+      // 3. pagamentos_sessoes (sessões avulsas)
+      const { data: sessoes } = await supabase
+        .from("pagamentos_sessoes")
+        .select("id, valor, status, data_pagamento, observacoes, created_at")
+        .eq("paciente_id", patientId)
+        .order("created_at", { ascending: false });
+
+      (sessoes || []).forEach((s) => {
+        results.push({
+          id: s.id,
+          valor: Number(s.valor),
+          status: s.status ?? "pendente",
+          descricao: s.observacoes || "Sessão avulsa",
+          data_vencimento: s.data_pagamento,
+          data_pagamento: s.status === "pago" ? s.data_pagamento : null,
+          forma_pagamento: null,
+          created_at: s.created_at ?? "",
+          source_table: "pagamentos_sessoes",
+        });
+      });
+
+      // Compute overdue status locally
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      results.forEach((r) => {
+        if (r.status === "pendente" && r.data_vencimento) {
+          const venc = new Date(r.data_vencimento);
+          venc.setHours(0, 0, 0, 0);
+          if (venc < today) r.status = "vencido";
+        }
+      });
+
+      return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
     enabled: !!patientId,
   });
@@ -43,7 +129,7 @@ const MeusPagamentos = () => {
     enabled: !!patientId,
   });
 
-  // Fetch NF emissions for this patient (with PDF URLs)
+  // Fetch NF emissions for this patient
   const { data: emissoes = [] } = useQuery({
     queryKey: ["patient-emissoes-nf", patientId],
     queryFn: async () => {
@@ -65,17 +151,18 @@ const MeusPagamentos = () => {
     cancelado: { label: "Cancelado", variant: "outline" },
     reembolsado: { label: "Reembolsado", variant: "secondary" },
     vencido: { label: "Vencido", variant: "destructive" },
+    aberto: { label: "Aberto", variant: "destructive" },
   };
 
   const totalPago = pagamentos
-    .filter((p: any) => p.status === 'pago')
-    .reduce((acc: number, p: any) => acc + Number(p.valor), 0);
+    .filter((p) => p.status === "pago")
+    .reduce((acc, p) => acc + p.valor, 0);
 
   const totalPendente = pagamentos
-    .filter((p: any) => p.status === 'pendente' || p.status === 'vencido')
-    .reduce((acc: number, p: any) => acc + Number(p.valor), 0);
+    .filter((p) => p.status === "pendente" || p.status === "vencido" || p.status === "aberto")
+    .reduce((acc, p) => acc + p.valor, 0);
 
-  const handleDownloadReceipt = async (pagamento: any) => {
+  const handleDownloadReceipt = async (pagamento: UnifiedPatientPayment) => {
     const numero = getReceiptNumber(pagamento.id, pagamento.created_at);
     const dataPgto = pagamento.data_pagamento
       ? format(new Date(pagamento.data_pagamento), "dd/MM/yyyy")
@@ -90,7 +177,7 @@ const MeusPagamentos = () => {
       pacienteNome: paciente?.nome || "—",
       cpf: paciente?.cpf || "",
       descricao: pagamento.descricao || "Serviço de Pilates/Fisioterapia",
-      valor: Number(pagamento.valor),
+      valor: pagamento.valor,
       formaPagamento: pagamento.forma_pagamento || "",
       dataPagamento: dataPgto,
       referencia: ref.charAt(0).toUpperCase() + ref.slice(1),
@@ -103,7 +190,7 @@ const MeusPagamentos = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight font-[Plus_Jakarta_Sans]">Meus Pagamentos</h1>
-        <p className="text-muted-foreground">Histórico de mensalidades e sessões avulsas.</p>
+        <p className="text-muted-foreground">Histórico de mensalidades, planos e sessões avulsas.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -149,10 +236,10 @@ const MeusPagamentos = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagamentos.map((item: any) => (
+                {pagamentos.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.descricao || "Sessão de Fisioterapia"}</TableCell>
-                    <TableCell>R$ {Number(item.valor).toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">{item.descricao}</TableCell>
+                    <TableCell>R$ {item.valor.toFixed(2)}</TableCell>
                     <TableCell>
                       {item.data_vencimento ? format(new Date(item.data_vencimento), "dd/MM/yyyy") : "—"}
                     </TableCell>
