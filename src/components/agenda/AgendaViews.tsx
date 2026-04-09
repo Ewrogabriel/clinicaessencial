@@ -603,7 +603,7 @@ export function MonthlyView({
               </div>
               {dayAgs.slice(0, 4).map((ag) => {
                 const borderColor = profColors[ag.profissional_id] || statusBorderColors[ag.status] || "#3b82f6";
-                const sessInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.individual;
+                const sessInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.grupo;
                 return (
                   <div
                     key={ag.id}
