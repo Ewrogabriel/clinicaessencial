@@ -358,7 +358,7 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
                 onSelect={(slot) => {
                   setHorario(slot.start_time.slice(0, 5));
                 }}
-                selectedTime={horario}
+                
                 isLoading={isLoadingSlots}
                 emptyMessage="Selecione data e profissional para ver horários"
                 disabled={!date || !selectedProfId}
