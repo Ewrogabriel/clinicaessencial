@@ -134,7 +134,7 @@ function AppointmentCard({
   // Visual layer 2 – top accent: identifies appointment status
   const statusAccentColor = statusBorderColors[ag.status] || "#3b82f6";
   // Visual layer 3 – background tint: identifies session type (individual/group)
-  const sessTypeInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.individual;
+  const sessTypeInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.grupo;
   const attendColor = attendanceTypeColors[ag.tipo_atendimento] || "#64748b";
 
   return (
