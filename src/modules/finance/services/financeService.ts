@@ -344,8 +344,6 @@ export const financeService = {
                 // Pegar qualquer agendamento que não esteja realizado/cancelado
                 .neq("status", "realizado")
                 .neq("status", "cancelado")
-                // Filtramos por sessões que não são Matrícula (que já tratamos no Forecast 2.1)
-                .neq("tipo_sessao", "sessao_matricula")
                 .order("data_horario", { ascending: false });
             if (clinicId) q4 = q4.eq("clinic_id", clinicId);
             const { data: upcoming, error: err4 } = await q4;
