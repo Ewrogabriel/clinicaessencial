@@ -205,7 +205,7 @@ export const financeService = {
         try {
             let q1 = supabase
                 .from("pagamentos")
-                .select("id, valor, data_pagamento, data_vencimento, status, formas_pagamento(nome_forma), observacoes, created_at, paciente_id, pacientes(nome), plano_id")
+                .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, paciente_id, pacientes(nome), plano_id")
                 .order("created_at", { ascending: false });
             if (clinicId) q1 = q1.eq("clinic_id", clinicId);
             const { data: pgtos, error: err1 } = await q1;
@@ -214,11 +214,16 @@ export const financeService = {
                 console.error("Error fetching 'pagamentos':", err1);
             } else {
                 (pgtos || []).forEach((p: any) => {
+                    const formaLabel: Record<string, string> = {
+                        pix: "PIX", dinheiro: "Dinheiro", boleto: "Boleto",
+                        cartao_credito: "Cartão Crédito", cartao_debito: "Cartão Débito",
+                        transferencia: "Transferência",
+                    };
                     results.push({
                         ...p,
                         valor: Number(p.valor),
-                        forma_pagamento: p.formas_pagamento?.nome_forma || "—",
-                        descricao: p.observacoes || (p.plano_id ? "Plano de Sessões" : "Pagamento Manual"),
+                        forma_pagamento: formaLabel[p.forma_pagamento] || p.forma_pagamento || "—",
+                        descricao: p.descricao || p.observacoes || (p.plano_id ? "Plano de Sessões" : "Pagamento Manual"),
                         paciente_nome: p.pacientes?.nome ?? "—",
                         origem_tipo: p.plano_id ? "plano" : "manual",
                         source_table: "pagamentos",
