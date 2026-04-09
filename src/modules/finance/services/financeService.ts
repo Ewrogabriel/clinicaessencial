@@ -352,10 +352,11 @@ export const financeService = {
                 console.error("Error fetching upcoming appointments for forecast:", err4);
             } else {
                 (upcoming || []).forEach((u: any) => {
+                    // Skip enrollment-linked sessions (already in matriculas_virtual forecast)
+                    if (u.enrollment_id) return;
                     // Evitar duplicidade com pagamentos_sessoes
                     const alreadyHasPayment = results.some(r => r.agendamento_id === u.id);
-                    if (!alreadyHasPayment) {
-                        const isPlano = u.tipo_sessao === "sessao_plano";
+                    if (!alreadyHasPayment && Number(u.valor_sessao || 0) > 0) {
                         results.push({
                             id: u.id,
                             valor: Number(u.valor_sessao || 0),
@@ -363,12 +364,12 @@ export const financeService = {
                             data_vencimento: u.data_horario,
                             status: "pendente",
                             forma_pagamento: "—",
-                            descricao: isPlano ? `Sessão Plano (${u.pacientes?.nome})` : `Sessão Avulsa (${u.tipo_sessao})`,
+                            descricao: `Sessão Avulsa (${u.pacientes?.nome ?? "—"})`,
                             created_at: u.data_horario,
                             paciente_nome: u.pacientes?.nome ?? "—",
                             paciente_id: u.paciente_id,
                             agendamento_id: u.id,
-                            origem_tipo: isPlano ? "plano" : "sessao",
+                            origem_tipo: "sessao",
                             source_table: "agendamentos",
                         });
                     }
