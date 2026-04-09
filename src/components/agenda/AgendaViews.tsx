@@ -134,7 +134,7 @@ function AppointmentCard({
   // Visual layer 2 – top accent: identifies appointment status
   const statusAccentColor = statusBorderColors[ag.status] || "#3b82f6";
   // Visual layer 3 – background tint: identifies session type (individual/group)
-  const sessTypeInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.individual;
+  const sessTypeInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.grupo;
   const attendColor = attendanceTypeColors[ag.tipo_atendimento] || "#64748b";
 
   return (
@@ -603,7 +603,7 @@ export function MonthlyView({
               </div>
               {dayAgs.slice(0, 4).map((ag) => {
                 const borderColor = profColors[ag.profissional_id] || statusBorderColors[ag.status] || "#3b82f6";
-                const sessInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.individual;
+                const sessInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.grupo;
                 return (
                   <div
                     key={ag.id}
