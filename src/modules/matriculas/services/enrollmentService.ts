@@ -48,6 +48,7 @@ export const enrollmentService = {
     endDate: string;   // YYYY-MM-DD
     tipoAtendimento: string;
     monthlyValue: number;
+    tipoSessao: 'individual' | 'grupo';
     clinicId: string;
     userId: string;
   }) {
@@ -59,6 +60,7 @@ export const enrollmentService = {
       endDate,
       tipoAtendimento,
       monthlyValue,
+      tipoSessao,
       clinicId,
       userId
     } = params;
@@ -84,6 +86,7 @@ export const enrollmentService = {
           data_horario: `${dt}T${s.time}:00${getLocalTZOffset(dt, s.time)}`,
           duracao_minutos: s.session_duration,
           tipo_atendimento: tipoAtendimento,
+          tipo_sessao: tipoSessao,
           status: "agendado",
           recorrente: true,
           recorrencia_grupo_id: groupId,

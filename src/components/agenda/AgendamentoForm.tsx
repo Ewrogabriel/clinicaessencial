@@ -67,6 +67,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
   const watchedHorario = form.watch("horario");
   const isRecorrente = form.watch("recorrente");
   const watchedTipoSessao = form.watch("tipo_sessao");
+  const watchedDuration = form.watch("duracao_minutos");
 
   const formattedDate = watchedDate ? format(watchedDate, "yyyy-MM-dd") : "";
   const { data: availableSlots, isLoading: isLoadingSlots } = useScheduleSlots({
@@ -80,7 +81,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
   useEffect(() => {
     if (!watchedProfId) { setMonthlyAvail({}); return; }
     const fetchMonthly = async () => {
-      const result = await getMonthlyAvailability(watchedProfId, currentMonth.getFullYear(), currentMonth.getMonth(), watchedHorario);
+      const result = await getMonthlyAvailability(watchedProfId, currentMonth.getFullYear(), currentMonth.getMonth(), watchedHorario, watchedDuration);
       setMonthlyAvail(result);
     };
     fetchMonthly();
@@ -94,7 +95,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
       const [h, m] = watchedHorario.split(":").map(Number);
       const dt = new Date(watchedDate);
       dt.setHours(h, m, 0, 0);
-      const result = await checkAvailability(watchedProfId, dt, watchedTipoSessao as 'individual' | 'grupo');
+      const result = await checkAvailability(watchedProfId, dt, watchedTipoSessao as 'individual' | 'grupo', watchedDuration);
       setAvailabilityResult(result);
       setCheckingAvailability(false);
     }, 300);

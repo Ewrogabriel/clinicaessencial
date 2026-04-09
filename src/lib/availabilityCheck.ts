@@ -24,7 +24,8 @@ export interface AvailabilityCheckResult {
 export async function checkAvailability(
   profissionalId: string,
   dateTime: Date,
-  requestedTipoSessao: 'individual' | 'grupo' = 'individual'
+  requestedTipoSessao: 'individual' | 'grupo' = 'individual',
+  durationMin: number = 60
 ): Promise<AvailabilityCheckResult> {
   const dayOfWeek = dateTime.getDay(); // 0=Sun, 1=Mon...
   const timeStr = `${String(dateTime.getHours()).padStart(2, "0")}:${String(dateTime.getMinutes()).padStart(2, "0")}:00`;
@@ -67,19 +68,10 @@ export async function checkAvailability(
     };
   }
 
-  // 3. Define the specific 60-minute interval for this time
-  const durationMin = 60;
-  const [hRequested, mRequested] = timeStr.split(":").map(Number);
-  const requestedStartTotalMin = hRequested * 60 + mRequested;
-  
-  // The interval starts exactly at the requested time (since users pick slots from the UI)
-  const intervalStartTimeStr = timeStr;
-  const intervalEndTotalMin = requestedStartTotalMin + durationMin;
-  const hEnd = Math.floor(intervalEndTotalMin / 60);
-  const mEnd = intervalEndTotalMin % 60;
-  const intervalEndTimeStr = `${String(hEnd).padStart(2, "0")}:${String(mEnd).padStart(2, "0")}:00`;
+  // 4. Count existing appointments that OVERLAP with this requested interval
+  const reqStart = dateTime.getTime();
+  const reqEnd = reqStart + durationMin * 60 * 1000;
 
-  // 4. Count existing appointments in this 60-minute interval on this date
   const dateStart = new Date(dateTime);
   dateStart.setHours(0, 0, 0, 0);
   const dateEnd = new Date(dateTime);
@@ -87,22 +79,28 @@ export async function checkAvailability(
 
   const { data: appointments } = await supabase
     .from("agendamentos")
-    .select("id, data_horario, tipo_sessao")
+    .select("id, data_horario, duracao_minutos, tipo_sessao")
     .eq("profissional_id", profissionalId)
     .gte("data_horario", dateStart.toISOString())
     .lte("data_horario", dateEnd.toISOString())
     .not("status", "in", '("cancelado","falta")');
 
-  // Count how many appointments fall within THIS SPECIFIC 60-minute interval
-  const slotAppointments = (appointments ?? []).filter((a: any) => {
-    const aTime = new Date(a.data_horario);
-    const aTimeStr = `${String(aTime.getHours()).padStart(2, "0")}:${String(aTime.getMinutes()).padStart(2, "0")}:00`;
-    return aTimeStr >= intervalStartTimeStr && aTimeStr < intervalEndTimeStr;
+  // Overlap logic: (s1 < e2) && (s2 < e1)
+  const overlappingApps = (appointments ?? []).filter((a: any) => {
+    const aStart = new Date(a.data_horario).getTime();
+    const aEnd = aStart + (a.duracao_minutos || 60) * 60 * 1000;
+    return (reqStart < aEnd) && (aStart < reqEnd);
   });
 
-  const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
-  const currentCount = slotAppointments.length;
-  
+  const hasIndividual = overlappingApps.some((a: any) => a.tipo_sessao === 'individual');
+  const currentCount = overlappingApps.length;
+
+  // 5. Define interval strings for metadata return
+  const intervalStartTimeStr = `${String(dateTime.getHours()).padStart(2, "0")}:${String(dateTime.getMinutes()).padStart(2, "0")}:00`;
+  const hEnd = Math.floor((dateTime.getHours() * 60 + dateTime.getMinutes() + durationMin) / 60);
+  const mEnd = (dateTime.getHours() * 60 + dateTime.getMinutes() + durationMin) % 60;
+  const intervalEndTimeStr = `${String(hEnd).padStart(2, "0")}:${String(mEnd).padStart(2, "0")}:00`;
+
   let isOverCapacity = false;
   if (requestedTipoSessao === 'individual') {
     isOverCapacity = currentCount > 0;
@@ -130,7 +128,8 @@ export async function checkAvailability(
 export async function getAvailableSlots(
   profissionalId: string,
   date: Date,
-  requestedTipoSessao: 'individual' | 'grupo' = 'individual'
+  requestedTipoSessao: 'individual' | 'grupo' = 'individual',
+  durationMin: number = 60
 ): Promise<{ slot: AvailabilitySlot; currentCount: number; available: number }[]> {
   const dayOfWeek = date.getDay();
 
@@ -158,7 +157,6 @@ export async function getAvailableSlots(
     .not("status", "in", '("cancelado","falta")');
 
   const slicedSlots: { slot: AvailabilitySlot; currentCount: number; available: number }[] = [];
-  const durationMin = 60;
 
   for (const block of slots) {
     const [hStart, mStart] = block.hora_inicio.split(":").map(Number);
@@ -178,14 +176,20 @@ export async function getAvailableSlots(
 
       const slicedSlot = { ...block, id: `${block.id}-${startTimeStr}`, hora_inicio: startTimeStr, hora_fim: endTimeStr };
 
-      const slotAppointments = (appointments ?? []).filter((a: any) => {
-        const aTime = new Date(a.data_horario);
-        const aTimeStr = `${String(aTime.getHours()).padStart(2, "0")}:${String(aTime.getMinutes()).padStart(2, "0")}:00`;
-        return aTimeStr >= startTimeStr && aTimeStr < endTimeStr;
+      const slotStart = new Date(date);
+      const [hS, mS] = startTimeStr.split(":").map(Number);
+      slotStart.setHours(hS, mS, 0, 0);
+      const slotStartTime = slotStart.getTime();
+      const slotEndTime = slotStartTime + durationMin * 60 * 1000;
+
+      const overlappingApps = (appointments ?? []).filter((a: any) => {
+        const aStart = new Date(a.data_horario).getTime();
+        const aEnd = aStart + (a.duracao_minutos || 60) * 60 * 1000;
+        return (slotStartTime < aEnd) && (aStart < slotEndTime);
       });
 
-      const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
-      const count = slotAppointments.length;
+      const hasIndividual = overlappingApps.some((a: any) => a.tipo_sessao === 'individual');
+      const count = overlappingApps.length;
 
       let available = 0;
       if (requestedTipoSessao === 'individual') {
@@ -214,7 +218,8 @@ export async function getMonthlyAvailability(
   profissionalId: string,
   year: number,
   month: number,
-  specificTime?: string
+  specificTime?: string,
+  durationMin: number = 60
 ): Promise<Record<number, number>> {
   const startDate = new Date(year, month, 1);
   const endDate = new Date(year, month + 1, 0, 23, 59, 59);
@@ -260,7 +265,6 @@ export async function getMonthlyAvailability(
     }
 
     let totalAvailable = 0;
-    const durationMin = 60;
 
     for (const block of daySlots) {
       const [hStart, mStart] = block.hora_inicio.split(":").map(Number);
@@ -278,15 +282,20 @@ export async function getMonthlyAvailability(
         const mE = endT % 60;
         const endTimeStr = `${String(hE).padStart(2, "0")}:${String(mE).padStart(2, "0")}:00`;
 
-        const slotAppointments = (appointments ?? []).filter((a: any) => {
+        const slotStart = new Date(year, month, day, h, m, 0, 0);
+        const slotStartTime = slotStart.getTime();
+        const slotEndTime = slotStartTime + durationMin * 60 * 1000;
+
+        const overlappingApps = (appointments ?? []).filter((a: any) => {
           const aDate = new Date(a.data_horario);
           if (aDate.getDate() !== day) return false;
-          const aTimeStr = `${String(aDate.getHours()).padStart(2, "0")}:${String(aDate.getMinutes()).padStart(2, "0")}:00`;
-          return aTimeStr >= startTimeStr && aTimeStr < endTimeStr;
+          const aStart = aDate.getTime();
+          const aEnd = aStart + (a.duracao_minutos || 60) * 60 * 1000;
+          return (slotStartTime < aEnd) && (aStart < slotEndTime);
         });
 
-        const hasIndividual = slotAppointments.some((a: any) => a.tipo_sessao === 'individual');
-        totalAvailable += hasIndividual ? 0 : Math.max(0, block.max_pacientes - slotAppointments.length);
+        const hasIndividual = overlappingApps.some((a: any) => (a as any).tipo_sessao === 'individual');
+        totalAvailable += hasIndividual ? 0 : Math.max(0, block.max_pacientes - overlappingApps.length);
       }
     }
     dailyAvailability[day] = totalAvailable;

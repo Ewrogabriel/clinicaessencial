@@ -37,7 +37,7 @@ export function SchedulePickerCards({ schedules, onSchedulesChange, profissionai
     professionalId: selectedProfessional || undefined,
     weekday: selectedWeekday ?? undefined,
     clinicId,
-    durationMin: 60,
+    durationMin: parseInt(duration) || 60,
   });
 
   const handleSelectWeekday = (day: number) => {
