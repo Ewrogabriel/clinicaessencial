@@ -14,9 +14,17 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
     if (!open || !clinicId) return;
 
     const loadPacientes = async () => {
+      // Patients are linked to clinics via clinic_pacientes junction table
+      const { data: cpData } = await supabase
+        .from("clinic_pacientes")
+        .select("paciente_id")
+        .eq("clinic_id", clinicId);
+      const pacienteIds = (cpData || []).map(cp => cp.paciente_id);
+      if (!pacienteIds.length) { setPacientes([]); return; }
+
       const { data } = await (supabase.from("pacientes") as any)
         .select("id, nome, cpf")
-        .eq("clinic_id", clinicId)
+        .in("id", pacienteIds)
         .eq("status", "ativo")
         .order("nome");
       setPacientes((data ?? []) as Paciente[]);

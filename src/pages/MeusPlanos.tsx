@@ -189,7 +189,7 @@ const MeusPlanos = () => {
         data_horario: dataHorario.toISOString(),
         duracao_minutos: parseInt(duracao),
         tipo_atendimento: selectedPlano.tipo_atendimento,
-        tipo_sessao: "individual",
+        tipo_sessao: "grupo",
         status: "pendente" as any,
         observacoes: `plano:${selectedPlano.id}`,
         created_by: user!.id,
