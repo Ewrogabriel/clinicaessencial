@@ -14,7 +14,7 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
     if (!open || !clinicId) return;
 
     const loadPacientes = async () => {
-      const { data } = await supabase.from("pacientes")
+      const { data } = await (supabase.from("pacientes") as any)
         .select("id, nome, cpf")
         .eq("clinic_id", clinicId)
         .eq("status", "ativo")
@@ -68,14 +68,14 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
     };
 
     const loadPlanos = async () => {
-      const { data: planosData } = await supabase
-        .from("planos")
+      const { data: planosData } = await (supabase
+        .from("planos") as any)
         .select("id, paciente_id, profissional_id, tipo_atendimento, total_sessoes, sessoes_utilizadas")
         .eq("clinic_id", clinicId)
         .eq("status", "ativo");
       if (!planosData) { setPlanos([]); return; }
 
-      const pacienteIds = [...new Set(planosData.map(p => p.paciente_id))];
+      const pacienteIds = [...new Set((planosData as any[]).map((p: any) => p.paciente_id))] as string[];
       const { data: pacientesData } = await supabase.from("pacientes").select("id, nome").in("id", pacienteIds);
       const pacienteMap: Record<string, string> = {};
       (pacientesData ?? []).forEach(p => { pacienteMap[p.id] = p.nome; });
