@@ -22,6 +22,7 @@ export type EnrollmentFormData = {
     start_date: string;
     auto_renew: boolean;
     tipo_atendimento: string;
+    modalidade_sessao: string;
     desconto: string;
     desconto_tipo: string;
     observacoes: string;
@@ -90,8 +91,8 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                 />
             </div>
 
-            {/* Tipo + Due Day */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Tipo + Modalidade + Due Day */}
+            <div className="grid grid-cols-3 gap-4">
                 <div>
                     <Label>Tipo de Atendimento *</Label>
                     <Select value={formData.tipo_atendimento} onValueChange={(v) => setFormData({ ...formData, tipo_atendimento: v })}>
@@ -102,6 +103,18 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                             {modalidades.map((mod) => (
                                 <SelectItem key={mod.id} value={mod.nome.toLowerCase()}>{mod.nome}</SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label>Modalidade da Sessão</Label>
+                    <Select value={formData.modalidade_sessao} onValueChange={(v) => setFormData({ ...formData, modalidade_sessao: v })}>
+                        <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="grupo">Grupo</SelectItem>
+                            <SelectItem value="individual">Individual</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

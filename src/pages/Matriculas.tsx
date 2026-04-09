@@ -55,6 +55,7 @@ function getEmptyForm(): EnrollmentFormData {
     start_date: format(new Date(), "yyyy-MM-dd"),
     auto_renew: true,
     tipo_atendimento: "pilates",
+    modalidade_sessao: "grupo",
     desconto: "0",
     desconto_tipo: "percentual",
     observacoes: "",
@@ -200,6 +201,7 @@ const Matriculas = () => {
           observacoes: editData.observacoes || null,
           desconto: descLine,
           tipo_atendimento: editData.tipo_atendimento,
+          modalidade_sessao: editData.modalidade_sessao,
         })
         .eq("id", editingId);
 
@@ -282,6 +284,7 @@ const Matriculas = () => {
           profissional_id: user.id,
           tipo: "mensal",
           tipo_atendimento: formData.tipo_atendimento,
+          modalidade_sessao: formData.modalidade_sessao,
           valor_mensal: finalValue,
           data_inicio: formData.start_date,
           data_vencimento: dueDate,
@@ -415,6 +418,7 @@ const Matriculas = () => {
       start_date: mat.data_inicio,
       auto_renew: mat.auto_renew,
       tipo_atendimento: mat.tipo_atendimento || "pilates",
+      modalidade_sessao: mat.modalidade_sessao || "grupo",
       desconto: String(mat.desconto || 0),
       desconto_tipo: "percentual",
       observacoes: mat.observacoes || "",
