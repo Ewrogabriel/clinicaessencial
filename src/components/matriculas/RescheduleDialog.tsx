@@ -109,7 +109,7 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props
                     data_horario: newDatetime,
                     duracao_minutos: origSession.duracao_minutos || 60,
                     tipo_atendimento: origSession.tipo_atendimento || "pilates",
-                    tipo_sessao: origSession.tipo_sessao || "individual",
+                    tipo_sessao: origSession.tipo_sessao || "grupo",
                     status: "agendado",
                     recorrente: true,
                     enrollment_id: enrollmentId,

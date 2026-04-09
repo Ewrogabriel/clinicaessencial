@@ -53,7 +53,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      duracao_minutos: 50, tipo_atendimento: "", tipo_sessao: "grupo",
+      duracao_minutos: 60, tipo_atendimento: "", tipo_sessao: "grupo",
       horario: "", slot_id: "", observacoes: "",
       recorrente: false, dias_semana: [], frequencia_semanal: 1,
       recorrencia_semanas: 52, horarios_por_dia: {},

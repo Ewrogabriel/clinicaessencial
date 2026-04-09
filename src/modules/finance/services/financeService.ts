@@ -205,7 +205,7 @@ export const financeService = {
         try {
             let q1 = supabase
                 .from("pagamentos")
-                .select("id, valor, data_pagamento, data_vencimento, status, formas_pagamento(nome_forma), observacoes, created_at, paciente_id, pacientes(nome), plano_id")
+                .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, paciente_id, pacientes(nome), plano_id")
                 .order("created_at", { ascending: false });
             if (clinicId) q1 = q1.eq("clinic_id", clinicId);
             const { data: pgtos, error: err1 } = await q1;
@@ -214,11 +214,16 @@ export const financeService = {
                 console.error("Error fetching 'pagamentos':", err1);
             } else {
                 (pgtos || []).forEach((p: any) => {
+                    const formaLabel: Record<string, string> = {
+                        pix: "PIX", dinheiro: "Dinheiro", boleto: "Boleto",
+                        cartao_credito: "Cartão Crédito", cartao_debito: "Cartão Débito",
+                        transferencia: "Transferência",
+                    };
                     results.push({
                         ...p,
                         valor: Number(p.valor),
-                        forma_pagamento: p.formas_pagamento?.nome_forma || "—",
-                        descricao: p.observacoes || (p.plano_id ? "Plano de Sessões" : "Pagamento Manual"),
+                        forma_pagamento: formaLabel[p.forma_pagamento] || p.forma_pagamento || "—",
+                        descricao: p.descricao || p.observacoes || (p.plano_id ? "Plano de Sessões" : "Pagamento Manual"),
                         paciente_nome: p.pacientes?.nome ?? "—",
                         origem_tipo: p.plano_id ? "plano" : "manual",
                         source_table: "pagamentos",
@@ -339,8 +344,6 @@ export const financeService = {
                 // Pegar qualquer agendamento que não esteja realizado/cancelado
                 .neq("status", "realizado")
                 .neq("status", "cancelado")
-                // Filtramos por sessões que não são Matrícula (que já tratamos no Forecast 2.1)
-                .neq("tipo_sessao", "sessao_matricula")
                 .order("data_horario", { ascending: false });
             if (clinicId) q4 = q4.eq("clinic_id", clinicId);
             const { data: upcoming, error: err4 } = await q4;
@@ -349,10 +352,11 @@ export const financeService = {
                 console.error("Error fetching upcoming appointments for forecast:", err4);
             } else {
                 (upcoming || []).forEach((u: any) => {
+                    // Skip enrollment-linked sessions (already in matriculas_virtual forecast)
+                    if (u.enrollment_id) return;
                     // Evitar duplicidade com pagamentos_sessoes
                     const alreadyHasPayment = results.some(r => r.agendamento_id === u.id);
-                    if (!alreadyHasPayment) {
-                        const isPlano = u.tipo_sessao === "sessao_plano";
+                    if (!alreadyHasPayment && Number(u.valor_sessao || 0) > 0) {
                         results.push({
                             id: u.id,
                             valor: Number(u.valor_sessao || 0),
@@ -360,12 +364,12 @@ export const financeService = {
                             data_vencimento: u.data_horario,
                             status: "pendente",
                             forma_pagamento: "—",
-                            descricao: isPlano ? `Sessão Plano (${u.pacientes?.nome})` : `Sessão Avulsa (${u.tipo_sessao})`,
+                            descricao: `Sessão Avulsa (${u.pacientes?.nome ?? "—"})`,
                             created_at: u.data_horario,
                             paciente_nome: u.pacientes?.nome ?? "—",
                             paciente_id: u.paciente_id,
                             agendamento_id: u.id,
-                            origem_tipo: isPlano ? "plano" : "sessao",
+                            origem_tipo: "sessao",
                             source_table: "agendamentos",
                         });
                     }
