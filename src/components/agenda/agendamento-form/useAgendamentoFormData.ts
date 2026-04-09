@@ -75,7 +75,7 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
         .eq("status", "ativo");
       if (!planosData) { setPlanos([]); return; }
 
-      const pacienteIds = [...new Set(planosData.map(p => p.paciente_id))];
+      const pacienteIds = [...new Set((planosData as any[]).map((p: any) => p.paciente_id))] as string[];
       const { data: pacientesData } = await supabase.from("pacientes").select("id, nome").in("id", pacienteIds);
       const pacienteMap: Record<string, string> = {};
       (pacientesData ?? []).forEach(p => { pacienteMap[p.id] = p.nome; });
