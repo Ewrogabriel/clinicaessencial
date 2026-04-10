@@ -583,69 +583,86 @@ export function MonthlyView({
           );
           const isToday = isSameDay(day, new Date());
 
+          // Group by status for the summary dot
+          const realizados = dayAgs.filter(a => a.status === "realizado").length;
+          const agendados = dayAgs.filter(a => a.status === "agendado" || a.status === "confirmado").length;
+          const cancelados = dayAgs.filter(a => a.status === "cancelado" || a.status === "falta").length;
+
           return (
             <div
               key={day.toISOString()}
               className={cn(
-                "bg-card p-1.5 min-h-[80px] cursor-pointer hover:bg-muted/20 transition-colors text-xs",
+                "bg-card p-1 min-h-[90px] cursor-pointer hover:bg-muted/20 transition-colors text-xs flex flex-col",
                 !isCurrentMonth(day) && "opacity-40",
                 isToday && "ring-2 ring-primary ring-inset"
               )}
               onClick={() => onSlotClick?.(day)}
             >
-              <div
-                className={cn(
-                  "font-medium mb-1",
-                  isToday && "text-primary"
+              {/* Day number + count badge */}
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  className={cn(
+                    "font-semibold text-xs w-6 h-6 flex items-center justify-center rounded-full",
+                    isToday && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {format(day, "dd")}
+                </span>
+                {dayAgs.length > 0 && (
+                  <span className="text-[9px] font-bold text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">
+                    {dayAgs.length}
+                  </span>
                 )}
-              >
-                {format(day, "dd")}
               </div>
-              {dayAgs.slice(0, 4).map((ag) => {
-                const borderColor = profColors[ag.profissional_id] || statusBorderColors[ag.status] || "#3b82f6";
-                const sessInfo = sessionTypeConfig[ag.tipo_sessao] ?? sessionTypeConfig.grupo;
-                return (
-                  <div
-                    key={ag.id}
-                    className={cn(
-                      "truncate rounded px-1 py-0.5 mb-0.5 text-[10px] border-l-2 relative overflow-hidden",
-                      (ag.status === "cancelado" || ag.status === "falta") && "opacity-60"
-                    )}
-                    style={{
-                      borderLeftColor: borderColor,
-                      backgroundColor: sessInfo.bgColor,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAppointmentClick?.(ag);
-                    }}
-                  >
-                    {/* Status top accent */}
-                    <span
-                      className="absolute inset-x-0 top-0 h-[2px]"
-                      style={{ backgroundColor: statusBorderColors[ag.status] || "#3b82f6" }}
-                    />
-                    <span className="truncate font-medium">
-                      {format(new Date(ag.data_horario), "HH:mm")}{" "}
-                      {ag.pacientes?.nome?.split(" ")[0]}
-                    </span>
-                    {isPatient && ag.status !== "cancelado" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCancel?.(ag.id);
-                        }}
-                        className="ml-1 text-[8px] text-destructive font-bold float-right"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {dayAgs.length > 4 && (
-                <div className="text-[10px] font-medium text-primary hover:underline cursor-pointer text-center py-0.5">
-                  +{dayAgs.length - 4} mais
+
+              {/* Compact appointment cards (max 3 visible) */}
+              <div className="flex-1 space-y-0.5 overflow-hidden">
+                {dayAgs.slice(0, 3).map((ag) => {
+                  const profColor = profColors[ag.profissional_id] || "#64748b";
+                  const isCancelled = ag.status === "cancelado" || ag.status === "falta";
+                  return (
+                    <div
+                      key={ag.id}
+                      className={cn(
+                        "flex items-center gap-1 rounded px-1 py-[2px] text-[10px] leading-tight cursor-pointer hover:bg-accent/50 transition-colors",
+                        isCancelled && "opacity-50 line-through"
+                      )}
+                      style={{ borderLeft: `2px solid ${profColor}` }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAppointmentClick?.(ag);
+                      }}
+                    >
+                      <span className="font-semibold text-foreground shrink-0">
+                        {format(new Date(ag.data_horario), "HH:mm")}
+                      </span>
+                      <span className="truncate text-muted-foreground">
+                        {ag.pacientes?.nome?.split(" ")[0] || "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Overflow indicator */}
+              {dayAgs.length > 3 && (
+                <div className="text-[9px] font-semibold text-primary text-center mt-0.5">
+                  +{dayAgs.length - 3} mais
+                </div>
+              )}
+
+              {/* Status summary dots */}
+              {dayAgs.length > 0 && (
+                <div className="flex items-center justify-center gap-1 mt-0.5">
+                  {agendados > 0 && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title={`${agendados} agendado(s)`} />
+                  )}
+                  {realizados > 0 && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" title={`${realizados} realizado(s)`} />
+                  )}
+                  {cancelados > 0 && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" title={`${cancelados} cancelado(s)`} />
+                  )}
                 </div>
               )}
             </div>
