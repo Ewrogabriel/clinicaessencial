@@ -314,7 +314,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano, userId }: PlanoS
               <div>
                 <Label className="text-xs text-muted-foreground mb-2 block">Selecione o horário</Label>
                 <TimeSlotCards
-                  slots={availableSlots as TimeSlot[]}
+                  slots={availableSlots as unknown as TimeSlot[]}
                   selectedSlotId={slotId}
                   onSelect={(slot) => {
                     setSlotId(slot.id);

@@ -218,6 +218,7 @@ function EnrollmentBlockManager() {
                 endDate,
                 tipoAtendimento: enrollment.tipo_atendimento || "Pilates",
                 monthlyValue: Number(enrollment.valor_mensal || 0),
+                tipoSessao: enrollment.tipo_sessao || "grupo",
                 clinicId: enrollment.clinic_id || activeClinicId || "",
                 userId: user.id
             });

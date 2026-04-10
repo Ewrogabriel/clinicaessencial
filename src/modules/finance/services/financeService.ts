@@ -238,7 +238,7 @@ export const financeService = {
         try {
             let q2 = supabase
                 .from("pagamentos_mensalidade")
-                .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome), matricula_id")
+                .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome), matricula_id, formas_pagamento:forma_pagamento_id(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q2 = q2.eq("clinic_id", clinicId);
             const { data: mensalidades, error: err2 } = await q2;
@@ -252,7 +252,7 @@ export const financeService = {
                         valor: Number(m.valor),
                         data_vencimento: m.mes_referencia,
                         status: m.status ?? "aberto",
-                        forma_pagamento: m.forma_pagamento_id || "—",
+                        forma_pagamento: m.forma_pagamento_nome || "—",
                         descricao: `Mensalidade - ${m.mes_referencia}`,
                         paciente_nome: m.pacientes?.nome ?? "—",
                         origem_tipo: "mensalidade",
@@ -310,7 +310,7 @@ export const financeService = {
         try {
             let q3 = supabase
                 .from("pagamentos_sessoes")
-                .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome), agendamento_id")
+                .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome), agendamento_id, formas_pagamento:forma_pagamento_id(nome)")
                 .order("created_at", { ascending: false });
             if (clinicId) q3 = q3.eq("clinic_id", clinicId);
             const { data: sessoes, error: err3 } = await q3;
@@ -324,7 +324,7 @@ export const financeService = {
                         valor: Number(s.valor),
                         data_vencimento: s.status === "pago" ? null : s.data_pagamento,
                         status: s.status ?? "aberto",
-                        forma_pagamento: s.forma_pagamento_id || "—",
+                        forma_pagamento: (s as any).formas_pagamento?.nome || "—",
                         descricao: s.observacoes || "Sessão avulsa",
                         paciente_nome: s.pacientes?.nome ?? "—",
                         origem_tipo: "sessao",
