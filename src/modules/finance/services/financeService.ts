@@ -252,7 +252,7 @@ export const financeService = {
                         valor: Number(m.valor),
                         data_vencimento: m.mes_referencia,
                         status: m.status ?? "aberto",
-                        forma_pagamento: m.forma_pagamento_nome || "—",
+                        forma_pagamento: (m as any).formas_pagamento?.nome || "—",
                         descricao: `Mensalidade - ${m.mes_referencia}`,
                         paciente_nome: m.pacientes?.nome ?? "—",
                         origem_tipo: "mensalidade",
