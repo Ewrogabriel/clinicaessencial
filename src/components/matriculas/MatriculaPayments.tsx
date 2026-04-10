@@ -105,8 +105,8 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       const valorFinal = Math.max(0, valor - desconto);
 
       // 1. Inserir na tabela de pagamentos da mensalidade
-      const { data: mensalidadePgto, error: mensalidadeError } = await supabase
-        .from("pagamentos_mensalidade")
+      const { data: mensalidadePgto, error: mensalidadeError } = await (supabase
+        .from("pagamentos_mensalidade") as any)
         .insert({
           matricula_id: matriculaId,
           paciente_id: pacienteId,

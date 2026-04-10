@@ -97,6 +97,7 @@ export function useScheduleSlots(options: {
 
             return slots.map(s => ({
                 id: s.slot.id,
+                start_time: s.slot.hora_inicio,
                 time: s.slot.hora_inicio,
                 end_time: s.slot.hora_fim,
                 max_capacity: s.slot.max_pacientes,

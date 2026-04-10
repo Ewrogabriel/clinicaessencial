@@ -399,7 +399,7 @@ export function usePatientForm() {
       let savedPatientId = id;
 
       if (isEditing) {
-        const { error } = await supabase.from("pacientes").update(payload).eq("id", id);
+        const { error } = await (supabase.from("pacientes") as any).update(payload).eq("id", id);
         if (error) throw error;
         toast.success("Paciente atualizado com sucesso!");
       } else {

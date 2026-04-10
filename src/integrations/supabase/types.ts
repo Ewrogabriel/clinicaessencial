@@ -2355,6 +2355,7 @@ export type Database = {
           status: string
           tipo: string
           tipo_atendimento: string
+          tipo_sessao: string | null
           updated_at: string
           valor_mensal: number
         }
@@ -2375,6 +2376,7 @@ export type Database = {
           status?: string
           tipo?: string
           tipo_atendimento?: string
+          tipo_sessao?: string | null
           updated_at?: string
           valor_mensal?: number
         }
@@ -2395,6 +2397,7 @@ export type Database = {
           status?: string
           tipo?: string
           tipo_atendimento?: string
+          tipo_sessao?: string | null
           updated_at?: string
           valor_mensal?: number
         }

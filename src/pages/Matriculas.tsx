@@ -192,8 +192,8 @@ const Matriculas = () => {
       const finalValue = monthly - descValue;
 
       // 1. Update enrollment metadata
-      const { error: updateErr } = await supabase
-        .from("matriculas")
+      const { error: updateErr } = await (supabase
+        .from("matriculas") as any)
         .update({
           valor_mensal: finalValue,
           due_day: parseInt(editData.due_day) || 10,
@@ -278,8 +278,8 @@ const Matriculas = () => {
       const dueDate = format(new Date(nmYear, nmMonth, actualDueDay), "yyyy-MM-dd");
 
       // Create enrollment
-      const { data: mat, error } = await supabase
-        .from("matriculas")
+      const { data: mat, error } = await (supabase
+        .from("matriculas") as any)
         .insert({
           paciente_id: formData.paciente_id,
           profissional_id: user.id,
