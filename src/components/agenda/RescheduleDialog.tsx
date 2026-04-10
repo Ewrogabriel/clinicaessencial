@@ -353,7 +353,7 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
             <div className="flex flex-col gap-2">
               <Label className="text-xs text-muted-foreground">Selecione o horário</Label>
               <TimeSlotCards
-                slots={availableSlots as unknown as TimeSlot[]}
+                slots={availableSlots as TimeSlot[]}
                 selectedSlotId=""
                 onSelect={(slot) => {
                   setHorario(slot.start_time.slice(0, 5));

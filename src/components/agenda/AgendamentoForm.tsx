@@ -368,7 +368,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                     <div>
                       <Label className="text-xs text-muted-foreground mb-2 block">Selecione o horário</Label>
                       <TimeSlotCards
-                        slots={availableSlots as unknown as TimeSlot[]}
+                        slots={availableSlots as TimeSlot[]}
                         selectedSlotId={form.watch("slot_id") || ""}
                         onSelect={(slot) => {
                           form.setValue("slot_id", slot.id);
