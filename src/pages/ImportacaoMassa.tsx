@@ -454,7 +454,7 @@ const ImportacaoMassa = () => {
           const pacId = pacMap[String(row.paciente_nome).toLowerCase().trim()];
           if (!pacId) throw new Error(`Paciente "${row.paciente_nome}" não encontrado`);
 
-          const { error } = await supabase.from("pagamentos").insert({
+          const { error } = await (supabase.from("pagamentos") as any).insert({
             paciente_id: pacId,
             profissional_id: user.id,
             valor: Number(row.valor),
