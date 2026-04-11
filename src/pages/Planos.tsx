@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock, Pencil, CalendarPlus } from "lucide-react";
+import { Plus, Package, AlertTriangle, CheckCircle2, XCircle, Clock, Pencil, CalendarPlus, LayoutGrid, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ const Planos = () => {
   const [filterStatus, setFilterStatus] = useState("ativo");
   const [confirmDialog, setConfirmDialog] = useState<{ planoId: string; open: boolean } | null>(null);
   const [confirmData, setConfirmData] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const { data: planos = [], isLoading } = useQuery<PlanoRow[]>({
     queryKey: ["planos", filterPaciente, filterStatus],
@@ -240,6 +241,26 @@ const Planos = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-end justify-end">
+              <div className="flex border rounded-md p-1 bg-muted/50 h-10">
+                <Button 
+                  variant={viewMode === "grid" ? "secondary" : "ghost"} 
+                  size="sm" 
+                  onClick={() => setViewMode("grid")}
+                  className="h-8 w-8 p-0"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant={viewMode === "list" ? "secondary" : "ghost"} 
+                  size="sm" 
+                  onClick={() => setViewMode("list")}
+                  className="h-8 w-8 p-0"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -276,20 +297,89 @@ const Planos = () => {
         </Card>
       </div>
 
-      {/* Planos Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
-          ) : planos.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground">
-              <Package className="h-12 w-12 mb-4 opacity-40" />
-              <p className="text-lg font-medium">Nenhum plano cadastrado</p>
-              <Button className="mt-4" onClick={() => { setEditPlano(null); setFormOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" /> Criar primeiro plano
-              </Button>
-            </div>
-          ) : (
+      {/* Planos Display */}
+      {isLoading ? (
+        <div className="flex justify-center py-12 text-muted-foreground">Carregando...</div>
+      ) : planos.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-muted-foreground border rounded-lg bg-card">
+          <Package className="h-12 w-12 mb-4 opacity-40" />
+          <p className="text-lg font-medium">Nenhum plano cadastrado</p>
+          <Button className="mt-4" onClick={() => { setEditPlano(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Criar primeiro plano
+          </Button>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {planos.map((plano) => {
+            const agendadas = agendadasMap[plano.id] || 0;
+            const pct = plano.total_sessoes > 0 ? ((plano.sessoes_utilizadas + agendadas) / plano.total_sessoes) * 100 : 0;
+            const restante = plano.total_sessoes - plano.sessoes_utilizadas - agendadas;
+            const st = statusConfig[plano.status] || statusConfig.ativo;
+            return (
+              <Card key={plano.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <span className="font-semibold text-sm truncate block">{plano.pacientes?.nome || "—"}</span>
+                      <span className="text-xs text-muted-foreground capitalize">{plano.tipo_atendimento}</span>
+                    </div>
+                    <Badge variant={st.variant}>{st.label}</Badge>
+                  </div>
+
+                  {/* Sessions Info */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span>Progresso</span>
+                      <span className="font-medium">{plano.sessoes_utilizadas}/{plano.total_sessoes} sessões</span>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <span>{agendadas > 0 ? `${agendadas} agendadas` : "Nenhum agendamento"}</span>
+                      <span>{Math.max(0, restante)} disponíveis</span>
+                    </div>
+                  </div>
+
+                  {/* Value & Expiry */}
+                  <div className="flex justify-between items-center text-sm pt-1 border-t">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Valor Total</span>
+                      <span className="font-bold text-primary">R$ {Number(plano.valor).toFixed(2)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-muted-foreground text-[10px] block">Vencimento</span>
+                      <span className={plano.status === "vencido" ? "text-destructive font-bold" : ""}>
+                        {plano.data_vencimento ? format(new Date(plano.data_vencimento), "dd/MM") : "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-1 pt-2">
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs"
+                      onClick={() => { setEditPlano(plano); setFormOpen(true); }}>
+                      Editar
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs"
+                      onClick={() => setSessoesPlano(plano)}>
+                      Sessões
+                    </Button>
+                    <Button size="sm" variant="secondary" className="flex-1 h-8 text-xs"
+                      onClick={() => {
+                        setConfirmData({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
+                        setConfirmDialog({ planoId: plano.id, open: true });
+                      }}>
+                      Pagar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -363,9 +453,9 @@ const Planos = () => {
                 })}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Form Dialog (create/edit) */}
       <PlanoFormDialog

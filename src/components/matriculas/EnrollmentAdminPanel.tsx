@@ -174,17 +174,14 @@ function EnrollmentBlockManager() {
         mutationFn: async (enrollmentId: string) => {
             if (!user) throw new Error("Não autenticado");
 
-            // 1. Fetch enrollment details and its weekly schedules
-            const { data: enrollment, error: matErr } = await supabase
+            const { data: fullMat } = await supabase
                 .from("matriculas")
                 .select("*, weekly_schedules(*)")
                 .eq("id", enrollmentId)
                 .single();
 
-            if (matErr || !enrollment) throw new Error("Matrícula não encontrada");
+            if (!fullMat) throw new Error("Matrícula não encontrada");
 
-            // 2. Determine target range (next month)
-            // Strategy: Find the last generated session date for this enrollment, start from there + 1 day
             const { data: lastAgend } = await supabase
                 .from("agendamentos")
                 .select("data_horario")
@@ -193,11 +190,6 @@ function EnrollmentBlockManager() {
                 .limit(1)
                 .maybeSingle();
 
-            const startFrom = lastAgend 
-                ? format(addMonths(new Date(lastAgend.data_horario), 0), "yyyy-MM-dd") // Actually we want AFTER the last one
-                : format(new Date(), "yyyy-MM-dd");
-
-            // If we have a last session, we start generating from the beginning of its NEXT month
             const nextMonth = lastAgend 
                 ? addMonths(new Date(lastAgend.data_horario), 1)
                 : addMonths(new Date(), 1);
@@ -205,10 +197,10 @@ function EnrollmentBlockManager() {
             const startDate = format(startOfMonth(nextMonth), "yyyy-MM-dd");
             const endDate = format(endOfMonth(nextMonth), "yyyy-MM-dd");
 
-            const count = await enrollmentService.generateSessions({
-                enrollmentId: enrollment.id,
-                pacienteId: enrollment.paciente_id,
-                weeklySchedules: enrollment.weekly_schedules.map((s: any) => ({
+            return await enrollmentService.generateSessions({
+                enrollmentId: fullMat.id,
+                pacienteId: fullMat.paciente_id,
+                weeklySchedules: fullMat.weekly_schedules.map((s: any) => ({
                     weekday: s.weekday,
                     time: s.time,
                     professional_id: s.professional_id,
@@ -216,32 +208,101 @@ function EnrollmentBlockManager() {
                 })),
                 startDate,
                 endDate,
-                tipoAtendimento: enrollment.tipo_atendimento || "Pilates",
-                monthlyValue: Number(enrollment.valor_mensal || 0),
-                tipoSessao: (enrollment.tipo_sessao || "grupo") as "grupo" | "individual",
-                clinicId: enrollment.clinic_id || activeClinicId || "",
+                tipoAtendimento: fullMat.tipo_atendimento || "Pilates",
+                monthlyValue: Number(fullMat.valor_mensal || 0),
+                tipoSessao: (fullMat.tipo_sessao || "grupo") as "grupo" | "individual",
+                clinicId: fullMat.clinic_id || activeClinicId || "",
                 userId: user.id
             });
-
-            return count;
         },
         onSuccess: (count) => {
-            if (count > 0) {
-                queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
-                toast.success(`✅ ${count} sessões geradas para o próximo mês!`);
-            } else {
-                toast.success("Nenhuma sessão nova necessária para este período.");
-            }
+            queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+            queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula"] });
+            queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+            toast.success(`✅ ${count} sessões e cobrança mensal geradas com sucesso!`);
         },
-        onError: (err) => {
-            toast.error("Erro ao gerar sessões", { description: String(err) });
+        onError: (err) => toast.error("Erro ao gerar sessões", { description: String(err) }),
+    });
+
+    const generateAllActive = useMutation({
+        mutationFn: async () => {
+            if (!user) throw new Error("Não autenticado");
+            const activeEnrollments = enrollments.filter((e: any) => e.status === "ativa");
+            if (activeEnrollments.length === 0) return 0;
+
+            let totalCount = 0;
+            const promises = activeEnrollments.map(async (enrollment: any) => {
+                // Fetch full enrollment with weekly schedules
+                const { data: fullMat } = await supabase
+                    .from("matriculas")
+                    .select("*, weekly_schedules(*)")
+                    .eq("id", enrollment.id)
+                    .single();
+
+                if (!fullMat) return;
+
+                const { data: lastAgend } = await supabase
+                    .from("agendamentos")
+                    .select("data_horario")
+                    .eq("enrollment_id", enrollment.id)
+                    .order("data_horario", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                const nextMonth = lastAgend 
+                    ? addMonths(new Date(lastAgend.data_horario), 1)
+                    : addMonths(new Date(), 1);
+                
+                const startDate = format(startOfMonth(nextMonth), "yyyy-MM-dd");
+                const endDate = format(endOfMonth(nextMonth), "yyyy-MM-dd");
+
+                const count = await enrollmentService.generateSessions({
+                    enrollmentId: fullMat.id,
+                    pacienteId: fullMat.paciente_id,
+                    weeklySchedules: fullMat.weekly_schedules.map((s: any) => ({
+                        weekday: s.weekday,
+                        time: s.time,
+                        professional_id: s.professional_id,
+                        session_duration: s.session_duration
+                    })),
+                    startDate,
+                    endDate,
+                    tipoAtendimento: fullMat.tipo_atendimento || "Pilates",
+                    monthlyValue: Number(fullMat.valor_mensal || 0),
+                    tipoSessao: (fullMat.tipo_sessao || "grupo") as "grupo" | "individual",
+                    clinicId: fullMat.clinic_id || activeClinicId || "",
+                    userId: user.id
+                });
+                totalCount += count;
+            });
+
+            await Promise.all(promises);
+            return totalCount;
         },
+        onSuccess: (total) => {
+            queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+            queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula"] });
+            queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+            toast.success(`✅ Concluído! Total de ${total} sessões geradas para todas as matrículas ativas.`);
+        },
+        onError: (err) => toast.error("Erro na geração em lote", { description: String(err) }),
     });
 
     if (isLoading) return <p className="text-sm text-muted-foreground">Carregando matrículas...</p>;
 
     return (
-        <>
+        <div className="space-y-4">
+            <div className="flex justify-end">
+                <Button 
+                    variant="default" 
+                    className="gap-2"
+                    onClick={() => generateAllActive.mutate()}
+                    disabled={generateAllActive.isPending}
+                >
+                    <RefreshCw className={`h-4 w-4 ${generateAllActive.isPending ? "animate-spin" : ""}`} />
+                    {generateAllActive.isPending ? "Gerando..." : "Gerar Próximo Mês (Todas as Ativas)"}
+                </Button>
+            </div>
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -355,7 +416,7 @@ function EnrollmentBlockManager() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </>
+        </div>
     );
 }
 

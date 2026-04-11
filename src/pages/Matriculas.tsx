@@ -4,7 +4,8 @@ import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus, Pause, X, ChevronRight, BarChart2, Calendar,
-  RefreshCw, User, DollarSign, Settings, ShieldAlert, Eye
+  RefreshCw, User, DollarSign, Settings, ShieldAlert, Eye,
+  LayoutGrid, List
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -23,6 +24,9 @@ import {
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -134,6 +138,7 @@ const Matriculas = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Detail view
   const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null);
@@ -566,11 +571,31 @@ const Matriculas = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex items-end justify-end">
+                  <div className="flex border rounded-md p-1 bg-muted/50 h-10">
+                    <Button 
+                      variant={viewMode === "grid" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      onClick={() => setViewMode("grid")}
+                      className="h-8 w-8 p-0"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant={viewMode === "list" ? "secondary" : "ghost"} 
+                      size="sm" 
+                      onClick={() => setViewMode("list")}
+                      className="h-8 w-8 p-0"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Enrollment Cards */}
+          {/* Enrollment Display */}
           {isLoading ? (
             <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
           ) : matriculas.length === 0 ? (
@@ -579,7 +604,7 @@ const Matriculas = () => {
               <p className="text-sm">Nenhuma matrícula encontrada.</p>
               {isAdmin && <Button size="sm" className="mt-3 gap-2" onClick={() => setFormOpen(true)}><Plus className="h-3 w-3" />Criar primeira matrícula</Button>}
             </div>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {matriculas.map((mat: any) => {
                 const statusCfg = STATUS_CONFIG[mat.status] || STATUS_CONFIG.vencida;
@@ -667,6 +692,68 @@ const Matriculas = () => {
                 );
               })}
             </div>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Atendimento</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Início</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {matriculas.map((mat: any) => {
+                      const statusCfg = STATUS_CONFIG[mat.status] || STATUS_CONFIG.vencida;
+                      return (
+                        <TableRow key={mat.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(mat)}>
+                          <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                              <span>{mat.pacientes?.nome || "—"}</span>
+                              <span className="text-[10px] text-muted-foreground capitalize">{mat.tipo_sessao}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="capitalize text-xs">{mat.tipo_atendimento}</TableCell>
+                          <TableCell className="text-xs font-semibold">R$ {parseFloat(mat.valor_mensal || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-xs">
+                            {mat.data_inicio ? format(new Date(mat.data_inicio + "T12:00:00"), "dd/MM/yyyy") : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusCfg.variant} className="text-[10px]">
+                              {statusCfg.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setPaymentTrackingMat(mat)}>
+                                <DollarSign className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(mat)}>
+                                <Calendar className="h-4 w-4" />
+                              </Button>
+                              {isAdmin && mat.status === "ativa" && (
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSuspendTarget(mat.id)}>
+                                  <Pause className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {isAdmin && mat.status !== "cancelada" && (
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setCancelTarget(mat.id)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 

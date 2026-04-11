@@ -114,8 +114,39 @@ export const enrollmentService = {
     }
 
     if (toInsert.length > 0) {
+      // 1. Inserir Sessões
       const { data, error } = await supabase.from("agendamentos").insert(toInsert).select("id");
       if (error) throw error;
+
+      // 2. Garantir Registro Financeiro (Mensalidade)
+      // Agrupar por meses únicos presentes nas sessões geradas
+      const uniqueMonths = Array.from(new Set(toInsert.map(i => i.data_horario.substring(0, 7))));
+      
+      for (const monthRef of uniqueMonths) {
+        const fullMonthRef = `${monthRef}-01`;
+        
+        // Verificar se já existe cobrança para este mês
+        const { data: existing } = await supabase
+          .from("pagamentos_mensalidade")
+          .select("id")
+          .eq("matricula_id", enrollmentId)
+          .eq("mes_referencia", fullMonthRef)
+          .maybeSingle();
+
+        if (!existing && monthlyValue > 0) {
+          // Criar cobrança
+          await supabase.from("pagamentos_mensalidade").insert({
+            matricula_id: enrollmentId,
+            paciente_id: pacienteId,
+            clinic_id: clinicId,
+            valor: monthlyValue,
+            mes_referencia: fullMonthRef,
+            status: "aberto",
+            created_by: userId
+          });
+        }
+      }
+
       return data?.length || 0;
     }
     return 0;

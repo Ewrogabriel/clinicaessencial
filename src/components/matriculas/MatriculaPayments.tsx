@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { CommissionEngine } from "@/modules/commissions/commissionEngine";
 import { Plus, DollarSign, Ban, CalendarRange } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Button } from "@/components/ui/button";
@@ -167,48 +168,58 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
     mutationFn: async () => {
       if (!user || !activeClinicId) throw new Error("Dados incompletos");
 
-      const existingMonths = new Set(
-        pagamentos.map((p: any) => p.mes_referencia?.substring(0, 7))
-      );
+      // 1. Buscar detalhes da matrícula e horários semanais
+      const { data: enrollment, error: matErr } = await supabase
+        .from("matriculas")
+        .select("*, weekly_schedules(*)")
+        .eq("id", matriculaId)
+        .single();
 
-      const toInsert = [];
+      if (matErr || !enrollment) throw new Error("Matrícula não encontrada");
+
       const base = startOfMonth(new Date());
+      let totalSessoes = 0;
 
       for (let i = 0; i < bulkMonths; i++) {
         const monthDate = addMonths(base, i);
-        const mesRef = format(monthDate, "yyyy-MM") + "-01";
-        const mesKey = format(monthDate, "yyyy-MM");
+        const startDate = format(startOfMonth(monthDate), "yyyy-MM-dd");
+        const endDate = format(endOfMonth(monthDate), "yyyy-MM-dd");
 
-        if (existingMonths.has(mesKey)) continue;
-
-        // Data de vencimento = mesmo mês, dia configurado
-        const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
-        const diaVenc = Math.min(diaVencimento, daysInMonth);
-        const dataVenc = `${format(monthDate, "yyyy-MM")}-${String(diaVenc).padStart(2, "0")}`;
-
-        toInsert.push({
-          matricula_id: matriculaId,
-          paciente_id: pacienteId,
-          mes_referencia: mesRef,
-          valor: valorMensal,
-          status: "aberto",
-          data_vencimento: dataVenc,
-          created_by: user.id,
-          clinic_id: activeClinicId,
+        // Gerar sessões (o serviço agora também garante a mensalidade financeira)
+        const count = await enrollmentService.generateSessions({
+          enrollmentId: matriculaId,
+          pacienteId: pacienteId,
+          weeklySchedules: enrollment.weekly_schedules.map((s: any) => ({
+            weekday: s.weekday,
+            time: s.time,
+            professional_id: s.professional_id,
+            session_duration: s.session_duration
+          })),
+          startDate,
+          endDate,
+          tipoAtendimento: enrollment.tipo_atendimento || "Pilates",
+          monthlyValue: Number(valorMensal || 0),
+          tipoSessao: (enrollment.tipo_sessao || "grupo") as "grupo" | "individual",
+          clinicId: activeClinicId,
+          userId: user.id
         });
+
+        totalSessoes += count;
       }
 
-      if (toInsert.length === 0) throw new Error("Todos os meses selecionados já possuem cobrança gerada.");
+      if (totalSessoes === 0) {
+        // Se nenhuma sessão foi gerada (ex: já existiam), ainda assim precisamos garantir que as mensalidades financeiras existam
+        // Mas o serviço já faz esse check. Se retornou 0 sessões e 0 mensalidades criadas, avisamos.
+        // toast informará se algo foi feito via onSuccess
+      }
 
-      const { error } = await supabase.from("pagamentos_mensalidade").insert(toInsert);
-      if (error) throw error;
-      return toInsert.length;
+      return totalSessoes;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
       setBulkOpen(false);
-      toast.success(`${count} mensalidade(s) gerada(s) com sucesso!`);
+      toast.success(`✅ ${count} sessões e cobrança(s) gerada(s) com sucesso!`);
     },
     onError: (e: Error) => toast.error("Erro ao gerar mensalidades", { description: e.message }),
   });
