@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, BarChart2, Settings2 } from "lucide-react";
+import { ArrowLeft, BarChart2, Settings2, ShieldCheck } from "lucide-react";
 import { CommissionExtract } from "@/components/profissionais/CommissionExtract";
 import { CommissionRulesConfig } from "@/components/commissions/CommissionRulesConfig";
+import { CommissionAudit } from "@/components/commissions/CommissionAudit";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 
 const Comissoes = () => {
@@ -44,6 +45,9 @@ const Comissoes = () => {
             <TabsTrigger value="regras" className="gap-2">
               <Settings2 className="h-4 w-4" /> Configurar Regras
             </TabsTrigger>
+            <TabsTrigger value="auditoria" className="gap-2">
+              <ShieldCheck className="h-4 w-4" /> Auditoria
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="extrato" className="mt-4">
@@ -52,6 +56,10 @@ const Comissoes = () => {
 
           <TabsContent value="regras" className="mt-4">
             <CommissionRulesConfig />
+          </TabsContent>
+
+          <TabsContent value="auditoria" className="mt-4">
+            <CommissionAudit />
           </TabsContent>
         </Tabs>
       )}

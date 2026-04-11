@@ -278,6 +278,7 @@ const Relatorios = () => {
           <TabsTrigger value="profissionais">Por Profissional</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="evasao">Evasão & Inadimplência</TabsTrigger>
+          <TabsTrigger value="projecao">Projeção & Ocupação</TabsTrigger>
         </TabsList>
 
         {/* Por Paciente Tab */}
@@ -540,11 +541,80 @@ const Relatorios = () => {
                           <p className="text-sm font-medium">{p.pacientes?.nome || "—"}</p>
                           <p className="text-xs text-muted-foreground">Vencimento: {p.data_vencimento}</p>
                         </div>
-                        <Badge variant="destructive">R$ {Number(p.valor).toFixed(2)}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive">R$ {Number(p.valor).toFixed(2)}</Badge>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 text-green-600 hover:bg-green-100"
+                            onClick={() => {
+                              const phone = (p.pacientes?.telefone || "").replace(/\D/g, "");
+                              const msg = encodeURIComponent(`Olá ${p.pacientes?.nome.split(' ')[0]}! Passando para lembrar que temos uma pendência em aberto referente ao seu tratamento. Caso já tenha quitado, por favor desconsidere. Precisando de ajuda, estamos aqui! 👋`);
+                              window.open(`https://wa.me/55${phone}?text=${msg}`, "_blank");
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="projecao" className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-emerald-600" />
+                  Projeção de Receita (Anual)
+                </CardTitle>
+                <CardDescription>Receita prevista baseada no faturamento médio dos últimos meses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={useMemo(() => {
+                    const base = totalRecebido || 0;
+                    return Array.from({ length: 12 }).map((_, i) => ({
+                      name: format(new Date(2024, i, 1), "MMM", { locale: ptBR }),
+                      valor: base + (base * 0.03 * i) // Projeção de crescimento simples de 3%
+                    }));
+                  }, [totalRecebido])}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <XAxis dataKey="name" fontSize={10} />
+                    <YAxis fontSize={10} tickFormatter={v => `R$${v/1000}k`} />
+                    <Tooltip formatter={(v: number) => [`R$ ${v.toLocaleString('pt-BR')}`]} />
+                    <Legend />
+                    <Line type="monotone" dataKey="valor" stroke="hsl(168, 65%, 38%)" name="Receita Projetada" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  Ocupação Efetiva por Profissional
+                </CardTitle>
+                <CardDescription>Volume de agendamentos realizados vs total agendado</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={profStats}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <XAxis dataKey="nome" fontSize={10} />
+                    <YAxis fontSize={10} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="total" fill="hsl(199, 89%, 48%)" name="Total Agendado" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="realizados" fill="hsl(142, 71%, 45%)" name="Realizados" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>

@@ -21,6 +21,7 @@ import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
 import { PaymentHistoryTab } from "@/components/financial/PaymentHistoryTab";
+import { PatientTimeline } from "@/components/patient/PatientTimeline";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const PacienteDetalhes = () => {
@@ -153,7 +154,11 @@ const PacienteDetalhes = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-8">
+                <TabsList className="grid w-full grid-cols-6 mb-8">
+                    <TabsTrigger value="timeline" className="gap-2">
+                        <History className="h-4 w-4" />
+                        <span className="hidden sm:inline">Tempo</span>
+                    </TabsTrigger>
                     <TabsTrigger value="prontuario" className="gap-2">
                         <Stethoscope className="h-4 w-4" />
                         <span className="hidden sm:inline">Prontuário</span>
@@ -341,6 +346,23 @@ const PacienteDetalhes = () => {
                         )}
                     </TabsContent>
                 )}
+
+                <TabsContent value="timeline" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <History className="h-5 w-5 text-primary" />
+                                Histórico Completo do Paciente
+                            </CardTitle>
+                            <CardDescription>
+                                Linha do tempo unificando agenda, financeiro e prontuário clínico.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <PatientTimeline pacienteId={id!} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="cadastro">
                     <Card>
