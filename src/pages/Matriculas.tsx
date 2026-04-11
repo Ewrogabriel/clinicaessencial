@@ -4,7 +4,7 @@ import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus, Pause, X, ChevronRight, BarChart2, Calendar,
-  RefreshCw, User, DollarSign, Settings, ShieldAlert
+  RefreshCw, User, DollarSign, Settings, ShieldAlert, Eye
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -37,6 +37,7 @@ import { EnrollmentDetails } from "@/components/matriculas/EnrollmentDetails";
 import { EnrollmentAdminPanel } from "@/components/matriculas/EnrollmentAdminPanel";
 import { CancellationPolicies } from "@/components/matriculas/CancellationPolicies";
 import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
+import { MatriculaPaymentTracker } from "@/components/matriculas/MatriculaPaymentTracker";
 import Planos from "./Planos";
 import { toast } from "sonner";
 
