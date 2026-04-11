@@ -130,7 +130,7 @@ const AddEntryDialog = ({ open, onOpenChange, tipo }: AddEntryDialogProps) => {
 
       const firstSchedule = form.horarios_preferidos[0];
 
-      const { error } = await supabase.from("lista_espera").insert({
+      const { error } = await (supabase.from("lista_espera") as any).insert({
         paciente_id: form.paciente_id,
         profissional_id: firstSchedule?.professional_id || null,
         matricula_id: tipo === "interesse_mudanca" ? form.matricula_id : null,

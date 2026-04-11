@@ -17,6 +17,7 @@ import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
 import { IntegrationTabs } from "@/components/settings/IntegrationTabs";
 import { WhatsAppConfigPanel } from "@/components/whatsapp/WhatsAppConfig";
+import { ClinicThemeTab } from "@/components/settings/ClinicThemeTab";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
 import { Calendar, ShieldCheck, CheckCircle2, XCircle, Rocket } from "lucide-react";
@@ -304,7 +305,7 @@ const ClinicSettings = () => {
           <TabsTrigger value="whatsapp" className="gap-2">
             <MessageCircle className="h-4 w-4" /> WhatsApp
           </TabsTrigger>
-          <TabsTrigger value="aparencia" className="gap-2">
+          <TabsTrigger value="tema" className="gap-2">
             <Palette className="h-4 w-4" /> Aparência
           </TabsTrigger>
         </TabsList>
@@ -508,7 +509,7 @@ const ClinicSettings = () => {
           <WhatsAppConfigPanel clinicId={settings?.id || ""} />
         </TabsContent>
 
-        <TabsContent value="aparencia">
+        <TabsContent value="tema">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
