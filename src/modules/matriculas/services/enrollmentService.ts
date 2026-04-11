@@ -95,7 +95,7 @@ export const enrollmentService = {
         toInsert.push({
           paciente_id: pacienteId,
           profissional_id: s.professional_id,
-          data_horario: `${dt}T${s.time}:00${getLocalTZOffset(dt, s.time)}`,
+          data_horario: `${dt}T${s.time.split(":").slice(0, 2).join(":")}:00${getLocalTZOffset(dt, s.time)}`,
           duracao_minutos: s.session_duration,
           tipo_atendimento: tipoAtendimento,
           tipo_sessao: tipoSessao,
