@@ -77,7 +77,17 @@ function getEmptyEditForm(): EnrollmentEditData {
 
 // Helper: get local timezone offset string like "-03:00"
 function getLocalTZOffset(dateStr: string, timeStr: string): string {
-  const d = new Date(`${dateStr}T${timeStr}:00`);
+  const timeParts = timeStr.split(":");
+  const normalizedTime = `${timeParts[0]}:${timeParts[1] || "00"}`;
+  const d = new Date(`${dateStr}T${normalizedTime}:00`);
+  if (isNaN(d.getTime())) {
+    const now = new Date();
+    const offset = -now.getTimezoneOffset();
+    const sign = offset >= 0 ? "+" : "-";
+    const h = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
+    const m = String(Math.abs(offset) % 60).padStart(2, "0");
+    return `${sign}${h}:${m}`;
+  }
   const offset = -d.getTimezoneOffset();
   const sign = offset >= 0 ? "+" : "-";
   const h = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
