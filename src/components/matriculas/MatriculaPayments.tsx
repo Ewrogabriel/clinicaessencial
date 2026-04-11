@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, addMonths, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, DollarSign, Ban } from "lucide-react";
+import { CommissionEngine } from "@/modules/commissions/commissionEngine";
+import { Plus, DollarSign, Ban, CalendarRange } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
@@ -25,6 +26,7 @@ interface MatriculaPaymentsProps {
   matriculaId: string;
   pacienteId: string;
   valorMensal: number;
+  diaVencimento?: number; // dia do mês para vencimento (padrão: 10)
 }
 
 const MESES = [
@@ -38,11 +40,13 @@ const STATUS_BADGE: Record<string, { label: string; variant: "default" | "second
   anulado: { label: "Anulado", variant: "outline" },
 };
 
-export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: MatriculaPaymentsProps) {
+export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVencimento = 10 }: MatriculaPaymentsProps) {
   const { user } = useAuth();
   const { activeClinicId } = useClinic();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMonths, setBulkMonths] = useState(3);
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; open: boolean } | null>(null);
 
   const currentYear = new Date().getFullYear();
@@ -104,8 +108,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       const desconto = parseFloat(formData.desconto) || 0;
       const valorFinal = Math.max(0, valor - desconto);
 
-      // 1. Inserir na tabela de pagamentos da mensalidade
-      const { data: mensalidadePgto, error: mensalidadeError } = await supabase
+      const { error: mensalidadeError } = await supabase
         .from("pagamentos_mensalidade")
         .insert({
           matricula_id: matriculaId,
@@ -118,18 +121,9 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
           observacoes: formData.observacoes || null,
           created_by: user.id,
           clinic_id: activeClinicId
-        })
-        .select()
-        .single();
+        });
 
       if (mensalidadeError) throw mensalidadeError;
-
-      // 2. Se estiver PAGO ou PENDENTE, reflete no fluxo de caixa geral (pagamentos)
-      if (mensalidadePgto) {
-        const descricaoMensalidade = `Mensalidade Pilates - ${format(new Date(mesRef + "T12:00:00"), "MMM/yyyy", { locale: ptBR })}`;
-        
-        // Payment is tracked in pagamentos_mensalidade, no need to duplicate in pagamentos
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
@@ -152,10 +146,12 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
           updates.forma_pagamento_id = null;
       }
       
-      const { error } = await supabase.from("pagamentos_mensalidade").update(updates).eq("id", id);
+      const { data, error } = await supabase.from("pagamentos_mensalidade").update(updates).eq("id", id).select("id").single();
       if (error) throw error;
 
-      // Payment status is tracked in pagamentos_mensalidade; financeiro reads from all sources
+      if (status === "pago" && data) {
+        await CommissionEngine.releaseCommissionsByPayment(data.id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
@@ -164,6 +160,56 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
       toast.success("Status atualizado com sucesso!");
     },
     onError: (e: Error) => toast.error("Erro ao atualizar status", { description: e.message }),
+  });
+
+  const bulkCreatePayments = useMutation({
+    mutationFn: async () => {
+      if (!user || !activeClinicId) throw new Error("Dados incompletos");
+
+      const existingMonths = new Set(
+        pagamentos.map((p: any) => p.mes_referencia?.substring(0, 7))
+      );
+
+      const toInsert = [];
+      const base = startOfMonth(new Date());
+
+      for (let i = 0; i < bulkMonths; i++) {
+        const monthDate = addMonths(base, i);
+        const mesRef = format(monthDate, "yyyy-MM") + "-01";
+        const mesKey = format(monthDate, "yyyy-MM");
+
+        if (existingMonths.has(mesKey)) continue;
+
+        // Data de vencimento = mesmo mês, dia configurado
+        const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+        const diaVenc = Math.min(diaVencimento, daysInMonth);
+        const dataVenc = `${format(monthDate, "yyyy-MM")}-${String(diaVenc).padStart(2, "0")}`;
+
+        toInsert.push({
+          matricula_id: matriculaId,
+          paciente_id: pacienteId,
+          mes_referencia: mesRef,
+          valor: valorMensal,
+          status: "aberto",
+          data_vencimento: dataVenc,
+          created_by: user.id,
+          clinic_id: activeClinicId,
+        });
+      }
+
+      if (toInsert.length === 0) throw new Error("Todos os meses selecionados já possuem cobrança gerada.");
+
+      const { error } = await supabase.from("pagamentos_mensalidade").insert(toInsert);
+      if (error) throw error;
+      return toInsert.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      setBulkOpen(false);
+      toast.success(`${count} mensalidade(s) gerada(s) com sucesso!`);
+    },
+    onError: (e: Error) => toast.error("Erro ao gerar mensalidades", { description: e.message }),
   });
 
   const resetForm = () => {
@@ -195,9 +241,14 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
         <h3 className="font-semibold flex items-center gap-2">
           <DollarSign className="h-4 w-4" /> Pagamentos Mensais
         </h3>
-        <Button size="sm" onClick={openCreate} className="gap-1">
-          <Plus className="h-3 w-3" /> Registrar Pagamento
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)} className="gap-1 text-xs">
+            <CalendarRange className="h-3 w-3" /> Gerar Mensalidades
+          </Button>
+          <Button size="sm" onClick={openCreate} className="gap-1">
+            <Plus className="h-3 w-3" /> Registrar Pagamento
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -417,6 +468,54 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal }: Matr
                 }}
               >
                 Confirmar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Geração em Lote */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarRange className="h-4 w-4" /> Gerar Mensalidades em Lote
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Gera cobranças mensais em aberto para os próximos meses. Meses já registrados serão ignorados.
+            </p>
+            <div>
+              <Label>Quantos meses gerar?</Label>
+              <div className="flex gap-2 mt-2">
+                {[1, 3, 6, 12].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setBulkMonths(n)}
+                    className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
+                      bulkMonths === n
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {bulkMonths} parcela(s) de R$ {valorMensal.toFixed(2)} = R$ {(bulkMonths * valorMensal).toFixed(2)} total
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={() => bulkCreatePayments.mutate()}
+                disabled={bulkCreatePayments.isPending}
+                className="gap-2"
+              >
+                <CalendarRange className="h-4 w-4" />
+                {bulkCreatePayments.isPending ? "Gerando..." : `Gerar ${bulkMonths} mês(es)`}
               </Button>
             </div>
           </div>

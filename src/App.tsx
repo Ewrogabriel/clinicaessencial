@@ -14,6 +14,7 @@ import { RequireRole } from "@/modules/auth/components/RequireRole";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LazyLoadFallback } from "@/components/LazyLoadFallback";
+import { ClinicThemeWrapper } from "@/components/layout/ClinicThemeWrapper";
 
 // Eager-loaded (critical path)
 import Index from "./pages/Index";
@@ -103,6 +104,7 @@ const App = () => (
         <I18nProvider>
           <AuthProvider>
             <ClinicProvider>
+              <ClinicThemeWrapper>
               <Sonner />
               <BrowserRouter>
                 <ErrorBoundary>
@@ -192,6 +194,7 @@ const App = () => (
                   </Suspense>
                 </ErrorBoundary>
               </BrowserRouter>
+              </ClinicThemeWrapper>
             </ClinicProvider>
           </AuthProvider>
         </I18nProvider>

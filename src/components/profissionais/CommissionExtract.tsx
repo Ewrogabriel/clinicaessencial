@@ -13,7 +13,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Clock } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import jsPDF from "jspdf";
 import { getClinicSettings, addLogoToPDF, formatClinicAddress } from "@/lib/pdfLogo";
 import { calculateSessionValue, calculateSessionCommission } from "@/lib/calculations";
@@ -124,6 +130,19 @@ export function CommissionExtract() {
     enabled: canManage || isProfissional,
   });
 
+  const { data: commissionsData = [] } = useQuery({
+    queryKey: ["commissions-table-extract", mesRef],
+    queryFn: async () => {
+      const mesDate = `${mesRef}-01`;
+      const { data } = await supabase
+        .from("commissions")
+        .select("*")
+        .eq("mes_referencia", mesDate);
+      return data ?? [];
+    },
+    enabled: canManage || isProfissional,
+  });
+
   const { data: fechamentos = [] } = useQuery({
     queryKey: ["fechamentos-comissao", mesRef],
     queryFn: async () => {
@@ -218,13 +237,35 @@ export function CommissionExtract() {
 
   // Per-session commission detail calculator
   const getSessionCommission = (profId: string, atendimento: any) => {
+    // 1. Tentar pegar da tabela de comissões (calculado pelo motor)
+    const existingComm = commissionsData.find(c => c.agendamento_id === atendimento.id);
+    
+    if (existingComm) {
+      return { 
+        valorSessao: Number(existingComm.session_value || 0), 
+        percentual: Number(existingComm.commission_pct || 0), 
+        fixo: Number(existingComm.valor_fixo_regra || 0), 
+        comissao: Number(existingComm.valor || 0),
+        status_liberacao: existingComm.status_liberacao || "bloqueado",
+        isConfirmed: true
+      };
+    }
+
+    // 2. Fallback para cálculo local (preview para sessões futuras ou sem motor processado)
     const prof = profissionais.find((p: any) => p.user_id === profId);
     const profRegras = regrasComissao.filter((r: any) => r.profissional_id === profId && r.ativo);
     
     const valorSessao = calculateSessionValue(atendimento, matriculas, agendamentos, planosData);
     const { percentual, fixo, commission } = calculateSessionCommission(valorSessao, atendimento.tipo_atendimento, prof, profRegras);
     
-    return { valorSessao, percentual, fixo, comissao: commission };
+    return { 
+      valorSessao, 
+      percentual, 
+      fixo, 
+      comissao: commission,
+      status_liberacao: "bloqueado", // Default para preview
+      isConfirmed: false
+    };
   };
 
   // Calculate own preview commission
@@ -937,33 +978,78 @@ export function CommissionExtract() {
                         {/* Expanded detail rows */}
                         {isExpanded && (
                           <>
-                            <TableRow className="bg-muted/30">
-                              <TableHead></TableHead>
-                              <TableHead className="text-xs">Data / Hora</TableHead>
-                              <TableHead className="text-xs">Paciente</TableHead>
-                              <TableHead className="text-xs">Tipo</TableHead>
-                              <TableHead className="text-xs">Valor Sessão</TableHead>
-                              <TableHead className="text-xs">% / Fixo</TableHead>
-                              <TableHead className="text-xs text-right">Comissão</TableHead>
-                            </TableRow>
+                              <TableRow className="bg-muted/30">
+                                <TableHead className="w-8"></TableHead>
+                                <TableHead className="text-xs">Data / Hora</TableHead>
+                                <TableHead className="text-xs">Paciente</TableHead>
+                                <TableHead className="text-xs">Tipo</TableHead>
+                                <TableHead className="text-xs">Valor Sessão</TableHead>
+                                <TableHead className="text-xs">% / Fixo</TableHead>
+                                <TableHead className="text-xs">Status Pagamento</TableHead>
+                                <TableHead className="text-xs text-right">Comissão</TableHead>
+                              </TableRow>
                             {sortedAtendimentos.map((a: any) => {
                               const sc = getSessionCommission(s.userId, a);
                               return (
                                 <TableRow key={a.id} className="bg-muted/10 text-sm">
-                                  <TableCell></TableCell>
+                                  <TableCell className="w-8">
+                                    {sc.isConfirmed && (
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Cálculo processado pelo motor oficial</TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </TableCell>
                                   <TableCell className="text-xs">
-                                    {format(new Date(a.data_horario), "dd/MM/yyyy HH:mm")}
+                                    {format(new Date(a.data_horario), "dd/MM HH:mm")}
                                   </TableCell>
                                   <TableCell className="text-xs">{a.pacientes?.nome || "—"}</TableCell>
                                   <TableCell className="text-xs">
-                                    <Badge variant="outline" className="text-[10px]">{a.tipo_atendimento || "—"}</Badge>
+                                    <Badge variant="outline" className="text-[10px] truncate max-w-[80px]">
+                                      {a.tipo_atendimento || "—"}
+                                    </Badge>
                                   </TableCell>
                                   <TableCell className="text-xs">R$ {sc.valorSessao.toFixed(2)}</TableCell>
                                   <TableCell className="text-xs">
-                                    {sc.percentual > 0 ? `${sc.percentual}%` : ""}
-                                    {sc.percentual > 0 && sc.fixo > 0 ? " + " : ""}
-                                    {sc.fixo > 0 ? `R$ ${sc.fixo.toFixed(2)}` : ""}
-                                    {sc.percentual === 0 && sc.fixo === 0 ? "—" : ""}
+                                    {sc.percentual > 0 ? (
+                                      <span className="flex items-center gap-1">
+                                        {sc.percentual.toFixed(0)}%
+                                        {a.status === "falta" && <span className="text-[10px] text-amber-600">(falta)</span>}
+                                      </span>
+                                    ) : sc.fixo > 0 ? (
+                                      <span className="flex items-center gap-1">
+                                        R$ {sc.fixo.toFixed(2)}
+                                        {a.status === "falta" && <span className="text-[10px] text-amber-600">(falta)</span>}
+                                      </span>
+                                    ) : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center gap-1 cursor-help">
+                                            {sc.status_liberacao === "liberado" ? (
+                                              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200 gap-1 text-[10px]">
+                                                <ShieldCheck className="h-3 w-3" /> Liberada
+                                              </Badge>
+                                            ) : (
+                                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 text-[10px]">
+                                                <ShieldAlert className="h-3 w-3" /> Bloqueada
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="text-xs">
+                                            {sc.status_liberacao === "liberado" 
+                                              ? "Mensalidade paga. Comissão disponível para fechamento." 
+                                              : "Aguardando pagamento da mensalidade para liberar comissão."}
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   </TableCell>
                                   <TableCell className="text-xs font-medium text-right text-primary">
                                     R$ {sc.comissao.toFixed(2)}

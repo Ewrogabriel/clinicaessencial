@@ -1,8 +1,9 @@
 import { dateFormats } from "@/modules/shared/utils/dateFormatters";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, subMonths, addDays, isBefore, isAfter, startOfDay } from "date-fns";
+import { format, subMonths, addDays, isBefore, isAfter, startOfDay, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CommissionEngine } from "@/modules/commissions/commissionEngine";
 import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock, Loader2 } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -298,6 +299,8 @@ const Financeiro = () => {
       } else if (table === "pagamentos_mensalidade") {
         const { error } = await supabase.from("pagamentos_mensalidade").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", id);
         if (error) throw error;
+        // Liberar comissões vinculadas a este pagamento
+        await CommissionEngine.releaseCommissionsByPayment(id);
       } else if (table === "pagamentos_sessoes") {
         const { error } = await supabase.from("pagamentos_sessoes").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", id);
         if (error) throw error;
