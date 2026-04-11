@@ -808,6 +808,25 @@ const Matriculas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ---- Dialog: Payment Tracking ---- */}
+      <Dialog open={!!paymentTrackingMat} onOpenChange={(v) => !v && setPaymentTrackingMat(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Acompanhamento de Pagamentos</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            {paymentTrackingMat && (
+              <MatriculaPaymentTracker
+                matriculaId={paymentTrackingMat.id}
+                pacienteId={paymentTrackingMat.paciente_id}
+                pacienteNome={paymentTrackingMat.pacientes?.nome || "Paciente"}
+                valorMensal={parseFloat(paymentTrackingMat.valor_mensal || 0)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
