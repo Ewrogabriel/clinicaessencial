@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Plus, Pause, X, ChevronRight, BarChart2, Calendar,
   RefreshCw, User, DollarSign, Settings, ShieldAlert, Eye,
-  LayoutGrid, List
+  LayoutGrid, List, Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -418,6 +419,72 @@ const Matriculas = () => {
     },
   });
 
+  const toggleAutoRenew = useMutation({
+    mutationFn: async ({ id, auto_renew }: { id: string; auto_renew: boolean }) => {
+      const { error } = await supabase.from("matriculas").update({ auto_renew }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      toast.success("Renovação automática atualizada.");
+    },
+  });
+
+  const generateNextMonth = useMutation({
+    mutationFn: async (enrollmentId: string) => {
+      if (!user) throw new Error("Não autenticado");
+
+      const { data: fullMat } = await supabase
+        .from("matriculas")
+        .select("*, weekly_schedules(*)")
+        .eq("id", enrollmentId)
+        .single();
+
+      if (!fullMat) throw new Error("Matrícula não encontrada");
+
+      const { data: lastAgend } = await supabase
+        .from("agendamentos")
+        .select("data_horario")
+        .eq("enrollment_id", enrollmentId)
+        .order("data_horario", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { startOfMonth, endOfMonth, addMonths } = await import("date-fns");
+      const nextMonth = lastAgend 
+          ? addMonths(new Date(lastAgend.data_horario), 1)
+          : addMonths(new Date(), 1);
+      
+      const startDate = format(startOfMonth(nextMonth), "yyyy-MM-dd");
+      const endDate = format(endOfMonth(nextMonth), "yyyy-MM-dd");
+
+      return await enrollmentService.generateSessions({
+          enrollmentId: fullMat.id,
+          pacienteId: fullMat.paciente_id,
+          weeklySchedules: fullMat.weekly_schedules.map((s: any) => ({
+              weekday: s.weekday,
+              time: s.time,
+              professional_id: s.professional_id,
+              session_duration: s.session_duration
+          })),
+          startDate,
+          endDate,
+          tipoAtendimento: fullMat.tipo_atendimento || "Pilates",
+          monthlyValue: Number(fullMat.valor_mensal || 0),
+          tipoSessao: (fullMat.tipo_sessao || "grupo") as "grupo" | "individual",
+          clinicId: fullMat.clinic_id || activeClinicId || "",
+          userId: user.id
+      });
+    },
+    onSuccess: (count) => {
+        queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+        queryClient.invalidateQueries({ queryKey: ["pagamentos_mensalidade"] });
+        queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+        toast.success(`✅ ${count} sessões e cobrança mensal geradas com sucesso!`);
+    },
+    onError: (err) => toast.error("Erro ao gerar sessões", { description: String(err) }),
+  });
+
   const openDetail = (mat: any) => {
     setSelectedEnrollment(mat);
     setDetailOpen(true);
@@ -644,18 +711,26 @@ const Matriculas = () => {
                         </div>
                       </div>
 
-                      {/* Badges row */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {mat.auto_renew && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            <RefreshCw className="h-2.5 w-2.5 mr-0.5" /> Auto
-                          </Badge>
-                        )}
-                        {mat.tipo_sessao && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
-                            {mat.tipo_sessao}
-                          </Badge>
-                        )}
+                      {/* Controls row */}
+                      <div className="flex items-center justify-between py-2 border-y border-muted/50">
+                        <div className="flex items-center gap-2">
+                          <Switch 
+                            checked={mat.auto_renew} 
+                            onCheckedChange={(v) => toggleAutoRenew.mutate({ id: mat.id, auto_renew: v })}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="text-[10px] font-medium text-muted-foreground">Renovação</span>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="h-7 px-2 gap-1 text-[10px] bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
+                          onClick={(e) => { e.stopPropagation(); generateNextMonth.mutate(mat.id); }}
+                          disabled={generateNextMonth.isPending}
+                        >
+                          <Play className="h-3 w-3 fill-current" />
+                          Renovar Agora
+                        </Button>
                       </div>
 
                       {/* Actions */}
@@ -700,9 +775,8 @@ const Matriculas = () => {
                     <TableRow>
                       <TableHead>Paciente</TableHead>
                       <TableHead>Atendimento</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Início</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Vcto/Referência</TableHead>
+                      <TableHead>Renovação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -723,12 +797,26 @@ const Matriculas = () => {
                             {mat.data_inicio ? format(new Date(mat.data_inicio + "T12:00:00"), "dd/MM/yyyy") : "—"}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={statusCfg.variant} className="text-[10px]">
-                              {statusCfg.label}
-                            </Badge>
+                            <div className="flex flex-col gap-1 items-center">
+                              <Switch 
+                                checked={mat.auto_renew} 
+                                onCheckedChange={(v) => toggleAutoRenew.mutate({ id: mat.id, auto_renew: v })}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
+                              <Button 
+                                size="icon" 
+                                variant="outline" 
+                                className="h-8 w-8 text-blue-600 border-blue-200" 
+                                title="Renovar para o próximo mês"
+                                onClick={() => generateNextMonth.mutate(mat.id)}
+                                disabled={generateNextMonth.isPending}
+                              >
+                                <Play className="h-4 w-4 fill-current" />
+                              </Button>
                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setPaymentTrackingMat(mat)}>
                                 <DollarSign className="h-4 w-4" />
                               </Button>

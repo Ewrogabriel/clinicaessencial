@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { SchedulePickerCards } from "./SchedulePickerCards";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
@@ -197,16 +198,15 @@ export function EnrollmentForm({ formData, setFormData, pacientes, profissionais
                         onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                     />
                 </div>
-                <div className="flex items-end pb-0.5">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded"
-                            checked={formData.auto_renew}
-                            onChange={(e) => setFormData({ ...formData, auto_renew: e.target.checked })}
-                        />
-                        <span className="text-sm font-medium">Renovação automática</span>
-                    </label>
+                <div className="flex items-center justify-between border rounded-md p-3 bg-muted/20">
+                    <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">Renovação Automática</Label>
+                        <p className="text-[10px] text-muted-foreground">Gera agenda e cobrança do próximo mês automaticamente</p>
+                    </div>
+                    <Switch
+                        checked={formData.auto_renew}
+                        onCheckedChange={(v) => setFormData({ ...formData, auto_renew: v })}
+                    />
                 </div>
             </div>
 

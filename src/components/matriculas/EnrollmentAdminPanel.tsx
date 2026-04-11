@@ -137,7 +137,7 @@ function EnrollmentBlockManager() {
         queryFn: async () => {
             const { data } = await (supabase as any)
                 .from("matriculas")
-                .select("id, status, bloqueado_admin, bloqueio_motivo, paciente_id, valor_mensal, pacientes(nome)")
+                .select("id, status, auto_renew, bloqueado_admin, bloqueio_motivo, paciente_id, valor_mensal, pacientes(nome)")
                 .in("status", ["ativa", "suspensa"])
                 .order("created_at", { ascending: false });
             return data ?? [];
@@ -224,6 +224,86 @@ function EnrollmentBlockManager() {
         onError: (err) => toast.error("Erro ao gerar sessões", { description: String(err) }),
     });
 
+    const processAutoRenewals = useMutation({
+        mutationFn: async () => {
+            if (!user) throw new Error("Não autenticado");
+            // Filter only those with auto_renew = true and status = 'ativa'
+            const toRenew = enrollments.filter((e: any) => e.status === "ativa" && e.auto_renew);
+            if (toRenew.length === 0) return 0;
+
+            let totalCount = 0;
+            const promises = toRenew.map(async (enrollment: any) => {
+                // Fetch full enrollment with weekly schedules
+                const { data: fullMat } = await supabase
+                    .from("matriculas")
+                    .select("*, weekly_schedules(*)")
+                    .eq("id", enrollment.id)
+                    .single();
+
+                if (!fullMat) return;
+
+                // Check if already has sessions for next month
+                const { data: lastAgend } = await supabase
+                    .from("agendamentos")
+                    .select("data_horario")
+                    .eq("enrollment_id", enrollment.id)
+                    .order("data_horario", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                const nextMonth = lastAgend 
+                    ? addMonths(new Date(lastAgend.data_horario), 1)
+                    : addMonths(new Date(), 1);
+                
+                const startDate = format(startOfMonth(nextMonth), "yyyy-MM-dd");
+                const endDate = format(endOfMonth(nextMonth), "yyyy-MM-dd");
+
+                // Check if this next month already has a monthly payment
+                const { data: existingPay } = await supabase
+                    .from("pagamentos_mensalidade")
+                    .select("id")
+                    .eq("matricula_id", fullMat.id)
+                    .eq("mes_referencia", format(startOfMonth(nextMonth), "yyyy-MM-01"))
+                    .maybeSingle();
+                
+                if (existingPay) return; // Already processed
+
+                const count = await enrollmentService.generateSessions({
+                    enrollmentId: fullMat.id,
+                    pacienteId: fullMat.paciente_id,
+                    weeklySchedules: fullMat.weekly_schedules.map((s: any) => ({
+                        weekday: s.weekday,
+                        time: s.time,
+                        professional_id: s.professional_id,
+                        session_duration: s.session_duration
+                    })),
+                    startDate,
+                    endDate,
+                    tipoAtendimento: fullMat.tipo_atendimento || "Pilates",
+                    monthlyValue: Number(fullMat.valor_mensal || 0),
+                    tipoSessao: (fullMat.tipo_sessao || "grupo") as "grupo" | "individual",
+                    clinicId: fullMat.clinic_id || activeClinicId || "",
+                    userId: user.id
+                });
+                totalCount += count;
+            });
+
+            await Promise.all(promises);
+            return totalCount;
+        },
+        onSuccess: (total) => {
+            queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+            queryClient.invalidateQueries({ queryKey: ["pagamentos_mensalidade"] });
+            queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+            if (total > 0) {
+              toast.success(`✅ Renovações automáticas concluídas! ${total} sessões geradas.`);
+            } else {
+              toast.info("Não há novas renovações pendentes para as matrículas marcadas.");
+            }
+        },
+        onError: (err) => toast.error("Erro no processamento automático", { description: String(err) }),
+    });
+
     const generateAllActive = useMutation({
         mutationFn: async () => {
             if (!user) throw new Error("Não autenticado");
@@ -292,15 +372,24 @@ function EnrollmentBlockManager() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
                 <Button 
-                    variant="default" 
+                    variant="outline" 
+                    className="gap-2 border-primary text-primary hover:bg-primary/5"
+                    onClick={() => processAutoRenewals.mutate()}
+                    disabled={processAutoRenewals.isPending}
+                >
+                    <RefreshCw className={`h-4 w-4 ${processAutoRenewals.isPending ? "animate-spin" : ""}`} />
+                    {processAutoRenewals.isPending ? "Processando..." : "Processar Renovações Automáticas"}
+                </Button>
+                <Button 
+                    variant="secondary" 
                     className="gap-2"
                     onClick={() => generateAllActive.mutate()}
                     disabled={generateAllActive.isPending}
                 >
                     <RefreshCw className={`h-4 w-4 ${generateAllActive.isPending ? "animate-spin" : ""}`} />
-                    {generateAllActive.isPending ? "Gerando..." : "Gerar Próximo Mês (Todas as Ativas)"}
+                    {generateAllActive.isPending ? "Gerando..." : "Forçar Próximo Mês (Todas as Ativas)"}
                 </Button>
             </div>
             <Table>
@@ -308,6 +397,7 @@ function EnrollmentBlockManager() {
                     <TableRow>
                         <TableHead>Paciente</TableHead>
                         <TableHead>Valor/mês</TableHead>
+                        <TableHead>Renovação</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Bloqueio</TableHead>
                         <TableHead>Ações</TableHead>
@@ -318,6 +408,11 @@ function EnrollmentBlockManager() {
                         <TableRow key={e.id}>
                             <TableCell className="font-medium">{e.pacientes?.nome ?? "—"}</TableCell>
                             <TableCell>R$ {Number(e.valor_mensal).toFixed(2)}</TableCell>
+                            <TableCell>
+                                <Badge variant={e.auto_renew ? "default" : "outline"} className={e.auto_renew ? "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400" : ""}>
+                                    {e.auto_renew ? "Sim" : "Não"}
+                                </Badge>
+                            </TableCell>
                             <TableCell>
                                 <Badge variant={e.status === "ativa" ? "default" : "secondary"}>
                                     {e.status}

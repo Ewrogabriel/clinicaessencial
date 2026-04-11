@@ -18,6 +18,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -191,6 +192,17 @@ const Planos = () => {
     },
     onError: (e: Error) => toast.error("Erro ao confirmar", { description: e.message }),
   });
+  
+  const toggleAutoRenew = useMutation({
+    mutationFn: async ({ id, auto_renew }: { id: string; auto_renew: boolean }) => {
+      const { error } = await supabase.from("planos").update({ auto_renew }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planos"] });
+      toast.success("Renovação automática atualizada.");
+    },
+  });
 
   const planosAtivos = planos.filter((p) => p.status === "ativo");
   const planosVencendo = planosAtivos.filter((p) => {
@@ -324,7 +336,25 @@ const Planos = () => {
                       <span className="font-semibold text-sm truncate block">{plano.pacientes?.nome || "—"}</span>
                       <span className="text-xs text-muted-foreground capitalize">{plano.tipo_atendimento}</span>
                     </div>
-                    <Badge variant={st.variant}>{st.label}</Badge>
+                    <div className="flex gap-1 items-center">
+                      <Badge variant={st.variant}>{st.label}</Badge>
+                      {(plano as any).auto_renew && (
+                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                          Auto
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Auto Renew Quick Toggle */}
+                  <div className="flex items-center justify-between py-1.5 px-2 bg-muted/30 rounded-md border border-muted/50">
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={(plano as any).auto_renew} 
+                        onCheckedChange={(v) => toggleAutoRenew.mutate({ id: plano.id, auto_renew: v })}
+                      />
+                      <span className="text-[10px] font-medium text-muted-foreground">Renovação Automática</span>
+                    </div>
                   </div>
 
                   {/* Sessions Info */}
@@ -389,6 +419,7 @@ const Planos = () => {
                   <TableHead>Progresso</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
+                  <TableHead>Renovação</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -413,6 +444,14 @@ const Planos = () => {
                       <TableCell>R$ {Number(plano.valor).toFixed(2)}</TableCell>
                       <TableCell className={plano.status === "vencido" ? "text-destructive font-bold" : ""}>
                         {plano.data_vencimento ? format(new Date(plano.data_vencimento), "dd/MM/yyyy") : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center">
+                          <Switch 
+                            checked={(plano as any).auto_renew} 
+                            onCheckedChange={(v) => toggleAutoRenew.mutate({ id: plano.id, auto_renew: v })}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
                       <TableCell className="text-right">

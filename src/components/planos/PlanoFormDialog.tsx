@@ -13,6 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 import { toast } from "sonner";
 interface PlanoFormDialogProps {
@@ -34,6 +35,7 @@ const defaultForm = {
   data_vencimento: "",
   observacoes: "",
   status: "ativo",
+  auto_renew: false,
 };
 
 export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, modalidades, userId }: PlanoFormDialogProps) => {
@@ -54,6 +56,7 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
         data_vencimento: editPlano.data_vencimento || "",
         observacoes: editPlano.observacoes || "",
         status: editPlano.status,
+        auto_renew: !!editPlano.auto_renew,
       });
     } else {
       setFormData(defaultForm);
@@ -73,6 +76,7 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
           data_vencimento: formData.data_vencimento || null,
           observacoes: formData.observacoes || null,
           status: formData.status as any,
+          auto_renew: formData.auto_renew,
         }).eq("id", editPlano.id);
         if (error) throw error;
       } else {
@@ -85,6 +89,7 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
           data_inicio: formData.data_inicio,
           data_vencimento: formData.data_vencimento || null,
           observacoes: formData.observacoes || null,
+          auto_renew: formData.auto_renew,
           created_by: userId,
         }).select().single();
 
@@ -188,6 +193,18 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
               </Select>
             </div>
           )}
+          <div>
+            <div className="flex items-center justify-between border rounded-md p-3 bg-muted/20">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Renovação Automática</Label>
+                <p className="text-[10px] text-muted-foreground">Cria novo plano ao esgotar sessões</p>
+              </div>
+              <Switch
+                checked={formData.auto_renew}
+                onCheckedChange={(v) => setFormData(p => ({ ...p, auto_renew: v }))}
+              />
+            </div>
+          </div>
           <div>
             <Label>Observações</Label>
             <Textarea placeholder="Observações sobre o plano..." value={formData.observacoes} onChange={(e) => setFormData(p => ({ ...p, observacoes: e.target.value }))} />
