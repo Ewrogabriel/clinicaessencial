@@ -212,7 +212,12 @@ export function CommissionExtract() {
       const endDate = `${mesRef}-${String(endMonth.getDate()).padStart(2, "0")}T23:59:59`;
       const { data } = await supabase
         .from("agendamentos")
-        .select("*, pacientes(nome)")
+        .select(`
+          *,
+          pacientes(nome),
+          matriculas(id, valor_mensalidade),
+          pagamentos(status, valor)
+        `)
         .eq("profissional_id", user.id)
         .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"] as any[])
         .gte("data_horario", startDate)
@@ -515,10 +520,11 @@ export function CommissionExtract() {
 
     doc.setFontSize(8);
     doc.text("Data", 20, y);
-    doc.text("Paciente", 50, y);
-    doc.text("Tipo", 120, y);
-    doc.text("Status", 150, y);
-    doc.text("Valor", 175, y);
+    doc.text("Paciente", 45, y);
+    doc.text("Origem", 100, y);
+    doc.text("Tipo", 135, y);
+    doc.text("Status", 160, y);
+    doc.text("Valor", 185, y);
     y += 2;
     doc.line(20, y, 190, y);
     y += 5;
@@ -526,11 +532,18 @@ export function CommissionExtract() {
     doc.setFont("helvetica", "normal");
     for (const a of prof.atendimentosDetail.sort((x: any, y: any) => x.data_horario.localeCompare(y.data_horario))) {
       if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(format(new Date(a.data_horario), "dd/MM HH:mm"), 20, y);
-      doc.text((a.pacientes?.nome || "—").substring(0, 30), 50, y);
-      doc.text((a.tipo_atendimento || "—").substring(0, 15), 120, y);
-      doc.text(a.status, 150, y);
-      doc.text(`R$ ${Number(a.valor_sessao || 0).toFixed(2)}`, 175, y);
+      const dateStr = format(new Date(a.data_horario), "dd/MM HH:mm");
+      const pacName = (a.pacientes?.nome || "—").substring(0, 25);
+      const isPlano = (a.observacoes || "").toLowerCase().includes("plano:");
+      const origem = isPlano ? "Plano" : (a.enrollment_id || a.matricula_id ? "Matrícula" : "Avulsa");
+      const tipo = (a.tipo_atendimento || "—").substring(0, 12);
+      
+      doc.text(dateStr, 20, y);
+      doc.text(pacName, 45, y);
+      doc.text(origem, 100, y);
+      doc.text(tipo, 135, y);
+      doc.text(a.status, 160, y);
+      doc.text(`R$ ${Number(a.valor_sessao || 0).toFixed(2)}`, 185, y);
       y += 5;
     }
 
@@ -748,25 +761,35 @@ export function CommissionExtract() {
                         <TableRow>
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs">Paciente</TableHead>
+                          <TableHead className="text-xs">Origem</TableHead>
                           <TableHead className="text-xs">Tipo</TableHead>
                           <TableHead className="text-xs">Valor</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {meusAgendamentos.map((a: any) => (
-                          <TableRow key={a.id}>
-                            <TableCell className="text-xs py-1.5">{format(new Date(a.data_horario), "dd/MM HH:mm")}</TableCell>
-                            <TableCell className="text-xs py-1.5">{a.pacientes?.nome ?? "—"}</TableCell>
-                            <TableCell className="text-xs py-1.5 capitalize">{a.tipo_atendimento}</TableCell>
-                            <TableCell className="text-xs py-1.5">R$ {Number(a.valor_sessao || 0).toFixed(2)}</TableCell>
-                            <TableCell className="text-xs py-1.5">
-                              <Badge variant={a.status === "realizado" ? "default" : "secondary"} className="text-xs py-0">
-                                {a.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                          {meusAgendamentos.map((a: any) => {
+                            const isPlano = (a.observacoes || "").toLowerCase().includes("plano:");
+                            const origem = isPlano ? "Plano" : (a.enrollment_id || a.matricula_id ? "Matrícula" : "Avulsa");
+                            return (
+                              <TableRow key={a.id}>
+                                <TableCell className="text-xs py-1.5">{format(new Date(a.data_horario), "dd/MM HH:mm")}</TableCell>
+                                <TableCell className="text-xs py-1.5">{a.pacientes?.nome ?? "—"}</TableCell>
+                                <TableCell className="text-xs py-1.5">
+                                  <Badge variant="outline" className="text-[10px] py-0 font-normal">
+                                    {origem}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs py-1.5 capitalize">{a.tipo_atendimento}</TableCell>
+                                <TableCell className="text-xs py-1.5">R$ {Number(a.valor_sessao || 0).toFixed(2)}</TableCell>
+                                <TableCell className="text-xs py-1.5">
+                                  <Badge variant={a.status === "realizado" ? "default" : "secondary"} className="text-xs py-0">
+                                    {a.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                       </TableBody>
                     </Table>
                   </div>

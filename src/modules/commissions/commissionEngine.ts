@@ -14,6 +14,7 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─────────────────────────────────────────────
 // Tipos internos
@@ -250,15 +251,36 @@ export const CommissionEngine = {
 
     const mesReferencia = `${year}-${String(month + 1).padStart(2, "0")}-01`;
 
-    // 10. Checar Vínculo com Pagamento
-    const { data: pgto } = await sb
+    // 10. Checar Vínculo com Pagamento (Mensalidade ou Geral)
+    let pgto = null;
+    let paymentTable = "pagamentos_mensalidade";
+
+    const { data: pgtoMensalidade } = await sb
       .from("pagamentos_mensalidade")
       .select("id, status")
       .eq("matricula_id", enrollmentId)
       .eq("mes_referencia", mesReferencia)
       .maybeSingle();
 
-    const statusLiberacao = pgto?.status === "pago" ? "liberado" : "bloqueado";
+    if (pgtoMensalidade) {
+      pgto = pgtoMensalidade;
+    } else {
+      // Se não for mensalidade, busca na tabela de pagamentos geral (sessões avulsas/planos)
+      const { data: pgtoGeral } = await sb
+        .from("pagamentos")
+        .select("id, status")
+        .eq("agendamento_id", agendamentoId)
+        .maybeSingle();
+      
+      if (pgtoGeral) {
+        pgto = pgtoGeral;
+        paymentTable = "pagamentos";
+      }
+    }
+
+    // Regra: Liberado somente se Pago E Agendamento Realizado/Falta (terminal)
+    const isSessionDone = agendamento.status === "realizado" || agendamento.status === "falta";
+    const statusLiberacao = (pgto?.status === "pago" && isSessionDone) ? "liberado" : "bloqueado";
 
     // 11. Upsert na tabela commissions
     const payload = {
@@ -345,14 +367,28 @@ export const CommissionEngine = {
   async releaseCommissionsByPayment(paymentId: string) {
     if (!paymentId) return;
 
-    const { error } = await supabase
-      .from("commissions")
-      .update({ status_liberacao: "liberado" })
+    // Busca quais comissões estão ligadas a este pagamento
+    const { data: comms } = await (supabase
+      .from("commissions") as any)
+      .select("id, agendamento_id")
       .eq("payment_id", paymentId);
 
-    if (error) {
-      console.error("Erro ao liberar comissões:", error);
-      throw error;
+    if (!comms || comms.length === 0) return;
+
+    // Para cada comissão, verifica se o agendamento já está "realizado" ou "falta"
+    for (const comm of comms) {
+      const { data: agend } = await supabase
+        .from("agendamentos")
+        .select("status")
+        .eq("id", comm.agendamento_id)
+        .single();
+
+      if (agend?.status === "realizado" || agend?.status === "falta") {
+        await (supabase
+          .from("commissions") as any)
+          .update({ status_liberacao: "liberado" })
+          .eq("id", comm.id);
+      }
     }
   },
 };

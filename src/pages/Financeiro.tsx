@@ -181,7 +181,9 @@ const Financeiro = () => {
     const totalRecebido = paid.reduce((sum, p) => sum + p.valor, 0);
     const totalPendente = pending.reduce((sum, p) => sum + p.valor, 0);
     const totalDespesas = (despesasForDre || []).filter((d) => d.status === "pago").reduce((sum, d) => sum + Number(d.valor), 0);
-    const totalComissoes = (comissoesForDre || []).reduce((sum, c) => sum + Number(c.valor), 0);
+    const totalComissoes = (comissoesForDre || [])
+      .filter((c) => c.status === "pago")
+      .reduce((sum, c) => sum + Number(c.valor), 0);
     const lucroLiquido = totalRecebido - refunded.reduce((sum, p) => sum + p.valor, 0) - totalDespesas - totalComissoes;
     return {
       totalRecebido, totalPendente, totalDespesas, totalComissoes,
