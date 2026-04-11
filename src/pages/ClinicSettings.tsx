@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle } from "lucide-react";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle, Palette } from "lucide-react";
 import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import { AuditLogViewer } from "@/components/settings/AuditLogViewer";
 import { BackupExport } from "@/components/settings/BackupExport";
 import { IntegrationTabs } from "@/components/settings/IntegrationTabs";
 import { WhatsAppConfigPanel } from "@/components/whatsapp/WhatsAppConfig";
+import { ClinicThemeTab } from "@/components/settings/ClinicThemeTab";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
 import { Calendar, ShieldCheck, CheckCircle2, XCircle, Rocket } from "lucide-react";
@@ -303,6 +304,9 @@ const ClinicSettings = () => {
           <TabsTrigger value="whatsapp" className="gap-2">
             <MessageCircle className="h-4 w-4" /> WhatsApp
           </TabsTrigger>
+          <TabsTrigger value="tema" className="gap-2">
+            <Palette className="h-4 w-4" /> Cores do Layout
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -502,6 +506,10 @@ const ClinicSettings = () => {
 
         <TabsContent value="whatsapp">
           <WhatsAppConfigPanel clinicId={settings?.id || ""} />
+        </TabsContent>
+
+        <TabsContent value="tema">
+          <ClinicThemeTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -846,6 +846,81 @@ export type Database = {
           },
         ]
       }
+      clinic_theme: {
+        Row: {
+          accent_color: string | null
+          button_primary: string | null
+          button_text: string | null
+          card_bg: string | null
+          card_border: string | null
+          clinic_id: string | null
+          created_at: string
+          destructive_color: string | null
+          header_bg: string | null
+          header_text: string | null
+          id: string
+          muted_color: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          sidebar_bg: string | null
+          sidebar_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          button_primary?: string | null
+          button_text?: string | null
+          card_bg?: string | null
+          card_border?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          destructive_color?: string | null
+          header_bg?: string | null
+          header_text?: string | null
+          id?: string
+          muted_color?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          sidebar_bg?: string | null
+          sidebar_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          button_primary?: string | null
+          button_text?: string | null
+          card_bg?: string | null
+          card_border?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          destructive_color?: string | null
+          header_bg?: string | null
+          header_text?: string | null
+          id?: string
+          muted_color?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          sidebar_bg?: string | null
+          sidebar_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_theme_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_theme_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+        ]
+      }
       clinic_users: {
         Row: {
           clinic_id: string
@@ -2334,6 +2409,87 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_saas_status"
             referencedColumns: ["clinic_id"]
+          },
+        ]
+      }
+      matricula_payment_tracking: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          data_pagamento: string | null
+          forma_pagamento_id: string | null
+          id: string
+          matricula_id: string
+          mes_referencia: string
+          observacoes: string | null
+          paciente_id: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          matricula_id: string
+          mes_referencia: string
+          observacoes?: string | null
+          paciente_id: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          forma_pagamento_id?: string | null
+          id?: string
+          matricula_id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          paciente_id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matricula_payment_tracking_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_payment_tracking_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
+            foreignKeyName: "matricula_payment_tracking_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_payment_tracking_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matriculas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_payment_tracking_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
           },
         ]
       }

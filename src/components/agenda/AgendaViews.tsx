@@ -140,7 +140,7 @@ function AppointmentCard({
   return (
     <div
       className={cn(
-        "rounded-md bg-card p-2 text-xs shadow-sm relative group cursor-pointer hover:shadow-md transition-all border-l-4 overflow-hidden",
+        "rounded-md bg-card px-2 py-1.5 text-xs shadow-sm relative group cursor-pointer hover:shadow-md transition-all border-l-3 overflow-hidden",
         isCancelled && "opacity-60"
       )}
       style={{ borderLeftColor: profBorderColor }}
@@ -165,10 +165,11 @@ function AppointmentCard({
         style={{ backgroundColor: sessTypeInfo.bgColor }}
       />
       <div className="relative z-10">
-        {/* Patient name + check-in indicators */}
-        <div className="font-semibold text-foreground truncate flex items-center gap-1">
+        {/* Row 1: Time + Patient name */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground font-mono shrink-0">{time}</span>
           <span
-            className="truncate text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            className="font-semibold truncate text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/pacientes/${ag.paciente_id}/detalhes`);
@@ -178,69 +179,29 @@ function AppointmentCard({
           </span>
         </div>
 
-        {/* Time + duration row */}
-        <div className="flex items-center gap-1 mt-0.5 text-muted-foreground">
-          <span>{time}</span>
-          <span>·</span>
-          <span>{ag.duracao_minutos}min</span>
-          {/* Attendance-type dot */}
-          <span
-            className="ml-auto w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: attendColor }}
-            title={ag.tipo_atendimento}
-          />
-        </div>
-
-        {/* Professional name */}
-        {ag.profiles?.nome && (
-          <div className="text-[10px] mt-0.5 font-medium truncate" style={{ color: profBorderColor }}>
-            {ag.profiles.nome}
-          </div>
-        )}
-
-        {/* Session type + status badges */}
-        <div className="flex items-center justify-between mt-1.5 gap-1 flex-wrap">
-          <div className="flex items-center gap-1">
-            <span className={cn("inline-flex items-center rounded-full px-1.5 py-0 text-[9px] font-semibold", sessTypeInfo.className)}>
-              {sessTypeInfo.label}
+        {/* Row 2: Duration + type badge + status */}
+        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+          <span className="text-muted-foreground">{ag.duracao_minutos}min</span>
+          <span className={cn("inline-flex items-center rounded-full px-1.5 py-0 text-[9px] font-semibold", sessTypeInfo.className)}>
+            {sessTypeInfo.label}
+          </span>
+          <Badge
+            variant="secondary"
+            className={cn("text-[9px] px-1.5 py-0", statusColors[ag.status])}
+          >
+            {ag.status}
+          </Badge>
+          {ag.profiles?.nome && (
+            <span className="text-[10px] font-medium ml-auto truncate" style={{ color: profBorderColor }}>
+              {ag.profiles.nome.split(" ")[0]}
             </span>
-            <Badge
-              variant="secondary"
-              className={cn("text-[9px] px-1.5 py-0", statusColors[ag.status])}
-            >
-              {ag.status}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-1">
-            {isPatient && ag.status !== "cancelado" && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReschedule?.(ag);
-                  }}
-                  className="text-[10px] text-amber-600 hover:underline font-medium"
-                >
-                  Remarcar
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCancel?.(ag.id);
-                  }}
-                  className="text-[10px] text-destructive hover:underline font-medium"
-                >
-                  Cancelar
-                </button>
-              </>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Quick-action buttons: Realizado / Faltou / Nova Evolução (daily view only, staff only) */}
+        {/* Quick-action buttons (daily view only, staff only) */}
         {canAct && (
           <div
-            className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/30"
+            className="flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -283,54 +244,33 @@ export function CalendarLegend({
   const profsWithColor = profissionais.filter((p) => p.cor_agenda);
 
   return (
-    <div className="flex flex-col gap-2 text-[10px] text-muted-foreground px-1 w-full">
-      {/* Row 1: Status (top accent) */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-semibold text-foreground">Status</span>
-        {Object.entries(statusBorderColors).map(([key, color]) => (
-          <span key={key} className="flex items-center gap-1">
-            <span
-              className="inline-flex flex-col w-5 h-3.5 rounded-sm overflow-hidden border border-border/40"
-              title={`Status: ${key}`}
-            >
-              <span className="h-[3px] w-full" style={{ backgroundColor: color }} />
-              <span className="flex-1 bg-muted/30" />
-            </span>
-            {key.charAt(0).toUpperCase() + key.slice(1)}
-          </span>
-        ))}
-      </div>
-
-      {/* Row 2: Session type (background tint) */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-semibold text-foreground">Tipo de sessão</span>
-        {Object.entries(sessionTypeConfig).map(([key, cfg]) => (
-          <span key={key} className="flex items-center gap-1">
-            <span
-              className="inline-block w-5 h-3.5 rounded-sm border border-border/40"
-              style={{ backgroundColor: cfg.swatchColor }}
-              title={`Tipo: ${cfg.label}`}
-            />
-            {cfg.label}
-          </span>
-        ))}
-      </div>
-
-      {/* Row 3: Professional (left border) – only when professionals have assigned colors */}
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground px-1">
+      {/* Status */}
+      {Object.entries(statusBorderColors).map(([key, color]) => (
+        <span key={key} className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+          {key.charAt(0).toUpperCase() + key.slice(1)}
+        </span>
+      ))}
+      <span className="text-border">|</span>
+      {/* Session types */}
+      {Object.entries(sessionTypeConfig).map(([key, cfg]) => (
+        <span key={key} className="flex items-center gap-1">
+          <span className="w-3 h-2 rounded-sm" style={{ backgroundColor: cfg.swatchColor }} />
+          {cfg.label}
+        </span>
+      ))}
+      {/* Professionals */}
       {profsWithColor.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-semibold text-foreground">Profissional</span>
+        <>
+          <span className="text-border">|</span>
           {profsWithColor.map((p) => (
             <span key={p.user_id} className="flex items-center gap-1">
-              <span
-                className="inline-block w-5 h-3.5 rounded-sm border-l-4 border-y border-r border-border/40 bg-muted/30"
-                style={{ borderLeftColor: p.cor_agenda ?? "#64748b" }}
-                title={`Profissional: ${p.nome}`}
-              />
-              {p.nome.split(" ")[0] || p.nome}
+              <span className="w-1 h-3 rounded-sm" style={{ backgroundColor: p.cor_agenda ?? "#64748b" }} />
+              {p.nome.split(" ")[0]}
             </span>
           ))}
-        </div>
+        </>
       )}
     </div>
   );

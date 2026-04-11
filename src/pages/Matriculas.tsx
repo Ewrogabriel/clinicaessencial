@@ -4,7 +4,7 @@ import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus, Pause, X, ChevronRight, BarChart2, Calendar,
-  RefreshCw, User, DollarSign, Settings, ShieldAlert
+  RefreshCw, User, DollarSign, Settings, ShieldAlert, Eye
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -24,9 +24,6 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -37,6 +34,7 @@ import { EnrollmentDetails } from "@/components/matriculas/EnrollmentDetails";
 import { EnrollmentAdminPanel } from "@/components/matriculas/EnrollmentAdminPanel";
 import { CancellationPolicies } from "@/components/matriculas/CancellationPolicies";
 import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
+import { MatriculaPaymentTracker } from "@/components/matriculas/MatriculaPaymentTracker";
 import Planos from "./Planos";
 import { toast } from "sonner";
 
@@ -77,7 +75,17 @@ function getEmptyEditForm(): EnrollmentEditData {
 
 // Helper: get local timezone offset string like "-03:00"
 function getLocalTZOffset(dateStr: string, timeStr: string): string {
-  const d = new Date(`${dateStr}T${timeStr}:00`);
+  const timeParts = timeStr.split(":");
+  const normalizedTime = `${timeParts[0]}:${timeParts[1] || "00"}`;
+  const d = new Date(`${dateStr}T${normalizedTime}:00`);
+  if (isNaN(d.getTime())) {
+    const now = new Date();
+    const offset = -now.getTimezoneOffset();
+    const sign = offset >= 0 ? "+" : "-";
+    const h = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
+    const m = String(Math.abs(offset) % 60).padStart(2, "0");
+    return `${sign}${h}:${m}`;
+  }
   const offset = -d.getTimezoneOffset();
   const sign = offset >= 0 ? "+" : "-";
   const h = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
@@ -130,6 +138,8 @@ const Matriculas = () => {
   // Detail view
   const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  // Payment tracking view
+  const [paymentTrackingMat, setPaymentTrackingMat] = useState<any>(null);
 
   // Confirm dialogs
   const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
@@ -560,104 +570,104 @@ const Matriculas = () => {
             </CardContent>
           </Card>
 
-          {/* Table */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Lista de Matrículas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
-              ) : matriculas.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">Nenhuma matrícula encontrada.</p>
-                  {isAdmin && <Button size="sm" className="mt-3 gap-2" onClick={() => setFormOpen(true)}><Plus className="h-3 w-3" />Criar primeira matrícula</Button>}
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Paciente</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Valor Mensal</TableHead>
-                        <TableHead>Início</TableHead>
-                        <TableHead>Renovação</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {matriculas.map((mat: any) => (
-                        <TableRow key={mat.id} className="cursor-pointer hover:bg-muted/30"
-                          onClick={() => openDetail(mat)}>
-                          <TableCell className="font-medium">
-                            <span
-                              className="text-blue-600 hover:underline cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/pacientes/${mat.pacientes?.id}/detalhes`);
-                              }}
-                            >
-                              {mat.pacientes?.nome || "—"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="capitalize">{mat.tipo_atendimento || mat.tipo || "mensal"}</TableCell>
-                          <TableCell>R$ {parseFloat(mat.valor_mensal || 0).toFixed(2)}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {mat.data_inicio ? format(new Date(mat.data_inicio), "dd/MM/yyyy", { locale: ptBR }) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {mat.auto_renew ? (
-                              <Badge variant="secondary" className="text-xs"><RefreshCw className="h-2.5 w-2.5 mr-1" />Auto</Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Manual</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={STATUS_CONFIG[mat.status]?.variant || "outline"}>
-                              {STATUS_CONFIG[mat.status]?.label || mat.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()} className="p-2">
-                            <div className="flex flex-wrap gap-1">
-                              {isAdmin && mat.status === "ativa" && (
-                                <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2"
-                                  onClick={() => setSuspendTarget(mat.id)}>
-                                  <Pause className="h-3 w-3" /> Suspender
-                                </Button>
-                              )}
-                              {isAdmin && mat.status === "suspensa" && (
-                                <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2"
-                                  onClick={() => ativarMatricula.mutate(mat.id)}>
-                                  Reativar
-                                </Button>
-                              )}
-                              {isAdmin && mat.status !== "cancelada" && (
-                                <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2 text-destructive hover:text-destructive"
-                                  onClick={() => setCancelTarget(mat.id)}>
-                                  <X className="h-3 w-3" /> Cancelar
-                                </Button>
-                              )}
-                              <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2"
-                                onClick={() => openEdit(mat)}>
-                                <Calendar className="h-3 w-3" /> Editar
-                              </Button>
-                              <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2"
-                                onClick={() => openDetail(mat)}>
-                                <ChevronRight className="h-3 w-3" /> Detalhes
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Enrollment Cards */}
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
+          ) : matriculas.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Nenhuma matrícula encontrada.</p>
+              {isAdmin && <Button size="sm" className="mt-3 gap-2" onClick={() => setFormOpen(true)}><Plus className="h-3 w-3" />Criar primeira matrícula</Button>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {matriculas.map((mat: any) => {
+                const statusCfg = STATUS_CONFIG[mat.status] || STATUS_CONFIG.vencida;
+                return (
+                  <Card key={mat.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => openDetail(mat)}>
+                    <CardContent className="p-4 space-y-3">
+                      {/* Header: patient + status */}
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0">
+                          <span
+                            className="font-semibold text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer truncate block"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/pacientes/${mat.paciente_id}/detalhes`);
+                            }}
+                          >
+                            {mat.pacientes?.nome || "—"}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize">{mat.tipo_atendimento || "mensal"}</span>
+                        </div>
+                        <Badge variant={statusCfg.variant}>
+                          {statusCfg.label}
+                        </Badge>
+                      </div>
+
+                      {/* Value + dates */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div>
+                          <span className="text-muted-foreground text-xs">Valor Mensal</span>
+                          <div className="font-bold text-primary">R$ {parseFloat(mat.valor_mensal || 0).toFixed(2)}</div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-muted-foreground text-xs">Início</span>
+                          <div className="text-xs font-medium">
+                            {mat.data_inicio ? format(new Date(mat.data_inicio + "T12:00:00"), "dd/MM/yyyy") : "—"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Badges row */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {mat.auto_renew && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <RefreshCw className="h-2.5 w-2.5 mr-0.5" /> Auto
+                          </Badge>
+                        )}
+                        {mat.tipo_sessao && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                            {mat.tipo_sessao}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                        <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2"
+                          onClick={() => setPaymentTrackingMat(mat)}>
+                          <DollarSign className="h-3 w-3" /> Pagamentos
+                        </Button>
+                        <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2"
+                          onClick={() => openEdit(mat)}>
+                          <Calendar className="h-3 w-3" /> Editar
+                        </Button>
+                        {isAdmin && mat.status === "ativa" && (
+                          <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2"
+                            onClick={() => setSuspendTarget(mat.id)}>
+                            <Pause className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {isAdmin && mat.status === "suspensa" && (
+                          <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2"
+                            onClick={() => ativarMatricula.mutate(mat.id)}>
+                            Reativar
+                          </Button>
+                        )}
+                        {isAdmin && mat.status !== "cancelada" && (
+                          <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2 text-destructive hover:text-destructive"
+                            onClick={() => setCancelTarget(mat.id)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         {/* PLANOS TAB */}
@@ -795,6 +805,25 @@ const Matriculas = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ---- Dialog: Payment Tracking ---- */}
+      <Dialog open={!!paymentTrackingMat} onOpenChange={(v) => !v && setPaymentTrackingMat(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Acompanhamento de Pagamentos</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            {paymentTrackingMat && (
+              <MatriculaPaymentTracker
+                matriculaId={paymentTrackingMat.id}
+                pacienteId={paymentTrackingMat.paciente_id}
+                pacienteNome={paymentTrackingMat.pacientes?.nome || "Paciente"}
+                valorMensal={parseFloat(paymentTrackingMat.valor_mensal || 0)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
