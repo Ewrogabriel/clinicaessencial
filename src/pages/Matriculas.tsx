@@ -141,6 +141,8 @@ const Matriculas = () => {
   // Detail view
   const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  // Payment tracking view
+  const [paymentTrackingMat, setPaymentTrackingMat] = useState<any>(null);
 
   // Confirm dialogs
   const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
