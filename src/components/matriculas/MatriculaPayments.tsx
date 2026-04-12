@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addMonths, startOfMonth } from "date-fns";
+import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CommissionEngine } from "@/modules/commissions/commissionEngine";
 import { Plus, DollarSign, Ban, CalendarRange } from "lucide-react";

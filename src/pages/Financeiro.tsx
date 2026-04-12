@@ -134,9 +134,9 @@ const Financeiro = () => {
     queryKey: ["comissoes-dre", activeClinicId],
     queryFn: async () => {
       if (!activeClinicId) return [];
-      const { data, error } = await supabase.from("commissions").select("valor").eq("clinic_id", activeClinicId);
+      const { data, error } = await supabase.from("commissions").select("valor, status").eq("clinic_id", activeClinicId);
       if (error) throw error;
-      return data;
+      return data as { valor: number; status: string }[];
     },
     enabled: !isPatient,
     staleTime: 1000 * 60 * 5,
