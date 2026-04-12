@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { authService, AppRole, PermissionEntry } from "../services/authService";
 import { Tables } from "@/integrations/supabase/types";
 
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // needing to add `loading` to the effect dependency array (which would cause
     // the effect to re-run on every loading change and re-subscribe to auth events).
     const loadingRef = useRef(true);
+    const queryClient = useQueryClient();
 
     const loadUserData = async (userId: string) => {
         try {
@@ -118,6 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     loadingRef.current = false;
                     setLoading(false);
                 } else if (event === "SIGNED_OUT") {
+                    // Clear all cached queries to prevent data leakage between users
+                    queryClient.clear();
                     setSession(null);
                     setUser(null);
                     setProfile(null);
@@ -151,6 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const signOut = async () => {
         await authService.signOut();
+        // Clear all cached queries to prevent data leakage between users
+        queryClient.clear();
         setUser(null);
         setSession(null);
         setProfile(null);
