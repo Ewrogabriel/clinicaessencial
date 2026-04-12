@@ -973,11 +973,11 @@ const Matriculas = () => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
             {paymentTrackingMat && (
-              <MatriculaPaymentTracker
+              <MatriculaPayments
                 matriculaId={paymentTrackingMat.id}
                 pacienteId={paymentTrackingMat.paciente_id}
-                pacienteNome={paymentTrackingMat.pacientes?.nome || "Paciente"}
                 valorMensal={parseFloat(paymentTrackingMat.valor_mensal || 0)}
+                diaVencimento={paymentTrackingMat.due_day || 10}
               />
             )}
           </div>
