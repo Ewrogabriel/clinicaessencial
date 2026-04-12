@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Clock, Edit, UserCircle, ArrowRightLeft, CreditCard } from "lucide-react";
+import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Clock, Edit, UserCircle, ArrowRightLeft, CreditCard, DollarSign } from "lucide-react";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { 
   Tooltip,
