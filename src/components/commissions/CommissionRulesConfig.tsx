@@ -34,8 +34,15 @@ import {
 } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Plus, Pencil, Trash2, Info, UserCircle2, Percent,
-  DollarSign, ShieldCheck, BookOpen, Dumbbell,
+  DollarSign, ShieldCheck, BookOpen, Dumbbell, Search,
+  FilterX
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -72,6 +79,8 @@ export function CommissionRulesConfig() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Partial<CommissionRule> | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
 
   // Buscar profissionais
   const { data: profissionais = [] } = useQuery({
@@ -215,11 +224,29 @@ export function CommissionRulesConfig() {
 
   const getProfName = (id: string) => {
     const p = profissionais.find((p: any) => p.user_id === id);
-    return (p as any)?.nome ?? id;
+    return p?.nome_completo ?? p?.nome ?? id;
   };
 
   const [missedPctLocal, setMissedPctLocal] = useState<string>("");
   const globalMissedPct = policy?.missed_session_pct ?? 0.5;
+
+  // Filtragem e Agrupamento
+  const filteredRegras = regras.filter(r => {
+    const profName = getProfName(r.professional_id).toLowerCase();
+    const searchMatch = profName.includes(searchTerm.toLowerCase());
+    const statusMatch = filterActive === "all" ? true : filterActive === "active" ? r.ativo : !r.ativo;
+    return searchMatch && statusMatch;
+  });
+
+  const groupedRules = filteredRegras.reduce((acc, rule) => {
+    if (!acc[rule.professional_id]) acc[rule.professional_id] = [];
+    acc[rule.professional_id].push(rule);
+    return acc;
+  }, {} as Record<string, CommissionRule[]>);
+
+  const profIdsWithRules = Object.keys(groupedRules).sort((a, b) => 
+    getProfName(a).localeCompare(getProfName(b))
+  );
 
   return (
     <div className="space-y-6">
@@ -275,126 +302,169 @@ export function CommissionRulesConfig() {
         </CardContent>
       </Card>
 
-      {/* ── Regras por Profissional/Modalidade ── */}
+      {/* ── Regras por Profissional ── */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 px-6 pt-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <Percent className="h-4 w-4 text-primary" />
                 Regras de Comissão
               </CardTitle>
               <CardDescription className="mt-1">
-                Defina percentuais por profissional. Regras mais específicas (com modalidade/tipo) têm prioridade.
+                Defina percentuais e valores fixos. Regras específicas têm prioridade sobre gerais.
               </CardDescription>
             </div>
-            <Button onClick={openNew} size="sm" className="gap-1.5">
-              <Plus className="h-4 w-4" /> Nova Regra
-            </Button>
+            
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar profissional..."
+                  className="pl-9 h-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select value={filterActive} onValueChange={(v: any) => setFilterActive(v)}>
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={openNew} size="sm" className="gap-1.5 h-9">
+                <Plus className="h-4 w-4" /> Nova
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="px-1 pb-6">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">Carregando regras...</div>
-          ) : regras.length === 0 ? (
+          ) : filteredRegras.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              <Percent className="h-10 w-10 mx-auto mb-3 opacity-20" />
-              <p className="font-medium">Nenhuma regra configurada</p>
-              <p className="text-sm mt-1">Clique em "Nova Regra" para começar.</p>
+              <FilterX className="h-10 w-10 mx-auto mb-3 opacity-20" />
+              <p className="font-medium text-lg">Nenhuma regra encontrada</p>
+              <p className="text-sm mt-1">Ajuste os filtros ou crie uma nova regra.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Profissional</TableHead>
-                  <TableHead>Modalidade</TableHead>
-                  <TableHead>Tipo Sessão</TableHead>
-                  <TableHead>Comissão</TableHead>
-                  <TableHead>Em Falta</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {regras.map((rule) => (
-                  <TableRow key={rule.id} className={!rule.ativo ? "opacity-50" : ""}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <UserCircle2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                        {getProfName(rule.professional_id)}
+            <Accordion type="single" collapsible className="w-full px-5">
+              {profIdsWithRules.map((profId) => {
+                const rules = groupedRules[profId];
+                const profName = getProfName(profId);
+                const activeCount = rules.filter(r => r.ativo).length;
+
+                return (
+                  <AccordionItem key={profId} value={profId} className="border-b last:border-0">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <UserCircle2 className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-semibold text-sm leading-none">{profName}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {rules.length} {rules.length === 1 ? 'regra' : 'regras'} ({activeCount} ativas)
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {rule.modalidade ? (
-                        <Badge variant="outline" className="gap-1 text-xs">
-                          <Dumbbell className="h-3 w-3" /> {rule.modalidade}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">Todas</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {rule.tipo_sessao ? (
-                        <Badge variant="secondary" className="text-xs capitalize">{rule.tipo_sessao}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">Ambos</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {rule.tipo_calculo === "percentual" ? (
-                        <span className="font-semibold text-primary">{Number(rule.percentage).toFixed(0)}%</span>
-                      ) : (
-                        <span className="font-semibold text-primary">R$ {Number(rule.valor_fixo).toFixed(2)}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-amber-600 font-medium text-sm">
-                        {Math.round(Number(rule.missed_session_pct) * 100)}%
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={rule.ativo}
-                        onCheckedChange={() => toggleActive(rule)}
-                        className="data-[state=checked]:bg-green-500"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {rule.descricao && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{rule.descricao}</TooltipContent>
-                          </Tooltip>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEdit(rule)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            if (confirm("Remover esta regra?")) deleteRuleMutation.mutate(rule.id);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-6 px-1">
+                      <div className="rounded-lg border bg-muted/30 overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow>
+                              <TableHead className="text-[11px] uppercase font-bold py-2">Filtros (Modalidade/Sessão)</TableHead>
+                              <TableHead className="text-[11px] uppercase font-bold py-2">Valor da Comissão</TableHead>
+                              <TableHead className="text-[11px] uppercase font-bold py-2 text-center">Falta</TableHead>
+                              <TableHead className="text-[11px] uppercase font-bold py-2">Status</TableHead>
+                              <TableHead className="text-[11px] uppercase font-bold py-2 text-right">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {rules.map((rule) => {
+                              const isException = rule.modalidade || rule.tipo_sessao;
+                              return (
+                                <TableRow key={rule.id} className={`${!rule.ativo ? "opacity-50" : ""} hover:bg-muted/50 transition-colors`}>
+                                  <TableCell className="py-3">
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {rule.modalidade ? (
+                                        <Badge variant="outline" className="gap-1 text-[10px] bg-blue-50 text-blue-700 border-blue-200 py-0 h-5">
+                                          <Dumbbell className="h-2.5 w-2.5" /> {rule.modalidade}
+                                        </Badge>
+                                      ) : null}
+                                      {rule.tipo_sessao ? (
+                                        <Badge variant="outline" className="text-[10px] capitalize bg-purple-50 text-purple-700 border-purple-200 py-0 h-5">
+                                          {rule.tipo_sessao}
+                                        </Badge>
+                                      ) : null}
+                                      {!rule.modalidade && !rule.tipo_sessao && (
+                                        <span className="text-muted-foreground text-xs italic">Geral (Todos os atendimentos)</span>
+                                      )}
+                                    </div>
+                                    {rule.descricao && (
+                                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{rule.descricao}</p>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="py-3">
+                                    {rule.tipo_calculo === "percentual" ? (
+                                      <span className="font-bold text-sm text-primary">{Number(rule.percentage).toFixed(0)}%</span>
+                                    ) : (
+                                      <span className="font-bold text-sm text-primary">R$ {Number(rule.valor_fixo).toFixed(2)}</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center py-3">
+                                    <Badge variant="ghost" className="text-amber-600 bg-amber-50 border-amber-100 text-[10px] h-5">
+                                      {Math.round(Number(rule.missed_session_pct) * 100)}%
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="py-3">
+                                    <Switch
+                                      checked={rule.ativo}
+                                      onCheckedChange={() => toggleActive(rule)}
+                                      size="sm"
+                                      className="data-[state=checked]:bg-emerald-500 scale-75"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-right py-3 pr-4">
+                                    <div className="flex items-center justify-end gap-0.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 hover:bg-background"
+                                        onClick={() => openEdit(rule)}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => {
+                                          if (confirm("Remover esta regra?")) deleteRuleMutation.mutate(rule.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           )}
         </CardContent>
       </Card>

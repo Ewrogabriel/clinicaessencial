@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import DisponibilidadeProfissional from "./DisponibilidadeProfissional";
 import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
 import { ProfessionalForm } from "@/components/profissionais/ProfessionalForm";
-import { CommissionRules } from "@/components/profissionais/CommissionRules";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -352,9 +352,6 @@ const Profissionais = () => {
         <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
           <TabsTrigger value="equipe">Membros</TabsTrigger>
           <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger>
-          <TabsTrigger value="comissoes" className="gap-2">
-            <Calculator className="h-4 w-4" /> Regras de Comissão
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="equipe" className="space-y-4">
@@ -527,9 +524,6 @@ const Profissionais = () => {
           <DisponibilidadeProfissional />
         </TabsContent>
 
-        <TabsContent value="comissoes">
-          <CommissionRules />
-        </TabsContent>
       </Tabs>
     </div>
   );

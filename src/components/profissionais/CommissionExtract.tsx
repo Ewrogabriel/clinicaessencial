@@ -13,7 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Clock } from "lucide-react";
+import { Download, Calculator, Lock, CheckCircle2, AlertTriangle, Gift, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Clock, Edit, UserCircle, ArrowRightLeft, CreditCard } from "lucide-react";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { 
   Tooltip,
   TooltipContent,
@@ -45,6 +46,7 @@ function parseMesRefDate(mesRef: string): Date {
 
 export function CommissionExtract() {
   const { user, isAdmin, isGestor, isProfissional } = useAuth();
+  const { activeClinicId } = useClinic();
   const canManage = isAdmin || isGestor;
   const queryClient = useQueryClient();
 
@@ -58,6 +60,12 @@ export function CommissionExtract() {
   const [compensacaoDesc, setCompensacaoDesc] = useState("");
   const [bonusValor, setBonusValor] = useState("");
   const [bonusDesc, setBonusDesc] = useState("");
+  const [editingCommission, setEditingCommission] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    valor: "",
+    professional_id: "",
+    observacoes: ""
+  });
 
   const { data: modalidades = [] } = useQuery({
     queryKey: ["modalidades-comissoes"],
@@ -374,6 +382,83 @@ export function CommissionExtract() {
   const totalComissoes = summary.reduce((s, item) => s + item.comissao, 0);
 
 
+  const updateCommissionStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "liberado" | "bloqueado" }) => {
+      const { error } = await supabase
+        .from("commissions")
+        .update({ status_liberacao: status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commissions-table-extract"] });
+      toast.success("Status atualizado!");
+    },
+    onError: (e: any) => toast.error("Erro ao atualizar status", { description: e.message }),
+  });
+
+  const batchReleaseMutation = useMutation({
+    mutationFn: async (profId: string) => {
+      const mesDate = `${mesRef}-01`;
+      const { error } = await supabase
+        .from("commissions")
+        .update({ status_liberacao: "liberado" })
+        .eq("professional_id", profId)
+        .eq("mes_referencia", mesDate)
+        .eq("status_liberacao", "bloqueado");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commissions-table-extract"] });
+      toast.success("Todas as comissões bloqueadas foram liberadas!");
+    },
+    onError: (e: any) => toast.error("Erro na liberação em lote", { description: e.message }),
+  });
+
+  const editCommissionMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { id, agendamento_id, oldProfId, newProfId, oldValor, newValor, oldObs } = data;
+      const now = new Date().toLocaleString("pt-BR");
+      const adminName = user?.email || "Admin";
+      
+      let auditLog = `\n[Audit ${now}]: Alterado por ${adminName}.`;
+      if (oldValor !== newValor) auditLog += ` Valor original R$ ${Number(oldValor).toFixed(2)}.`;
+      if (oldProfId !== newProfId) {
+        const newProf = profissionais.find((p: any) => p.user_id === newProfId);
+        auditLog += ` Transferido para ${newProf?.nome || newProfId}.`;
+      }
+      
+      const updatedObs = (oldObs || "") + auditLog;
+
+      // 1. Update commission
+      const { error: commError } = await supabase
+        .from("commissions")
+        .update({
+          valor: parseFloat(newValor),
+          professional_id: newProfId,
+          observacoes: updatedObs
+        })
+        .eq("id", id);
+      if (commError) throw commError;
+
+      // 2. Update agendamento (transfer ownership if changed)
+      if (oldProfId !== newProfId && agendamento_id) {
+        const { error: agendError } = await supabase
+          .from("agendamentos")
+          .update({ profissional_id: newProfId })
+          .eq("id", agendamento_id);
+        if (agendError) throw agendError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commissions-table-extract"] });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos-comissoes-extract"] });
+      toast.success("Comissão atualizada com sucesso!");
+      setEditingCommission(null);
+    },
+    onError: (e: any) => toast.error("Erro na atualização", { description: e.message }),
+  });
+
   const closeMutation = useMutation({
     mutationFn: async (prof: ProfSummary) => {
       if (!user) throw new Error("Não autenticado");
@@ -382,7 +467,8 @@ export function CommissionExtract() {
       const bonus = parseFloat(bonusValor) || 0;
       const valorFinal = prof.comissao + comp + bonus;
 
-      const { error } = await (supabase.from("fechamentos_comissao" as any) as any).insert({
+      const { error } = await supabase.from("fechamentos_comissao").insert({
+        clinic_id: activeClinicId,
         profissional_id: prof.userId,
         mes_referencia: mesDate,
         total_atendimentos: prof.totalAtendimentos,
@@ -398,7 +484,7 @@ export function CommissionExtract() {
       });
       if (error) throw error;
 
-      // Send notification
+      // Enviar notificação
       const mesLabel = format(parseMesRefDate(mesRef), "MMMM 'de' yyyy", { locale: ptBR });
       const titulo = `Comissão Fechada — ${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}`;
       let resumo = `Sua comissão de ${mesLabel} foi fechada. Valor: R$ ${valorFinal.toFixed(2)}.`;
@@ -434,6 +520,53 @@ export function CommissionExtract() {
     },
     onError: (e: any) => toast.error("Erro ao fechar comissão", { description: e.message }),
   });
+
+  const pagarMutation = useMutation({
+    mutationFn: async (fechamento: any) => {
+      if (!user || !activeClinicId) throw new Error("Não autenticado ou clínica não selecionada");
+
+      const profName = summary.find(s => s.userId === fechamento.profissional_id)?.nome || "Profissional";
+      const mesLabel = format(new Date(fechamento.mes_referencia), "MMMM/yyyy", { locale: ptBR });
+      
+      // 1. Criar Despesa
+      const { data: despesa, error: expError } = await supabase.from("despesas").insert({
+        clinic_id: activeClinicId,
+        descricao: `Pagamento Comissão - ${profName} - ${mesLabel}`,
+        valor: fechamento.valor_final,
+        data_despesa: format(new Date(), "yyyy-MM-dd"),
+        status: "pago",
+        created_by: user.id
+      }).select("id").single();
+
+      if (expError) throw expError;
+
+      // 2. Atualizar Fechamento
+      const { error: fechError } = await supabase
+        .from("fechamentos_comissao")
+        .update({
+          status: "pago",
+          data_pagamento: new Date().toISOString(),
+          despesa_id: despesa.id
+        })
+        .eq("id", fechamento.id);
+
+      if (fechError) throw fechError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fechamentos-comissao"] });
+      toast.success("Pagamento registrado e despesa criada no financeiro!");
+    },
+    onError: (e: any) => toast.error("Erro ao registrar pagamento", { description: e.message }),
+  });
+
+  const handleOpenEdit = (comm: any) => {
+    setEditingCommission(comm);
+    setEditForm({
+      valor: String(comm.valor || ""),
+      professional_id: comm.professional_id,
+      observacoes: comm.observacoes || ""
+    });
+  };
 
   const generateClosingReceipt = async (prof: ProfSummary, valorFinal: number, comp: number, bonus: number) => {
     const doc = new jsPDF();
@@ -974,8 +1107,12 @@ export function CommissionExtract() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {closed ? (
-                              <Badge variant="default" className="gap-1">
+                            {fechamento?.status === "pago" ? (
+                              <Badge variant="default" className="gap-1 bg-emerald-600">
+                                <CheckCircle2 className="h-3 w-3" /> Pago
+                              </Badge>
+                            ) : closed ? (
+                              <Badge variant="default" className="gap-1 bg-blue-600">
                                 <Lock className="h-3 w-3" /> Fechado
                               </Badge>
                             ) : (
@@ -986,12 +1123,39 @@ export function CommissionExtract() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                              {!closed && (
-                                <Button size="sm" variant="default" onClick={() => openClosing(s)} className="gap-1">
-                                  <CheckCircle2 className="h-3.5 w-3.5" /> Fechar
+                              {fechamento?.status === "fechado" && (
+                                <Button 
+                                  size="sm" 
+                                  variant="default" 
+                                  className="bg-emerald-600 hover:bg-emerald-700 h-8 gap-1"
+                                  onClick={() => pagarMutation.mutate(fechamento)}
+                                  disabled={pagarMutation.isPending}
+                                >
+                                  <CreditCard className="h-3.5 w-3.5" /> Pagar
                                 </Button>
                               )}
-                              <Button size="sm" variant="outline" onClick={() => generateClosingReceipt(s, closed ? Number(fechamento?.valor_final || s.comissao) : s.comissao, closed ? Number(fechamento?.compensacao_anterior || 0) : 0, closed ? Number(fechamento?.bonus_valor || 0) : 0)} className="gap-1">
+                              {!closed && (
+                                <div className="flex gap-1">
+                                  {s.atendimentosDetail.some(a => {
+                                    const ec = commissionsData.find(c => c.agendamento_id === a.id);
+                                    return ec && ec.status_liberacao === "bloqueado";
+                                  }) && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-8 gap-1.5"
+                                      onClick={() => batchReleaseMutation.mutate(s.userId)}
+                                      disabled={batchReleaseMutation.isPending}
+                                    >
+                                      <ShieldCheck className="h-3.5 w-3.5" /> Liberar Todos
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant="default" onClick={() => openClosing(s)} className="gap-1 h-8">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Fechar
+                                  </Button>
+                                </div>
+                              )}
+                              <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => generateClosingReceipt(s, closed ? Number(fechamento?.valor_final || s.comissao) : s.comissao, closed ? Number(fechamento?.compensacao_anterior || 0) : 0, closed ? Number(fechamento?.bonus_valor || 0) : 0)}>
                                 <Download className="h-3.5 w-3.5" /> PDF
                               </Button>
                             </div>
@@ -1052,30 +1216,47 @@ export function CommissionExtract() {
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <div className="flex items-center gap-1 cursor-help">
+                                          <div className="flex items-center gap-1">
                                             {sc.status_liberacao === "liberado" ? (
-                                              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200 gap-1 text-[10px]">
-                                                <ShieldCheck className="h-3 w-3" /> Liberada
+                                              <Badge 
+                                                className={`bg-emerald-100 text-emerald-700 border-emerald-200 gap-1 text-[10px] py-0 h-5 ${canManage ? "cursor-pointer hover:bg-emerald-200" : ""}`}
+                                                onClick={() => canManage && sc.isConfirmed && updateCommissionStatusMutation.mutate({ id: commissionsData.find(c => c.agendamento_id === a.id).id, status: "bloqueado" })}
+                                              >
+                                                <ShieldCheck className="h-2.5 w-2.5" /> Liberada
                                               </Badge>
                                             ) : (
-                                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 text-[10px]">
-                                                <ShieldAlert className="h-3 w-3" /> Bloqueada
+                                              <Badge 
+                                                variant="outline" 
+                                                className={`bg-amber-50 text-amber-700 border-amber-200 gap-1 text-[10px] py-0 h-5 ${canManage ? "cursor-pointer hover:bg-amber-100" : ""}`}
+                                                onClick={() => canManage && sc.isConfirmed && updateCommissionStatusMutation.mutate({ id: commissionsData.find(c => c.agendamento_id === a.id).id, status: "liberado" })}
+                                              >
+                                                <ShieldAlert className="h-2.5 w-2.5" /> Bloqueada
                                               </Badge>
                                             )}
                                           </div>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="text-xs">
-                                            {sc.status_liberacao === "liberado" 
-                                              ? "Mensalidade paga. Comissão disponível para fechamento." 
-                                              : "Aguardando pagamento da mensalidade para liberar comissão."}
-                                          </p>
-                                        </TooltipContent>
+                                        {canManage && sc.isConfirmed && (
+                                          <TooltipContent>
+                                            <p className="text-[10px]">Clique para inverter o status manualmente</p>
+                                          </TooltipContent>
+                                        )}
                                       </Tooltip>
                                     </TooltipProvider>
                                   </TableCell>
-                                  <TableCell className="text-xs font-medium text-right text-primary">
-                                    R$ {sc.comissao.toFixed(2)}
+                                  <TableCell className="text-xs font-medium text-right text-primary whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <span>R$ {sc.comissao.toFixed(2)}</span>
+                                      {canManage && sc.isConfirmed && (
+                                        <Button
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-6 w-6 text-muted-foreground/60 hover:text-primary"
+                                          onClick={() => handleOpenEdit(commissionsData.find(c => c.agendamento_id === a.id))}
+                                        >
+                                          <Edit className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               );
@@ -1209,6 +1390,100 @@ export function CommissionExtract() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Commission Dialog */}
+      <Dialog open={!!editingCommission} onOpenChange={(o) => !o && setEditingCommission(null)}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" /> Editar Comissão
+            </DialogTitle>
+            <DialogDescription>
+              Ajuste o valor ou transfira esta comissão para outro profissional.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-5 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Valor da Comissão (R$)</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9 h-10 font-bold text-primary"
+                    type="number"
+                    step="0.01"
+                    value={editForm.valor}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, valor: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">Profissional Responsável</Label>
+                <Select
+                  value={editForm.professional_id}
+                  onValueChange={(v) => setEditForm(prev => ({ ...prev, professional_id: v }))}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profissionais.map((p: any) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {editForm.professional_id !== editingCommission?.professional_id && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex gap-2">
+                <ArrowRightLeft className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-800 leading-tight">
+                  <strong>Atenção:</strong> Ao alterar o profissional, o <strong>Agendamento</strong> na agenda também será transferido automaticamente.
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-sm">Histórico / Observações</Label>
+              <Textarea
+                className="text-xs min-h-[80px]"
+                value={editForm.observacoes}
+                readOnly
+                placeholder="O histórico de alterações será adicionado automaticamente aqui."
+              />
+              <p className="text-[10px] text-muted-foreground italic">
+                O sistema gravará automaticamente quem realizou a alteração e os valores originais.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditingCommission(null)}>
+                Cancelar
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={() => editCommissionMutation.mutate({
+                  id: editingCommission.id,
+                  agendamento_id: editingCommission.agendamento_id,
+                  oldProfId: editingCommission.professional_id,
+                  newProfId: editForm.professional_id,
+                  oldValor: editingCommission.valor,
+                  newValor: editForm.valor,
+                  oldObs: editingCommission.observacoes
+                })}
+                disabled={editCommissionMutation.isPending}
+              >
+                {editCommissionMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
