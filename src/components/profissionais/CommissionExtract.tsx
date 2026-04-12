@@ -397,27 +397,11 @@ export function CommissionExtract() {
     onError: (e: any) => toast.error("Erro ao atualizar status", { description: e.message }),
   });
 
-  const batchReleaseMutation = useMutation({
-    mutationFn: async (profId: string) => {
-      const mesDate = `${mesRef}-01`;
-      const { error } = await supabase
-        .from("commissions")
-        .update({ status_liberacao: "liberado" })
-        .eq("professional_id", profId)
-        .eq("mes_referencia", mesDate)
-        .eq("status_liberacao", "bloqueado");
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["commissions-table-extract"] });
-      toast.success("Todas as comissões bloqueadas foram liberadas!");
-    },
-    onError: (e: any) => toast.error("Erro na liberação em lote", { description: e.message }),
-  });
+  // Omitindo batchReleaseMutation já que a funcionalidade foi removida a pedido do usuário
 
   const editCommissionMutation = useMutation({
     mutationFn: async (data: any) => {
-      const { id, agendamento_id, oldProfId, newProfId, oldValor, newValor, oldObs } = data;
+      const { id, agendamento_id, oldProfId, newProfId, oldValor, newValor, oldObs, syntheticData } = data;
       const now = new Date().toLocaleString("pt-BR");
       const adminName = user?.email || "Admin";
       
@@ -430,18 +414,34 @@ export function CommissionExtract() {
       
       const updatedObs = (oldObs || "") + auditLog;
 
-      // 1. Update commission
-      const { error: commError } = await supabase
-        .from("commissions")
-        .update({
-          valor: parseFloat(newValor),
-          professional_id: newProfId,
-          observacoes: updatedObs
-        })
-        .eq("id", id);
-      if (commError) throw commError;
+      if (id) {
+        // 1. Update commission
+        const { error: commError } = await (supabase as any)
+          .from("commissions")
+          .update({
+            valor: parseFloat(newValor),
+            professional_id: newProfId,
+            observacoes: updatedObs,
+            status_liberacao: "liberado"
+          })
+          .eq("id", id);
+        if (commError) throw commError;
+      } else {
+        // 2. Insert new commission (from simulation)
+        const { error: commError } = await (supabase as any)
+          .from("commissions")
+          .insert({
+            ...syntheticData,
+            valor: parseFloat(newValor),
+            professional_id: newProfId,
+            observacoes: updatedObs,
+            status_liberacao: "liberado",
+            status: "pendente"
+          });
+        if (commError) throw commError;
+      }
 
-      // 2. Update agendamento (transfer ownership if changed)
+      // 3. Update agendamento (transfer ownership if changed)
       if (oldProfId !== newProfId && agendamento_id) {
         const { error: agendError } = await supabase
           .from("agendamentos")
@@ -529,13 +529,14 @@ export function CommissionExtract() {
       const mesLabel = format(new Date(fechamento.mes_referencia), "MMMM/yyyy", { locale: ptBR });
       
       // 1. Criar Despesa
-      const { data: despesa, error: expError } = await supabase.from("despesas").insert({
+      const { data: despesa, error: expError } = await (supabase as any).from("expenses").insert({
         clinic_id: activeClinicId,
         descricao: `Pagamento Comissão - ${profName} - ${mesLabel}`,
         valor: fechamento.valor_final,
-        data_despesa: format(new Date(), "yyyy-MM-dd"),
+        data_vencimento: format(new Date(), "yyyy-MM-dd"),
+        data_pagamento: new Date().toISOString(),
         status: "pago",
-        created_by: user.id
+        categoria: "pessoal"
       }).select("id").single();
 
       if (expError) throw expError;
@@ -559,12 +560,12 @@ export function CommissionExtract() {
     onError: (e: any) => toast.error("Erro ao registrar pagamento", { description: e.message }),
   });
 
-  const handleOpenEdit = (comm: any) => {
-    setEditingCommission(comm);
+  const handleOpenEdit = (comm: any, synthetic?: any) => {
+    setEditingCommission(comm || synthetic);
     setEditForm({
-      valor: String(comm.valor || ""),
-      professional_id: comm.professional_id,
-      observacoes: comm.observacoes || ""
+      valor: String(comm?.valor || synthetic?.valor || ""),
+      professional_id: comm?.professional_id || synthetic?.professional_id,
+      observacoes: comm?.observacoes || synthetic?.observacoes || ""
     });
   };
 
@@ -1136,20 +1137,7 @@ export function CommissionExtract() {
                               )}
                               {!closed && (
                                 <div className="flex gap-1">
-                                  {s.atendimentosDetail.some(a => {
-                                    const ec = commissionsData.find(c => c.agendamento_id === a.id);
-                                    return ec && ec.status_liberacao === "bloqueado";
-                                  }) && (
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-8 gap-1.5"
-                                      onClick={() => batchReleaseMutation.mutate(s.userId)}
-                                      disabled={batchReleaseMutation.isPending}
-                                    >
-                                      <ShieldCheck className="h-3.5 w-3.5" /> Liberar Todos
-                                    </Button>
-                                  )}
+                                  {/* Liberar Todos removido a pedido do usuário */}
                                   <Button size="sm" variant="default" onClick={() => openClosing(s)} className="gap-1 h-8">
                                     <CheckCircle2 className="h-3.5 w-3.5" /> Fechar
                                   </Button>
@@ -1172,7 +1160,6 @@ export function CommissionExtract() {
                                 <TableHead className="text-xs">Tipo</TableHead>
                                 <TableHead className="text-xs">Valor Sessão</TableHead>
                                 <TableHead className="text-xs">% / Fixo</TableHead>
-                                <TableHead className="text-xs">Status Pagamento</TableHead>
                                 <TableHead className="text-xs text-right">Comissão</TableHead>
                               </TableRow>
                             {sortedAtendimentos.map((a: any) => {
@@ -1212,46 +1199,29 @@ export function CommissionExtract() {
                                       </span>
                                     ) : "—"}
                                   </TableCell>
-                                  <TableCell className="text-xs">
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <div className="flex items-center gap-1">
-                                            {sc.status_liberacao === "liberado" ? (
-                                              <Badge 
-                                                className={`bg-emerald-100 text-emerald-700 border-emerald-200 gap-1 text-[10px] py-0 h-5 ${canManage ? "cursor-pointer hover:bg-emerald-200" : ""}`}
-                                                onClick={() => canManage && sc.isConfirmed && updateCommissionStatusMutation.mutate({ id: commissionsData.find(c => c.agendamento_id === a.id).id, status: "bloqueado" })}
-                                              >
-                                                <ShieldCheck className="h-2.5 w-2.5" /> Liberada
-                                              </Badge>
-                                            ) : (
-                                              <Badge 
-                                                variant="outline" 
-                                                className={`bg-amber-50 text-amber-700 border-amber-200 gap-1 text-[10px] py-0 h-5 ${canManage ? "cursor-pointer hover:bg-amber-100" : ""}`}
-                                                onClick={() => canManage && sc.isConfirmed && updateCommissionStatusMutation.mutate({ id: commissionsData.find(c => c.agendamento_id === a.id).id, status: "liberado" })}
-                                              >
-                                                <ShieldAlert className="h-2.5 w-2.5" /> Bloqueada
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        </TooltipTrigger>
-                                        {canManage && sc.isConfirmed && (
-                                          <TooltipContent>
-                                            <p className="text-[10px]">Clique para inverter o status manualmente</p>
-                                          </TooltipContent>
-                                        )}
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </TableCell>
                                   <TableCell className="text-xs font-medium text-right text-primary whitespace-nowrap">
                                     <div className="flex items-center justify-end gap-1.5">
                                       <span>R$ {sc.comissao.toFixed(2)}</span>
-                                      {canManage && sc.isConfirmed && (
+                                      {canManage && (
                                         <Button
                                           variant="ghost" 
                                           size="icon" 
                                           className="h-6 w-6 text-muted-foreground/60 hover:text-primary"
-                                          onClick={() => handleOpenEdit(commissionsData.find(c => c.agendamento_id === a.id))}
+                                          onClick={() => {
+                                            const existing = commissionsData.find(c => c.agendamento_id === a.id);
+                                            if (existing) {
+                                              handleOpenEdit(existing);
+                                            } else {
+                                              handleOpenEdit(null, {
+                                                agendamento_id: a.id,
+                                                professional_id: a.profissional_id,
+                                                valor: sc.comissao,
+                                                mes_referencia: `${mesRef}-01`,
+                                                clinic_id: activeClinicId,
+                                                status_liberacao: "liberado"
+                                              });
+                                            }
+                                          }}
                                         >
                                           <Edit className="h-3 w-3" />
                                         </Button>
