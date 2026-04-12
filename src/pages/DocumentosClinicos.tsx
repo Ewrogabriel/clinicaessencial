@@ -47,7 +47,7 @@ const DocumentosClinicos = () => {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingDoc, setEditingDoc] = useState<any>(null);
+  const [editingDoc, setEditingDoc] = useState<{id:string;tipo:string;titulo:string;paciente_id:string;conteudo:string;assinado:boolean;data:string} | null>(null);
   const [tipo, setTipo] = useState("receituario");
   const [titulo, setTitulo] = useState("");
   const [conteudo, setConteudo] = useState("");

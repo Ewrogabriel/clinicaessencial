@@ -110,8 +110,9 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
       const valorFinal = Math.max(0, valor - desconto);
 
       // 1. Inserir na tabela de pagamentos da mensalidade
-      const { data: mensalidadePgto, error: mensalidadeError } = await (supabase
-        .from("pagamentos_mensalidade") as any)
+      // Nota: campo created_by não existe na tabela pagamentos_mensalidade
+      const { error: mensalidadeError } = await supabase
+        .from("pagamentos_mensalidade")
         .insert({
           matricula_id: matriculaId,
           paciente_id: pacienteId,
@@ -121,7 +122,6 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
           data_pagamento: formData.data_pagamento || null,
           forma_pagamento_id: formData.forma_pagamento_id || null,
           observacoes: formData.observacoes || null,
-          created_by: user.id,
           clinic_id: activeClinicId
         });
 
@@ -179,47 +179,78 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
 
       const base = startOfMonth(new Date());
       let totalSessoes = 0;
+      let totalMensalidades = 0;
+      const hasSchedules = enrollment.weekly_schedules && enrollment.weekly_schedules.length > 0;
 
       for (let i = 0; i < bulkMonths; i++) {
         const monthDate = addMonths(base, i);
         const startDate = format(startOfMonth(monthDate), "yyyy-MM-dd");
         const endDate = format(endOfMonth(monthDate), "yyyy-MM-dd");
+        const mesRef = format(monthDate, "yyyy-MM") + "-01";
 
-        // Gerar sessões (o serviço agora também garante a mensalidade financeira)
-        const count = await enrollmentService.generateSessions({
-          enrollmentId: matriculaId,
-          pacienteId: pacienteId,
-          weeklySchedules: enrollment.weekly_schedules.map((s: any) => ({
-            weekday: s.weekday,
-            time: s.time,
-            professional_id: s.professional_id,
-            session_duration: s.session_duration
-          })),
-          startDate,
-          endDate,
-          tipoAtendimento: enrollment.tipo_atendimento || "Pilates",
-          monthlyValue: Number(valorMensal || 0),
-          tipoSessao: (enrollment.tipo_sessao || "grupo") as "grupo" | "individual",
-          clinicId: activeClinicId,
-          userId: user.id
-        });
+        if (hasSchedules) {
+          // Gerar sessões (o serviço agora também garante a mensalidade financeira)
+          const count = await enrollmentService.generateSessions({
+            enrollmentId: matriculaId,
+            pacienteId: pacienteId,
+            weeklySchedules: enrollment.weekly_schedules.map((s: any) => ({
+              weekday: s.weekday,
+              time: s.time,
+              professional_id: s.professional_id,
+              session_duration: s.session_duration
+            })),
+            startDate,
+            endDate,
+            tipoAtendimento: enrollment.tipo_atendimento || "Pilates",
+            monthlyValue: Number(valorMensal || 0),
+            tipoSessao: (enrollment.tipo_sessao || "grupo") as "grupo" | "individual",
+            clinicId: activeClinicId,
+            userId: user.id
+          });
+          totalSessoes += count;
+        } else {
+          // Sem schedules: criar apenas a mensalidade financeira diretamente
+          // Verificar se já existe cobrança para este mês
+          const { data: existing } = await supabase
+            .from("pagamentos_mensalidade")
+            .select("id")
+            .eq("matricula_id", matriculaId)
+            .eq("mes_referencia", mesRef)
+            .maybeSingle();
 
-        totalSessoes += count;
+          if (!existing && valorMensal > 0) {
+            const { error: insertError } = await supabase
+              .from("pagamentos_mensalidade")
+              .insert({
+                matricula_id: matriculaId,
+                paciente_id: pacienteId,
+                clinic_id: activeClinicId,
+                valor: valorMensal,
+                mes_referencia: mesRef,
+                status: "aberto"
+              });
+
+            if (insertError) throw insertError;
+            totalMensalidades++;
+          }
+        }
       }
 
-      if (totalSessoes === 0) {
-        // Se nenhuma sessão foi gerada (ex: já existiam), ainda assim precisamos garantir que as mensalidades financeiras existam
-        // Mas o serviço já faz esse check. Se retornou 0 sessões e 0 mensalidades criadas, avisamos.
-        // toast informará se algo foi feito via onSuccess
-      }
-
-      return totalSessoes;
+      return { totalSessoes, totalMensalidades };
     },
-    onSuccess: (count) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
       setBulkOpen(false);
-      toast.success(`✅ ${count} sessões e cobrança(s) gerada(s) com sucesso!`);
+      
+      if (result.totalSessoes > 0) {
+        toast.success(`${result.totalSessoes} sessões e cobrança(s) gerada(s) com sucesso!`);
+      } else if (result.totalMensalidades > 0) {
+        toast.success(`${result.totalMensalidades} mensalidade(s) gerada(s) com sucesso!`);
+      } else {
+        toast.info("Todas as mensalidades para o período já existem.");
+      }
     },
     onError: (e: Error) => toast.error("Erro ao gerar mensalidades", { description: e.message }),
   });
