@@ -154,7 +154,7 @@ const DisponibilidadeProfissional = () => {
   const { data: feriados = [], refetch: refetchFeriados } = useQuery({
     queryKey: ["feriados"],
     queryFn: async () => {
-      const { data } = await (supabase.from("feriados") as any)
+      const { data } = await supabase.from("feriados")
         .select("*")
         .gte("data", new Date().toISOString().split("T")[0])
         .order("data");
@@ -165,7 +165,7 @@ const DisponibilidadeProfissional = () => {
   const { data: agendaExtra = [], refetch: refetchExtra } = useQuery({
     queryKey: ["agenda-extra", profId],
     queryFn: async () => {
-      const { data } = await (supabase.from("agenda_extra") as any)
+      const { data } = await supabase.from("agenda_extra")
         .select("*").eq("profissional_id", profId)
         .gte("data", new Date().toISOString().split("T")[0])
         .order("data");
@@ -182,7 +182,7 @@ const DisponibilidadeProfissional = () => {
   const { data: vacancySlots = [] } = useQuery({
     queryKey: ["disponibilidade-vagas", effectiveVacancyProfId],
     queryFn: async () => {
-      const { data } = await (supabase.from("disponibilidade_profissional") as any)
+      const { data } = await supabase.from("disponibilidade_profissional")
         .select("*").eq("profissional_id", effectiveVacancyProfId).eq("ativo", true)
         .order("dia_semana").order("hora_inicio");
       return (data ?? []) as Slot[];
@@ -194,7 +194,7 @@ const DisponibilidadeProfissional = () => {
   const { data: agendamentos = [] } = useQuery({
     queryKey: ["agendamentos-vagas", effectiveVacancyProfId, vacancyWeekStart.toISOString()],
     queryFn: async () => {
-      const { data } = await (supabase.from("agendamentos") as any)
+      const { data } = await supabase.from("agendamentos")
         .select("data_horario, status")
         .eq("profissional_id", effectiveVacancyProfId)
         .in("status", ["agendado", "confirmado"])
@@ -212,7 +212,7 @@ const DisponibilidadeProfissional = () => {
       return;
     }
     setLoading(true);
-    const { error } = await (supabase.from("disponibilidade_profissional") as any).insert({
+    const { error } = await supabase.from("disponibilidade_profissional").insert({
       profissional_id: profId, dia_semana: newSlot.dia_semana,
       hora_inicio: newSlot.hora_inicio, hora_fim: newSlot.hora_fim, max_pacientes: newSlot.max_pacientes,
       clinic_id: activeClinicId,
@@ -223,7 +223,7 @@ const DisponibilidadeProfissional = () => {
   };
 
   const handleDeleteSlot = async (id: string) => {
-    await (supabase.from("disponibilidade_profissional") as any).delete().eq("id", id);
+    await supabase.from("disponibilidade_profissional").delete().eq("id", id);
     toast.success("Horário removido"); refetch();
   };
 
@@ -231,7 +231,7 @@ const DisponibilidadeProfissional = () => {
     if (editValues.hora_inicio && editValues.hora_fim && editValues.hora_inicio >= editValues.hora_fim) {
       toast.error("Horário inválido"); return;
     }
-    const { error } = await (supabase.from("disponibilidade_profissional") as any).update(editValues).eq("id", id);
+    const { error } = await supabase.from("disponibilidade_profissional").update(editValues).eq("id", id);
     if (error) toast.error("Erro", { description: error.message });
     else { toast.success("Horário atualizado! ✅"); setEditingSlot(null); refetch(); }
   };
@@ -243,14 +243,14 @@ const DisponibilidadeProfissional = () => {
       profissional_id: profId, dia_semana: toDay, hora_inicio: s.hora_inicio, hora_fim: s.hora_fim, max_pacientes: s.max_pacientes,
       clinic_id: activeClinicId,
     }));
-    const { error } = await (supabase.from("disponibilidade_profissional") as any).insert(records);
+    const { error } = await supabase.from("disponibilidade_profissional").insert(records);
     if (error) toast.error("Erro", { description: error.message });
     else { toast.success(`Horários copiados para ${DIAS_SEMANA.find(d => d.value === toDay)?.label}! ✅`); refetch(); }
   };
 
   const handleAddBloqueio = async () => {
     if (!profId || !bloqueioData) { toast.error("Selecione uma data"); return; }
-    const { error } = await (supabase.from("bloqueios_profissional") as any).insert({
+    const { error } = await supabase.from("bloqueios_profissional").insert({
       profissional_id: profId, data: bloqueioData, dia_inteiro: bloqueioDiaInteiro,
       hora_inicio: bloqueioDiaInteiro ? null : bloqueioHoraInicio,
       hora_fim: bloqueioDiaInteiro ? null : bloqueioHoraFim,
@@ -269,7 +269,7 @@ const DisponibilidadeProfissional = () => {
         resumo: `${bloqueioData} (${horarioTxt})`,
         conteudo: `${currentProfName} bloqueou a agenda no dia ${bloqueioData} (${horarioTxt}).\n${bloqueioMotivo ? `Motivo: ${bloqueioMotivo}` : "Sem motivo informado."}`,
       }));
-      await (supabase.from("notificacoes").insert(notifs) as any);
+      await supabase.from("notificacoes").insert(notifs);
     }
     toast.success("Bloqueio adicionado! ✅");
     setBloqueioData(""); setBloqueioMotivo("");
@@ -277,13 +277,13 @@ const DisponibilidadeProfissional = () => {
   };
 
   const handleDeleteBloqueio = async (id: string) => {
-    await (supabase.from("bloqueios_profissional") as any).delete().eq("id", id);
+    await supabase.from("bloqueios_profissional").delete().eq("id", id);
     toast.success("Bloqueio removido"); refetchBloqueios();
   };
 
   const handleAddFeriado = async () => {
     if (!feriadoData || !feriadoDescricao.trim()) { toast.error("Preencha data e descrição"); return; }
-    const { error } = await (supabase.from("feriados") as any).insert({
+    const { error } = await supabase.from("feriados").insert({
       data: feriadoData, descricao: feriadoDescricao.trim(), created_by: user?.id,
     });
     if (error) { toast.error("Erro", { description: error.message }); return; }
@@ -297,20 +297,20 @@ const DisponibilidadeProfissional = () => {
         resumo: `Feriado em ${feriadoData}`,
         conteudo: `Foi cadastrado um feriado no dia ${feriadoData}:\n${feriadoDescricao.trim()}\n\nA agenda estará bloqueada neste dia.`,
       }));
-      await (supabase.from("notificacoes").insert(notifs) as any);
+      await supabase.from("notificacoes").insert(notifs);
     }
     toast.success("Feriado cadastrado! ✅"); setFeriadoData(""); setFeriadoDescricao(""); refetchFeriados();
   };
 
   const handleDeleteFeriado = async (id: string) => {
-    await (supabase.from("feriados") as any).delete().eq("id", id);
+    await supabase.from("feriados").delete().eq("id", id);
     toast.success("Feriado removido"); refetchFeriados();
   };
 
   const handleAddExtra = async () => {
     if (!profId || !extraData) { toast.error("Selecione uma data"); return; }
     if (extraHoraInicio >= extraHoraFim) { toast.error("Horário inválido"); return; }
-    const { error } = await (supabase.from("agenda_extra") as any).insert({
+    const { error } = await supabase.from("agenda_extra").insert({
       profissional_id: profId, data: extraData,
       hora_inicio: extraHoraInicio, hora_fim: extraHoraFim,
       max_pacientes: extraMaxPacientes, motivo: extraMotivo || null,
@@ -325,7 +325,7 @@ const DisponibilidadeProfissional = () => {
   };
 
   const handleDeleteExtra = async (id: string) => {
-    await (supabase.from("agenda_extra") as any).delete().eq("id", id);
+    await supabase.from("agenda_extra").delete().eq("id", id);
     toast.success("Agenda extra removida"); refetchExtra();
   };
 
@@ -714,7 +714,7 @@ const DisponibilidadeProfissional = () => {
             <Select value={effectiveVacancyProfId} onValueChange={setVacancyProfId}>
               <SelectTrigger><SelectValue placeholder="Selecione o profissional" /></SelectTrigger>
               <SelectContent>
-                {(profissionais as any[]).map((p: any) => (
+                {profissionais?.map((p) => (
                   <SelectItem key={p.id} value={p.user_id}>{p.nome}</SelectItem>
                 ))}
               </SelectContent>

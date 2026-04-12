@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
+import type { Clinica, Profissional } from "@/types/helpers";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +50,7 @@ function ClinicsTab() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedClinic, setSelectedClinic] = useState<any>(null);
+  const [selectedClinic, setSelectedClinic] = useState<Clinica | null>(null);
   const [form, setForm] = useState({
     nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
     telefone: "", whatsapp: "", email: "", instagram: "",
@@ -61,15 +62,22 @@ function ClinicsTab() {
   const { data: clinics = [], isLoading } = useQuery({
     queryKey: ["master-clinics"],
     queryFn: async () => {
-      const { data } = await (supabase.from("clinicas") as any).select("*").order("nome");
-      return data || [];
+      const { data } = await supabase
+        .from("clinicas")
+        .select("id,nome,cnpj,email,telefone,whatsapp,endereco,numero,bairro,cidade,estado,cep,instagram,ativo,created_at,updated_at")
+        .order("nome");
+      return (data as Clinica[]) || [];
     },
   });
 
   const { data: plans = [] } = useQuery({
     queryKey: ["platform-plans"],
     queryFn: async () => {
-      const { data } = await (supabase.from("platform_plans") as any).select("*").eq("ativo", true).order("valor_mensal");
+      const { data } = await supabase
+        .from("platform_plans")
+        .select("id,nome,valor_mensal,recursos_disponiveis,ativo,created_at")
+        .eq("ativo", true)
+        .order("valor_mensal");
       return data || [];
     },
   });
@@ -77,8 +85,9 @@ function ClinicsTab() {
   const { data: subscriptions = [] } = useQuery({
     queryKey: ["master-subscriptions"],
     queryFn: async () => {
-      const { data } = await (supabase.from("clinic_subscriptions") as any)
-        .select("*, platform_plans(nome, valor_mensal, cor), clinicas(nome)");
+      const { data } = await supabase
+        .from("clinic_subscriptions")
+        .select("*,platform_plans(nome,valor_mensal,cor),clinicas(nome)");
       return data || [];
     },
   });
@@ -87,7 +96,7 @@ function ClinicsTab() {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
 
     // Create clinic
-    const { data: clinic, error } = await (supabase.from("clinicas") as any).insert({
+    const { data: clinic, error } = await supabase.from("clinicas").insert({
       nome: form.nome, cnpj: form.cnpj || null, endereco: form.endereco || null,
       numero: form.numero || null, bairro: form.bairro || null, cidade: form.cidade || null,
       estado: form.estado || null, cep: form.cep || null, telefone: form.telefone || null,
@@ -98,11 +107,11 @@ function ClinicsTab() {
 
     // Create subscription if plan selected
     if (form.plan_id && clinic) {
-      const plan = plans.find((p: any) => p.id === form.plan_id);
+      const plan = plans.find(p => p.id === form.plan_id);
       const vencimento = new Date();
       vencimento.setMonth(vencimento.getMonth() + 1);
 
-      const { data: subscription } = await (supabase.from("clinic_subscriptions") as any).insert({
+      const { data: subscription } = await supabase.from("clinic_subscriptions").insert({
         clinic_id: clinic.id,
         plan_id: form.plan_id,
         responsavel_nome: form.responsavel_nome || null,
@@ -193,7 +202,7 @@ function ClinicsTab() {
                   <div className="flex items-center gap-2">
                     {sub ? (
                       <>
-                        <Badge variant={STATUS_COLORS[sub.status] as any || "default"}>{sub.status}</Badge>
+                        <Badge variant={(STATUS_COLORS[sub.status] as any) || "default"}>{sub.status}</Badge>
                         <Badge variant="outline">{sub.platform_plans?.nome}</Badge>
                       </>
                     ) : (
@@ -298,7 +307,7 @@ function PlansTab() {
   const { data: plans = [] } = useQuery({
     queryKey: ["platform-plans"],
     queryFn: async () => {
-      const { data } = await (supabase.from("platform_plans") as any).select("*").order("valor_mensal");
+      const { data } = await supabase.from("platform_plans").select("*").order("valor_mensal");
       return data || [];
     },
   });
@@ -311,7 +320,7 @@ function PlansTab() {
       return recurso ? recurso.label : key;
     });
 
-    const { error } = await (supabase.from("platform_plans") as any).insert({
+    const { error } = await supabase.from("platform_plans").insert({
       nome: form.nome,
       descricao: form.descricao || null,
       valor_mensal: parseFloat(form.valor_mensal),
@@ -434,7 +443,7 @@ function PaymentsTab() {
   const { data: payments = [] } = useQuery({
     queryKey: ["subscription-payments"],
     queryFn: async () => {
-      const { data } = await (supabase.from("subscription_payments") as any)
+      const { data } = await supabase.from("subscription_payments")
         .select("*, clinic_subscriptions(clinic_id, clinicas(nome), platform_plans(nome))")
         .order("mes_referencia", { ascending: false });
       return data || [];
@@ -444,7 +453,7 @@ function PaymentsTab() {
   const { data: subs = [] } = useQuery({
     queryKey: ["master-subscriptions"],
     queryFn: async () => {
-      const { data } = await (supabase.from("clinic_subscriptions") as any)
+      const { data } = await supabase.from("clinic_subscriptions")
         .select("*, clinicas(nome), platform_plans(nome, valor_mensal)");
       return data || [];
     },
@@ -455,7 +464,7 @@ function PaymentsTab() {
       toast.error("Preencha todos os campos obrigatórios"); return;
     }
 
-    const { error } = await (supabase.from("subscription_payments") as any).insert({
+    const { error } = await supabase.from("subscription_payments").insert({
       subscription_id: selectedSub,
       mes_referencia: payForm.mes_referencia + "-01",
       valor: parseFloat(payForm.valor),
@@ -518,7 +527,7 @@ function PaymentsTab() {
               <TableCell>{p.clinic_subscriptions?.platform_plans?.nome}</TableCell>
               <TableCell>{p.mes_referencia ? format(new Date(p.mes_referencia), "MMM/yyyy", { locale: ptBR }) : "-"}</TableCell>
               <TableCell>R$ {Number(p.valor).toFixed(2)}</TableCell>
-              <TableCell><Badge variant={STATUS_COLORS[p.status] as any || "default"}>{p.status}</Badge></TableCell>
+              <TableCell><Badge variant={(STATUS_COLORS[p.status] as any) || "default"}>{p.status}</Badge></TableCell>
               <TableCell>{p.data_pagamento ? format(new Date(p.data_pagamento), "dd/MM/yyyy") : "-"}</TableCell>
             </TableRow>
           ))}
@@ -570,7 +579,7 @@ function GroupsTab() {
   const { data: groups = [] } = useQuery({
     queryKey: ["clinic-groups"],
     queryFn: async () => {
-      const { data } = await (supabase.from("clinic_groups") as any).select("*").order("nome");
+      const { data } = await supabase.from("clinic_groups").select("*").order("nome");
       return data || [];
     },
   });
@@ -578,7 +587,7 @@ function GroupsTab() {
   const { data: members = [] } = useQuery({
     queryKey: ["clinic-group-members"],
     queryFn: async () => {
-      const { data } = await (supabase.from("clinic_group_members") as any).select("*, clinicas(nome)");
+      const { data } = await supabase.from("clinic_group_members").select("*, clinicas(nome)");
       return data || [];
     },
   });
@@ -586,14 +595,14 @@ function GroupsTab() {
   const { data: clinics = [] } = useQuery({
     queryKey: ["master-clinics"],
     queryFn: async () => {
-      const { data } = await (supabase.from("clinicas") as any).select("id, nome").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("clinicas").select("id, nome").eq("ativo", true).order("nome");
       return data || [];
     },
   });
 
   const handleCreate = async () => {
     if (!form.nome) return;
-    const { error } = await (supabase.from("clinic_groups") as any).insert({
+    const { error } = await supabase.from("clinic_groups").insert({
       nome: form.nome, descricao: form.descricao || null, created_by: user?.id,
     });
     if (error) { toast.error("Erro", { description: error.message }); return; }
@@ -606,9 +615,9 @@ function GroupsTab() {
   const toggleMember = async (groupId: string, clinicId: string) => {
     const existing = members.find((m: any) => m.group_id === groupId && m.clinic_id === clinicId);
     if (existing) {
-      await (supabase.from("clinic_group_members") as any).delete().eq("id", existing.id);
+      await supabase.from("clinic_group_members").delete().eq("id", existing.id);
     } else {
-      await (supabase.from("clinic_group_members") as any).insert({
+      await supabase.from("clinic_group_members").insert({
         group_id: groupId, clinic_id: clinicId, cross_booking_enabled: true,
       });
     }
@@ -616,7 +625,7 @@ function GroupsTab() {
   };
 
   const toggleCrossBooking = async (memberId: string, current: boolean) => {
-    await (supabase.from("clinic_group_members") as any).update({ cross_booking_enabled: !current }).eq("id", memberId);
+    await supabase.from("clinic_group_members").update({ cross_booking_enabled: !current }).eq("id", memberId);
     queryClient.invalidateQueries({ queryKey: ["clinic-group-members"] });
   };
 
@@ -690,11 +699,11 @@ function MasterDashboardTab() {
   const { data: stats } = useQuery({
     queryKey: ["master-stats"],
     queryFn: async () => {
-      const { data: clinics } = await (supabase.from("clinicas") as any).select("id").eq("ativo", true);
-      const { data: subs } = await (supabase.from("clinic_subscriptions") as any).select("status, platform_plans(valor_mensal)");
+      const { data: clinics } = await supabase.from("clinicas").select("id").eq("ativo", true);
+      const { data: subs } = await supabase.from("clinic_subscriptions").select("status, platform_plans(valor_mensal)");
       const ativas = (subs || []).filter((s: any) => s.status === "ativa");
       const mrr = ativas.reduce((sum: number, s: any) => sum + Number(s.platform_plans?.valor_mensal || 0), 0);
-      const { data: payments } = await (supabase.from("subscription_payments") as any).select("status");
+      const { data: payments } = await supabase.from("subscription_payments").select("status");
       const inadimplentes = (payments || []).filter((p: any) => p.status === "atrasado").length;
 
       return {
@@ -758,7 +767,7 @@ function UpgradeRequestsTab() {
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ["plan-upgrade-requests"],
     queryFn: async () => {
-      const { data } = await (supabase.from("plan_upgrade_requests") as any)
+      const { data } = await supabase.from("plan_upgrade_requests")
         .select("*, clinicas(nome), current_plan:platform_plans!plan_upgrade_requests_current_plan_id_fkey(nome), requested_plan:platform_plans!plan_upgrade_requests_requested_plan_id_fkey(nome, valor_mensal)")
         .order("created_at", { ascending: false });
       return data || [];
@@ -770,23 +779,23 @@ function UpgradeRequestsTab() {
       const request = requests.find((r: any) => r.id === id);
       if (!request) throw new Error("Solicitação não encontrada");
 
-      await (supabase.from("plan_upgrade_requests") as any)
+      await supabase.from("plan_upgrade_requests")
         .update({ status: action, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .eq("id", id);
 
       if (action === "aprovado" && request.clinic_id && request.requested_plan_id) {
-        const { data: sub } = await (supabase.from("clinic_subscriptions") as any)
+        const { data: sub } = await supabase.from("clinic_subscriptions")
           .select("id").eq("clinic_id", request.clinic_id).maybeSingle();
 
         if (sub) {
-          const { error: upErr } = await (supabase.from("clinic_subscriptions") as any)
+          const { error: upErr } = await supabase.from("clinic_subscriptions")
             .update({ plan_id: request.requested_plan_id, updated_at: new Date().toISOString() })
             .eq("id", sub.id);
           if (upErr) throw upErr;
         } else {
           const venc = new Date();
           venc.setMonth(venc.getMonth() + 1);
-          const { error: insErr } = await (supabase.from("clinic_subscriptions") as any).insert({
+          const { error: insErr } = await supabase.from("clinic_subscriptions").insert({
             clinic_id: request.clinic_id,
             plan_id: request.requested_plan_id,
             status: "ativa",
