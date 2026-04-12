@@ -2,10 +2,10 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BarChart3, Users, DollarSign, Calendar, FileDown, FileSpreadsheet, TrendingDown, UserX, AlertTriangle } from "lucide-react";
+import { BarChart3, Users, DollarSign, Calendar, FileDown, FileSpreadsheet, TrendingDown, UserX, AlertTriangle, MessageCircle } from "lucide-react";
 import { reportService } from "@/modules/reports/services/reportService";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -548,7 +548,7 @@ const Relatorios = () => {
                             variant="ghost" 
                             className="h-8 w-8 text-green-600 hover:bg-green-100"
                             onClick={() => {
-                              const phone = (p.pacientes?.telefone || "").replace(/\D/g, "");
+                              const phone = ((p as any).pacientes?.telefone || "").replace(/\D/g, "");
                               const msg = encodeURIComponent(`Olá ${p.pacientes?.nome.split(' ')[0]}! Passando para lembrar que temos uma pendência em aberto referente ao seu tratamento. Caso já tenha quitado, por favor desconsidere. Precisando de ajuda, estamos aqui! 👋`);
                               window.open(`https://wa.me/55${phone}?text=${msg}`, "_blank");
                             }}

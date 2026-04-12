@@ -1,20 +1,15 @@
 /**
  * useClinicTheme
  *
- * Lê a `primary_color` das configurações da clínica e injeta as CSS custom
- * properties correspondentes em tempo real via `document.documentElement`.
- *
- * As variáveis são no formato HSL que o Tailwind/shadcn usa (sem `hsl()`):
- *   --primary: H S% L%
- *   --ring:    H S% L%
- *   --sidebar-primary: H S% L%
- *   --sidebar-ring:    H S% L%
+ * Lê as cores do tema da clínica da tabela `clinic_theme` e injeta as CSS
+ * custom properties correspondentes em tempo real via `document.documentElement`.
  *
  * Chamar este hook uma única vez no App.tsx / layout raiz.
  */
 
 import { useEffect } from "react";
-import { useClinicSettings } from "./useClinicSettings";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // Converte hex (#rrggbb) para objeto {h, s, l}
 function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
@@ -48,55 +43,127 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
   };
 }
 
+function hexToHslStr(hex: string): string | null {
+  const hsl = hexToHsl(hex);
+  if (!hsl) return null;
+  return `${hsl.h} ${hsl.s}% ${hsl.l}%`;
+}
+
 // Calcula o foreground adequado (branco ou preto) com base na luminosidade
-function foregroundForLightness(l: number): string {
-  return l > 55 ? "170 30% 12%" : "0 0% 100%";
+function foregroundForHex(hex: string): string {
+  const hsl = hexToHsl(hex);
+  if (!hsl) return "0 0% 100%";
+  return hsl.l > 55 ? "170 30% 12%" : "0 0% 100%";
 }
 
 export function useClinicTheme() {
-  const { data: settings } = useClinicSettings();
+  // Fetch active clinic id
+  const { data: clinicUser } = useQuery({
+    queryKey: ["clinic-user-for-theme"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from("clinic_users")
+        .select("clinic_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const clinicId = clinicUser?.clinic_id;
+
+  const { data: theme } = useQuery({
+    queryKey: ["clinic-theme-active", clinicId],
+    queryFn: async () => {
+      if (!clinicId) return null;
+      const { data } = await (supabase as any)
+        .from("clinic_theme")
+        .select("*")
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!clinicId,
+    staleTime: 1000 * 60 * 10,
+  });
 
   useEffect(() => {
-    const primaryHex = settings?.primary_color;
-    if (!primaryHex) return;
-
-    const hsl = hexToHsl(primaryHex);
-    if (!hsl) return;
-
-    const { h, s, l } = hsl;
-    const primaryValue = `${h} ${s}% ${l}%`;
-    // Sidebar ligeiramente mais claro/saturado
-    const sidebarPrimaryValue = `${h} ${Math.min(s + 10, 100)}% ${Math.min(l + 8, 90)}%`;
-    const foreground = foregroundForLightness(l);
+    if (!theme) return;
 
     const root = document.documentElement;
+    const vars: string[] = [];
 
-    // Variáveis principais (modo claro — root)
-    root.style.setProperty("--primary", primaryValue);
-    root.style.setProperty("--primary-foreground", foreground);
-    root.style.setProperty("--ring", primaryValue);
-    root.style.setProperty("--accent", `${h} ${Math.max(s - 20, 10)}% ${Math.min(l + 40, 95)}%`);
-    root.style.setProperty("--accent-foreground", `${h} ${s}% ${Math.max(l - 15, 15)}%`);
+    const apply = (cssVar: string, hexValue: string | null) => {
+      if (!hexValue) return;
+      const hslStr = hexToHslStr(hexValue);
+      if (!hslStr) return;
+      root.style.setProperty(cssVar, hslStr);
+      vars.push(cssVar);
+    };
+
+    // Primary colors
+    if (theme.primary_color) {
+      apply("--primary", theme.primary_color);
+      root.style.setProperty("--primary-foreground", foregroundForHex(theme.primary_color));
+      vars.push("--primary-foreground");
+      apply("--ring", theme.primary_color);
+    }
+
+    if (theme.accent_color) {
+      apply("--accent", theme.accent_color);
+      const fg = foregroundForHex(theme.accent_color);
+      root.style.setProperty("--accent-foreground", fg);
+      vars.push("--accent-foreground");
+    }
+
+    if (theme.destructive_color) {
+      apply("--destructive", theme.destructive_color);
+    }
+
+    if (theme.muted_color) {
+      apply("--muted", theme.muted_color);
+    }
+
+    if (theme.card_bg) {
+      apply("--card", theme.card_bg);
+    }
+
+    if (theme.card_border) {
+      apply("--border", theme.card_border);
+    }
 
     // Sidebar
-    root.style.setProperty("--sidebar-primary", sidebarPrimaryValue);
-    root.style.setProperty("--sidebar-primary-foreground", "0 0% 100%");
-    root.style.setProperty("--sidebar-ring", sidebarPrimaryValue);
+    if (theme.sidebar_bg) {
+      apply("--sidebar-background", theme.sidebar_bg);
+    }
+    if (theme.sidebar_text) {
+      apply("--sidebar-foreground", theme.sidebar_text);
+    }
+    if (theme.primary_color) {
+      apply("--sidebar-primary", theme.primary_color);
+      root.style.setProperty("--sidebar-primary-foreground", "0 0% 100%");
+      vars.push("--sidebar-primary-foreground");
+      apply("--sidebar-ring", theme.primary_color);
+      // Sidebar accent derived
+      const hsl = hexToHsl(theme.primary_color);
+      if (hsl) {
+        const sidebarAccent = `${hsl.h} ${Math.max(hsl.s - 10, 10)}% ${Math.max(hsl.l - 18, 12)}%`;
+        root.style.setProperty("--sidebar-accent", sidebarAccent);
+        vars.push("--sidebar-accent");
+        const sidebarBorder = `${hsl.h} ${Math.max(hsl.s - 10, 10)}% ${Math.max(hsl.l - 15, 15)}%`;
+        root.style.setProperty("--sidebar-border", sidebarBorder);
+        vars.push("--sidebar-border");
+      }
+    }
 
-    // Cor de fundo da sidebar (derivada, mais escura que a primária)
-    const sidebarBg = `${h} ${Math.max(s - 15, 10)}% ${Math.max(l - 25, 8)}%`;
-    root.style.setProperty("--sidebar-background", sidebarBg);
-    root.style.setProperty("--sidebar-accent", `${h} ${Math.max(s - 10, 10)}% ${Math.max(l - 18, 12)}%`);
-    root.style.setProperty("--sidebar-border", `${h} ${Math.max(s - 10, 10)}% ${Math.max(l - 15, 15)}%`);
+    // Button primary → same as primary (already applied)
 
     return () => {
-      // Limpar as variáveis sobrescritas ao desmontar
-      const vars = [
-        "--primary", "--primary-foreground", "--ring", "--accent", "--accent-foreground",
-        "--sidebar-primary", "--sidebar-primary-foreground", "--sidebar-ring",
-        "--sidebar-background", "--sidebar-accent", "--sidebar-border",
-      ];
       vars.forEach(v => root.style.removeProperty(v));
     };
-  }, [settings?.primary_color]);
+  }, [theme]);
 }

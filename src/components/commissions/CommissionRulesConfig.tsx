@@ -215,7 +215,7 @@ export function CommissionRulesConfig() {
 
   const getProfName = (id: string) => {
     const p = profissionais.find((p: any) => p.user_id === id);
-    return p?.nome_completo ?? p?.nome ?? id;
+    return (p as any)?.nome ?? id;
   };
 
   const [missedPctLocal, setMissedPctLocal] = useState<string>("");

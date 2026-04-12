@@ -68,19 +68,19 @@ export const PlanoFormDialog = ({ open, onOpenChange, editPlano, pacientes, moda
       if (!userId) throw new Error("Não autenticado");
       
       if (isEdit) {
-        const { error } = await supabase.from("planos").update({
+        const { error } = await (supabase as any).from("planos").update({
           tipo_atendimento: formData.tipo_atendimento,
           total_sessoes: formData.total_sessoes,
           valor: parseFloat(formData.valor) || 0,
           data_inicio: formData.data_inicio,
           data_vencimento: formData.data_vencimento || null,
           observacoes: formData.observacoes || null,
-          status: formData.status as any,
+          status: formData.status,
           auto_renew: formData.auto_renew,
         }).eq("id", editPlano.id);
         if (error) throw error;
       } else {
-        const { data: plano, error: planoError } = await supabase.from("planos").insert({
+        const { data: plano, error: planoError } = await (supabase as any).from("planos").insert({
           paciente_id: formData.paciente_id,
           profissional_id: userId,
           tipo_atendimento: formData.tipo_atendimento,

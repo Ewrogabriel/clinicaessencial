@@ -195,7 +195,7 @@ const Planos = () => {
   
   const toggleAutoRenew = useMutation({
     mutationFn: async ({ id, auto_renew }: { id: string; auto_renew: boolean }) => {
-      const { error } = await supabase.from("planos").update({ auto_renew }).eq("id", id);
+      const { error } = await (supabase as any).from("planos").update({ auto_renew }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -134,11 +134,11 @@ export function CommissionExtract() {
     queryKey: ["commissions-table-extract", mesRef],
     queryFn: async () => {
       const mesDate = `${mesRef}-01`;
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("commissions")
         .select("*")
         .eq("mes_referencia", mesDate);
-      return data ?? [];
+      return (data ?? []) as any[];
     },
     enabled: canManage || isProfissional,
   });

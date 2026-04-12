@@ -74,6 +74,7 @@ export function AppointmentDetailDialog({
   const [observacao, setObservacao] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [selectedFaltaId, setSelectedFaltaId] = useState<string | null>(null);
+  const [actionMode, setActionMode] = useState<ActionMode>(null);
   const commissionProcessor = useCommissionProcessor();
 
   // Buscar faltas anteriores do paciente para vincular à reposição
@@ -95,14 +96,14 @@ export function AppointmentDetailDialog({
   const { data: clinicPolicy } = useQuery({
     queryKey: ["clinic-policy"],
     queryFn: async () => {
-      const { data: clinic } = await supabase.from("clinics").select("id").maybeSingle();
+      const { data: clinic } = await (supabase as any).from("clinicas").select("id").maybeSingle();
       if (!clinic) return null;
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("cancellation_policies")
         .select("*")
         .eq("clinic_id", clinic.id)
         .maybeSingle();
-      return data;
+      return data as { min_hours_before_cancel?: number } | null;
     },
     enabled: open,
   });

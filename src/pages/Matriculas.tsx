@@ -39,7 +39,7 @@ import { EnrollmentDetails } from "@/components/matriculas/EnrollmentDetails";
 import { EnrollmentAdminPanel } from "@/components/matriculas/EnrollmentAdminPanel";
 import { CancellationPolicies } from "@/components/matriculas/CancellationPolicies";
 import { enrollmentService } from "@/modules/matriculas/services/enrollmentService";
-import { MatriculaPaymentTracker } from "@/components/matriculas/MatriculaPaymentTracker";
+import { MatriculaPayments } from "@/components/matriculas/MatriculaPayments";
 import Planos from "./Planos";
 import { toast } from "sonner";
 
@@ -347,23 +347,7 @@ const Matriculas = () => {
         });
       }
 
-      // Create initial monthly receivable for Financeiro (single source: pagamentos_mensalidade)
-      if (finalValue > 0) {
-        const mesReferencia = format(addMonths(new Date(formData.start_date), 1), "yyyy-MM-01");
-
-        const { error: mensalidadeError } = await (supabase.from("pagamentos_mensalidade").insert({
-          paciente_id: formData.paciente_id,
-          matricula_id: mat.id,
-          mes_referencia: mesReferencia,
-          data_vencimento: dueDate,
-          valor: finalValue,
-          status: "aberto",
-          observacoes: `Mensalidade ${formData.tipo_atendimento}`,
-          clinic_id: activeClinicId,
-        }) as any);
-
-        if (mensalidadeError) throw mensalidadeError;
-      }
+      // pagamentos_mensalidade are already created by enrollmentService.generateSessions above
 
       return mat;
     },
@@ -989,11 +973,11 @@ const Matriculas = () => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
             {paymentTrackingMat && (
-              <MatriculaPaymentTracker
+              <MatriculaPayments
                 matriculaId={paymentTrackingMat.id}
                 pacienteId={paymentTrackingMat.paciente_id}
-                pacienteNome={paymentTrackingMat.pacientes?.nome || "Paciente"}
                 valorMensal={parseFloat(paymentTrackingMat.valor_mensal || 0)}
+                diaVencimento={paymentTrackingMat.due_day || 10}
               />
             )}
           </div>

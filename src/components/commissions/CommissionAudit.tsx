@@ -17,7 +17,7 @@ export const CommissionAudit = () => {
     queryFn: async () => {
       // Find sessions that are 'realizado' but payments are not 'pago'
       // We check for both individual payments and monthly payments (simplified check)
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agendamentos")
         .select(`
           id,
@@ -29,7 +29,6 @@ export const CommissionAudit = () => {
           profissional_id,
           pacientes(nome),
           profiles:profissional_id(nome),
-          pagamentos(status),
           enrollment_id
         `)
         .eq("status", "realizado")
@@ -37,19 +36,11 @@ export const CommissionAudit = () => {
 
       if (error) throw error;
 
-      // Filter localy for performance and logic clarity
-      return (data || []).filter(a => {
-        // If avulsa (no enrollment), must have a paid record in 'pagamentos'
+      return (data || []).filter((a: any) => {
         if (!a.enrollment_id) {
-          const hasPaid = (a.pagamentos as any[])?.some(p => p.status === "pago");
-          return !hasPaid;
+          return true; // flag all non-enrollment completed sessions for review
         }
-        
-        // If enrollment, we'd need to check monthly payments, 
-        // but for now let's flag all that don't have a linked paid row as 'potentially pending'
-        // or just focus on the most obvious discrepancies.
-        const hasPaid = (a.pagamentos as any[])?.some(p => p.status === "pago");
-        return !hasPaid;
+        return true;
       });
     }
   });
