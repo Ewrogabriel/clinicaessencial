@@ -418,13 +418,13 @@ const Matriculas = () => {
     mutationFn: async (enrollmentId: string) => {
       if (!user) throw new Error("Não autenticado");
 
-      const { data: fullMat } = await supabase
+      const { data: fullMat, error: matErr } = await supabase
         .from("matriculas")
         .select("*, weekly_schedules(*)")
         .eq("id", enrollmentId)
         .single();
 
-      if (!fullMat) throw new Error("Matrícula não encontrada");
+      if (matErr || !fullMat) throw new Error("Matrícula não encontrada");
 
       const { data: lastAgend } = await supabase
         .from("agendamentos")
@@ -434,37 +434,79 @@ const Matriculas = () => {
         .limit(1)
         .maybeSingle();
 
-      const { startOfMonth, endOfMonth, addMonths } = await import("date-fns");
+      const { startOfMonth, endOfMonth, addMonths: addMonthsFn } = await import("date-fns");
       const nextMonth = lastAgend 
-          ? addMonths(new Date(lastAgend.data_horario), 1)
-          : addMonths(new Date(), 1);
+          ? addMonthsFn(new Date(lastAgend.data_horario), 1)
+          : addMonthsFn(new Date(), 1);
       
       const startDate = format(startOfMonth(nextMonth), "yyyy-MM-dd");
       const endDate = format(endOfMonth(nextMonth), "yyyy-MM-dd");
+      const mesRef = format(nextMonth, "yyyy-MM") + "-01";
+      const monthlyValue = Number(fullMat.valor_mensal || 0);
+      const clinicId = fullMat.clinic_id || activeClinicId || "";
+      
+      const hasSchedules = fullMat.weekly_schedules && fullMat.weekly_schedules.length > 0;
 
-      return await enrollmentService.generateSessions({
-          enrollmentId: fullMat.id,
-          pacienteId: fullMat.paciente_id,
-          weeklySchedules: fullMat.weekly_schedules.map((s: any) => ({
-              weekday: s.weekday,
-              time: s.time,
-              professional_id: s.professional_id,
-              session_duration: s.session_duration
-          })),
-          startDate,
-          endDate,
-          tipoAtendimento: fullMat.tipo_atendimento || "Pilates",
-          monthlyValue: Number(fullMat.valor_mensal || 0),
-          tipoSessao: (fullMat.tipo_sessao || "grupo") as "grupo" | "individual",
-          clinicId: fullMat.clinic_id || activeClinicId || "",
-          userId: user.id
-      });
+      if (hasSchedules) {
+        // Com schedules: gerar sessões + mensalidade via serviço
+        const count = await enrollmentService.generateSessions({
+            enrollmentId: fullMat.id,
+            pacienteId: fullMat.paciente_id,
+            weeklySchedules: fullMat.weekly_schedules.map((s: any) => ({
+                weekday: s.weekday,
+                time: s.time,
+                professional_id: s.professional_id,
+                session_duration: s.session_duration
+            })),
+            startDate,
+            endDate,
+            tipoAtendimento: fullMat.tipo_atendimento || "Pilates",
+            monthlyValue,
+            tipoSessao: (fullMat.tipo_sessao || "grupo") as "grupo" | "individual",
+            clinicId,
+            userId: user.id
+        });
+        return { sessions: count, payments: count > 0 ? 1 : 0 };
+      } else {
+        // Sem schedules: criar apenas a mensalidade financeira
+        const { data: existing } = await supabase
+          .from("pagamentos_mensalidade")
+          .select("id")
+          .eq("matricula_id", enrollmentId)
+          .eq("mes_referencia", mesRef)
+          .maybeSingle();
+
+        if (!existing && monthlyValue > 0) {
+          const { error: insertError } = await supabase
+            .from("pagamentos_mensalidade")
+            .insert({
+              matricula_id: enrollmentId,
+              paciente_id: fullMat.paciente_id,
+              clinic_id: clinicId,
+              valor: monthlyValue,
+              mes_referencia: mesRef,
+              status: "aberto"
+            });
+
+          if (insertError) throw insertError;
+          return { sessions: 0, payments: 1 };
+        }
+        return { sessions: 0, payments: 0 };
+      }
     },
-    onSuccess: (count) => {
+    onSuccess: (result) => {
         queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
         queryClient.invalidateQueries({ queryKey: ["pagamentos_mensalidade"] });
+        queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula"] });
         queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
-        toast.success(`✅ ${count} sessões e cobrança mensal geradas com sucesso!`);
+        
+        if (result.sessions > 0) {
+          toast.success(`${result.sessions} sessões e cobrança mensal geradas com sucesso!`);
+        } else if (result.payments > 0) {
+          toast.success("Cobrança mensal gerada com sucesso!");
+        } else {
+          toast.info("A cobrança para o próximo mês já existe.");
+        }
     },
     onError: (err) => toast.error("Erro ao gerar sessões", { description: String(err) }),
   });

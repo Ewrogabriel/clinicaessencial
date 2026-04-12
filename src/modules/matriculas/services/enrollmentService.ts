@@ -134,16 +134,17 @@ export const enrollmentService = {
           .maybeSingle();
 
         if (!existing && monthlyValue > 0) {
-          // Criar cobrança
-          await (supabase as any).from("pagamentos_mensalidade").insert({
+          // Criar cobrança - campo created_by não existe na tabela pagamentos_mensalidade
+          const { error: paymentError } = await supabase.from("pagamentos_mensalidade").insert({
             matricula_id: enrollmentId,
             paciente_id: pacienteId,
             clinic_id: clinicId,
             valor: monthlyValue,
             mes_referencia: fullMonthRef,
-            status: "aberto",
-            created_by: userId
+            status: "aberto"
           });
+          
+          if (paymentError) throw paymentError;
         }
       }
 
