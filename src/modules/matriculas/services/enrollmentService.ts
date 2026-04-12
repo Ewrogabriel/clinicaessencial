@@ -135,7 +135,7 @@ export const enrollmentService = {
 
         if (!existing && monthlyValue > 0) {
           // Criar cobrança
-          await supabase.from("pagamentos_mensalidade").insert({
+          await (supabase as any).from("pagamentos_mensalidade").insert({
             matricula_id: enrollmentId,
             paciente_id: pacienteId,
             clinic_id: clinicId,

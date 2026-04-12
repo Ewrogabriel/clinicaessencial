@@ -40,7 +40,7 @@ export function useUpdateClinicSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (updates: Partial<ClinicSettings> & { id: string }) => {
-      const { id, ...rest } = updates;
+      const { id, primary_color, ...rest } = updates as any;
       const { error } = await (supabase
         .from("clinic_settings")
         .update(rest)
