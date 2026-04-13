@@ -104,7 +104,7 @@ export function DayScheduleModal({
     setLoading(true);
     try {
       const dayOfWeek = selectedDate.getDay();
-      let query = supabase
+      let query = (supabase as any)
         .from("disponibilidade_profissional")
         .select("id, hora_inicio, hora_fim, max_pacientes, dia_semana")
         .eq("profissional_id", selectedProfId)
