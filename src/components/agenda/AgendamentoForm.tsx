@@ -170,7 +170,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
         dataHorario.setHours(hours, minutes, 0, 0);
         await bookAppointmentMutation.mutateAsync({ ...basePayload, data_horario: dataHorario.toISOString() } as any);
         if (appointmentType === "sessao_plano" && selectedPlanoId && selectedPlano) {
-          const { error: updateError } = await supabase.from("planos").update({ sessoes_utilizadas: selectedPlano.sessoes_utilizadas + 1 }).eq("id", selectedPlanoId);
+          const { error: updateError } = await (supabase as any).from("planos").update({ sessoes_utilizadas: selectedPlano.sessoes_utilizadas + 1 }).eq("id", selectedPlanoId);
           if (updateError) { console.error("Erro ao atualizar sessões do plano:", updateError); toast.error("Agendamento criado, mas não foi possível atualizar o contador do plano."); }
         }
         toast.success("Agendamento realizado com sucesso!");

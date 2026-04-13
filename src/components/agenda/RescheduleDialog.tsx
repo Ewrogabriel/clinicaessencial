@@ -94,10 +94,10 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
 
   const fetchProfissionais = async () => {
     // First get professional user_ids from user_roles
-    const { data: roles } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
+    const { data: roles } = await (supabase as any).from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
     const profUserIds = (roles || []).map((r: any) => r.user_id);
     if (profUserIds.length === 0) { setProfissionais([]); return; }
-    const { data } = await supabase.from("profiles").select("user_id, nome").in("user_id", profUserIds).order("nome");
+    const { data } = await (supabase as any).from("profiles").select("user_id, nome").in("user_id", profUserIds).order("nome");
     setProfissionais((data || []).map((p: any) => ({ id: p.user_id, nome: p.nome })));
   };
 
@@ -172,7 +172,7 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       }
 
       // Patients create a request for approval
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("solicitacoes_remarcacao")
         .insert({
           agendamento_id: agendamento.id,
@@ -185,37 +185,37 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
       if (error) throw error;
 
       // Notify professional
-      await (supabase.from("notificacoes").insert({
+      await (supabase as any).from("notificacoes").insert({
         user_id: agendamento.profissional_id,
         tipo: isCancelado ? "remarcacao" : "reagendamento",
         titulo: `Solicitação de ${tipoLabelLower}`,
         resumo: `Paciente solicita ${tipoLabelLower} para ${format(novaData, "dd/MM 'às' HH:mm")}`,
         conteudo: `Paciente solicita ${tipoLabelLower}.\nData ${isCancelado ? "cancelada" : "atual"}: ${format(new Date(agendamento.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nNova data: ${format(novaData, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\nMotivo: ${motivo || "Não informado"}`,
         link: "/solicitacoes-alteracao",
-      }) as any);
+      });
 
       // If different professional, also notify the new one
       if (selectedProfId !== agendamento.profissional_id) {
-        await (supabase.from("notificacoes").insert({
+        await (supabase as any).from("notificacoes").insert({
           user_id: selectedProfId,
           tipo: isCancelado ? "remarcacao" : "reagendamento",
           titulo: `Solicitação de ${tipoLabelLower} (novo profissional)`,
           resumo: `Paciente solicita ${tipoLabelLower} para ${format(novaData, "dd/MM 'às' HH:mm")}`,
           link: "/solicitacoes-alteracao",
-        }) as any);
+        });
       }
 
       // Notify admins
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data: adminRoles } = await (supabase as any).from("user_roles").select("user_id").eq("role", "admin");
       for (const admin of (adminRoles || [])) {
         if (admin.user_id === agendamento.profissional_id) continue;
-        await (supabase.from("notificacoes").insert({
+        await (supabase as any).from("notificacoes").insert({
           user_id: admin.user_id,
           tipo: isCancelado ? "remarcacao" : "reagendamento",
           titulo: `Nova solicitação de ${tipoLabelLower}`,
           resumo: `Paciente solicita ${tipoLabelLower} para ${format(novaData, "dd/MM 'às' HH:mm")}`,
           link: "/solicitacoes-alteracao",
-        }) as any);
+        });
       }
     },
     onSuccess: () => {

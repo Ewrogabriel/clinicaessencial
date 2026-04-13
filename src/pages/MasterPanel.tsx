@@ -134,7 +134,7 @@ function ClinicsTab() {
           responsavelTelefone: form.responsavel_telefone || "",
           planoNome: plan.nome,
           planoValor: Number(plan.valor_mensal),
-          recursos: plan.recursos_disponiveis || [],
+          recursos: Array.isArray(plan.recursos_disponiveis) ? (plan.recursos_disponiveis as string[]) : [],
           dataContrato: format(new Date(), "dd/MM/yyyy", { locale: ptBR }),
         };
 

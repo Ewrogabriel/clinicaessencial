@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Globe, Instagram, Phone, Mail, MapPin, Eye, EyeOff, Tag, X, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, Globe, Instagram, Phone, Mail, MapPin, Eye, EyeOff, Tag, X, ArrowLeft, ExternalLink, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -239,9 +239,26 @@ const Convenios = () => {
             <p className="text-muted-foreground">Gerencie empresas parceiras</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {!isPatient && (
             <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  const url = `${window.location.origin}/parceiros`;
+                  navigator.clipboard.writeText(url);
+                  toast.success("Link copiado!", { description: url });
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" /> Copiar Link Público
+              </Button>
+              <a href="/parceiros" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ExternalLink className="h-3.5 w-3.5" /> Ver Página Pública
+                </Button>
+              </a>
               <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)} className="gap-1">
                 <Tag className="h-4 w-4" /> Categorias
               </Button>
