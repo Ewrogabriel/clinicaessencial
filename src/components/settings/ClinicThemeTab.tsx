@@ -43,7 +43,25 @@ const DEFAULT_THEME: ThemeColors = {
 
 const PRESET_THEMES: { name: string; colors: ThemeColors }[] = [
   {
-    name: "Verde Saúde (Padrão)",
+    name: "Paleta Original",
+    colors: {
+      primary_color: "#2a9d6e",
+      secondary_color: "#e8f5ee",
+      accent_color: "#4abf8a",
+      sidebar_bg: "#1f3d2e",
+      sidebar_text: "#d4e8dc",
+      header_bg: "#f8fdf9",
+      header_text: "#1a3328",
+      card_bg: "#ffffff",
+      card_border: "#d4e8dc",
+      button_primary: "#2a9d6e",
+      button_text: "#ffffff",
+      muted_color: "#e8f5ee",
+      destructive_color: "#ef4444",
+    },
+  },
+  {
+    name: "Verde Saúde",
     colors: DEFAULT_THEME,
   },
   {
