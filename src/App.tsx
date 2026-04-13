@@ -73,7 +73,7 @@ const ConfirmacoesDia = lazy(() => import("./pages/ConfirmacoesDia"));
 const ConfirmarAgendamento = lazy(() => import("./pages/ConfirmarAgendamento"));
 const VerificarDocumento = lazy(() => import("./pages/VerificarDocumento"));
 const PublicReceipt = lazy(() => import("./pages/PublicReceipt"));
-
+const PublicPartners = lazy(() => import("./pages/PublicPartners"));
 
 const Investimentos = lazy(() => import("./pages/Investimentos"));
 const ConciliacaoBancaria = lazy(() => import("./pages/finance/ConciliacaoBancaria"));
@@ -121,6 +121,7 @@ const App = () => (
                       <Route path="/verificar-documento" element={<VerificarDocumento />} />
                       <Route path="/recibo/:id" element={<PublicReceipt />} />
                       <Route path="/sala/:roomId" element={<TeleconsultaPublica />} />
+                      <Route path="/parceiros" element={<PublicPartners />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
                         <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
