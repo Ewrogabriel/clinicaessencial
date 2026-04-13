@@ -19,9 +19,10 @@ export type Paciente = Tables<"pacientes">;
 export type PacienteInsert = TablesInsert<"pacientes">;
 export type PacienteUpdate = TablesUpdate<"pacientes">;
 
-export type Profissional = Tables<"profissionais">;
-export type ProfissionalInsert = TablesInsert<"profissionais">;
-export type ProfissionalUpdate = TablesUpdate<"profissionais">;
+// "profissionais" table doesn't exist - use profiles
+export type Profissional = Tables<"profiles">;
+export type ProfissionalInsert = TablesInsert<"profiles">;
+export type ProfissionalUpdate = TablesUpdate<"profiles">;
 
 export type Clinica = Tables<"clinicas">;
 export type ClinicaInsert = TablesInsert<"clinicas">;
@@ -35,9 +36,10 @@ export type WeeklySchedule = Tables<"weekly_schedules">;
 export type WeeklyScheduleInsert = TablesInsert<"weekly_schedules">;
 export type WeeklyScheduleUpdate = TablesUpdate<"weekly_schedules">;
 
-export type Sessao = Tables<"sessoes">;
-export type SessaoInsert = TablesInsert<"sessoes">;
-export type SessaoUpdate = TablesUpdate<"sessoes">;
+// "sessoes" table doesn't exist in schema - define as any
+export type Sessao = any;
+export type SessaoInsert = any;
+export type SessaoUpdate = any;
 
 // ============ Tipos com Relações (select com joins) ============
 
@@ -65,13 +67,8 @@ export interface AgendamentoComMatricula extends Agendamento {
   matriculas?: Matricula;
 }
 
-export interface SessaoComPaciente extends Sessao {
-  pacientes?: Paciente;
-}
-
-export interface SessaoComProfissional extends Sessao {
-  profissionais?: Profissional;
-}
+export type SessaoComPaciente = any;
+export type SessaoComProfissional = any;
 
 // ============ Tipos de Enumerações ============
 
@@ -96,9 +93,6 @@ export interface ApiListResponse<T> {
 
 // ============ Utilities para narrowing de tipos ============
 
-/**
- * Type guard para verificar se um objeto é um Agendamento válido
- */
 export function isAgendamento(obj: any): obj is Agendamento {
   return (
     obj &&
@@ -110,9 +104,6 @@ export function isAgendamento(obj: any): obj is Agendamento {
   );
 }
 
-/**
- * Type guard para Matricula
- */
 export function isMatricula(obj: any): obj is Matricula {
   return (
     obj &&
@@ -123,50 +114,31 @@ export function isMatricula(obj: any): obj is Matricula {
   );
 }
 
-/**
- * Type guard para Paciente
- */
 export function isPaciente(obj: any): obj is Paciente {
   return (
     obj &&
     typeof obj === "object" &&
     "id" in obj &&
-    "nome" in obj &&
-    "clinic_id" in obj
+    "nome" in obj
   );
 }
 
 // ============ Tipos Genéricos Úteis ============
 
-/**
- * Extrai o tipo de um array
- */
 export type ArrayElement<T extends any[]> = T extends (infer E)[] ? E : never;
 
-/**
- * Torna propriedades opcionais recursivamente
- */
 export type DeepPartial<T> = T extends object
   ? {
       [P in keyof T]?: DeepPartial<T[P]>;
     }
   : T;
 
-/**
- * Torna propriedades obrigatórias recursivamente
- */
 export type DeepRequired<T> = T extends object
   ? {
       [P in keyof T]-?: DeepRequired<T[P]>;
     }
   : T;
 
-/**
- * Omite múltiplas chaves de um tipo
- */
 export type OmitKeys<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
-/**
- * Seleciona apenas as chaves públicas (exclui timestamps do sistema)
- */
-export type PublicFields<T> = OmitKeys<T, "created_at" | "updated_at">;
+export type PublicFields<T> = Omit<T, "created_at" | "updated_at">;

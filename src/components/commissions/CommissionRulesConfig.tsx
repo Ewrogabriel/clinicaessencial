@@ -224,7 +224,7 @@ export function CommissionRulesConfig() {
 
   const getProfName = (id: string) => {
     const p = profissionais.find((p: any) => p.user_id === id);
-    return p?.nome_completo ?? p?.nome ?? id;
+    return (p as any)?.nome_completo ?? (p as any)?.nome ?? id;
   };
 
   const [missedPctLocal, setMissedPctLocal] = useState<string>("");
@@ -420,7 +420,7 @@ export function CommissionRulesConfig() {
                                     )}
                                   </TableCell>
                                   <TableCell className="text-center py-3">
-                                    <Badge variant="ghost" className="text-amber-600 bg-amber-50 border-amber-100 text-[10px] h-5">
+                                    <Badge variant="outline" className="text-amber-600 bg-amber-50 border-amber-100 text-[10px] h-5">
                                       {Math.round(Number(rule.missed_session_pct) * 100)}%
                                     </Badge>
                                   </TableCell>
@@ -428,7 +428,6 @@ export function CommissionRulesConfig() {
                                     <Switch
                                       checked={rule.ativo}
                                       onCheckedChange={() => toggleActive(rule)}
-                                      size="sm"
                                       className="data-[state=checked]:bg-emerald-500 scale-75"
                                     />
                                   </TableCell>

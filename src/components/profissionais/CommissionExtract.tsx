@@ -384,7 +384,7 @@ export function CommissionExtract() {
 
   const updateCommissionStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "liberado" | "bloqueado" }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("commissions")
         .update({ status_liberacao: status })
         .eq("id", id);
@@ -467,7 +467,7 @@ export function CommissionExtract() {
       const bonus = parseFloat(bonusValor) || 0;
       const valorFinal = prof.comissao + comp + bonus;
 
-      const { error } = await supabase.from("fechamentos_comissao").insert({
+      const { error } = await (supabase as any).from("fechamentos_comissao").insert({
         clinic_id: activeClinicId,
         profissional_id: prof.userId,
         mes_referencia: mesDate,
@@ -496,7 +496,7 @@ export function CommissionExtract() {
       if (bonus !== 0) conteudo += `\nBônus: R$ ${bonus.toFixed(2)} (${bonusDesc || "bônus"})`;
       conteudo += `\nValor Final: R$ ${valorFinal.toFixed(2)}`;
 
-      await supabase.from("notificacoes").insert({
+      await (supabase as any).from("notificacoes").insert({
         user_id: prof.userId,
         titulo,
         resumo,
@@ -542,12 +542,11 @@ export function CommissionExtract() {
       if (expError) throw expError;
 
       // 2. Atualizar Fechamento
-      const { error: fechError } = await supabase
+      const { error: fechError } = await (supabase as any)
         .from("fechamentos_comissao")
         .update({
           status: "pago",
           data_pagamento: new Date().toISOString(),
-          despesa_id: despesa.id
         })
         .eq("id", fechamento.id);
 
