@@ -15,11 +15,11 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
 
     const loadPacientes = async () => {
       // Patients are linked to clinics via clinic_pacientes junction table
-      const { data: cpData } = await supabase
+      const { data: cpData } = await (supabase as any)
         .from("clinic_pacientes")
         .select("paciente_id")
         .eq("clinic_id", clinicId);
-      const pacienteIds = (cpData || []).map(cp => cp.paciente_id);
+      const pacienteIds = (cpData || []).map((cp: any) => cp.paciente_id);
       if (!pacienteIds.length) { setPacientes([]); return; }
 
       const { data } = await (supabase.from("pacientes") as any)
@@ -32,22 +32,21 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
 
     const loadProfissionais = async () => {
       // 1. Fetch user IDs assigned to this clinic
-      const { data: clinicAssigned } = await supabase
+      const { data: clinicAssigned } = await (supabase as any)
         .from("clinic_users")
         .select("user_id")
         .eq("clinic_id", clinicId);
       
-      const assignedIds = (clinicAssigned || []).map(ca => ca.user_id);
+      const assignedIds = (clinicAssigned || []).map((ca: any) => ca.user_id);
       if (!assignedIds.length) { setProfissionais([]); return; }
 
-      // 2. Fetch profiles for assigned users who are professionals or admins
-      const { data: roles } = await supabase
+      const { data: roles } = await (supabase as any)
         .from("user_roles")
         .select("user_id")
         .in("user_id", assignedIds)
         .in("role", ["profissional", "admin"]);
       
-      const filteredIds = (roles || []).map(r => r.user_id);
+      const filteredIds = (roles || []).map((r: any) => r.user_id);
       if (!filteredIds.length) { setProfissionais([]); return; }
 
       const { data } = await supabase
