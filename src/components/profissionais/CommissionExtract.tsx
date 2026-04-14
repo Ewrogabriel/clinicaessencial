@@ -1187,6 +1187,9 @@ export function CommissionExtract() {
                                 <TableHead className="w-8"></TableHead>
                                 <TableHead className="text-xs">Data / Hora</TableHead>
                                 <TableHead className="text-xs">Paciente</TableHead>
+                                <TableHead className="text-xs">Origem</TableHead>
+                                <TableHead className="text-xs">Ref. Matrícula</TableHead>
+                                <TableHead className="text-xs">Mês Ref.</TableHead>
                                 <TableHead className="text-xs">Tipo</TableHead>
                                 <TableHead className="text-xs">Valor Sessão</TableHead>
                                 <TableHead className="text-xs">% / Fixo</TableHead>
@@ -1194,6 +1197,10 @@ export function CommissionExtract() {
                               </TableRow>
                             {sortedAtendimentos.map((a: any) => {
                               const sc = getSessionCommission(s.userId, a);
+                              const isPlano = (a.observacoes || "").toLowerCase().includes("plano:");
+                              const origem = isPlano ? "Plano" : (a.enrollment_id ? "Matrícula" : "Avulsa");
+                              const matRef = a.enrollment_id ? matriculas.find((m: any) => m.id === a.enrollment_id) : null;
+                              const mesReferencia = format(new Date(a.data_horario), "MMM/yyyy", { locale: ptBR });
                               return (
                                 <TableRow key={a.id} className="bg-muted/10 text-sm">
                                   <TableCell className="w-8">
@@ -1210,6 +1217,17 @@ export function CommissionExtract() {
                                     {format(new Date(a.data_horario), "dd/MM HH:mm")}
                                   </TableCell>
                                   <TableCell className="text-xs">{a.pacientes?.nome || "—"}</TableCell>
+                                  <TableCell className="text-xs">
+                                    <Badge variant="outline" className="text-[10px] py-0 font-normal">
+                                      {origem}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    {matRef ? (
+                                      <span className="text-muted-foreground">#{matRef.id.slice(0, 6)}</span>
+                                    ) : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-xs capitalize">{mesReferencia}</TableCell>
                                   <TableCell className="text-xs">
                                     <Badge variant="outline" className="text-[10px] truncate max-w-[80px]">
                                       {a.tipo_atendimento || "—"}
@@ -1262,7 +1280,7 @@ export function CommissionExtract() {
                               );
                             })}
                             <TableRow className="bg-muted/20 border-b-2">
-                              <TableCell colSpan={5}></TableCell>
+                              <TableCell colSpan={8}></TableCell>
                               <TableCell className="text-xs font-bold text-right">Subtotal:</TableCell>
                               <TableCell className="text-xs font-bold text-right text-primary">
                                 R$ {s.comissao.toFixed(2)}
