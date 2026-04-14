@@ -218,16 +218,11 @@ export function CommissionExtract() {
       const startDate = `${mesRef}-01T00:00:00`;
       const endMonth = new Date(parseInt(mesRef.split("-")[0]), parseInt(mesRef.split("-")[1]), 0);
       const endDate = `${mesRef}-${String(endMonth.getDate()).padStart(2, "0")}T23:59:59`;
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("agendamentos")
-        .select(`
-          *,
-          pacientes(nome),
-          matriculas(id, valor_mensalidade),
-          pagamentos(status, valor)
-        `)
+        .select("*, pacientes(nome)")
         .eq("profissional_id", user.id)
-        .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"] as any[])
+        .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"])
         .gte("data_horario", startDate)
         .lte("data_horario", endDate)
         .order("data_horario", { ascending: true });
