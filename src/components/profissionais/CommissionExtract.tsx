@@ -916,6 +916,8 @@ export function CommissionExtract() {
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs">Paciente</TableHead>
                           <TableHead className="text-xs">Origem</TableHead>
+                          <TableHead className="text-xs">Ref. Matrícula</TableHead>
+                          <TableHead className="text-xs">Mês Ref.</TableHead>
                           <TableHead className="text-xs">Tipo</TableHead>
                           <TableHead className="text-xs">Valor</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
@@ -924,7 +926,9 @@ export function CommissionExtract() {
                       <TableBody>
                           {meusAgendamentos.map((a: any) => {
                             const isPlano = (a.observacoes || "").toLowerCase().includes("plano:");
-                            const origem = isPlano ? "Plano" : (a.enrollment_id || a.matricula_id ? "Matrícula" : "Avulsa");
+                            const origem = isPlano ? "Plano" : (a.enrollment_id ? "Matrícula" : "Avulsa");
+                            const matRef = a.enrollment_id ? matriculas.find((m: any) => m.id === a.enrollment_id) : null;
+                            const mesReferencia = format(new Date(a.data_horario), "MMM/yyyy", { locale: ptBR });
                             return (
                               <TableRow key={a.id}>
                                 <TableCell className="text-xs py-1.5">{format(new Date(a.data_horario), "dd/MM HH:mm")}</TableCell>
@@ -934,6 +938,12 @@ export function CommissionExtract() {
                                     {origem}
                                   </Badge>
                                 </TableCell>
+                                <TableCell className="text-xs py-1.5">
+                                  {matRef ? (
+                                    <span className="text-muted-foreground">#{matRef.id.slice(0, 6)}</span>
+                                  ) : "—"}
+                                </TableCell>
+                                <TableCell className="text-xs py-1.5 capitalize">{mesReferencia}</TableCell>
                                 <TableCell className="text-xs py-1.5 capitalize">{a.tipo_atendimento}</TableCell>
                                 <TableCell className="text-xs py-1.5">R$ {Number(a.valor_sessao || 0).toFixed(2)}</TableCell>
                                 <TableCell className="text-xs py-1.5">
