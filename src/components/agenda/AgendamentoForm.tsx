@@ -136,7 +136,9 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
         duracao_minutos: values.duracao_minutos,
         tipo_atendimento: values.tipo_atendimento,
         tipo_sessao: values.tipo_sessao,
-        observacoes: values.observacoes,
+        observacoes: appointmentType === "sessao_plano" && selectedPlanoId
+          ? `${values.observacoes || ""} | plano:${selectedPlanoId}`.trim()
+          : values.observacoes,
         created_by: user.id,
         clinic_id: activeClinicId,
         valor_sessao: values.valor_sessao,
