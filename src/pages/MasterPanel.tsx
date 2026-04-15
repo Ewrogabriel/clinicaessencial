@@ -625,7 +625,12 @@ function GroupsTab() {
   };
 
   const toggleCrossBooking = async (memberId: string, current: boolean) => {
-    await supabase.from("clinic_group_members").update({ cross_booking_enabled: !current }).eq("id", memberId);
+    await supabase.from("clinic_group_members").update({ cross_booking_enabled: !current } as any).eq("id", memberId);
+    queryClient.invalidateQueries({ queryKey: ["clinic-group-members"] });
+  };
+
+  const toggleGroupPermission = async (memberId: string, field: string, current: boolean) => {
+    await supabase.from("clinic_group_members").update({ [field]: !current } as any).eq("id", memberId);
     queryClient.invalidateQueries({ queryKey: ["clinic-group-members"] });
   };
 
