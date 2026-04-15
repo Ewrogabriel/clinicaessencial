@@ -154,7 +154,7 @@ const PacienteDetalhes = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-6 mb-8">
+                <TabsList className="grid w-full grid-cols-7 mb-8">
                     <TabsTrigger value="timeline" className="gap-2">
                         <History className="h-4 w-4" />
                         <span className="hidden sm:inline">Tempo</span>
@@ -177,6 +177,10 @@ const PacienteDetalhes = () => {
                             <span className="hidden sm:inline">Pagamentos</span>
                         </TabsTrigger>
                     )}
+                    <TabsTrigger value="contratos" className="gap-2">
+                        <FileCheck className="h-4 w-4" />
+                        <span className="hidden sm:inline">Contratos</span>
+                    </TabsTrigger>
                     <TabsTrigger value="cadastro" className="gap-2">
                         <User className="h-4 w-4" />
                         <span className="hidden sm:inline">Cadastro</span>
