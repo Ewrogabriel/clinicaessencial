@@ -625,7 +625,12 @@ function GroupsTab() {
   };
 
   const toggleCrossBooking = async (memberId: string, current: boolean) => {
-    await supabase.from("clinic_group_members").update({ cross_booking_enabled: !current }).eq("id", memberId);
+    await supabase.from("clinic_group_members").update({ cross_booking_enabled: !current } as any).eq("id", memberId);
+    queryClient.invalidateQueries({ queryKey: ["clinic-group-members"] });
+  };
+
+  const toggleGroupPermission = async (memberId: string, field: string, current: boolean) => {
+    await supabase.from("clinic_group_members").update({ [field]: !current } as any).eq("id", memberId);
     queryClient.invalidateQueries({ queryKey: ["clinic-group-members"] });
   };
 
@@ -656,19 +661,39 @@ function GroupsTab() {
                 {clinics.map((c: any) => {
                   const member = groupMembers.find((m: any) => m.clinic_id === c.id);
                   return (
-                    <div key={c.id} className="flex items-center justify-between p-2 rounded border">
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant={member ? "default" : "outline"} onClick={() => toggleMember(g.id, c.id)}>
-                          {member ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                        </Button>
-                        <span className="text-sm">{c.nome}</span>
+                    <div key={c.id} className="rounded-lg border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant={member ? "default" : "outline"} onClick={() => toggleMember(g.id, c.id)}>
+                            {member ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                          </Button>
+                          <span className="text-sm font-medium">{c.nome}</span>
+                        </div>
                       </div>
                       {member && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">Agendamento cruzado</span>
-                          <Button size="sm" variant={member.cross_booking_enabled ? "default" : "outline"} onClick={() => toggleCrossBooking(member.id, member.cross_booking_enabled)}>
-                            {member.cross_booking_enabled ? "Ativado" : "Desativado"}
-                          </Button>
+                        <div className="ml-10 flex flex-wrap gap-2">
+                          {[
+                            { field: "cross_booking_enabled", label: "Agendamento Cruzado", value: member.cross_booking_enabled },
+                            { field: "share_patients", label: "Compartilhar Pacientes", value: (member as any).share_patients },
+                            { field: "share_professionals", label: "Compartilhar Profissionais", value: (member as any).share_professionals },
+                            { field: "share_financials", label: "Compartilhar Financeiro", value: (member as any).share_financials },
+                          ].map((perm) => (
+                            <Button
+                              key={perm.field}
+                              size="sm"
+                              variant={perm.value ? "default" : "outline"}
+                              className="text-xs h-7"
+                              onClick={() => {
+                                if (perm.field === "cross_booking_enabled") {
+                                  toggleCrossBooking(member.id, member.cross_booking_enabled ?? false);
+                                } else {
+                                  toggleGroupPermission(member.id, perm.field, perm.value ?? false);
+                                }
+                              }}
+                            >
+                              {perm.value ? "✅" : "❌"} {perm.label}
+                            </Button>
+                          ))}
                         </div>
                       )}
                     </div>

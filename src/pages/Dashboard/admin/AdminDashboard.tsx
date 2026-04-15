@@ -205,8 +205,37 @@ const Dashboard = () => {
   // Role-based tip type
   const tipRole = isAdmin ? "admin" : isGestor ? "admin" : isSecretario ? "secretario" : "profissional";
 
-  // Upcoming Birthdays
-  const birthdays: any[] = []; // get_upcoming_birthdays RPC not yet created
+  // Upcoming Birthdays (this month)
+  const { data: birthdays = [] } = useQuery({
+    queryKey: ["dashboard-birthdays", activeClinicId],
+    queryFn: async () => {
+      const mesAtual = (new Date().getMonth() + 1).toString().padStart(2, "0");
+      let q = supabase.from("pacientes")
+        .select("id, nome, telefone, data_nascimento")
+        .eq("status", "ativo")
+        .not("data_nascimento", "is", null);
+      if (activeClinicId) {
+        const { data: cpIds } = await supabase.from("clinic_pacientes").select("paciente_id").eq("clinic_id", activeClinicId);
+        if (cpIds && cpIds.length > 0) {
+          q = q.in("id", cpIds.map(c => c.paciente_id));
+        } else {
+          return [];
+        }
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data || []).filter((p: any) => {
+        if (!p.data_nascimento) return false;
+        const month = p.data_nascimento.substring(5, 7);
+        return month === mesAtual;
+      }).sort((a: any, b: any) => {
+        const dayA = parseInt(a.data_nascimento.substring(8, 10));
+        const dayB = parseInt(b.data_nascimento.substring(8, 10));
+        return dayA - dayB;
+      });
+    },
+    enabled: !!activeClinicId,
+  });
 
   // Pending plan sessions (pendente status)
   const { data: pendingSessions = [] } = useQuery({
@@ -356,26 +385,49 @@ const Dashboard = () => {
     switch (cardId) {
       case "tips": return <DailyTipsCard key="tips" tipo={tipRole} />;
       case "convenios": return <ConvenioCard key="convenios" />;
-      case "birthdays": return birthdays.length > 0 ? (
+      case "birthdays": return (
         <Card key="birthdays" className="border-pink-200 bg-pink-50/50">
           <CardHeader className="py-3">
             <CardTitle className="text-md flex items-center gap-2 text-pink-700">
-              <PartyPopper className="h-5 w-5" /> Aniversariantes da Semana
+              <PartyPopper className="h-5 w-5" /> Aniversariantes do Mês ({birthdays.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-3">
-            <div className="flex flex-wrap gap-2">
-              {birthdays.map((b: any) => (
-                <Badge key={b.id} variant="outline" className="bg-white border-pink-200 text-pink-700 py-1.5 px-3 gap-2 flex items-center cursor-pointer hover:bg-pink-100 transition-colors"
-                  onClick={() => sendBirthdayWishes(b.nome, b.telefone)}>
-                  <span className="font-bold">{b.nome}</span>
-                  <MessageCircle className="h-3 w-3" />
-                </Badge>
-              ))}
-            </div>
+            {birthdays.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum aniversariante este mês.</p>
+            ) : (
+              <div className="space-y-2">
+                {birthdays.map((b: any) => {
+                  const day = b.data_nascimento ? b.data_nascimento.substring(8, 10) : "";
+                  const isToday = new Date().getDate() === parseInt(day);
+                  return (
+                    <div key={b.id} className={`flex items-center justify-between p-2.5 rounded-lg border ${isToday ? "bg-pink-100 border-pink-300" : "bg-white border-pink-100"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${isToday ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}>
+                          {day}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{b.nome}</p>
+                          {isToday && <span className="text-[10px] text-pink-600 font-bold">🎂 HOJE!</span>}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-green-700 hover:bg-green-50 hover:text-green-800"
+                        onClick={() => sendBirthdayWishes(b.nome, b.telefone)}
+                        disabled={!b.telefone}
+                      >
+                        <MessageCircle className="h-4 w-4" /> Parabéns
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
-      ) : null;
+      );
       case "stats": return (
         <div key="stats" className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {stats.map((stat) => (
