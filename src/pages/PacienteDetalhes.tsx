@@ -22,6 +22,7 @@ import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFBut
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
 import { PaymentHistoryTab } from "@/components/financial/PaymentHistoryTab";
 import { PatientTimeline } from "@/components/patient/PatientTimeline";
+import { PatientContractsTab } from "@/components/patient/PatientContractsTab";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const PacienteDetalhes = () => {
