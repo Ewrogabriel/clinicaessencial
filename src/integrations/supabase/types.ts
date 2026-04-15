@@ -601,6 +601,9 @@ export type Database = {
           cross_booking_enabled: boolean | null
           group_id: string
           id: string
+          share_financials: boolean | null
+          share_patients: boolean | null
+          share_professionals: boolean | null
         }
         Insert: {
           clinic_id: string
@@ -608,6 +611,9 @@ export type Database = {
           cross_booking_enabled?: boolean | null
           group_id: string
           id?: string
+          share_financials?: boolean | null
+          share_patients?: boolean | null
+          share_professionals?: boolean | null
         }
         Update: {
           clinic_id?: string
@@ -615,6 +621,9 @@ export type Database = {
           cross_booking_enabled?: boolean | null
           group_id?: string
           id?: string
+          share_financials?: boolean | null
+          share_patients?: boolean | null
+          share_professionals?: boolean | null
         }
         Relationships: [
           {
