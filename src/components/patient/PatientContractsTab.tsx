@@ -42,13 +42,13 @@ export function PatientContractsTab({ pacienteId }: Props) {
   const { data: matriculas = [], isLoading: loadingMatriculas } = useQuery({
     queryKey: ["patient-matriculas-contratos", pacienteId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("matriculas")
         .select("id, status, data_inicio, data_fim, horario, dias_semana, created_at")
         .eq("paciente_id", pacienteId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: !!pacienteId,
   });
