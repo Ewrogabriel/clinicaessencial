@@ -368,6 +368,10 @@ const PacienteDetalhes = () => {
                     </Card>
                 </TabsContent>
 
+                <TabsContent value="contratos" className="space-y-4">
+                    <PatientContractsTab pacienteId={id!} />
+                </TabsContent>
+
                 <TabsContent value="cadastro">
                     <Card>
                         <CardHeader>
