@@ -56,11 +56,7 @@ interface Bloqueio {
   motivo: string | null;
 }
 
-interface Feriado {
-  id: string;
-  data: string;
-  descricao: string;
-}
+
 
 interface AgendaExtra {
   id: string;
@@ -90,10 +86,6 @@ const DisponibilidadeProfissional = () => {
   const [bloqueioHoraInicio, setBloqueioHoraInicio] = useState("08:00");
   const [bloqueioHoraFim, setBloqueioHoraFim] = useState("12:00");
   const [bloqueioMotivo, setBloqueioMotivo] = useState("");
-
-  // Feriado state
-  const [feriadoData, setFeriadoData] = useState("");
-  const [feriadoDescricao, setFeriadoDescricao] = useState("");
 
   // Agenda extra state
   const [extraData, setExtraData] = useState("");
@@ -149,17 +141,6 @@ const DisponibilidadeProfissional = () => {
       return (data ?? []) as Bloqueio[];
     },
     enabled: !!profId,
-  });
-
-  const { data: feriados = [], refetch: refetchFeriados } = useQuery({
-    queryKey: ["feriados"],
-    queryFn: async () => {
-      const { data } = await supabase.from("feriados")
-        .select("*")
-        .gte("data", new Date().toISOString().split("T")[0])
-        .order("data");
-      return (data ?? []) as Feriado[];
-    },
   });
 
   const { data: agendaExtra = [], refetch: refetchExtra } = useQuery({
@@ -281,32 +262,6 @@ const DisponibilidadeProfissional = () => {
     toast.success("Bloqueio removido"); refetchBloqueios();
   };
 
-  const handleAddFeriado = async () => {
-    if (!feriadoData || !feriadoDescricao.trim()) { toast.error("Preencha data e descrição"); return; }
-    const { error } = await supabase.from("feriados").insert({
-      data: feriadoData, descricao: feriadoDescricao.trim(), created_by: user?.id,
-    });
-    if (error) { toast.error("Erro", { description: error.message }); return; }
-    // Broadcast notification to all users
-    const { data: allUsers } = await supabase.from("profiles").select("user_id");
-    if (allUsers) {
-      const notifs = allUsers.map((u: any) => ({
-        user_id: u.user_id,
-        tipo: "feriado",
-        titulo: `Feriado: ${feriadoDescricao.trim()}`,
-        resumo: `Feriado em ${feriadoData}`,
-        conteudo: `Foi cadastrado um feriado no dia ${feriadoData}:\n${feriadoDescricao.trim()}\n\nA agenda estará bloqueada neste dia.`,
-      }));
-      await supabase.from("notificacoes").insert(notifs);
-    }
-    toast.success("Feriado cadastrado! ✅"); setFeriadoData(""); setFeriadoDescricao(""); refetchFeriados();
-  };
-
-  const handleDeleteFeriado = async (id: string) => {
-    await supabase.from("feriados").delete().eq("id", id);
-    toast.success("Feriado removido"); refetchFeriados();
-  };
-
   const handleAddExtra = async () => {
     if (!profId || !extraData) { toast.error("Selecione uma data"); return; }
     if (extraHoraInicio >= extraHoraFim) { toast.error("Horário inválido"); return; }
@@ -415,7 +370,6 @@ const DisponibilidadeProfissional = () => {
           <TabsTrigger value="grade" className="gap-1"><Clock className="h-4 w-4" /> Grade</TabsTrigger>
           <TabsTrigger value="extra" className="gap-1"><CalendarPlus className="h-4 w-4" /> Agenda Extra</TabsTrigger>
           <TabsTrigger value="bloqueios" className="gap-1"><CalendarOff className="h-4 w-4" /> Bloqueios</TabsTrigger>
-          <TabsTrigger value="feriados" className="gap-1"><PartyPopper className="h-4 w-4" /> Feriados</TabsTrigger>
         </TabsList>
 
         {/* ===== GRADE TAB ===== */}
@@ -656,49 +610,6 @@ const DisponibilidadeProfissional = () => {
           </Card>
         </TabsContent>
 
-        {/* ===== FERIADOS TAB ===== */}
-        <TabsContent value="feriados" className="space-y-4">
-          {canManage && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2"><PartyPopper className="h-5 w-5 text-primary" /> Cadastrar Feriado</CardTitle>
-                <CardDescription>Feriados ficam visíveis para todos os pacientes no painel deles</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2"><Label>Data *</Label><Input type="date" value={feriadoData} onChange={e => setFeriadoData(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Descrição *</Label><Input value={feriadoDescricao} onChange={e => setFeriadoDescricao(e.target.value)} placeholder="Ex: Natal, Tiradentes..." /></div>
-                </div>
-                <Button onClick={handleAddFeriado} className="gap-1"><Plus className="h-4 w-4" /> Cadastrar Feriado</Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-lg">Feriados Cadastrados</CardTitle></CardHeader>
-            <CardContent>
-              {feriados.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground text-sm">Nenhum feriado cadastrado</p>
-              ) : (
-                <div className="space-y-2">
-                  {feriados.map(f => (
-                    <div key={f.id} className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
-                      <div>
-                        <p className="text-sm font-medium">{format(new Date(f.data + "T12:00:00"), "dd/MM/yyyy (EEEE)", { locale: ptBR })}</p>
-                        <p className="text-xs text-muted-foreground">{f.descricao}</p>
-                      </div>
-                      {canManage && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDeleteFeriado(f.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Vacancy Grid Dialog */}

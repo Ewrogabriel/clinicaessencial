@@ -150,6 +150,7 @@ const Matriculas = () => {
   // Confirm dialogs
   const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   // --------------- Queries ---------------
   const { data: matriculas = [], isLoading } = useQuery({
@@ -401,6 +402,19 @@ const Matriculas = () => {
       queryClient.invalidateQueries({ queryKey: ["matriculas"] });
       toast.success("Matrícula reativada.");
     },
+  });
+
+  const excluirMatricula = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("matriculas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matriculas"] });
+      setDeleteTarget(null);
+      toast.success("Matrícula excluída permanentemente.");
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
   });
 
   const toggleAutoRenew = useMutation({
@@ -787,6 +801,18 @@ const Matriculas = () => {
                             <X className="h-3 w-3" />
                           </Button>
                         )}
+                        {isAdmin && (
+                          <Button size="sm" variant="ghost" className="gap-1 text-[10px] h-7 px-2 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Tem certeza que deseja excluir esta matrícula permanentemente? Isso pode excluir também agendamentos vinculados a ela.")) {
+                                excluirMatricula.mutate(mat.id);
+                              }
+                            }}
+                          >
+                            Excluir
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -856,6 +882,11 @@ const Matriculas = () => {
                               )}
                               {isAdmin && mat.status !== "cancelada" && (
                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setCancelTarget(mat.id)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {isAdmin && (
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(mat.id)} title="Excluir Permanentemente">
                                   <X className="h-4 w-4" />
                                 </Button>
                               )}
@@ -1025,6 +1056,28 @@ const Matriculas = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Matrícula Permanentemente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja <strong>excluir</strong> esta matrícula? 
+              Isso pode resultar na exclusão de agendamentos e mensalidades vinculadas a ela dependendo de como o banco de dados está configurado (CASCADE).
+              Esta ação <strong>não pode ser desfeita</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => { if (deleteTarget) excluirMatricula.mutate(deleteTarget); }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 };

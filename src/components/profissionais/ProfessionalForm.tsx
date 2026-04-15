@@ -41,8 +41,6 @@ export const ProfessionalForm = ({
     createPasswordConfirm: "",
     role: "profissional",
     especialidade: "",
-    commission_rate: "0",
-    commission_fixed: "0",
     cor_agenda: "#3b82f6",
     registro_profissional: "",
     tipo_contratacao: "autonomo",
@@ -88,8 +86,6 @@ export const ProfessionalForm = ({
         createPasswordConfirm: "",
         role: initialData.role || "profissional",
         especialidade: initialData.especialidade || "",
-        commission_rate: String(initialData.commission_rate || 0),
-        commission_fixed: String(initialData.commission_fixed || 0),
         cor_agenda: initialData.cor_agenda || "#3b82f6",
         registro_profissional: initialData.registro_profissional || "",
         tipo_contratacao: initialData.tipo_contratacao || "autonomo",
@@ -441,28 +437,7 @@ export const ProfessionalForm = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="commission_rate">Comissão (%)</Label>
-                <Input 
-                  id="commission_rate"
-                  type="number" 
-                  step="0.01" 
-                  value={formData.commission_rate} 
-                  onChange={e => handleChange("commission_rate", e.target.value)} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="commission_fixed">Valor Fixo (R$)</Label>
-                <Input 
-                  id="commission_fixed"
-                  type="number" 
-                  step="0.01" 
-                  value={formData.commission_fixed} 
-                  onChange={e => handleChange("commission_fixed", e.target.value)} 
-                />
-              </div>
-            </div>
+
 
             <div className="space-y-4 pt-4 border-t">
               <h4 className="text-sm font-semibold flex items-center gap-2">

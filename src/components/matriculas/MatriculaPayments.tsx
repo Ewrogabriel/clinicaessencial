@@ -48,6 +48,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
   const [formOpen, setFormOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkMonths, setBulkMonths] = useState(3);
+  const [editPaymentData, setEditPaymentData] = useState<{ id: string; valor: string; mes_referencia_month: string; mes_referencia_year: string; data_pagamento: string; forma_pagamento_id: string; status: string; observacoes: string } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; open: boolean } | null>(null);
 
   const currentYear = new Date().getFullYear();
@@ -136,6 +137,54 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
       toast.success("Pagamento registrado com sucesso!");
     },
     onError: (e: Error) => toast.error("Erro ao registrar pagamento", { description: e.message }),
+  });
+
+  const updatePayment = useMutation({
+    mutationFn: async (data: typeof editPaymentData) => {
+      if (!data) return;
+      const mesRef = `${data.mes_referencia_year}-${String(Number(data.mes_referencia_month) + 1).padStart(2, "0")}-01`;
+      
+      const updates: any = {
+        valor: parseFloat(data.valor) || 0,
+        mes_referencia: mesRef,
+        status: data.status,
+        data_pagamento: data.data_pagamento || null,
+        forma_pagamento_id: data.forma_pagamento_id || null,
+        observacoes: data.observacoes || null
+      };
+
+      if (data.status === "anulado") {
+        updates.data_pagamento = null;
+        updates.forma_pagamento_id = null;
+      }
+      
+      const { error } = await supabase.from("pagamentos_mensalidade").update(updates).eq("id", data.id);
+      if (error) throw error;
+      
+      // If updating the value, we should ask if we want to propagate - but the requirement is to propagate editing the Enrollment, not the Payment for now. Let's stick to updatePayment updating this single row.
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
+      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      setEditPaymentData(null);
+      toast.success("Pagamento atualizado com sucesso!");
+    },
+    onError: (e: Error) => toast.error("Erro ao atualizar pagamento", { description: e.message }),
+  });
+
+  const deletePayment = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pagamentos_mensalidade").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagamentos-matricula", matriculaId] });
+      queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      toast.success("Pagamento excluído com sucesso!");
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
   });
 
   const updateStatus = useMutation({
@@ -278,6 +327,20 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
     return format(d, "MMMM/yyyy", { locale: ptBR });
   };
 
+  const openEditDialog = (payment: any) => {
+    const d = new Date(payment.mes_referencia + "T12:00:00");
+    setEditPaymentData({
+      id: payment.id,
+      valor: String(payment.valor),
+      mes_referencia_month: String(d.getMonth()),
+      mes_referencia_year: String(d.getFullYear()),
+      data_pagamento: payment.data_pagamento || "",
+      forma_pagamento_id: payment.forma_pagamento_id || "",
+      status: payment.status,
+      observacoes: payment.observacoes || "",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -331,7 +394,7 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
                   <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">
                     {p.observacoes || "—"}
                   </TableCell>
-                  <TableCell className="space-x-1">
+                  <TableCell className="space-x-1 whitespace-nowrap">
                     {p.status === "aberto" && (
                       <Button
                         size="sm"
@@ -345,16 +408,26 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
                         Confirmar Pgto
                       </Button>
                     )}
-                    {p.status !== "anulado" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs h-7 text-destructive"
-                        onClick={() => updateStatus.mutate({ id: p.id, status: "anulado" })}
-                      >
-                        <Ban className="h-3 w-3 mr-1" /> Anular
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7"
+                      onClick={() => openEditDialog(p)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7 text-destructive"
+                      onClick={() => {
+                        if (confirm("Tem certeza que deseja excluir esta mensalidade?")) {
+                          deletePayment.mutate(p.id);
+                        }
+                      }}
+                    >
+                      Excluir
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -472,6 +545,109 @@ export function MatriculaPayments({ matriculaId, pacienteId, valorMensal, diaVen
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={!!editPaymentData} onOpenChange={(open) => !open && setEditPaymentData(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Editar Pagamento</DialogTitle>
+          </DialogHeader>
+          {editPaymentData && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Mês de Referência</Label>
+                  <Select
+                    value={editPaymentData.mes_referencia_month}
+                    onValueChange={(v) => setEditPaymentData({ ...editPaymentData, mes_referencia_month: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MESES.map((m, i) => (
+                        <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Ano</Label>
+                  <Select
+                    value={editPaymentData.mes_referencia_year}
+                    onValueChange={(v) => setEditPaymentData({ ...editPaymentData, mes_referencia_year: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editPaymentData.valor}
+                  onChange={(e) => setEditPaymentData({ ...editPaymentData, valor: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Data do Pagamento</Label>
+                  <Input
+                    type="date"
+                    value={editPaymentData.data_pagamento}
+                    onChange={(e) => setEditPaymentData({ ...editPaymentData, data_pagamento: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <Select
+                    value={editPaymentData.forma_pagamento_id}
+                    onValueChange={(v) => setEditPaymentData({ ...editPaymentData, forma_pagamento_id: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {formasPagamento.map((f: any) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={editPaymentData.status}
+                  onValueChange={(v) => setEditPaymentData({ ...editPaymentData, status: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aberto">Em Aberto</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="anulado">Anulado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={editPaymentData.observacoes}
+                  onChange={(e) => setEditPaymentData({ ...editPaymentData, observacoes: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => setEditPaymentData(null)}>Cancelar</Button>
+                <Button onClick={() => updatePayment.mutate(editPaymentData)} disabled={updatePayment.isPending}>
+                  {updatePayment.isPending ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       

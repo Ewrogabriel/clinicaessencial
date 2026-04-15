@@ -39,13 +39,21 @@ export function useClinicSettings() {
 export function useUpdateClinicSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: Partial<ClinicSettings> & { id: string }) => {
+    mutationFn: async (updates: Partial<ClinicSettings> & { id?: string }) => {
       const { id, primary_color, ...rest } = updates as any;
-      const { error } = await (supabase
-        .from("clinic_settings")
-        .update(rest)
-        .eq("id", id) as any);
-      if (error) throw error;
+      
+      if (id) {
+        const { error } = await (supabase
+          .from("clinic_settings")
+          .update(rest)
+          .eq("id", id) as any);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase
+          .from("clinic_settings")
+          .insert(rest) as any);
+        if (error) throw error;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-settings"] }),
   });

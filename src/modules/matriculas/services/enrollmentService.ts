@@ -128,7 +128,7 @@ export const enrollmentService = {
         // Verificar se já existe cobrança para este mês
         const { data: existing } = await supabase
           .from("pagamentos_mensalidade")
-          .select("id")
+          .select("id, status")
           .eq("matricula_id", enrollmentId)
           .eq("mes_referencia", fullMonthRef)
           .maybeSingle();
@@ -145,6 +145,13 @@ export const enrollmentService = {
           });
           
           if (paymentError) throw paymentError;
+        } else if (existing && existing.status === "aberto" && monthlyValue > 0) {
+          // Atualiza valor de mensalidades futuras que ainda estão em aberto
+          const { error: paymentUpdateError } = await supabase.from("pagamentos_mensalidade")
+            .update({ valor: monthlyValue })
+            .eq("id", existing.id);
+            
+          if (paymentUpdateError) throw paymentUpdateError;
         }
       }
 

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { ClinicSwitcher } from "@/components/layout/ClinicSwitcher";
+import { useClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import {
   masterGroups, adminGroups, profissionalGroups, patientGroups,
   ROLE_LABELS, ROLE_BADGE_COLORS,
@@ -157,6 +158,7 @@ export const AppSidebar = memo(function AppSidebar() {
     hasPermission, roles,
   } = useAuth();
   const { saasStatus } = useSaaS();
+  const { data: clinicSettings } = useClinicSettings();
   const { t } = useI18n();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
@@ -209,15 +211,19 @@ export const AppSidebar = memo(function AppSidebar() {
     <Sidebar collapsible="icon">
       {/* Brand header */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shrink-0">
-          <Activity className="h-5 w-5" />
-        </div>
+        {clinicSettings?.logo_url ? (
+          <img src={clinicSettings.logo_url} alt="Logo da Clínica" className="h-9 w-9 object-cover rounded-lg shrink-0" />
+        ) : (
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shrink-0">
+            <Activity className="h-5 w-5" />
+          </div>
+        )}
         {!collapsed && (
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans]">
-              Essencial
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-bold text-sidebar-foreground font-[Plus_Jakarta_Sans] truncate" title={clinicSettings?.nome || "Essencial"}>
+              {clinicSettings?.nome || "Essencial"}
             </span>
-            <span className="text-[11px] text-sidebar-foreground/60">Clínicas</span>
+            <span className="text-[11px] text-sidebar-foreground/60 truncate">Gestão de Clínicas</span>
           </div>
         )}
       </div>

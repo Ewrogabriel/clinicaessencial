@@ -11,7 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Save, Users, Package, Percent } from "lucide-react";
+import { 
+  AlertDialog, AlertDialogAction, AlertDialogCancel, 
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
+import { Building2, Save, Users, Package, Percent, Trash2, Archive, Copy } from "lucide-react";
 import { maskCNPJ, maskPhone, maskCEP } from "@/lib/masks";
 import { toast } from "sonner";
 
@@ -173,6 +178,35 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  const archiveClinic = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase.from("clinicas") as any)
+        .update({ ativo: false })
+        .eq("id", clinic.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
+      toast.success("Clínica arquivada com sucesso! ✅");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error("Erro ao arquivar", { description: e.message }),
+  });
+
+  const wipeClinic = useMutation({
+    mutationFn: async () => {
+      // Usar a RPC projetada para apagar com segurança
+      const { error } = await supabase.rpc("wipe_clinic_data", { _clinic_id: clinic.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["master-clinics"] });
+      toast.success("Clínica e todos os dados foram apagados permanentemente! 💀");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error("Erro ao apagar clínica", { description: e.message }),
+  });
+
   if (!clinic) return null;
 
   return (
@@ -186,11 +220,12 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
         </DialogHeader>
 
         <Tabs defaultValue="dados">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="plano">Plano</TabsTrigger>
-            <TabsTrigger value="desconto">Descontos</TabsTrigger>
+            <TabsTrigger value="desconto">Desconto</TabsTrigger>
             <TabsTrigger value="equipe">Equipe</TabsTrigger>
+            <TabsTrigger value="admin" className="text-destructive">Admin</TabsTrigger>
           </TabsList>
 
           {/* Dados Tab */}
@@ -370,6 +405,69 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
                 )}
               </TableBody>
             </Table>
+          </TabsContent>
+
+          {/* Admin Tab */}
+          <TabsContent value="admin" className="space-y-4">
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center gap-2">Zonas de Perigo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between p-4 border rounded-lg gap-4">
+                  <div>
+                    <h4 className="font-semibold flex items-center gap-2"><Archive className="w-4 h-4 text-amber-500" /> Arquivar Clínica</h4>
+                    <p className="text-sm text-muted-foreground">Inativa a conta. Nenhum profissional ou paciente conseguirá acessar o sistema.</p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="shrink-0">Arquivar</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza que deseja arquivar a clínica?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          A clínica "{clinic.nome}" será inativada e o acesso suspenso imediatamente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => archiveClinic.mutate()} className="bg-amber-600 hover:bg-amber-700">
+                          Confirmar Arquivamento
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between p-4 border border-destructive/20 bg-destructive/5 rounded-lg gap-4">
+                  <div>
+                    <h4 className="font-semibold text-destructive flex items-center gap-2"><Trash2 className="w-4 h-4" /> Deletar Definitivamente (Wipe)</h4>
+                    <p className="text-sm text-muted-foreground">Isso apagará <strong>todos</strong> os dados da clínica, incluindo agendamentos, pagamentos e prontuários. Não pode ser desfeito!</p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="shrink-0">Apagar Dados</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Essa ação é IRREVERSÍVEL!</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Você está prestes a excluir todos os registros financeiros e sensíveis da clínica "{clinic.nome}".
+                          Esta ação apagará permanentemente tudo!
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => wipeClinic.mutate()} className="bg-destructive hover:bg-destructive/90">
+                          Tenho Certeza, Apagar!
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </DialogContent>

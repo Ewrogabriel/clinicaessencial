@@ -5,8 +5,11 @@ import { handleError } from "../../shared/utils/errorHandler";
 export type AppRole = "admin" | "profissional" | "paciente" | "gestor" | "secretario" | "master";
 
 export interface PermissionEntry {
-    resource: string;
-    access_level: "view" | "edit";
+    id: string;
+    module: string;
+    action: string;
+    scope_type: "own" | "others" | "global";
+    is_override?: boolean;
 }
 
 /** Column list for profile queries (avoids SELECT *). */
@@ -71,21 +74,56 @@ export const authService = {
 
     async getPermissions(userId: string): Promise<PermissionEntry[]> {
         try {
-            const { data, error } = await supabase
-                .from("user_permissions")
-                .select("resource, access_level")
-                .eq("user_id", userId)
-                .eq("enabled", true);
+            // New Advanced Permissions Query System (Roles + Overrides combined)
+            const { data: rolePerms, error: rErr } = await supabase
+                .from("role_permissions")
+                .select(`
+                    app_permissions (
+                        id, module, action, scope_type
+                    )
+                `)
+                .in("role_id", (
+                    // Subselect to get user's roles
+                    (await supabase.from("user_roles").select("role_id").eq("user_id", userId)).data?.map(r => r.role_id) || []
+                ));
 
-            if (error) throw error;
-            return (
-                data?.map((p) => ({
-                    resource: p.resource,
-                    access_level: (p.access_level || "edit") as "view" | "edit",
-                })) ?? []
-            );
+            if (rErr) throw rErr;
+
+            const { data: overrides, error: oErr } = await supabase
+                .from("user_access_overrides")
+                .select(`
+                    allowed,
+                    app_permissions (
+                        id, module, action, scope_type
+                    )
+                `)
+                .eq("user_id", userId);
+
+            if (oErr) throw oErr;
+
+            const resolvedPerms = new Map<string, PermissionEntry>();
+
+            // Process role perms
+            rolePerms?.forEach((rp: any) => {
+                const p = rp.app_permissions;
+                if (!p) return;
+                resolvedPerms.set(p.id, { ...p, is_override: false });
+            });
+
+            // Process overrides (priority)
+            overrides?.forEach((ov: any) => {
+                const p = ov.app_permissions;
+                if (!p) return;
+                if (ov.allowed) {
+                    resolvedPerms.set(p.id, { ...p, is_override: true });
+                } else {
+                    resolvedPerms.delete(p.id);
+                }
+            });
+
+            return Array.from(resolvedPerms.values());
         } catch (error) {
-            handleError(error, "Erro ao buscar permissões do usuário.");
+            handleError(error, "Erro ao buscar permissões avançadas do usuário.");
             return [];
         }
     },

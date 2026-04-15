@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
+import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,18 +83,8 @@ export function CommissionRulesConfig() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
 
-  // Buscar profissionais
-  const { data: profissionais = [] } = useQuery({
-    queryKey: ["prof-for-commission-rules"],
-    queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "profissional");
-      const ids = roles?.map(r => r.user_id) ?? [];
-      if (!ids.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, nome_completo, nome, commission_rate").in("user_id", ids).order("nome");
-      return data ?? [];
-    },
-    enabled: !!activeClinicId,
-  });
+  // Buscar profissionais usando hook compartilhado
+  const { profissionais } = useProfissionais();
 
   // Buscar modalidades
   const { data: modalidades = [] } = useQuery({
@@ -510,9 +501,6 @@ export function CommissionRulesConfig() {
                     {profissionais.map((p: any) => (
                       <SelectItem key={p.user_id} value={p.user_id}>
                         {p.nome_completo ?? p.nome}
-                        {p.commission_rate && (
-                          <span className="text-muted-foreground ml-2 text-xs">(padrão: {p.commission_rate}%)</span>
-                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>

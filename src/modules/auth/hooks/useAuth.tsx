@@ -24,6 +24,7 @@ interface AuthContextType {
     patientId: string | null;
     hasPermission: (resource: string) => boolean;
     canEdit: (resource: string) => boolean;
+    can: (action: string, module: string, targetUserId?: string) => boolean;
     signIn: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
@@ -175,13 +176,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const hasPermission = (resource: string) => {
         if (isAdmin) return true;
-        return permissions.some(p => p.resource === resource);
+        // Legacy fallback
+        return permissions.some(p => p.module === resource || (p as any).resource === resource);
     };
 
     const canEdit = (resource: string) => {
         if (isAdmin) return true;
-        const perm = permissions.find(p => p.resource === resource);
-        return perm?.access_level === "edit";
+        // Legacy fallback
+        return permissions.some(p => (p.module === resource || (p as any).resource === resource) && (p.action === "edit" || (p as any).access_level === "edit"));
+    };
+
+    /**
+     * Advanced RBAC/ABAC UI Authorization engine.
+     * Evaluates action + module and checks scope against target user id
+     */
+    const can = (action: string, module: string, targetUserId?: string): boolean => {
+        if (isAdmin || isMaster) return true;
+        
+        // Find permission regardless of id
+        const matchedPerms = permissions.filter(p => p.module === module && p.action === action);
+        if (matchedPerms.length === 0) return false;
+
+        // An override 'false' will drop the permission locally per our authService.getPermissions mapping
+        // Priority check: Is there a global scope?
+        if (matchedPerms.some(p => p.scope_type === 'global')) return true;
+
+        if (targetUserId) {
+            // Evaluates targeted scope ('own' vs 'others')
+            const isOwn = user?.id === targetUserId;
+            
+            // If they have "others", they can access regardless of targeted ID in same clinic context
+            if (matchedPerms.some(p => p.scope_type === 'others')) return true;
+
+            // If they only have "own", it must strictly match their own ID
+            if (isOwn && matchedPerms.some(p => p.scope_type === 'own')) return true;
+
+            return false;
+        }
+
+        // Without targetUserId supplied, we assume evaluating general capability (e.g., showing a button or a menu)
+        return true;
     };
 
     const signIn = async (email: string, password: string) => {
@@ -198,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 user, session, profile, roles, permissions, loading,
                 isMaster, isAdmin, isGestor, isPatient, isProfissional, isSecretario,
                 clinicId, patientId,
-                hasPermission, canEdit,
+                hasPermission, canEdit, can,
                 signIn, signOut, resetPassword
             }}
         >

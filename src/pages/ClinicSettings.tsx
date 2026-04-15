@@ -163,8 +163,7 @@ const ClinicSettings = () => {
   }, [settings]);
 
   const handleSave = () => {
-    if (!settings?.id) return;
-    updateMutation.mutate({ id: settings.id, ...form }, {
+    updateMutation.mutate({ id: settings?.id, ...form }, {
       onSuccess: () => toast.success("Dados da clínica atualizados!"),
       onError: () => toast.error("Erro ao salvar"),
     });
@@ -172,7 +171,7 @@ const ClinicSettings = () => {
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !settings?.id) return;
+    if (!file) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
@@ -182,7 +181,7 @@ const ClinicSettings = () => {
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const logo_url = urlData.publicUrl;
       setForm(f => ({ ...f, logo_url }));
-      updateMutation.mutate({ id: settings.id, logo_url }, {
+      updateMutation.mutate({ id: settings?.id, logo_url }, {
         onSuccess: () => toast.success("Logo atualizada!"),
         onError: (err: any) => toast.error("Erro ao salvar logo", { description: err.message }),
       });
@@ -195,7 +194,7 @@ const ClinicSettings = () => {
 
   const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !settings?.id) return;
+    if (!file) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
@@ -205,7 +204,7 @@ const ClinicSettings = () => {
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const assinatura_url = urlData.publicUrl;
       setForm(f => ({ ...f, assinatura_url }));
-      updateMutation.mutate({ id: settings.id, assinatura_url }, {
+      updateMutation.mutate({ id: settings?.id, assinatura_url }, {
         onSuccess: () => toast.success("Assinatura atualizada!"),
         onError: (err: any) => toast.error("Erro ao salvar assinatura", { description: err.message }),
       });
@@ -218,7 +217,7 @@ const ClinicSettings = () => {
 
   const handleRubricaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !settings?.id) return;
+    if (!file) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
@@ -228,7 +227,7 @@ const ClinicSettings = () => {
       const { data: urlData } = supabase.storage.from("essencialfisiopilatesbq").getPublicUrl(path);
       const rubrica_url = urlData.publicUrl;
       setForm(f => ({ ...f, rubrica_url }));
-      updateMutation.mutate({ id: settings.id, rubrica_url }, {
+      updateMutation.mutate({ id: settings?.id, rubrica_url }, {
         onSuccess: () => toast.success("Rubrica atualizada!"),
         onError: (err: any) => toast.error("Erro ao salvar rubrica", { description: err.message }),
       });
