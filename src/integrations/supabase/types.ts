@@ -1029,6 +1029,69 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_rules: {
+        Row: {
+          ativo: boolean | null
+          clinic_id: string | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          missed_session_pct: number | null
+          modalidade: string | null
+          percentage: number | null
+          professional_id: string | null
+          tipo_calculo: string | null
+          tipo_sessao: string | null
+          updated_at: string | null
+          valor_fixo: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          clinic_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          missed_session_pct?: number | null
+          modalidade?: string | null
+          percentage?: number | null
+          professional_id?: string | null
+          tipo_calculo?: string | null
+          tipo_sessao?: string | null
+          updated_at?: string | null
+          valor_fixo?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          clinic_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          missed_session_pct?: number | null
+          modalidade?: string | null
+          percentage?: number | null
+          professional_id?: string | null
+          tipo_calculo?: string | null
+          tipo_sessao?: string | null
+          updated_at?: string | null
+          valor_fixo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_rules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+        ]
+      }
       commissions: {
         Row: {
           agendamento_id: string | null
@@ -5281,6 +5344,7 @@ export type Database = {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      wipe_clinic_data: { Args: { _clinic_id: string }; Returns: undefined }
     }
     Enums: {
       app_role:
