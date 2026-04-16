@@ -195,8 +195,7 @@ export function ClinicDetailDialog({ open, onOpenChange, clinic }: ClinicDetailD
 
   const wipeClinic = useMutation({
     mutationFn: async () => {
-      // Usar a RPC projetada para apagar com segurança
-      const { error } = await supabase.rpc("wipe_clinic_data", { _clinic_id: clinic.id });
+      const { error } = await (supabase as any).rpc("wipe_clinic_data", { _clinic_id: clinic.id });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -519,9 +519,6 @@ const Profissionais = () => {
       </Dialog>
         </TabsContent>
 
-        <TabsContent value="disponibilidade">
-          <DisponibilidadeProfissional />
-        </TabsContent>
 
       </Tabs>
     </div>
