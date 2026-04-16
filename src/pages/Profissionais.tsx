@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import DisponibilidadeProfissional from "./DisponibilidadeProfissional";
+
 import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
 import { ProfessionalForm } from "@/components/profissionais/ProfessionalForm";
 
