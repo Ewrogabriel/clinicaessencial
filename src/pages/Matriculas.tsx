@@ -224,7 +224,20 @@ const Matriculas = () => {
 
       if (updateErr) throw updateErr;
 
-      // 2. Update weekly_schedules (Full replace for this enrollment)
+      // 2. Update all future open mensalidades with new value
+      const validFrom = editData.valid_from;
+      const validFromMonth = `${validFrom.substring(0, 7)}-01`;
+      
+      const { error: mensalidadeErr } = await supabase
+        .from("pagamentos_mensalidade")
+        .update({ valor: finalValue })
+        .eq("matricula_id", editingId)
+        .eq("status", "aberto")
+        .gte("mes_referencia", validFromMonth);
+      
+      if (mensalidadeErr) throw mensalidadeErr;
+
+      // 3. Update weekly_schedules (Full replace for this enrollment)
       // Delete old ones first
       await supabase.from("weekly_schedules").delete().eq("enrollment_id", editingId);
 
@@ -238,9 +251,7 @@ const Matriculas = () => {
       const { error: schedsErr } = await supabase.from("weekly_schedules").insert(schedInserts);
       if (schedsErr) throw schedsErr;
 
-      // 3. Handle Sessions based on "Valid From" date
-      const validFrom = editData.valid_from;
-
+      // 4. Handle Sessions based on "Valid From" date
       // Delete future sessions from this enrollment (agendado/confirmado only)
       await enrollmentService.deleteFutureSessions(editingId, validFrom);
 
