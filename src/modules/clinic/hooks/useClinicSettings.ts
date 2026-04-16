@@ -43,16 +43,20 @@ export function useUpdateClinicSettings() {
       const { id, primary_color, ...rest } = updates as any;
       
       if (id) {
-        const { error } = await (supabase
+        const { data, error } = await (supabase
           .from("clinic_settings")
           .update(rest)
-          .eq("id", id) as any);
+          .eq("id", id)
+          .select() as any);
         if (error) throw error;
+        return data;
       } else {
-        const { error } = await (supabase
+        const { data, error } = await (supabase
           .from("clinic_settings")
-          .insert(rest) as any);
+          .insert({ nome: rest.nome || "Minha Clínica", ...rest })
+          .select() as any);
         if (error) throw error;
+        return data;
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clinic-settings"] }),

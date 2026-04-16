@@ -74,54 +74,19 @@ export const authService = {
 
     async getPermissions(userId: string): Promise<PermissionEntry[]> {
         try {
-            // New Advanced Permissions Query System (Roles + Overrides combined)
-            const { data: rolePerms, error: rErr } = await supabase
-                .from("role_permissions")
-                .select(`
-                    app_permissions (
-                        id, module, action, scope_type
-                    )
-                `)
-                .in("role_id", (
-                    // Subselect to get user's roles
-                    (await supabase.from("user_roles").select("role_id").eq("user_id", userId)).data?.map(r => r.role_id) || []
-                ));
-
-            if (rErr) throw rErr;
-
-            const { data: overrides, error: oErr } = await supabase
-                .from("user_access_overrides")
-                .select(`
-                    allowed,
-                    app_permissions (
-                        id, module, action, scope_type
-                    )
-                `)
+            // Simplified permission system based on user_permissions JSONB
+            const { data, error } = await (supabase as any)
+                .from("user_permissions")
+                .select("id, module, action, scope_type")
                 .eq("user_id", userId);
 
-            if (oErr) throw oErr;
+            if (error) {
+                // Table may not exist yet – gracefully return empty
+                if (error.code === "PGRST205") return [];
+                throw error;
+            }
 
-            const resolvedPerms = new Map<string, PermissionEntry>();
-
-            // Process role perms
-            rolePerms?.forEach((rp: any) => {
-                const p = rp.app_permissions;
-                if (!p) return;
-                resolvedPerms.set(p.id, { ...p, is_override: false });
-            });
-
-            // Process overrides (priority)
-            overrides?.forEach((ov: any) => {
-                const p = ov.app_permissions;
-                if (!p) return;
-                if (ov.allowed) {
-                    resolvedPerms.set(p.id, { ...p, is_override: true });
-                } else {
-                    resolvedPerms.delete(p.id);
-                }
-            });
-
-            return Array.from(resolvedPerms.values());
+            return (data ?? []) as PermissionEntry[];
         } catch (error) {
             handleError(error, "Erro ao buscar permissões avançadas do usuário.");
             return [];

@@ -349,9 +349,8 @@ const Profissionais = () => {
       </div>
 
       <Tabs defaultValue="equipe" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
+        <TabsList className="grid w-full grid-cols-1 lg:w-[200px]">
           <TabsTrigger value="equipe">Membros</TabsTrigger>
-          <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger>
         </TabsList>
 
         <TabsContent value="equipe" className="space-y-4">
