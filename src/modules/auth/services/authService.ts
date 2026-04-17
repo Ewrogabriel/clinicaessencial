@@ -74,21 +74,30 @@ export const authService = {
 
     async getPermissions(userId: string): Promise<PermissionEntry[]> {
         try {
-            // Simplified permission system based on user_permissions JSONB
+            // Legacy permission system: user_permissions has columns
+            // (user_id, resource, access_level, enabled). We map it onto the
+            // PermissionEntry shape used by the auth layer.
             const { data, error } = await (supabase as any)
                 .from("user_permissions")
-                .select("id, module, action, scope_type")
-                .eq("user_id", userId);
+                .select("id, resource, access_level, enabled")
+                .eq("user_id", userId)
+                .eq("enabled", true);
 
             if (error) {
-                // Table may not exist yet – gracefully return empty
-                if (error.code === "PGRST205") return [];
+                // Table may not exist or columns missing – fail open silently
+                if (error.code === "PGRST205" || error.code === "42703" || error.code === "42P01") return [];
                 throw error;
             }
 
-            return (data ?? []) as PermissionEntry[];
+            return ((data ?? []) as any[]).map((r) => ({
+                id: r.id,
+                module: r.resource,
+                action: r.access_level,
+                scope_type: "global",
+            })) as PermissionEntry[];
         } catch (error) {
-            handleError(error, "Erro ao buscar permissões avançadas do usuário.");
+            // Don't toast — this is non-critical context loading
+            console.warn("getPermissions:", error);
             return [];
         }
     },

@@ -138,7 +138,7 @@ const ClinicSettings = () => {
   const [form, setForm] = useState({
     nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
     telefone: "", whatsapp: "", email: "", instagram: "", logo_url: "",
-    assinatura_url: "", rubrica_url: "", primary_color: "#6366f1",
+    assinatura_url: "", rubrica_url: "",
   });
   const [uploading, setUploading] = useState(false);
 
@@ -160,7 +160,6 @@ const ClinicSettings = () => {
         logo_url: settings.logo_url || "",
         assinatura_url: settings.assinatura_url || "",
         rubrica_url: settings.rubrica_url || "",
-        primary_color: (settings as any).primary_color || "#6366f1",
       });
     }
   }, [settings]);
