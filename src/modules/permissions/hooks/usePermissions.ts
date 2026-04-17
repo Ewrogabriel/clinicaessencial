@@ -57,7 +57,7 @@ export function usePermissions() {
       }
     }
 
-    return rolePerms.some((rp) => roles.includes(rp.role) && rp.permission_id === perm.id);
+    return rolePerms.some((rp) => (roles as string[]).includes(rp.role) && rp.permission_id === perm.id);
   };
 
   const canScheduleFor = (targetProfessionalId: string): boolean => {
