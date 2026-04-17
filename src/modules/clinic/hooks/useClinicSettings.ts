@@ -18,7 +18,6 @@ export interface ClinicSettings {
   logo_url: string | null;
   rubrica_url: string | null;
   assinatura_url: string | null;
-  primary_color: string | null;
 }
 
 export function useClinicSettings() {
@@ -27,7 +26,7 @@ export function useClinicSettings() {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("clinic_settings")
-        .select("id, nome, cnpj, endereco, numero, bairro, cidade, estado, cep, telefone, whatsapp, email, instagram, logo_url, rubrica_url, assinatura_url, primary_color")
+        .select("id, nome, cnpj, endereco, numero, bairro, cidade, estado, cep, telefone, whatsapp, email, instagram, logo_url, rubrica_url, assinatura_url")
         .limit(1)
         .maybeSingle() as any);
       if (error) throw error;
@@ -40,6 +39,7 @@ export function useUpdateClinicSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (updates: Partial<ClinicSettings> & { id?: string }) => {
+      // Strip any legacy/foreign fields that don't belong to clinic_settings
       const { id, primary_color, ...rest } = updates as any;
       
       if (id) {
