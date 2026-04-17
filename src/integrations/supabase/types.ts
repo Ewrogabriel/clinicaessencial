@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_policies: {
+        Row: {
+          ativo: boolean
+          condition_json: Json
+          created_at: string
+          effect: string
+          id: string
+          module: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          condition_json: Json
+          created_at?: string
+          effect?: string
+          id?: string
+          module: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          condition_json?: Json
+          created_at?: string
+          effect?: string
+          id?: string
+          module?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       achievements: {
         Row: {
           ativo: boolean
@@ -3591,6 +3624,33 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          module: string
+          scope_type: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          module: string
+          scope_type?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          module?: string
+          scope_type?: string
+        }
+        Relationships: []
+      }
       pesquisa_satisfacao: {
         Row: {
           clinic_id: string | null
@@ -4654,6 +4714,65 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_permissions: {
+        Row: {
+          allowed_professionals: string[] | null
+          created_at: string
+          id: string
+          scope: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          allowed_professionals?: string[] | null
+          created_at?: string
+          id?: string
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          allowed_professionals?: string[] | null
+          created_at?: string
+          id?: string
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       schedule_slots: {
         Row: {
           availability_slot_id: string | null
@@ -5171,6 +5290,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions_override: {
+        Row: {
+          allowed: boolean
+          created_at: string
+          granted_by: string | null
+          id: string
+          permission_id: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          allowed?: boolean
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          allowed?: boolean
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_override_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -5315,6 +5472,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_schedule_for: {
+        Args: { _target_professional_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_appointment: {
         Args: { p_agendamento_id: string }
         Returns: undefined
@@ -5336,6 +5497,15 @@ export type Database = {
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_can: {
+        Args: {
+          _action: string
+          _module: string
+          _scope?: string
           _user_id: string
         }
         Returns: boolean
