@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import {
   Building2, CreditCard, Crown, Link2, Plus, Users, AlertTriangle, Check, X,
-  DollarSign, TrendingUp, Package, FileText, BookOpen,
+  DollarSign, TrendingUp, Package, FileText, BookOpen, Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -34,6 +34,9 @@ import { MasterMarketingTab } from "@/components/master/MasterMarketingTab";
 import { ManualTab } from "@/components/master/ManualTab";
 import { Rocket } from "lucide-react";
 import { toast } from "sonner";
+import { PermissionsManager } from "@/components/permissions/PermissionsManager";
+import { ScheduleAccessManager } from "@/components/permissions/ScheduleAccessManager";
+import { AccessAuditPanel } from "@/components/permissions/AccessAuditPanel";
 
 const STATUS_COLORS: Record<string, string> = {
   ativa: "default",
@@ -938,6 +941,9 @@ export default function MasterPanel() {
           <TabsTrigger value="marketing" className="gap-1 text-xs sm:text-sm">
             <Rocket className="h-3 w-3" /> Marketing
           </TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-1 text-xs sm:text-sm">
+            <Shield className="h-3 w-3" /> Permissões
+          </TabsTrigger>
           <TabsTrigger value="manual" className="gap-1 text-xs sm:text-sm">
             <BookOpen className="h-3 w-3" /> Manual
           </TabsTrigger>
@@ -949,6 +955,13 @@ export default function MasterPanel() {
         <TabsContent value="payments"><PaymentsTab /></TabsContent>
         <TabsContent value="groups"><GroupsTab /></TabsContent>
         <TabsContent value="marketing"><MasterMarketingTab /></TabsContent>
+        <TabsContent value="permissions">
+          <div className="space-y-6">
+            <PermissionsManager />
+            <ScheduleAccessManager />
+            <AccessAuditPanel />
+          </div>
+        </TabsContent>
         <TabsContent value="manual"><ManualTab /></TabsContent>
       </Tabs>
     </div>
