@@ -952,13 +952,6 @@ export default function MasterPanel() {
         <TabsContent value="payments"><PaymentsTab /></TabsContent>
         <TabsContent value="groups"><GroupsTab /></TabsContent>
         <TabsContent value="marketing"><MasterMarketingTab /></TabsContent>
-        <TabsContent value="permissions">
-          <div className="space-y-6">
-            <PermissionsManager />
-            <ScheduleAccessManager />
-            <AccessAuditPanel />
-          </div>
-        </TabsContent>
         <TabsContent value="manual"><ManualTab /></TabsContent>
       </Tabs>
     </div>
