@@ -34,9 +34,6 @@ import { MasterMarketingTab } from "@/components/master/MasterMarketingTab";
 import { ManualTab } from "@/components/master/ManualTab";
 import { Rocket } from "lucide-react";
 import { toast } from "sonner";
-import { PermissionsManager } from "@/components/permissions/PermissionsManager";
-import { ScheduleAccessManager } from "@/components/permissions/ScheduleAccessManager";
-import { AccessAuditPanel } from "@/components/permissions/AccessAuditPanel";
 
 const STATUS_COLORS: Record<string, string> = {
   ativa: "default",
@@ -955,13 +952,6 @@ export default function MasterPanel() {
         <TabsContent value="payments"><PaymentsTab /></TabsContent>
         <TabsContent value="groups"><GroupsTab /></TabsContent>
         <TabsContent value="marketing"><MasterMarketingTab /></TabsContent>
-        <TabsContent value="permissions">
-          <div className="space-y-6">
-            <PermissionsManager />
-            <ScheduleAccessManager />
-            <AccessAuditPanel />
-          </div>
-        </TabsContent>
         <TabsContent value="manual"><ManualTab /></TabsContent>
       </Tabs>
     </div>

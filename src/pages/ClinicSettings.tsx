@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle, Palette } from "lucide-react";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle, Palette, Lock } from "lucide-react";
 import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,9 @@ import { BackupExport } from "@/components/settings/BackupExport";
 import { IntegrationTabs } from "@/components/settings/IntegrationTabs";
 import { WhatsAppConfigPanel } from "@/components/whatsapp/WhatsAppConfig";
 import { ClinicThemeTab } from "@/components/settings/ClinicThemeTab";
+import { PermissionsManager } from "@/components/permissions/PermissionsManager";
+import { ScheduleAccessManager } from "@/components/permissions/ScheduleAccessManager";
+import { AccessAuditPanel } from "@/components/permissions/AccessAuditPanel";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
 import { Calendar, ShieldCheck, CheckCircle2, XCircle, Rocket } from "lucide-react";
@@ -307,6 +310,9 @@ const ClinicSettings = () => {
           <TabsTrigger value="tema" className="gap-2">
             <Palette className="h-4 w-4" /> Aparência
           </TabsTrigger>
+          <TabsTrigger value="permissoes" className="gap-2">
+            <Lock className="h-4 w-4" /> Permissões
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -510,6 +516,14 @@ const ClinicSettings = () => {
 
         <TabsContent value="tema">
           <ClinicThemeTab />
+        </TabsContent>
+
+        <TabsContent value="permissoes">
+          <div className="space-y-6">
+            <PermissionsManager />
+            <ScheduleAccessManager />
+            <AccessAuditPanel />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
