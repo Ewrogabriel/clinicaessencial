@@ -160,6 +160,7 @@ export type Database = {
           recorrencia_fim: string | null
           recorrencia_grupo_id: string | null
           recorrente: boolean
+          replaces_agendamento_id: string | null
           status: Database["public"]["Enums"]["status_agendamento"]
           tipo_atendimento: string
           tipo_sessao: Database["public"]["Enums"]["tipo_sessao"]
@@ -192,6 +193,7 @@ export type Database = {
           recorrencia_fim?: string | null
           recorrencia_grupo_id?: string | null
           recorrente?: boolean
+          replaces_agendamento_id?: string | null
           status?: Database["public"]["Enums"]["status_agendamento"]
           tipo_atendimento?: string
           tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
@@ -224,6 +226,7 @@ export type Database = {
           recorrencia_fim?: string | null
           recorrencia_grupo_id?: string | null
           recorrente?: boolean
+          replaces_agendamento_id?: string | null
           status?: Database["public"]["Enums"]["status_agendamento"]
           tipo_atendimento?: string
           tipo_sessao?: Database["public"]["Enums"]["tipo_sessao"]
@@ -258,6 +261,13 @@ export type Database = {
             columns: ["paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_replaces_agendamento_id_fkey"
+            columns: ["replaces_agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "agendamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -554,6 +564,60 @@ export type Database = {
           },
           {
             foreignKeyName: "bloqueios_profissional_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+        ]
+      }
+      cancellation_policies: {
+        Row: {
+          ativo: boolean
+          clinic_id: string | null
+          created_at: string
+          id: string
+          late_cancel_pct: number
+          min_hours_before_cancel: number
+          missed_session_pct: number
+          modalidade: string | null
+          multa_percentual: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          late_cancel_pct?: number
+          min_hours_before_cancel?: number
+          missed_session_pct?: number
+          modalidade?: string | null
+          multa_percentual?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          late_cancel_pct?: number
+          min_hours_before_cancel?: number
+          missed_session_pct?: number
+          modalidade?: string | null
+          multa_percentual?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_policies_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_policies_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "v_saas_status"
@@ -1130,37 +1194,67 @@ export type Database = {
           agendamento_id: string | null
           clinic_id: string
           clinic_id_ref: string | null
+          commission_pct: number | null
           created_at: string
+          enrollment_id: string | null
           id: string
+          mes_referencia: string | null
+          missed_pct_applied: number | null
           observacoes: string | null
+          paciente_id: string | null
+          payment_id: string | null
           professional_id: string
+          session_value: number | null
           status: string
+          status_liberacao: string | null
+          tipo_calculo: string | null
           updated_at: string
           valor: number
+          valor_fixo_regra: number | null
         }
         Insert: {
           agendamento_id?: string | null
           clinic_id: string
           clinic_id_ref?: string | null
+          commission_pct?: number | null
           created_at?: string
+          enrollment_id?: string | null
           id?: string
+          mes_referencia?: string | null
+          missed_pct_applied?: number | null
           observacoes?: string | null
+          paciente_id?: string | null
+          payment_id?: string | null
           professional_id: string
+          session_value?: number | null
           status?: string
+          status_liberacao?: string | null
+          tipo_calculo?: string | null
           updated_at?: string
           valor?: number
+          valor_fixo_regra?: number | null
         }
         Update: {
           agendamento_id?: string | null
           clinic_id?: string
           clinic_id_ref?: string | null
+          commission_pct?: number | null
           created_at?: string
+          enrollment_id?: string | null
           id?: string
+          mes_referencia?: string | null
+          missed_pct_applied?: number | null
           observacoes?: string | null
+          paciente_id?: string | null
+          payment_id?: string | null
           professional_id?: string
+          session_value?: number | null
           status?: string
+          status_liberacao?: string | null
+          tipo_calculo?: string | null
           updated_at?: string
           valor?: number
+          valor_fixo_regra?: number | null
         }
         Relationships: [
           {
@@ -2678,6 +2772,41 @@ export type Database = {
             columns: ["paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matricula_schedules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          matricula_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          matricula_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          matricula_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matricula_schedules_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matriculas"
             referencedColumns: ["id"]
           },
         ]
