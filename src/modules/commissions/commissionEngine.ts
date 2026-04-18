@@ -116,7 +116,6 @@ export const CommissionEngine = {
         tipo_atendimento,
         tipo_sessao,
         enrollment_id,
-        matricula_id,
         replaces_agendamento_id,
         status
       `)
@@ -127,9 +126,10 @@ export const CommissionEngine = {
       return { commission_id: null, session_value: 0, commission_value: 0, commission_pct: 0, missed_pct_applied: 0, skipped: true, reason: "Agendamento não encontrado" };
     }
 
-    const enrollmentId = agendamento.enrollment_id || agendamento.matricula_id;
+    const enrollmentId = agendamento.enrollment_id;
     if (!enrollmentId) {
-      return { commission_id: null, session_value: 0, commission_value: 0, commission_pct: 0, missed_pct_applied: 1, skipped: true, reason: "Agendamento sem matrícula vinculada" };
+      // Sessão avulsa: calcular comissão simples sobre valor_sessao
+      return await processStandaloneSession(sb, agendamento, clinicId, outcome);
     }
 
     // 2. Buscar Política e Configurações da Clínica
@@ -167,7 +167,7 @@ export const CommissionEngine = {
       .from("matriculas")
       .select(`
         id,
-        valor_mensalidade,
+        valor_mensal,
         data_inicio,
         weekly_schedules:matricula_schedules(day_of_week)
       `)
@@ -187,14 +187,14 @@ export const CommissionEngine = {
       .eq("ativo", true);
 
     const rulesList = rules || [];
-    let bestRule = rulesList.find(r => 
-      r.modalidade?.toLowerCase() === agendamento.tipo_atendimento?.toLowerCase() && 
+    let bestRule = rulesList.find((r: any) =>
+      r.modalidade?.toLowerCase() === agendamento.tipo_atendimento?.toLowerCase() &&
       r.tipo_sessao?.toLowerCase() === agendamento.tipo_sessao?.toLowerCase()
-    ) || rulesList.find(r => 
+    ) || rulesList.find((r: any) =>
       r.modalidade?.toLowerCase() === agendamento.tipo_atendimento?.toLowerCase() && !r.tipo_sessao
-    ) || rulesList.find(r => 
+    ) || rulesList.find((r: any) =>
       !r.modalidade && r.tipo_sessao?.toLowerCase() === agendamento.tipo_sessao?.toLowerCase()
-    ) || rulesList.find(r => !r.modalidade && !r.tipo_sessao);
+    ) || rulesList.find((r: any) => !r.modalidade && !r.tipo_sessao);
 
     // 6. Definir MULTIPLICADORES
     const type = bestRule?.tipo_calculo || "percentual";
@@ -215,7 +215,7 @@ export const CommissionEngine = {
     );
 
     const sessionValue = calcSessionValue(
-      Number(matricula.valor_mensalidade ?? 0),
+      Number(matricula.valor_mensal ?? 0),
       totalSessions || 1
     );
 
