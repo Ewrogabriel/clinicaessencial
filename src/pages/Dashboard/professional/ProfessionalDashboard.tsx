@@ -94,15 +94,20 @@ const ProfessionalDashboard = () => {
           .select("commission_rate, commission_fixed")
           .eq("user_id", user?.id)
           .maybeSingle(),
-        (supabase as any).from("regras_comissao")
+        (supabase as any).from("commission_rules")
           .select("*")
-          .eq("profissional_id", user?.id)
+          .eq("professional_id", user?.id)
           .eq("ativo", true),
       ]);
 
       const sessions = sessResult.data as any[] || [];
       const profProfile = profileResult.data;
-      const regras = regrasResult.data as any[] || [];
+      const regras = ((regrasResult.data as any[]) || []).map((r: any) => ({
+        ...r,
+        tipo_atendimento: r.modalidade ?? "todos",
+        percentual: r.percentage ?? 0,
+        valor_fixo: r.valor_fixo ?? 0,
+      }));
 
       const totalSessoes = sessions.length;
       const valorTotal = sessions.reduce((acc: number, s: any) => acc + (Number(s.valor_sessao) || 0), 0);

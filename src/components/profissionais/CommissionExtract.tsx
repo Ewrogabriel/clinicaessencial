@@ -120,11 +120,21 @@ export function CommissionExtract() {
   });
 
   const { data: regrasComissao = [] } = useQuery({
-    queryKey: ["regras-comissao"],
+    queryKey: ["regras-comissao", activeClinicId],
     queryFn: async () => {
-      const { data } = await (supabase.from("regras_comissao" as any) as any)
+      let q = (supabase.from("commission_rules" as any) as any)
         .select("*").order("created_at", { ascending: false });
-      return data ?? [];
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      // Adapt commission_rules → legacy shape used in this file
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        profissional_id: r.professional_id,
+        tipo_atendimento: r.modalidade ?? "geral",
+        percentual: r.percentage ?? 0,
+        valor_fixo: r.valor_fixo ?? 0,
+        observacoes: r.descricao ?? null,
+      }));
     },
     enabled: canManage || isProfissional,
   });
@@ -236,9 +246,15 @@ export function CommissionExtract() {
     queryKey: ["my-regras-comissao", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await (supabase.from("regras_comissao" as any) as any)
-        .select("*").eq("profissional_id", user.id).eq("ativo", true);
-      return data ?? [];
+      const { data } = await (supabase.from("commission_rules" as any) as any)
+        .select("*").eq("professional_id", user.id).eq("ativo", true);
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        profissional_id: r.professional_id,
+        tipo_atendimento: r.modalidade ?? "geral",
+        percentual: r.percentage ?? 0,
+        valor_fixo: r.valor_fixo ?? 0,
+      }));
     },
     enabled: isProfissional && !canManage,
   });

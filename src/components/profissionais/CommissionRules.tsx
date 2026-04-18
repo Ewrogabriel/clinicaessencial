@@ -64,10 +64,18 @@ export function CommissionRules() {
   const { data: regrasComissao = [] } = useQuery({
     queryKey: ["regras-comissao"],
     queryFn: async () => {
-      const { data } = await (supabase.from("regras_comissao" as any) as any)
+      const { data } = await (supabase.from("commission_rules" as any) as any)
         .select("*")
         .order("created_at", { ascending: false });
-      return data ?? [];
+      // Adapt to legacy shape used in this UI
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        profissional_id: r.professional_id,
+        tipo_atendimento: r.modalidade ?? "geral",
+        percentual: r.percentage ?? 0,
+        valor_fixo: r.valor_fixo ?? 0,
+        observacoes: r.descricao ?? null,
+      }));
     },
     enabled: canManage,
   });
@@ -77,20 +85,32 @@ export function CommissionRules() {
       if (!user || !ruleForm.profissional_id) throw new Error("Selecione um profissional");
       if (!ruleForm.percentual && !ruleForm.valor_fixo) throw new Error("Informe percentual ou valor fixo");
 
-      const payload = {
-        profissional_id: ruleForm.profissional_id,
-        tipo_atendimento: ruleForm.tipo_atendimento,
-        percentual: ruleForm.percentual ? parseFloat(ruleForm.percentual) : 0,
-        valor_fixo: ruleForm.valor_fixo ? parseFloat(ruleForm.valor_fixo) : 0,
-        observacoes: ruleForm.observacoes || null,
+      // Resolve clinic_id for the professional
+      const { data: cu } = await (supabase as any)
+        .from("clinic_users")
+        .select("clinic_id")
+        .eq("user_id", ruleForm.profissional_id)
+        .maybeSingle();
+
+      const pct = ruleForm.percentual ? parseFloat(ruleForm.percentual) : 0;
+      const fixo = ruleForm.valor_fixo ? parseFloat(ruleForm.valor_fixo) : 0;
+
+      const payload: any = {
+        professional_id: ruleForm.profissional_id,
+        clinic_id: cu?.clinic_id ?? null,
+        modalidade: ruleForm.tipo_atendimento === "geral" ? null : ruleForm.tipo_atendimento,
+        tipo_calculo: fixo > 0 && pct === 0 ? "fixo" : "percentual",
+        percentage: pct,
+        valor_fixo: fixo,
+        descricao: ruleForm.observacoes || null,
         ativo: ruleForm.ativo,
       };
 
       if (editingRule) {
-        const { error } = await (supabase.from("regras_comissao" as any) as any).update(payload).eq("id", editingRule.id);
+        const { error } = await (supabase.from("commission_rules" as any) as any).update(payload).eq("id", editingRule.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase.from("regras_comissao" as any) as any).insert({ ...payload, created_by: user.id });
+        const { error } = await (supabase.from("commission_rules" as any) as any).insert(payload);
         if (error) throw error;
       }
     },
@@ -104,7 +124,7 @@ export function CommissionRules() {
 
   const deleteRule = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("regras_comissao" as any) as any).delete().eq("id", id);
+      const { error } = await (supabase.from("commission_rules" as any) as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
