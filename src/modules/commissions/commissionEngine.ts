@@ -404,24 +404,30 @@ export const CommissionEngine = {
     const { data, error } = await sb
       .from("commissions")
       .select(`
-        profissional_id,
+        professional_id,
         valor,
         session_value,
         status,
-        status_liberacao,
-        profiles:profissional_id(nome_completo)
+        status_liberacao
       `)
       .eq("clinic_id", clinicId)
       .eq("mes_referencia", mesReferencia);
 
     if (error) throw error;
 
+    // Buscar nomes dos profissionais separadamente
+    const profIds = [...new Set((data || []).map((c: any) => c.professional_id))];
+    const { data: profs } = profIds.length > 0
+      ? await sb.from("profiles").select("user_id, nome").in("user_id", profIds)
+      : { data: [] };
+    const nameMap = new Map((profs || []).map((p: any) => [p.user_id, p.nome]));
+
     const summary: Record<string, { nome: string; total: number; sessions: number; pendente: boolean; bloqueado: boolean }> = {};
     for (const c of data || []) {
-      const pid = c.profissional_id;
+      const pid = c.professional_id;
       if (!summary[pid]) {
         summary[pid] = {
-          nome: c.profiles?.nome_completo ?? pid,
+          nome: nameMap.get(pid) ?? pid,
           total: 0,
           sessions: 0,
           pendente: false,
