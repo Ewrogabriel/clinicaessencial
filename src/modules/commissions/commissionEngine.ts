@@ -362,7 +362,7 @@ export const CommissionEngine = {
     // 11. Upsert na tabela commissions
     const payload = {
       clinic_id: clinicId,
-      profissional_id: agendamento.profissional_id,
+      professional_id: agendamento.profissional_id,
       paciente_id: agendamento.paciente_id,
       agendamento_id: agendamentoId,
       enrollment_id: enrollmentId,
