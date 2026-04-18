@@ -8,16 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useClinic } from "@/modules/clinic/hooks/useClinic";
 
 export const CommissionAudit = () => {
   const navigate = useNavigate();
+  const { activeClinicId } = useClinic();
 
   const { data: anomalies = [], isLoading } = useQuery({
-    queryKey: ["commission-audit"],
+    queryKey: ["commission-audit", activeClinicId],
     queryFn: async () => {
-      // Find sessions that are 'realizado' but payments are not 'pago'
-      // We check for both individual payments and monthly payments (simplified check)
-      const { data, error } = await (supabase as any)
+      // Find sessions that are 'realizado' but commissions are still 'bloqueado' or missing
+      let q = (supabase as any)
         .from("agendamentos")
         .select(`
           id,
@@ -27,22 +28,31 @@ export const CommissionAudit = () => {
           valor_sessao,
           paciente_id,
           profissional_id,
+          clinic_id,
           pacientes(nome),
-          profiles:profissional_id(nome),
           enrollment_id
         `)
         .eq("status", "realizado")
-        .order("data_horario", { ascending: false });
+        .order("data_horario", { ascending: false })
+        .limit(200);
 
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data, error } = await q;
       if (error) throw error;
 
-      return (data || []).filter((a: any) => {
-        if (!a.enrollment_id) {
-          return true; // flag all non-enrollment completed sessions for review
-        }
-        return true;
-      });
-    }
+      // Buscar nomes dos profissionais (sem relacionamento direto)
+      const profIds = [...new Set((data || []).map((a: any) => a.profissional_id).filter(Boolean))];
+      const { data: profs } = profIds.length > 0
+        ? await (supabase as any).from("profiles").select("user_id, nome").in("user_id", profIds)
+        : { data: [] };
+      const profMap = new Map((profs || []).map((p: any) => [p.user_id, p.nome]));
+
+      return (data || []).map((a: any) => ({
+        ...a,
+        profNome: profMap.get(a.profissional_id) ?? "—",
+      }));
+    },
+    enabled: !!activeClinicId,
   });
 
   if (isLoading) return <div className="p-8 text-center animate-pulse">Analisando agendamentos...</div>;
@@ -87,7 +97,7 @@ export const CommissionAudit = () => {
                       {a.pacientes?.nome || "—"}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {a.profiles?.nome || "—"}
+                      {a.profNome}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px] py-0">
