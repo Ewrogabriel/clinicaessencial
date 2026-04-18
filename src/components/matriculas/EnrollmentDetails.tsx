@@ -105,12 +105,19 @@ export function EnrollmentDetails({ enrollment }: Props) {
             const profIds = [...new Set(sessions.map(s => s.profissional_id))];
             if (profIds.length === 0) return [];
 
-            // Fetch commission rules for these professionals
-            const { data: regras } = await supabase
-                .from("regras_comissao")
+            // Fetch commission rules for these professionals (unified table)
+            const { data: regrasRaw } = await (supabase as any)
+                .from("commission_rules")
                 .select("*")
-                .in("profissional_id", profIds)
+                .in("professional_id", profIds)
                 .eq("ativo", true);
+            const regras = (regrasRaw ?? []).map((r: any) => ({
+                ...r,
+                profissional_id: r.professional_id,
+                tipo_atendimento: r.modalidade ?? "geral",
+                percentual: r.percentage ?? 0,
+                valor_fixo: r.valor_fixo ?? 0,
+            }));
 
             // Fetch profiles for fallback rates
             const { data: profiles } = await supabase

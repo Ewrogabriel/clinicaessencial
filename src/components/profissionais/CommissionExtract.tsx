@@ -104,27 +104,39 @@ export function CommissionExtract() {
   });
 
   const { data: agendamentos = [] } = useQuery({
-    queryKey: ["agendamentos-comissoes-extract", mesRef],
+    queryKey: ["agendamentos-comissoes-extract", mesRef, activeClinicId],
     queryFn: async () => {
       const startDate = `${mesRef}-01T00:00:00`;
       const endMonth = new Date(parseInt(mesRef.split("-")[0]), parseInt(mesRef.split("-")[1]), 0);
       const endDate = `${mesRef}-${String(endMonth.getDate()).padStart(2, "0")}T23:59:59`;
-      const { data } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("*, pacientes(nome)")
         .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"])
         .gte("data_horario", startDate)
         .lte("data_horario", endDate);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       return data ?? [];
     },
     enabled: canManage || isProfissional,
   });
 
   const { data: regrasComissao = [] } = useQuery({
-    queryKey: ["regras-comissao"],
+    queryKey: ["regras-comissao", activeClinicId],
     queryFn: async () => {
-      const { data } = await (supabase.from("regras_comissao" as any) as any)
+      let q = (supabase.from("commission_rules" as any) as any)
         .select("*").order("created_at", { ascending: false });
-      return data ?? [];
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      // Adapt commission_rules → legacy shape used in this file
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        profissional_id: r.professional_id,
+        tipo_atendimento: r.modalidade ?? "geral",
+        percentual: r.percentage ?? 0,
+        valor_fixo: r.valor_fixo ?? 0,
+        observacoes: r.descricao ?? null,
+      }));
     },
     enabled: canManage || isProfissional,
   });
@@ -139,13 +151,15 @@ export function CommissionExtract() {
   });
 
   const { data: commissionsData = [] } = useQuery({
-    queryKey: ["commissions-table-extract", mesRef],
+    queryKey: ["commissions-table-extract", mesRef, activeClinicId],
     queryFn: async () => {
       const mesDate = `${mesRef}-01`;
-      const { data } = await (supabase as any)
+      let q = (supabase as any)
         .from("commissions")
         .select("*")
         .eq("mes_referencia", mesDate);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       return (data ?? []) as any[];
     },
     enabled: canManage || isProfissional,
@@ -236,9 +250,15 @@ export function CommissionExtract() {
     queryKey: ["my-regras-comissao", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await (supabase.from("regras_comissao" as any) as any)
-        .select("*").eq("profissional_id", user.id).eq("ativo", true);
-      return data ?? [];
+      const { data } = await (supabase.from("commission_rules" as any) as any)
+        .select("*").eq("professional_id", user.id).eq("ativo", true);
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        profissional_id: r.professional_id,
+        tipo_atendimento: r.modalidade ?? "geral",
+        percentual: r.percentage ?? 0,
+        valor_fixo: r.valor_fixo ?? 0,
+      }));
     },
     enabled: isProfissional && !canManage,
   });
