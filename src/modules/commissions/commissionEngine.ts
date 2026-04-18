@@ -93,6 +93,83 @@ export function calcSessionValue(monthlyValue: number, totalSessions: number): n
 }
 
 // ─────────────────────────────────────────────
+// Helper: comissão para sessão sem matrícula (avulsa/plano)
+// ─────────────────────────────────────────────
+
+async function processStandaloneSession(
+  sb: any,
+  agendamento: any,
+  clinicId: string,
+  outcome: SessionOutcome
+): Promise<SessionCommissionResult> {
+  // Cancelado/reagendado → sem comissão
+  if (outcome === "cancelado" || outcome === "reagendado") {
+    await sb.from("commissions").delete().eq("agendamento_id", agendamento.id);
+    return { commission_id: null, session_value: 0, commission_value: 0, commission_pct: 0, missed_pct_applied: 0, skipped: true, reason: "Sessão avulsa não-realizada" };
+  }
+
+  const { data: rules } = await sb
+    .from("commission_rules")
+    .select("*")
+    .eq("clinic_id", clinicId)
+    .eq("professional_id", agendamento.profissional_id)
+    .eq("ativo", true);
+
+  const rulesList = rules || [];
+  const bestRule = rulesList.find((r: any) =>
+    r.modalidade?.toLowerCase() === agendamento.tipo_atendimento?.toLowerCase()
+  ) || rulesList.find((r: any) => !r.modalidade);
+
+  const type = bestRule?.tipo_calculo || "percentual";
+  const basePct = (bestRule?.percentage ?? 0) / 100;
+  const valorFixo = Number(bestRule?.valor_fixo ?? 0);
+  const sessionValue = Number(agendamento.valor_sessao ?? 0);
+  const missedPct = outcome === "falta" ? (bestRule?.missed_session_pct ?? 0.5) : 1.0;
+
+  const commissionValue = type === "fixo"
+    ? valorFixo * missedPct
+    : sessionValue * basePct * missedPct;
+
+  const sessionDate = new Date(agendamento.data_horario);
+  const mesReferencia = `${sessionDate.getFullYear()}-${String(sessionDate.getMonth() + 1).padStart(2, "0")}-01`;
+
+  const payload: any = {
+    clinic_id: clinicId,
+    professional_id: agendamento.profissional_id,
+    paciente_id: agendamento.paciente_id,
+    agendamento_id: agendamento.id,
+    session_value: sessionValue,
+    commission_pct: type === "percentual" ? basePct * 100 : 0,
+    valor_fixo_regra: type === "fixo" ? valorFixo : null,
+    tipo_calculo: type,
+    missed_pct_applied: missedPct,
+    valor: commissionValue,
+    mes_referencia: mesReferencia,
+    status: "pendente",
+    status_liberacao: "bloqueado",
+  };
+
+  const { data: existing } = await sb.from("commissions").select("id").eq("agendamento_id", agendamento.id).maybeSingle();
+  let commissionId: string | null = null;
+  if (existing?.id) {
+    await sb.from("commissions").update(payload).eq("id", existing.id);
+    commissionId = existing.id;
+  } else {
+    const { data: inserted } = await sb.from("commissions").insert(payload).select("id").single();
+    commissionId = inserted?.id ?? null;
+  }
+
+  return {
+    commission_id: commissionId,
+    session_value: sessionValue,
+    commission_value: commissionValue,
+    commission_pct: type === "percentual" ? basePct * 100 : 0,
+    missed_pct_applied: missedPct,
+    skipped: false,
+  };
+}
+
+// ─────────────────────────────────────────────
 // Motor principal
 // ─────────────────────────────────────────────
 
