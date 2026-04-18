@@ -104,16 +104,18 @@ export function CommissionExtract() {
   });
 
   const { data: agendamentos = [] } = useQuery({
-    queryKey: ["agendamentos-comissoes-extract", mesRef],
+    queryKey: ["agendamentos-comissoes-extract", mesRef, activeClinicId],
     queryFn: async () => {
       const startDate = `${mesRef}-01T00:00:00`;
       const endMonth = new Date(parseInt(mesRef.split("-")[0]), parseInt(mesRef.split("-")[1]), 0);
       const endDate = `${mesRef}-${String(endMonth.getDate()).padStart(2, "0")}T23:59:59`;
-      const { data } = await (supabase.from("agendamentos") as any)
+      let q = (supabase.from("agendamentos") as any)
         .select("*, pacientes(nome)")
         .in("status", ["agendado", "confirmado", "pendente", "realizado", "falta", "cancelado"])
         .gte("data_horario", startDate)
         .lte("data_horario", endDate);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       return data ?? [];
     },
     enabled: canManage || isProfissional,
@@ -149,13 +151,15 @@ export function CommissionExtract() {
   });
 
   const { data: commissionsData = [] } = useQuery({
-    queryKey: ["commissions-table-extract", mesRef],
+    queryKey: ["commissions-table-extract", mesRef, activeClinicId],
     queryFn: async () => {
       const mesDate = `${mesRef}-01`;
-      const { data } = await (supabase as any)
+      let q = (supabase as any)
         .from("commissions")
         .select("*")
         .eq("mes_referencia", mesDate);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
       return (data ?? []) as any[];
     },
     enabled: canManage || isProfissional,
