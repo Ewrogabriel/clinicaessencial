@@ -962,7 +962,16 @@ export function CommissionExtract() {
                                 </TableCell>
                                 <TableCell className="text-xs py-1.5">
                                   {matRef ? (
-                                    <span className="text-muted-foreground">#{matRef.id.slice(0, 6)}</span>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-muted-foreground underline decoration-dotted cursor-help">
+                                          #{matRef.id.slice(0, 6)}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Paciente: {(matRef as any).pacientes?.nome ?? "—"}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   ) : "—"}
                                 </TableCell>
                                 <TableCell className="text-xs py-1.5 capitalize">{mesReferencia}</TableCell>
