@@ -242,6 +242,15 @@ export function EnrollmentDetails({ enrollment }: Props) {
 
     return (
         <div className="space-y-4">
+            {/* Reference code */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Código de referência:</span>
+                <Badge variant="outline" className="font-mono text-[11px]">
+                    #{enrollment.id.slice(0, 6)}
+                </Badge>
+                <span className="hidden sm:inline">— este código aparece no extrato de comissões</span>
+            </div>
+
             {/* KPIs */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Card className="p-3">
