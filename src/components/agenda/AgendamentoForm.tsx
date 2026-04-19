@@ -228,6 +228,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
                   }}
                   selectedPlano={selectedPlano}
                   planoSessoesRestantes={planoSessoesRestantes}
+                  selectedPacienteId={form.watch("paciente_id")}
                 />
               )}
 
