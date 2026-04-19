@@ -97,7 +97,9 @@ export function CommissionExtract() {
   const { data: matriculas = [] } = useQuery({
     queryKey: ["matriculas-comissoes-extract"],
     queryFn: async () => {
-      const { data } = await supabase.from("matriculas").select("id, paciente_id, valor_mensal");
+      const { data } = await supabase
+        .from("matriculas")
+        .select("id, paciente_id, valor_mensal, pacientes(nome)");
       return data ?? [];
     },
     enabled: canManage || isProfissional,
