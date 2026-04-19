@@ -97,7 +97,9 @@ export function CommissionExtract() {
   const { data: matriculas = [] } = useQuery({
     queryKey: ["matriculas-comissoes-extract"],
     queryFn: async () => {
-      const { data } = await supabase.from("matriculas").select("id, paciente_id, valor_mensal");
+      const { data } = await supabase
+        .from("matriculas")
+        .select("id, paciente_id, valor_mensal, pacientes(nome)");
       return data ?? [];
     },
     enabled: canManage || isProfissional,
@@ -960,7 +962,16 @@ export function CommissionExtract() {
                                 </TableCell>
                                 <TableCell className="text-xs py-1.5">
                                   {matRef ? (
-                                    <span className="text-muted-foreground">#{matRef.id.slice(0, 6)}</span>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-muted-foreground underline decoration-dotted cursor-help">
+                                          #{matRef.id.slice(0, 6)}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Paciente: {(matRef as any).pacientes?.nome ?? "—"}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   ) : "—"}
                                 </TableCell>
                                 <TableCell className="text-xs py-1.5 capitalize">{mesReferencia}</TableCell>
@@ -1244,7 +1255,16 @@ export function CommissionExtract() {
                                   </TableCell>
                                   <TableCell className="text-xs">
                                     {matRef ? (
-                                      <span className="text-muted-foreground">#{matRef.id.slice(0, 6)}</span>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-muted-foreground underline decoration-dotted cursor-help">
+                                            #{matRef.id.slice(0, 6)}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          Paciente: {(matRef as any).pacientes?.nome ?? "—"}
+                                        </TooltipContent>
+                                      </Tooltip>
                                     ) : "—"}
                                   </TableCell>
                                   <TableCell className="text-xs capitalize">{mesReferencia}</TableCell>
