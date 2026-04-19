@@ -5671,6 +5671,7 @@ export type Database = {
         | "falta"
         | "reagendado"
         | "pendente"
+        | "reposicao"
       status_paciente: "ativo" | "inativo"
       status_pagamento: "pendente" | "pago" | "cancelado"
       status_plano:
@@ -5832,6 +5833,7 @@ export const Constants = {
         "falta",
         "reagendado",
         "pendente",
+        "reposicao",
       ],
       status_paciente: ["ativo", "inativo"],
       status_pagamento: ["pendente", "pago", "cancelado"],
