@@ -139,6 +139,7 @@ const Matriculas = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterPaciente, setFilterPaciente] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterProfissional, setFilterProfissional] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Detail view
@@ -154,7 +155,7 @@ const Matriculas = () => {
 
   // --------------- Queries ---------------
   const { data: matriculas = [], isLoading } = useQuery({
-    queryKey: ["matriculas", filterPaciente, filterStatus, activeClinicId],
+    queryKey: ["matriculas", filterPaciente, filterStatus, filterProfissional, activeClinicId],
     queryFn: async () => {
       let query = supabase
         .from("matriculas")
@@ -163,6 +164,7 @@ const Matriculas = () => {
 
       if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
       if (filterStatus) query = query.eq("status", filterStatus);
+      if (filterProfissional) query = query.eq("profissional_id", filterProfissional);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -664,7 +666,7 @@ const Matriculas = () => {
           {/* Filters */}
           <Card>
             <CardContent className="pt-5 pb-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <Label className="text-xs">Filtrar por Paciente</Label>
                   <Input
@@ -673,6 +675,20 @@ const Matriculas = () => {
                     value={filterPaciente}
                     onChange={(e) => setFilterPaciente(e.target.value)}
                   />
+                </div>
+                <div>
+                  <Label className="text-xs">Profissional</Label>
+                  <Select value={filterProfissional || "todos"} onValueChange={(v) => setFilterProfissional(v === "todos" ? "" : v)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {(profissionais as any[]).map((p: any) => (
+                        <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label className="text-xs">Status</Label>

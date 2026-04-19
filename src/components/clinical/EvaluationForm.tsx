@@ -99,6 +99,8 @@ export const EvaluationForm = ({ open, onOpenChange, pacienteId }: EvaluationFor
             queryClient.invalidateQueries({ queryKey: ["prontuarios-list"] });
             queryClient.invalidateQueries({ queryKey: ["paciente-detalhes", pacienteId] });
             queryClient.invalidateQueries({ queryKey: ["evaluations", pacienteId] });
+            queryClient.invalidateQueries({ queryKey: ["avaliacoes-historico", pacienteId] });
+            queryClient.invalidateQueries({ queryKey: ["paciente", pacienteId] });
             toast.success("Avaliação registrada com sucesso!");
             onOpenChange(false);
             setFormData({
