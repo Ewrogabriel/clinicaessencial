@@ -154,12 +154,42 @@ export function RescheduleDialog({ open, onOpenChange, agendamento, onSuccess }:
         ? `[TROCA DE PROFISSIONAL PARA: ${requestedProf?.nome || selectedProfId}] ${motivo}`
         : motivo;
 
-      // Professionals/staff bypass approval - directly update the appointment
+      // Professionals/staff bypass approval - directly update or create reposição
       if (isStaff) {
+        const isFaltaReposicao = agendamento.status === "falta";
+        const observacaoComMotivo = motivoCompleto
+          ? `[${tipoLabel}] ${motivoCompleto}`
+          : `[${tipoLabel}]`;
+
+        if (isFaltaReposicao) {
+          // Cria NOVO agendamento de reposição vinculado à falta original
+          // O CommissionEngine usa replaces_agendamento_id para evitar pagar comissão duplicada
+          const insertPayload: any = {
+            paciente_id: agendamento.paciente_id,
+            profissional_id: selectedProfId || agendamento.profissional_id,
+            clinic_id: agendamento.clinic_id || activeClinicId,
+            data_horario: novaData.toISOString(),
+            duracao_minutos: agendamento.duracao_minutos || 50,
+            tipo_atendimento: agendamento.tipo_atendimento,
+            tipo_sessao: agendamento.tipo_sessao,
+            valor_sessao: agendamento.valor_sessao,
+            enrollment_id: agendamento.enrollment_id || null,
+            status: "reposicao",
+            replaces_agendamento_id: agendamento.id,
+            observacoes: `[REPOSIÇÃO de falta em ${format(new Date(agendamento.data_horario), "dd/MM/yyyy 'às' HH:mm")}] ${motivo || "Sem motivo informado"}`.trim(),
+            created_by: user.id,
+          };
+          const { error: insErr } = await supabase.from("agendamentos").insert(insertPayload);
+          if (insErr) throw insErr;
+          return;
+        }
+
         const updatePayload: any = {
           data_horario: novaData.toISOString(),
           status: "agendado",
-          observacoes: motivoCompleto ? `${agendamento.observacoes || ""}\n[${tipoLabel}] ${motivoCompleto}`.trim() : agendamento.observacoes,
+          observacoes: motivoCompleto
+            ? `${agendamento.observacoes || ""}\n${observacaoComMotivo}`.trim()
+            : agendamento.observacoes,
         };
         if (selectedProfId !== agendamento.profissional_id) {
           updatePayload.profissional_id = selectedProfId;

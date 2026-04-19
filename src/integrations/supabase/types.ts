@@ -3905,6 +3905,7 @@ export type Database = {
       }
       planos: {
         Row: {
+          auto_renew: boolean
           created_at: string
           created_by: string
           data_inicio: string
@@ -3921,6 +3922,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          auto_renew?: boolean
           created_at?: string
           created_by: string
           data_inicio?: string
@@ -3937,6 +3939,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          auto_renew?: boolean
           created_at?: string
           created_by?: string
           data_inicio?: string
@@ -5668,6 +5671,7 @@ export type Database = {
         | "falta"
         | "reagendado"
         | "pendente"
+        | "reposicao"
       status_paciente: "ativo" | "inativo"
       status_pagamento: "pendente" | "pago" | "cancelado"
       status_plano:
@@ -5829,6 +5833,7 @@ export const Constants = {
         "falta",
         "reagendado",
         "pendente",
+        "reposicao",
       ],
       status_paciente: ["ativo", "inativo"],
       status_pagamento: ["pendente", "pago", "cancelado"],
