@@ -111,9 +111,36 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
 
   const handleAgendamentoSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["plano-sessoes", plano.id] });
+    queryClient.invalidateQueries({ queryKey: ["plano-detalhe", plano.id] });
     queryClient.invalidateQueries({ queryKey: ["planos"] });
     queryClient.invalidateQueries({ queryKey: ["planos-agendadas"] });
   };
+
+  // Realtime: refresh sessions and plan stats whenever any related agendamento or the plano row changes
+  useEffect(() => {
+    if (!open) return;
+    const channel = supabase
+      .channel(`plano-${plano.id}-watch`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agendamentos", filter: `paciente_id=eq.${plano.paciente_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["plano-sessoes", plano.id] });
+          queryClient.invalidateQueries({ queryKey: ["plano-detalhe", plano.id] });
+          queryClient.invalidateQueries({ queryKey: ["planos"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "planos", filter: `id=eq.${plano.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["plano-detalhe", plano.id] });
+          queryClient.invalidateQueries({ queryKey: ["planos"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [open, plano.id, plano.paciente_id, queryClient]);
 
   return (
     <>
