@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,15 +43,36 @@ const statusBadge: Record<string, { label: string; variant: "default" | "seconda
 
 export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDialogProps) => {
   const queryClient = useQueryClient();
-  const restante = plano.total_sessoes - plano.sessoes_utilizadas;
-  const pct = plano.total_sessoes > 0 ? Math.round((plano.sessoes_utilizadas / plano.total_sessoes) * 100) : 0;
 
   const [activeTab, setActiveTab] = useState("todas");
   const [agendarOpen, setAgendarOpen] = useState(false);
 
+  // Always fetch latest plano stats (sessoes_utilizadas may have changed via trigger)
+  const { data: planoLive } = useQuery({
+    queryKey: ["plano-detalhe", plano.id],
+    enabled: open,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("planos")
+        .select("id, total_sessoes, sessoes_utilizadas")
+        .eq("id", plano.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const totalSessoes = planoLive?.total_sessoes ?? plano.total_sessoes;
+  const sessoesUtilizadas = planoLive?.sessoes_utilizadas ?? plano.sessoes_utilizadas;
+  const restante = totalSessoes - sessoesUtilizadas;
+  const pct = totalSessoes > 0 ? Math.round((sessoesUtilizadas / totalSessoes) * 100) : 0;
+
   const { data: sessoes = [], isLoading } = useQuery({
     queryKey: ["plano-sessoes", plano.id],
     enabled: open,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agendamentos")
@@ -90,9 +111,36 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
 
   const handleAgendamentoSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["plano-sessoes", plano.id] });
+    queryClient.invalidateQueries({ queryKey: ["plano-detalhe", plano.id] });
     queryClient.invalidateQueries({ queryKey: ["planos"] });
     queryClient.invalidateQueries({ queryKey: ["planos-agendadas"] });
   };
+
+  // Realtime: refresh sessions and plan stats whenever any related agendamento or the plano row changes
+  useEffect(() => {
+    if (!open) return;
+    const channel = supabase
+      .channel(`plano-${plano.id}-watch`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agendamentos", filter: `paciente_id=eq.${plano.paciente_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["plano-sessoes", plano.id] });
+          queryClient.invalidateQueries({ queryKey: ["plano-detalhe", plano.id] });
+          queryClient.invalidateQueries({ queryKey: ["planos"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "planos", filter: `id=eq.${plano.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["plano-detalhe", plano.id] });
+          queryClient.invalidateQueries({ queryKey: ["planos"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [open, plano.id, plano.paciente_id, queryClient]);
 
   return (
     <>
@@ -109,7 +157,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
           <div className="rounded-lg border p-4 bg-muted/30 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Créditos do plano</span>
-              <span className="font-bold">{plano.sessoes_utilizadas}/{plano.total_sessoes} utilizadas</span>
+              <span className="font-bold">{sessoesUtilizadas}/{totalSessoes} utilizadas</span>
             </div>
             <Progress value={pct} className="h-2" />
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
