@@ -180,7 +180,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
                             <TableCell className="text-sm">
                               {format(new Date(s.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="text-sm">{(s.profiles as any)?.nome ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{s.profissional_nome ?? "—"}</TableCell>
                             <TableCell className="text-sm">{s.duracao_minutos} min</TableCell>
                             <TableCell><Badge variant={sb.variant}>{sb.label}</Badge></TableCell>
                           </TableRow>
