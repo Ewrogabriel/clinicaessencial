@@ -51,15 +51,24 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
 
   const { data: sessoes = [], isLoading } = useQuery({
     queryKey: ["plano-sessoes", plano.id],
+    enabled: open,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agendamentos")
-        .select("id, data_horario, duracao_minutos, status, tipo_atendimento, observacoes, profissional_id, profiles:profissional_id(nome)")
+        .select("id, data_horario, duracao_minutos, status, tipo_atendimento, observacoes, profissional_id")
         .eq("paciente_id", plano.paciente_id)
         .ilike("observacoes", `%plano:${plano.id}%`)
         .order("data_horario", { ascending: true });
       if (error) throw error;
-      return data || [];
+      const list = data || [];
+      const profIds = [...new Set(list.map((s: any) => s.profissional_id).filter(Boolean))];
+      const profMap: Record<string, string> = {};
+      if (profIds.length) {
+        const { data: profs } = await supabase
+          .from("profiles").select("user_id, nome").in("user_id", profIds);
+        (profs || []).forEach((p: any) => { profMap[p.user_id] = p.nome; });
+      }
+      return list.map((s: any) => ({ ...s, profissional_nome: profMap[s.profissional_id] || "—" }));
     },
   });
 
@@ -171,7 +180,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
                             <TableCell className="text-sm">
                               {format(new Date(s.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="text-sm">{(s.profiles as any)?.nome ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{s.profissional_nome ?? "—"}</TableCell>
                             <TableCell className="text-sm">{s.duracao_minutos} min</TableCell>
                             <TableCell><Badge variant={sb.variant}>{sb.label}</Badge></TableCell>
                           </TableRow>
