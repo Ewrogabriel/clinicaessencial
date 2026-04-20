@@ -33,7 +33,7 @@ import { FinancialSection } from "./agendamento-form/FinancialSection";
 import { RepeatSection } from "./agendamento-form/RepeatSection";
 import { RecurrenceSection } from "./agendamento-form/RecurrenceSection";
 
-export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId, appointmentType }: AgendamentoFormProps) {
+export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId, defaultPacienteId, defaultPlanoId, appointmentType }: AgendamentoFormProps) {
   const { user } = useAuth();
   const { activeClinicId } = useClinic();
   const [loading, setLoading] = useState(false);
@@ -104,7 +104,20 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
 
   useEffect(() => { if (defaultDate) form.setValue("data", defaultDate); }, [defaultDate, form]);
   useEffect(() => { if (open && defaultProfissionalId) form.setValue("profissional_id", defaultProfissionalId); }, [open, defaultProfissionalId, form]);
+  useEffect(() => { if (open && defaultPacienteId) form.setValue("paciente_id", defaultPacienteId); }, [open, defaultPacienteId, form]);
   useEffect(() => { if (!open) setSelectedPlanoId(""); }, [open]);
+
+  // Pre-select plan once planos load (when opened from PlanoSessoesDialog)
+  useEffect(() => {
+    if (!open || !defaultPlanoId || appointmentType !== "sessao_plano") return;
+    const plano = planos.find(p => p.id === defaultPlanoId);
+    if (plano && selectedPlanoId !== defaultPlanoId) {
+      setSelectedPlanoId(defaultPlanoId);
+      form.setValue("paciente_id", plano.paciente_id);
+      form.setValue("profissional_id", plano.profissional_id);
+      form.setValue("tipo_atendimento", plano.tipo_atendimento);
+    }
+  }, [open, defaultPlanoId, planos, appointmentType, selectedPlanoId, form]);
 
   const generateRecurringDates = (values: FormData): Date[] => {
     const dates: Date[] = [];
