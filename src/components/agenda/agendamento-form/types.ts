@@ -88,5 +88,7 @@ export interface AgendamentoFormProps {
   onSuccess: () => void;
   defaultDate?: Date;
   defaultProfissionalId?: string;
+  defaultPacienteId?: string;
+  defaultPlanoId?: string;
   appointmentType?: "sessao_avulsa" | "sessao_plano";
 }

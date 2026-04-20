@@ -103,7 +103,7 @@ const Planos = () => {
         .from("agendamentos")
         .select("observacoes, status")
         .in("status", ["agendado", "confirmado", "pendente"] as any[])
-        .ilike("observacoes", "plano:%");
+        .ilike("observacoes", "%plano:%");
       const map: Record<string, number> = {};
       (data || []).forEach((a: any) => {
         const match = a.observacoes?.match(/plano:([0-9a-f-]+)/);
