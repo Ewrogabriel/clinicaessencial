@@ -75,19 +75,27 @@ export function useAgendamentoFormData(open: boolean, fetchPlanos: boolean, clin
     };
 
     const loadPlanos = async () => {
+      // Restrict to plans whose patients belong to the active clinic (planos has no clinic_id)
+      const { data: cpData } = await (supabase as any)
+        .from("clinic_pacientes")
+        .select("paciente_id")
+        .eq("clinic_id", clinicId);
+      const clinicPacienteIds = (cpData || []).map((cp: any) => cp.paciente_id);
+      if (!clinicPacienteIds.length) { setPlanos([]); return; }
+
       const { data: planosData } = await (supabase
         .from("planos") as any)
         .select("id, paciente_id, profissional_id, tipo_atendimento, total_sessoes, sessoes_utilizadas")
-        .eq("clinic_id", clinicId)
+        .in("paciente_id", clinicPacienteIds)
         .eq("status", "ativo");
-      if (!planosData) { setPlanos([]); return; }
+      if (!planosData || !planosData.length) { setPlanos([]); return; }
 
       const pacienteIds = [...new Set((planosData as any[]).map((p: any) => p.paciente_id))] as string[];
       const { data: pacientesData } = await supabase.from("pacientes").select("id, nome").in("id", pacienteIds);
       const pacienteMap: Record<string, string> = {};
       (pacientesData ?? []).forEach(p => { pacienteMap[p.id] = p.nome; });
 
-      setPlanos(planosData.map(p => ({ ...p, paciente_nome: pacienteMap[p.paciente_id] ?? p.paciente_id })));
+      setPlanos(planosData.map((p: any) => ({ ...p, paciente_nome: pacienteMap[p.paciente_id] ?? p.paciente_id })));
     };
 
     loadPacientes();
