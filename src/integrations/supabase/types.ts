@@ -5616,6 +5616,13 @@ export type Database = {
         Args: { _clinic_id: string; _resource: string }
         Returns: Json
       }
+      get_dashboard_monthly_chart: {
+        Args: { p_clinic_id?: string }
+        Returns: {
+          mes: string
+          total: number
+        }[]
+      }
       get_gamification_ranking: {
         Args: { limit_count?: number }
         Returns: {
