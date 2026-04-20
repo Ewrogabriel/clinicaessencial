@@ -157,7 +157,7 @@ export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDi
           <div className="rounded-lg border p-4 bg-muted/30 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Créditos do plano</span>
-              <span className="font-bold">{plano.sessoes_utilizadas}/{plano.total_sessoes} utilizadas</span>
+              <span className="font-bold">{sessoesUtilizadas}/{totalSessoes} utilizadas</span>
             </div>
             <Progress value={pct} className="h-2" />
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
