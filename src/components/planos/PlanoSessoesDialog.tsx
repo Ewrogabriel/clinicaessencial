@@ -43,15 +43,36 @@ const statusBadge: Record<string, { label: string; variant: "default" | "seconda
 
 export const PlanoSessoesDialog = ({ open, onOpenChange, plano }: PlanoSessoesDialogProps) => {
   const queryClient = useQueryClient();
-  const restante = plano.total_sessoes - plano.sessoes_utilizadas;
-  const pct = plano.total_sessoes > 0 ? Math.round((plano.sessoes_utilizadas / plano.total_sessoes) * 100) : 0;
 
   const [activeTab, setActiveTab] = useState("todas");
   const [agendarOpen, setAgendarOpen] = useState(false);
 
+  // Always fetch latest plano stats (sessoes_utilizadas may have changed via trigger)
+  const { data: planoLive } = useQuery({
+    queryKey: ["plano-detalhe", plano.id],
+    enabled: open,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("planos")
+        .select("id, total_sessoes, sessoes_utilizadas")
+        .eq("id", plano.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const totalSessoes = planoLive?.total_sessoes ?? plano.total_sessoes;
+  const sessoesUtilizadas = planoLive?.sessoes_utilizadas ?? plano.sessoes_utilizadas;
+  const restante = totalSessoes - sessoesUtilizadas;
+  const pct = totalSessoes > 0 ? Math.round((sessoesUtilizadas / totalSessoes) * 100) : 0;
+
   const { data: sessoes = [], isLoading } = useQuery({
     queryKey: ["plano-sessoes", plano.id],
     enabled: open,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agendamentos")
