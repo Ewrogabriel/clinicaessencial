@@ -1,12 +1,26 @@
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useI18n } from "@/modules/shared/hooks/useI18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FileText, Trash2, Upload, Loader2, Download } from "lucide-react";
 import { ProfessionalForm } from "@/components/profissionais/ProfessionalForm";
 import { toast } from "sonner";
+
+function sanitizeFileName(fileName: string): string {
+  const lastDot = fileName.lastIndexOf(".");
+  const baseName = lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
+  const rawExt = lastDot > 0 ? fileName.slice(lastDot) : "";
+  const sanitizedBase = baseName
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  const finalBase = sanitizedBase || "arquivo";
+  const sanitizedExt = rawExt ? "." + rawExt.slice(1).toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+  return finalBase + sanitizedExt;
+}
 
 const PerfilProfissional = () => {
   const { user } = useAuth();
