@@ -184,9 +184,10 @@ export default function PatientDashboard() {
         ))}
       </div>
 
-      {/* Cards */}
-      <div className="space-y-4">
-        {isCardVisible("tips") && <DailyTipsCard tipo="paciente" />}
+      {/* Cards em 2 colunas (desktop) */}
+      {isCardVisible("tips") && <DailyTipsCard tipo="paciente" />}
+
+      <div className="grid gap-4 md:grid-cols-2">
 
         {/* Next sessions */}
         {isCardVisible("sessoes") && (
@@ -242,15 +243,18 @@ export default function PatientDashboard() {
 
         {/* Enrollments */}
         {isCardVisible("matriculas") && (
-          <DashboardListCard title="Matrículas Ativas" icon={Star} iconColor="text-indigo-600" isEmpty={d.matriculasAtivas.length === 0} emptyMessage="Nenhuma matrícula ativa">
+          <DashboardListCard title="Matrículas Ativas" icon={Star} iconColor="text-indigo-600" onViewAll={() => navigate("/matriculas")} isEmpty={d.matriculasAtivas.length === 0} emptyMessage="Nenhuma matrícula ativa">
             <div className="space-y-1">
               {d.matriculasAtivas.map((m: any, idx: number) => (
                 <div key={m.id}>
                   <div className="flex items-center gap-3 p-3 rounded-lg">
                     <div className="flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-lg shrink-0"><Star className="h-5 w-5 text-indigo-600" /></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{m.horario || "Matrícula"} {m.dias_semana?.length ? `• ${m.dias_semana.length}x/sem` : ""}</p>
-                      <p className="text-xs text-muted-foreground">{m.data_inicio ? format(new Date(m.data_inicio), "dd/MM/yyyy") : ""}{m.data_fim ? ` a ${format(new Date(m.data_fim), "dd/MM/yyyy")}` : ""}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{m.tipo_atendimento || "Matrícula"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {m.valor_mensal ? `R$ ${Number(m.valor_mensal).toFixed(2)}/mês` : ""}
+                        {m.data_inicio ? ` • desde ${format(new Date(m.data_inicio), "dd/MM/yyyy")}` : ""}
+                      </p>
                     </div>
                     <Badge variant="default" className="text-xs shrink-0">Ativa</Badge>
                   </div>
