@@ -185,29 +185,60 @@ const PerfilProfissional = () => {
         {/* Documents */}
         <Card className="border-none shadow-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-lg"><FileText className="h-5 w-5" /> {t("profile.documents")}</CardTitle>
-            </div>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5" /> {t("profile.documents")}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Nome do documento (opcional)"
+                value={docNome}
+                onChange={(e) => setDocNome(e.target.value)}
+                className="flex-1"
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                className="hidden"
+                onChange={handleUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                {uploading ? "Enviando..." : "Anexar Documento"}
+              </Button>
+            </div>
+
             {documents.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-6">{t("profile.no_docs")}</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {documents.map((doc: any) => (
                   <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium truncate max-w-[200px]">{doc.nome}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{doc.nome}</p>
                         <p className="text-xs text-muted-foreground">{((doc.file_size || 0) / 1024).toFixed(0)} KB</p>
                       </div>
                     </div>
-                    <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteDoc(doc)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)} title="Baixar">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteDoc(doc)} title="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
