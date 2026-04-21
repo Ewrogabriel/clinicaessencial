@@ -66,10 +66,36 @@ const Contratos = () => {
   });
 
   const { data: planos = [] } = useQuery({
-    queryKey: ["precos-planos-contrato"],
+    queryKey: ["precos-planos-contrato", selectedPaciente],
     queryFn: async () => {
-      const { data } = await supabase.from("precos_planos").select("*").eq("ativo", true).order("nome");
-      return data ?? [];
+      // Carrega planos pré-cadastrados (catálogo) + planos de sessão ativos do paciente selecionado
+      const { data: precos } = await supabase.from("precos_planos").select("*").eq("ativo", true).order("nome");
+      const catalogo = (precos || []).map((p: any) => ({
+        id: `preco:${p.id}`,
+        nome: p.nome,
+        valor: p.valor,
+        frequencia_semanal: p.frequencia_semanal,
+        modalidade: p.modalidade,
+        origem: "catalogo" as const,
+      }));
+
+      let sessoes: any[] = [];
+      if (selectedPaciente) {
+        const { data: planosSessao } = await supabase
+          .from("planos")
+          .select("id, tipo_atendimento, total_sessoes, sessoes_utilizadas, valor, status")
+          .eq("paciente_id", selectedPaciente)
+          .eq("status", "ativo");
+        sessoes = (planosSessao || []).map((p: any) => ({
+          id: `sessao:${p.id}`,
+          nome: `Plano de Sessões — ${p.tipo_atendimento} (${p.sessoes_utilizadas || 0}/${p.total_sessoes})`,
+          valor: p.valor,
+          frequencia_semanal: 1,
+          modalidade: p.tipo_atendimento,
+          origem: "sessao" as const,
+        }));
+      }
+      return [...catalogo, ...sessoes];
     },
   });
 
