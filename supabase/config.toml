@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.confirm-agendamento]
 verify_jwt = false
+
+[functions.ensure-patient-auth]
+verify_jwt = false
