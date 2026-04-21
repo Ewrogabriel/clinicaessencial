@@ -137,7 +137,7 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
     <div className="space-y-4">
       {!readOnly && (
         <div className="flex justify-end">
-          <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
+          <Button type="button" size="sm" onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> Adicionar Formação
           </Button>
         </div>
@@ -172,13 +172,14 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
                   </div>
                   {!readOnly && (
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(f)}>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(f)}>
                         <Pencil className="h-3 w-3" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 text-destructive" 
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
                         onClick={() => deleteMutation.mutate(f.id)}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -224,13 +225,14 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
                   </div>
                   {!readOnly && (
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(f)}>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(f)}>
                         <Pencil className="h-3 w-3" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 text-destructive" 
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
                         onClick={() => deleteMutation.mutate(f.id)}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -311,8 +313,9 @@ export const FormacoesManager = ({ profissionalId, readOnly = false }: Props) =>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={resetForm}>Cancelar</Button>
-              <Button 
+              <Button type="button" variant="outline" onClick={resetForm}>Cancelar</Button>
+              <Button
+                type="button"
                 disabled={!nome.trim() || saveMutation.isPending}
                 onClick={() => saveMutation.mutate()}
               >

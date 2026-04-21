@@ -1,13 +1,10 @@
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { useI18n } from "@/modules/shared/hooks/useI18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2, Video, Home, ClipboardList, ArrowRight, Plus } from "lucide-react";
-import { PlanoFormDialog } from "@/components/planos/PlanoFormDialog";
+import { FileText, Trash2 } from "lucide-react";
 import { ProfessionalForm } from "@/components/profissionais/ProfessionalForm";
 import { toast } from "sonner";
 
@@ -15,8 +12,6 @@ const PerfilProfissional = () => {
   const { user } = useAuth();
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [planoFormOpen, setPlanoFormOpen] = useState(false);
 
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ["my-professional-profile", user?.id],
@@ -37,22 +32,6 @@ const PerfilProfissional = () => {
       return data ?? [];
     },
     enabled: !!user,
-  });
-
-  const { data: pacientes = [] } = useQuery({
-    queryKey: ["pacientes-ativos"],
-    queryFn: async () => {
-      const { data } = await supabase.from("pacientes").select("id, nome").eq("status", "ativo").order("nome");
-      return data ?? [];
-    },
-  });
-
-  const { data: modalidades = [] } = useQuery({
-    queryKey: ["modalidades-ativas"],
-    queryFn: async () => {
-      const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
-      return data ?? [];
-    },
   });
 
   const saveMutation = useMutation({
@@ -143,28 +122,6 @@ const PerfilProfissional = () => {
           </CardContent>
         </Card>
 
-        {/* Planos de Sessões */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ClipboardList className="h-5 w-5 text-primary" /> {t("profile.session_plans")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t("profile.session_plans_description")}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setPlanoFormOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> {t("profile.new_plan")}
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/planos")}>
-                <ArrowRight className="h-4 w-4 mr-2" /> {t("profile.manage_plans")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Documents */}
         <Card className="border-none shadow-sm">
           <CardHeader>
@@ -199,14 +156,6 @@ const PerfilProfissional = () => {
         </Card>
       </div>
 
-      <PlanoFormDialog
-        open={planoFormOpen}
-        onOpenChange={setPlanoFormOpen}
-        editPlano={null}
-        pacientes={pacientes}
-        modalidades={modalidades}
-        userId={user?.id || ""}
-      />
     </div>
   );
 };
