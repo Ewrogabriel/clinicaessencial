@@ -43,13 +43,9 @@ const Login = () => {
     try {
       await signIn(authEmail, loginSenha);
       navigate("/selecionar-clinica");
-    } catch (error: any) {
-      const rawMsg: string = error?.message ?? "";
-      const description =
-        rawMsg === "Invalid login credentials"
-          ? "E-mail ou senha incorretos"
-          : rawMsg || "Erro desconhecido";
-      toast.error(t("common.error"));
+    } catch (error) {
+      // O erro já foi tratado e exibido via toast no authService/handleError
+      console.error("Login failed:", error);
     }
 
     setLoading(false);

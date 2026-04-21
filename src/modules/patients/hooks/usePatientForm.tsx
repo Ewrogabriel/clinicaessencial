@@ -78,6 +78,19 @@ export interface PatientClinical {
   convenioId: string | null;
 }
 
+export interface PatientContract {
+  multaAtrasoPct: number | null;
+  jurosMensalPct: number | null;
+  prazoCancelamentoH: number | null;
+  diaVencimento: number | null;
+  prazoReposicaoDias: number | null;
+  vigenciaMeses: number | null;
+  enrollmentFee: number | null;
+  paymentMethod: string | null;
+  cidadeForo: string | null;
+  estadoForo: string | null;
+}
+
 // ── Default values ─────────────────────────────────────────────────────────────
 
 const defaultBasic: PatientBasic = {
@@ -101,6 +114,19 @@ const defaultInvoice: PatientInvoice = {
 
 const defaultClinical: PatientClinical = {
   tipoAtendimento: "", status: "ativo", observacoes: "", convenioId: null,
+};
+
+const defaultContract: PatientContract = {
+  multaAtrasoPct: null,
+  jurosMensalPct: null,
+  prazoCancelamentoH: null,
+  diaVencimento: null,
+  prazoReposicaoDias: null,
+  vigenciaMeses: null,
+  enrollmentFee: null,
+  paymentMethod: null,
+  cidadeForo: null,
+  estadoForo: null,
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -140,6 +166,7 @@ export function usePatientForm() {
   const [guardian, setGuardian] = useState<PatientGuardian>(defaultGuardian);
   const [invoice, setInvoice] = useState<PatientInvoice>(defaultInvoice);
   const [clinical, setClinical] = useState<PatientClinical>(defaultClinical);
+  const [contract, setContract] = useState<PatientContract>(defaultContract);
 
   const [lgpdConsentimento, setLgpdConsentimento] = useState(false);
   const [codigoAcesso, setCodigoAcesso] = useState<string | null>(null);
@@ -227,6 +254,18 @@ export function usePatientForm() {
           endereco: data.nf_endereco || "",
           inscricaoEstadual: data.nf_inscricao_estadual || "",
           email: data.nf_email || "",
+        });
+        setContract({
+          multaAtrasoPct: data.contract_multa_atraso_pct,
+          jurosMensalPct: data.contract_juros_mensal_pct,
+          prazoCancelamentoH: data.contract_prazo_cancelamento_h,
+          diaVencimento: data.contract_dia_vencimento,
+          prazoReposicaoDias: data.contract_prazo_reposicao_dias,
+          vigenciaMeses: data.contract_vigencia_meses,
+          enrollmentFee: data.contract_enrollment_fee,
+          paymentMethod: data.contract_payment_method,
+          cidadeForo: data.contract_cidade_foro,
+          estadoForo: data.contract_estado_foro,
         });
         setCodigoAcesso(data.codigo_acesso || null);
         setLgpdConsentimento(data.lgpd_consentimento || false);
@@ -394,6 +433,17 @@ export function usePatientForm() {
         lgpd_consentimento: lgpdConsentimento,
         lgpd_consentimento_data: lgpdConsentimento ? new Date().toISOString() : null,
         convenio_id: clinical.convenioId || null,
+        // Novos campos de contrato
+        contract_multa_atraso_pct: contract.multaAtrasoPct,
+        contract_juros_mensal_pct: contract.jurosMensalPct,
+        contract_prazo_cancelamento_h: contract.prazoCancelamentoH,
+        contract_dia_vencimento: contract.diaVencimento,
+        contract_prazo_reposicao_dias: contract.prazoReposicaoDias,
+        contract_vigencia_meses: contract.vigenciaMeses,
+        contract_enrollment_fee: contract.enrollmentFee,
+        contract_payment_method: contract.paymentMethod,
+        contract_cidade_foro: contract.cidadeForo,
+        contract_estado_foro: contract.estadoForo,
       };
 
       let savedPatientId = id;
@@ -437,7 +487,7 @@ export function usePatientForm() {
     } finally {
       setLoading(false);
     }
-  }, [user, basic, address, guardian, invoice, clinical, lgpdConsentimento, id, isEditing, activeClinicId, queryClient, navigate]);
+  }, [user, basic, address, guardian, invoice, clinical, contract, lgpdConsentimento, id, isEditing, activeClinicId, queryClient, navigate]);
 
   // ── Mask setters (convenience wrappers) ────────────────────────────────────
   const setBasicField = useCallback(<K extends keyof PatientBasic>(field: K, value: PatientBasic[K]) => {
@@ -460,6 +510,10 @@ export function usePatientForm() {
     setClinical((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  const setContractField = useCallback(<K extends keyof PatientContract>(field: K, value: PatientContract[K]) => {
+    setContract((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
   return {
     // Identifiers
     id,
@@ -470,6 +524,7 @@ export function usePatientForm() {
     guardian, setGuardian, setGuardianField,
     invoice, setInvoiceField,
     clinical, setClinicalField,
+    contract, setContractField,
     // Flags
     lgpdConsentimento, setLgpdConsentimento,
     codigoAcesso,

@@ -60,9 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 authService.getPermissions(userId),
             ]);
 
-            const [p, pId, r, perms] = await Promise.race([dataPromise, timeoutPromise]) as any;
+            const [p, pId, r, perms] = await (Promise.race([dataPromise, timeoutPromise]) as Promise<[Profile | null, string | null, AppRole[], PermissionEntry[]]>);
 
-            setProfile(p as Profile);
+            setProfile(p);
             setPatientId(pId);
             setRoles(r);
             setPermissions(perms);
@@ -177,13 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hasPermission = (resource: string) => {
         if (isAdmin) return true;
         // Legacy fallback
-        return permissions.some(p => p.module === resource || (p as any).resource === resource);
+        return permissions.some(p => p.module === resource || (p as unknown as { resource: string }).resource === resource);
     };
 
     const canEdit = (resource: string) => {
         if (isAdmin) return true;
         // Legacy fallback
-        return permissions.some(p => (p.module === resource || (p as any).resource === resource) && (p.action === "edit" || (p as any).access_level === "edit"));
+        return permissions.some(p => (p.module === resource || (p as unknown as { resource: string }).resource === resource) && (p.action === "edit" || (p as unknown as { access_level: string }).access_level === "edit"));
     };
 
     /**

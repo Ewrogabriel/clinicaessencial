@@ -64,7 +64,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           return (data || []) as Clinica[];
         }
 
-        const ids = userClinics.map((uc: any) => uc.clinic_id);
+        const ids = userClinics.map((uc: { clinic_id: string }) => uc.clinic_id);
         const { data, error: clinicError } = await supabase
           .from("clinicas")
           .select("id, nome, cnpj, logo_url, cidade, estado, ativo")

@@ -14,7 +14,7 @@ import { CouncilCombobox } from "@/components/ui/council-combobox";
 import { FormacoesManager } from "@/components/profissionais/FormacoesManager";
 import { maskPhone, maskCPF, maskRG, maskCEP } from "@/lib/masks";
 import { cleanSignatureImage } from "@/lib/imageUtils";
-import { Video, Home, GraduationCap, Sparkles, Loader2 } from "lucide-react";
+import { Video, Home, GraduationCap, Sparkles, Loader2, FileText, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfessionalFormProps {
@@ -70,6 +70,14 @@ export const ProfessionalForm = ({
     domiciliar_raio_km: "",
     domiciliar_valor_adicional: "",
     domiciliar_observacoes: "",
+    // Contratos
+    contract_raio_nao_concorrencia_km: "",
+    contract_multa_nao_captacao_fator: "",
+    contract_multa_nao_captacao_valor: "",
+    contract_dia_pagamento_comissao: "",
+    contract_prazo_aviso_previo_dias: "",
+    contract_multa_uso_marca_valor: "",
+    contract_valor_sessao_fixo: "",
   });
 
   const [cleaningAssinatura, setCleaningAssinatura] = useState(false);
@@ -115,6 +123,14 @@ export const ProfessionalForm = ({
         domiciliar_raio_km: initialData.domiciliar_raio_km ? String(initialData.domiciliar_raio_km) : "",
         domiciliar_valor_adicional: initialData.domiciliar_valor_adicional ? String(initialData.domiciliar_valor_adicional) : "",
         domiciliar_observacoes: initialData.domiciliar_observacoes || "",
+        // Contratos
+        contract_raio_nao_concorrencia_km: initialData.contract_raio_nao_concorrencia_km ? String(initialData.contract_raio_nao_concorrencia_km) : "",
+        contract_multa_nao_captacao_fator: initialData.contract_multa_nao_captacao_fator ? String(initialData.contract_multa_nao_captacao_fator) : "",
+        contract_multa_nao_captacao_valor: initialData.contract_multa_nao_captacao_valor ? String(initialData.contract_multa_nao_captacao_valor) : "",
+        contract_dia_pagamento_comissao: initialData.contract_dia_pagamento_comissao ? String(initialData.contract_dia_pagamento_comissao) : "",
+        contract_prazo_aviso_previo_dias: initialData.contract_prazo_aviso_previo_dias ? String(initialData.contract_prazo_aviso_previo_dias) : "",
+        contract_multa_uso_marca_valor: initialData.contract_multa_uso_marca_valor ? String(initialData.contract_multa_uso_marca_valor) : "",
+        contract_valor_sessao_fixo: initialData.contract_valor_sessao_fixo ? String(initialData.contract_valor_sessao_fixo) : "",
       });
     }
   }, [initialData]);
@@ -182,6 +198,7 @@ export const ProfessionalForm = ({
             <TabsTrigger value="formacoes" className="gap-1">
               <GraduationCap className="h-3 w-3" /> Formações
             </TabsTrigger>
+            <TabsTrigger value="contrato">Contrato</TabsTrigger>
             {isCreating && <TabsTrigger value="acesso">Acesso</TabsTrigger>}
           </TabsList>
 
@@ -610,6 +627,103 @@ export const ProfessionalForm = ({
               profissionalId={initialData?.user_id ?? ""} 
               readOnly={!isCreating && !initialData} 
             />
+          </TabsContent>
+
+          <TabsContent value="contrato" className="space-y-4">
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 mb-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2 mb-1">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Cláusulas Customizadas
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Estes valores sobrescrevem os padrões globais da clínica para este profissional.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Raio Não Concorrência (km)</Label>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  placeholder="Padrão da clínica" 
+                  value={formData.contract_raio_nao_concorrencia_km} 
+                  onChange={e => handleChange("contract_raio_nao_concorrencia_km", e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Aviso Prévio (dias)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Padrão da clínica" 
+                  value={formData.contract_prazo_aviso_previo_dias} 
+                  onChange={e => handleChange("contract_prazo_aviso_previo_dias", e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Dia de Pagto Comissão</Label>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="31" 
+                  placeholder="Padrão da clínica" 
+                  value={formData.contract_dia_pagamento_comissao} 
+                  onChange={e => handleChange("contract_dia_pagamento_comissao", e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor Sessão Fixo (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="Padrão da clínica" 
+                  value={formData.contract_valor_sessao_fixo} 
+                  onChange={e => handleChange("contract_valor_sessao_fixo", e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Multa Uso Marca (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="Padrão da clínica" 
+                  value={formData.contract_multa_uso_marca_valor} 
+                  onChange={e => handleChange("contract_multa_uso_marca_valor", e.target.value)} 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-semibold">Multa por Captação de Clientes</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fator Multiplicador (x comissão)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Padrão (10x)" 
+                    value={formData.contract_multa_nao_captacao_fator} 
+                    onChange={e => {
+                      handleChange("contract_multa_nao_captacao_fator", e.target.value);
+                      if (e.target.value) handleChange("contract_multa_nao_captacao_valor", "");
+                    }} 
+                  />
+                  <p className="text-[10px] text-muted-foreground">Ex: 10 vezes o valor da última comissão bruta.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>OU Valor Fixo (R$)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="Ex: 5000.00" 
+                    value={formData.contract_multa_nao_captacao_valor} 
+                    onChange={e => {
+                      handleChange("contract_multa_nao_captacao_valor", e.target.value);
+                      if (e.target.value) handleChange("contract_multa_nao_captacao_fator", "");
+                    }} 
+                  />
+                  <p className="text-[10px] text-muted-foreground">Se definido, o valor fixo terá preferência sobre o fator.</p>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           {isCreating && (

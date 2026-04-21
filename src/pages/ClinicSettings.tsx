@@ -139,6 +139,25 @@ const ClinicSettings = () => {
     nome: "", cnpj: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
     telefone: "", whatsapp: "", email: "", instagram: "", logo_url: "",
     assinatura_url: "", rubrica_url: "",
+    // Contratos
+    pref_contract_multa_atraso_pct: "2",
+    pref_contract_juros_mensal_pct: "1",
+    pref_contract_prazo_cancelamento_h: "3",
+    pref_contract_dia_vencimento: "10",
+    pref_contract_prazo_reposicao_dias: "30",
+    pref_contract_vigencia_meses: "6",
+    pref_contract_raio_nao_concorrencia_km: "5",
+    pref_contract_multa_nao_captacao_fator: "10",
+    pref_contract_dia_pagamento_comissao: "10",
+    pref_contract_prazo_aviso_previo_dias: "30",
+    pref_contract_multa_uso_marca_valor: "5000",
+    pref_contract_cidade_foro: "",
+    pref_contract_estado_foro: "",
+    pref_contract_enrollment_fee: "0",
+    pref_contract_witness1_name: "",
+    pref_contract_witness1_cpf: "",
+    pref_contract_witness2_name: "",
+    pref_contract_witness2_cpf: "",
   });
   const [uploading, setUploading] = useState(false);
 
@@ -160,6 +179,25 @@ const ClinicSettings = () => {
         logo_url: settings.logo_url || "",
         assinatura_url: settings.assinatura_url || "",
         rubrica_url: settings.rubrica_url || "",
+        // Contratos
+        pref_contract_multa_atraso_pct: String(settings.pref_contract_multa_atraso_pct ?? "2"),
+        pref_contract_juros_mensal_pct: String(settings.pref_contract_juros_mensal_pct ?? "1"),
+        pref_contract_prazo_cancelamento_h: String(settings.pref_contract_prazo_cancelamento_h ?? "3"),
+        pref_contract_dia_vencimento: String(settings.pref_contract_dia_vencimento ?? "10"),
+        pref_contract_prazo_reposicao_dias: String(settings.pref_contract_prazo_reposicao_dias ?? "30"),
+        pref_contract_vigencia_meses: String(settings.pref_contract_vigencia_meses ?? "6"),
+        pref_contract_raio_nao_concorrencia_km: String(settings.pref_contract_raio_nao_concorrencia_km ?? "5"),
+        pref_contract_multa_nao_captacao_fator: String(settings.pref_contract_multa_nao_captacao_fator ?? "10"),
+        pref_contract_dia_pagamento_comissao: String(settings.pref_contract_dia_pagamento_comissao ?? "10"),
+        pref_contract_prazo_aviso_previo_dias: String(settings.pref_contract_prazo_aviso_previo_dias ?? "30"),
+        pref_contract_multa_uso_marca_valor: String(settings.pref_contract_multa_uso_marca_valor ?? "5000"),
+        pref_contract_cidade_foro: settings.pref_contract_cidade_foro || "",
+        pref_contract_estado_foro: settings.pref_contract_estado_foro || "",
+        pref_contract_enrollment_fee: String(settings.pref_contract_enrollment_fee ?? "0"),
+        pref_contract_witness1_name: settings.pref_contract_witness1_name || "",
+        pref_contract_witness1_cpf: settings.pref_contract_witness1_cpf || "",
+        pref_contract_witness2_name: settings.pref_contract_witness2_name || "",
+        pref_contract_witness2_cpf: settings.pref_contract_witness2_cpf || "",
       });
     }
   }, [settings]);
@@ -308,6 +346,9 @@ const ClinicSettings = () => {
           </TabsTrigger>
           <TabsTrigger value="tema" className="gap-2">
             <Palette className="h-4 w-4" /> Aparência
+          </TabsTrigger>
+          <TabsTrigger value="contratos" className="gap-2">
+            <FileText className="h-4 w-4" /> Contratos
           </TabsTrigger>
           <TabsTrigger value="permissoes" className="gap-2">
             <Lock className="h-4 w-4" /> Permissões
@@ -515,6 +556,151 @@ const ClinicSettings = () => {
 
         <TabsContent value="tema">
           <ClinicThemeTab />
+        </TabsContent>
+
+        <TabsContent value="contratos">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Padrões para Pacientes
+                </CardTitle>
+                <CardDescription>Valores aplicados a novos contratos de pacientes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Multa por Atraso (%)</Label>
+                    <Input type="number" step="0.1" value={form.pref_contract_multa_atraso_pct} onChange={set("pref_contract_multa_atraso_pct")} />
+                  </div>
+                  <div>
+                    <Label>Juros Mensais (%)</Label>
+                    <Input type="number" step="0.1" value={form.pref_contract_juros_mensal_pct} onChange={set("pref_contract_juros_mensal_pct")} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Prazo Cancelamento (h)</Label>
+                    <Input type="number" value={form.pref_contract_prazo_cancelamento_h} onChange={set("pref_contract_prazo_cancelamento_h")} />
+                  </div>
+                  <div>
+                    <Label>Dia de Vencimento</Label>
+                    <Input type="number" min="1" max="31" value={form.pref_contract_dia_vencimento} onChange={set("pref_contract_dia_vencimento")} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Prazo Reposição (dias)</Label>
+                    <Input type="number" value={form.pref_contract_prazo_reposicao_dias} onChange={set("pref_contract_prazo_reposicao_dias")} />
+                  </div>
+                  <div>
+                    <Label>Vigência Padrão (meses)</Label>
+                    <Input type="number" value={form.pref_contract_vigencia_meses} onChange={set("pref_contract_vigencia_meses")} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Taxa de Matrícula Padrão (R$)</Label>
+                  <Input type="number" value={form.pref_contract_enrollment_fee} onChange={set("pref_contract_enrollment_fee")} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" /> Padrões para Profissionais
+                </CardTitle>
+                <CardDescription>Valores aplicados a novos contratos de profissionais</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Raio Não Concorrência (km)</Label>
+                    <Input type="number" step="0.1" value={form.pref_contract_raio_nao_concorrencia_km} onChange={set("pref_contract_raio_nao_concorrencia_km")} />
+                  </div>
+                  <div>
+                    <Label>Fator Multa Captação (x)</Label>
+                    <Input type="number" value={form.pref_contract_multa_nao_captacao_fator} onChange={set("pref_contract_multa_nao_captacao_fator")} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Dia Pagto Comissão</Label>
+                    <Input type="number" min="1" max="31" value={form.pref_contract_dia_pagamento_comissao} onChange={set("pref_contract_dia_pagamento_comissao")} />
+                  </div>
+                  <div>
+                    <Label>Aviso Prévio (dias)</Label>
+                    <Input type="number" value={form.pref_contract_prazo_aviso_previo_dias} onChange={set("pref_contract_prazo_aviso_previo_dias")} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Multa Uso Marca (R$)</Label>
+                  <Input type="number" step="0.01" value={form.pref_contract_multa_uso_marca_valor} onChange={set("pref_contract_multa_uso_marca_valor")} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" /> Disposições Gerais
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cidade do Foro</Label>
+                    <Input 
+                      value={form.pref_contract_cidade_foro} 
+                      onChange={set("pref_contract_cidade_foro")} 
+                      placeholder="Ex: Barbacena" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Estado do Foro (UF)</Label>
+                    <Input 
+                      value={form.pref_contract_estado_foro} 
+                      onChange={set("pref_contract_estado_foro")} 
+                      placeholder="Ex: MG" 
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t space-y-4">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Testemunhas Padrão (Opcional)
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Nome Testemunha 1</Label>
+                      <Input value={form.pref_contract_witness1_name} onChange={set("pref_contract_witness1_name")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">CPF Testemunha 1</Label>
+                      <Input value={form.pref_contract_witness1_cpf} onChange={set("pref_contract_witness1_cpf")} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Nome Testemunha 2</Label>
+                      <Input value={form.pref_contract_witness2_name} onChange={set("pref_contract_witness2_name")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">CPF Testemunha 2</Label>
+                      <Input value={form.pref_contract_witness2_cpf} onChange={set("pref_contract_witness2_cpf")} />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic">
+                    * Se preenchidos, os nomes e CPFs das testemunhas serão impressos automaticamente nos contratos para conferir força de título executivo extrajudicial.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 mt-6">
+            <Save className="h-4 w-4" /> Salvar Padrões de Contrato
+          </Button>
         </TabsContent>
 
         <TabsContent value="permissoes">

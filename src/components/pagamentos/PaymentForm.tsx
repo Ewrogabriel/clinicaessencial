@@ -77,11 +77,11 @@ export const PaymentForm = ({
   return (
     <div className="space-y-6">
       {/* Alert - Dados Temporários */}
-      <div className="flex gap-3 rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-900">
+      <div className="flex gap-3 rounded-lg bg-primary/10 border border-primary/20 p-3 text-sm text-primary">
         <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
         <div>
           <p className="font-semibold">Instrução Importante</p>
-          <p>Este formulário é para solicitação de pagamento. Após confirmar, você receberá as instruções de pagamento via email ou WhatsApp.</p>
+          <p className="opacity-90">Este formulário é para solicitação de pagamento. Após confirmar, você receberá as instruções de pagamento via email ou WhatsApp.</p>
         </div>
       </div>
 
@@ -171,25 +171,26 @@ export const PaymentForm = ({
 
                   {/* PIX Details */}
                   {forma.tipo === "pix" && pixData && selectedForma === forma.id && (
-                    <div className="mt-3 space-y-2 p-2 rounded bg-blue-50 border border-blue-200">
+                    <div className="mt-3 space-y-2 p-2 rounded bg-primary/5 border border-primary/20">
                       <div className="flex items-start gap-2">
-                        <QrCode className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                        <QrCode className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1">
-                          <p className="text-xs font-medium text-blue-900">Chave PIX:</p>
+                          <p className="text-xs font-medium text-primary">Chave PIX:</p>
                           <div className="flex items-center gap-2">
-                            <code className="text-xs bg-white p-1 rounded flex-1 text-blue-900">{pixData.chave_pix}</code>
+                            <code className="text-xs bg-background p-1 rounded border border-primary/10 flex-1 text-primary">{pixData.chave_pix}</code>
                             <button
+                              aria-label="Copiar chave PIX"
                               onClick={(e) => {
                                 e.preventDefault();
                                 navigator.clipboard.writeText(pixData.chave_pix);
                                 toast.success("Copiado!");
                               }}
-                              className="p-1 hover:bg-blue-200 rounded"
+                              className="p-1 hover:bg-primary/20 rounded"
                             >
-                              <Copy className="h-3 w-3 text-blue-600" />
+                              <Copy className="h-3 w-3 text-primary" />
                             </button>
                           </div>
-                          <p className="text-xs text-blue-800 mt-1">Beneficiário: {pixData.nome_beneficiario}</p>
+                          <p className="text-xs text-primary/80 mt-1">Beneficiário: {pixData.nome_beneficiario}</p>
                         </div>
                       </div>
                     </div>

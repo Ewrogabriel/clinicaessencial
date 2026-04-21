@@ -32,6 +32,7 @@ import { PlanSelectorSection } from "./agendamento-form/PlanSelectorSection";
 import { FinancialSection } from "./agendamento-form/FinancialSection";
 import { RepeatSection } from "./agendamento-form/RepeatSection";
 import { RecurrenceSection } from "./agendamento-form/RecurrenceSection";
+import { generateRecurringDates, generateRepeatedDates } from "@/modules/appointments/utils/dateUtils";
 
 export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, defaultProfissionalId, defaultPacienteId, defaultPlanoId, appointmentType }: AgendamentoFormProps) {
   const { user } = useAuth();
@@ -119,24 +120,7 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
     }
   }, [open, defaultPlanoId, planos, appointmentType, selectedPlanoId, form]);
 
-  const generateRecurringDates = (values: FormData): Date[] => {
-    const dates: Date[] = [];
-    if (!values.recorrente) return dates;
-    const startDate = values.data;
-    for (let week = 0; week < values.recorrencia_semanas; week++) {
-      for (const dia of values.dias_semana) {
-        const diaHorario = values.horarios_por_dia[String(dia)] || values.horario || "08:00";
-        const [h, m] = diaHorario.split(":").map(Number);
-        const weekStart = addWeeks(startDate, week);
-        const dayOffset = (dia - weekStart.getDay() + 7) % 7;
-        const targetDate = addDays(weekStart, dayOffset);
-        if (targetDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
-          dates.push(setM(setH(targetDate, h), m));
-        }
-      }
-    }
-    return Array.from(new Set(dates.map(d => d.toISOString()))).map(iso => new Date(iso)).sort((a, b) => a.getTime() - b.getTime());
-  };
+
 
   const doSubmit = async (values: FormData) => {
     if (!user || !activeClinicId) return;
@@ -170,15 +154,12 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
         }
         toast.success(`${dates.length} sessões agendadas com sucesso!`);
       } else if (values.repetir && values.repetir_quantidade > 1) {
-        const [hours, minutes] = values.horario.split(":").map(Number);
-        const startDate = new Date(values.data);
-        startDate.setHours(hours, minutes, 0, 0);
-        toast.info(`Agendando ${values.repetir_quantidade} sessões repetidas...`);
-        for (let i = 0; i < values.repetir_quantidade; i++) {
-          const targetDate = addWeeks(startDate, i);
-          await bookAppointmentMutation.mutateAsync({ ...basePayload, data_horario: targetDate.toISOString() } as any);
+        const dates = generateRepeatedDates(values);
+        toast.info(`Agendando ${dates.length} sessões repetidas...`);
+        for (const dt of dates) {
+          await bookAppointmentMutation.mutateAsync({ ...basePayload, data_horario: dt.toISOString() } as any);
         }
-        toast.success(`${values.repetir_quantidade} sessões agendadas com sucesso!`);
+        toast.success(`${dates.length} sessões agendadas com sucesso!`);
       } else {
         const [hours, minutes] = values.horario.split(":").map(Number);
         const dataHorario = new Date(values.data);

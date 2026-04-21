@@ -13,6 +13,18 @@ interface ProfessionalContractData {
   estadoCivil?: string;
   telefone?: string;
   conselhoProfissional?: string;
+  dataInicio?: string;
+  diaPagamento?: number;
+  raioNaoConcorrencia?: number;
+  multaNaoCaptacaoFator?: number;
+  multaNaoCaptacaoValor?: number;
+  prazoAvisoPrevio?: number;
+  multaUsoMarca?: number;
+  valorSessaoFixo?: number;
+  witness1Name?: string;
+  witness1Cpf?: string;
+  witness2Name?: string;
+  witness2Cpf?: string;
 }
 
 export async function generateProfessionalContractPDF(data: ProfessionalContractData) {
@@ -24,7 +36,7 @@ export async function generateProfessionalContractPDF(data: ProfessionalContract
 
   const settings = await getClinicSettings();
 
-  const addText = (text: string, size: number, bold = false, align: "left" | "center" = "left") => {
+  const addText = (text: string, size: number, bold = false, align: "left" | "center" | "justify" = "left") => {
     doc.setFontSize(size);
     doc.setFont("helvetica", bold ? "bold" : "normal");
     const lines = doc.splitTextToSize(text, maxWidth);
@@ -33,6 +45,9 @@ export async function generateProfessionalContractPDF(data: ProfessionalContract
         doc.text(line, pageWidth / 2, y, { align: "center" });
         y += size * 0.5;
       });
+    } else if (align === "justify") {
+      doc.text(lines, margin, y, { align: "justify", maxWidth });
+      y += lines.length * size * 0.5;
     } else {
       doc.text(lines, margin, y);
       y += lines.length * size * 0.5;
@@ -51,188 +66,111 @@ export async function generateProfessionalContractPDF(data: ProfessionalContract
 
   // Header
   addText(settings.nome.toUpperCase(), 16, true, "center");
-  if (settings.cnpj) {
-    addText(`CNPJ: ${settings.cnpj}`, 9, false, "center");
-  }
-  y += 4;
-  addText("CONTRATO DE PRESTACAO DE SERVICOS PROFISSIONAIS", 13, true, "center");
+  addText("CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS – PILATES", 13, true, "center");
   y += 6;
 
-  addText("Pelo presente instrumento particular, de um lado:", 10);
+  // Parties
+  addText("CONTRATANTE:", 11, true);
+  const clinicAddress = formatClinicAddress(settings);
+  addText(`${settings.nome}, com sede à ${clinicAddress}${settings.telefone ? `, telefone ${settings.telefone}` : ""}, doravante denominada CLÍNICA.`, 10);
   y += 2;
 
-  const endereco = formatClinicAddress(settings);
-  const contato = settings.whatsapp ? `telefone/WhatsApp ${settings.whatsapp}` : "";
-
-  addText(
-    `CLINICA: ${settings.nome}, pessoa juridica de direito privado, com sede a ${endereco}${contato ? `, ${contato}` : ""}, doravante denominada CLINICA.`,
-    10
-  );
-  y += 4;
-
-  addText("E, de outro lado:", 10);
-  y += 2;
-
-  const tipoLabel =
-    data.tipoContratacao === "clt" ? "CLT"
-    : data.tipoContratacao === "mei" ? "MEI"
-    : data.tipoContratacao === "pj" ? "Pessoa Juridica"
-    : "Autonomo";
-
-  const estadoCivilMap: Record<string, string> = {
-    solteiro: "solteiro(a)",
-    casado: "casado(a)",
-    divorciado: "divorciado(a)",
-    viuvo: "viuvo(a)",
-    uniao_estavel: "em uniao estavel",
-  };
-
+  addText("CONTRATADO(A):", 11, true);
   const profParts = [
-    `PROFISSIONAL: ${data.profissionalNome}`,
-    data.estadoCivil ? `, ${estadoCivilMap[data.estadoCivil] || data.estadoCivil}` : "",
-    data.cpf ? `, CPF n ${data.cpf}` : ", CPF n _______________",
-    data.rg ? `, RG n ${data.rg}` : ", RG n _______________",
-    data.endereco ? `, residente a ${data.endereco}` : "",
-    data.telefone ? `, telefone ${data.telefone}` : "",
-    data.conselhoProfissional ? `, ${data.conselhoProfissional}: ${data.registroProfissional || "_______________"}` : `, Registro Profissional: ${data.registroProfissional || "_______________"}`,
-    `, atuando como ${tipoLabel}`,
-    data.tipoContratacao === "pj" && data.cnpj ? ` - CNPJ n ${data.cnpj}` : "",
-    ", doravante denominado PROFISSIONAL.",
+    `Nome: ${data.profissionalNome}`,
+    `CPF: ${data.cpf || "_______________"}`,
+    `RG: ${data.rg || "_______________"}`,
+    data.registroProfissional ? `${data.conselhoProfissional || "REGISTRO"}: ${data.registroProfissional}` : "REGISTRO: _______________",
+    data.endereco ? `Endereço: ${data.endereco}` : "Endereço: _______________",
+    `, doravante denominado(a) PROFISSIONAL.`
+  ].join(" | ");
+  addText(profParts, 10);
+  y += 4;
+
+  const clauses = [
+    { title: "CLÁUSULA 1ª – DO OBJETO", text: "Prestação de serviços profissionais de Pilates e/ou atendimentos correlatos nas dependências da CLÍNICA ou em local por ela indicado." },
+    { title: "CLÁUSULA 2ª – DA NATUREZA JURÍDICA", text: `§1º Este contrato possui natureza civil/autônoma, não gerando vínculo empregatício.\n§2º Não há subordinação jurídica, controle de jornada ou exclusividade obrigatória.\n§3º O PROFISSIONAL declara atuar como: (${data.tipoContratacao === "autonomo" ? "X" : " "}) Autônomo | (${data.tipoContratacao === "mei" ? "X" : " "}) MEI | (${data.tipoContratacao === "pj" ? "X" : " "}) Pessoa Jurídica${data.cnpj ? ` – CNPJ nº ${data.cnpj}` : ""}` },
+    { title: "CLÁUSULA 3ª – DA REMUNERAÇÃO (COMISSÃO)", text: `§1º O PROFISSIONAL receberá ${data.commissionRate}% sobre os valores efetivamente pagos pelos pacientes.\n§2º A comissão incidirá sobre mensalidades, sessões avulsas e pacotes quitados.\n§3º Não incide comissão sobre cortesias, descontos, inadimplentes ou taxas administrativas.\n§4º O pagamento será realizado até o dia ${data.diaPagamento || 10} do mês seguinte.\n§5º A CLÍNICA poderá reter valores em caso de estorno ou reembolso.` },
+    { title: "CLÁUSULA 4ª – DA ORGANIZAÇÃO DOS ATENDIMENTOS", text: "§1º A agenda será organizada em conjunto.\n§2º O atendimento deve respeitar padrões da clínica, sob pena de rescisão em caso de atrasos recorrentes." },
+    { title: "CLÁUSULA 5ª – DAS OBRIGAÇÕES DO PROFISSIONAL", text: "I – Atuar com ética; II – Manter registro regular; III – Seguir protocolos; IV – Zelar por equipamentos; V – Cumprir LGPD e sigilo absoluto." },
+    { title: "CLÁUSULA 6ª – DAS OBRIGAÇÕES DA CLÍNICA", text: "I – Disponibilizar estrutura; II – Realizar cobrança; III – Fornecer demonstrativo financeiro; IV – Efetuar pagamento da comissão." },
+    { title: "CLÁUSULA 7ª – DA NÃO CAPTAÇÃO DE PACIENTES", text: `§1º É proibido captar ou desviar pacientes durante o contrato e até 12 meses após.\n§2º Multa: ${data.multaNaoCaptacaoValor ? `R$ ${data.multaNaoCaptacaoValor.toFixed(2)}` : `${data.multaNaoCaptacaoFator || 10}x valor médio da mensalidade`} por paciente desviado.` },
+    { title: "CLÁUSULA 8ª – DA NÃO CONCORRÊNCIA", text: `O PROFISSIONAL não poderá atuar em clínica concorrente no raio de ${data.raioNaoConcorrencia || 5} km durante a vigência deste contrato.` },
+    { title: "CLÁUSULA 9ª – CONFIDENCIALIDADE E LGPD", text: "§1º Proteção absoluta de dados de pacientes e registros financeiros.\n§2º Cumprimento integral da Lei nº 13.709/2018 (LGPD).\n§3º Sigilo é vitalício." },
+    { title: "CLÁUSULA 10ª – DO USO DA MARCA E IMAGEM", text: `§1º Proibido usar a marca sem autorização.\n§2º Autoriza o uso de imagem institucional da clínica.\n§3º O uso indevido da marca sujeitará o PROFISSIONAL a multa de R$ ${(data.multaUsoMarca || 5000).toFixed(2)}.` },
+    { title: "CLÁUSULA 11ª – DOS DANOS E RESPONSABILIDADES", text: "Danos causados por negligência ou mau uso de equipamentos são de responsabilidade do PROFISSIONAL." },
+    { title: "CLÁUSULA 12ª – DAS FALTAS E CANCELAMENTOS", text: "Comissão só é devida sobre atendimento realizado e pago. Falta sem aviso pode gerar penalidade." },
+    { title: "CLÁUSULA 13ª – DA AUDITORIA E CONTROLE", text: "A CLÍNICA poderá auditar atendimentos e agendas para conferência de comissões." },
+    { title: "CLÁUSULA 14ª – DA RESCISÃO", text: `§1º Aviso prévio: ${data.prazoAvisoPrevio || 30} dias.\n§2º Rescisão imediata por quebra de sigilo ou desvio de pacientes.` },
+    { title: "CLÁUSULA 15ª – DAS PENALIDADES", text: "Advertência, Suspensão, Multa ou Rescisão." },
+    { title: "CLÁUSULA 16ª – DO PRAZO", text: `Prazo indeterminado, iniciando em ${data.dataInicio || new Date().toLocaleDateString("pt-BR")}.` },
+    { title: "CLÁUSULA 17ª – DO FORO", text: `Foro de ${settings.cidade || "Barbacena"}/MG.` },
+    { title: "CLÁUSULA 18ª – DA VALIDADE DAS ASSINATURAS ELETRÔNICAS", text: "As partes reconhecem a validade jurídica das assinaturas eletrônicas apostas neste contrato, conforme a Medida Provisória nº 2.200-2/2001 e o Código Civil Brasileiro, outorgando-lhe plena eficácia jurídica e executiva." },
   ];
 
-  addText(profParts.join(""), 10, true);
-  y += 4;
+  clauses.forEach(c => {
+    checkPage();
+    addText(c.title, 10, true);
+    addText(c.text, 10);
+    y += 2;
+  });
 
-  addText("As partes resolvem firmar o presente contrato, que se regera pelas clausulas seguintes:", 10);
-  y += 6;
-
-  // CLAUSULA 1
-  checkPage();
-  addText("CLAUSULA 1a - DO OBJETO", 10, true);
-  addText("O presente contrato tem por objeto a prestacao de servicos profissionais na area de Fisioterapia/Pilates pelo PROFISSIONAL, nas dependencias da CLINICA, conforme horarios e condicoes previamente acordados.", 10);
-  y += 4;
-
-  // CLAUSULA 2
-  checkPage();
-  addText("CLAUSULA 2a - DA NATUREZA JURIDICA", 10, true);
-  addText("Paragrafo 1. O presente instrumento possui natureza estritamente civil, inexistindo vinculo empregaticio, subordinacao juridica, pessoalidade ou habitualidade nos termos da legislacao trabalhista.", 10);
-  addText("Paragrafo 2. O PROFISSIONAL atuara com autonomia tecnica, sendo responsavel pelos atendimentos realizados.", 10);
-  y += 2;
-  addText("Paragrafo 3. O PROFISSIONAL declara atuar como:", 10);
-  y += 2;
-
-  const opcoes = [
-    { label: "Autonomo", checked: data.tipoContratacao === "autonomo" },
-    { label: "MEI", checked: data.tipoContratacao === "mei" },
-    { label: `Pessoa Juridica - CNPJ n ${data.cnpj || "______________________"}`, checked: data.tipoContratacao === "pj" },
-    { label: "CLT", checked: data.tipoContratacao === "clt" },
-  ];
-  opcoes.forEach((o) => addText(`(${o.checked ? "X" : " "}) ${o.label}`, 10));
-  y += 4;
-
-  // CLAUSULA 3
-  checkPage();
-  addText("CLAUSULA 3a - DA REMUNERACAO", 10, true);
-  addText(`Paragrafo 1. O PROFISSIONAL recebera comissao correspondente a ${data.commissionRate}% (${data.commissionRate} por cento) sobre os valores efetivamente pagos pelos pacientes a CLINICA.`, 10);
-  addText("Paragrafo 2. A comissao incidira exclusivamente sobre valores efetivamente recebidos e compensados.", 10);
-  addText("Paragrafo 3. O pagamento sera realizado ate o dia 10 do mes subsequente, mediante demonstrativo financeiro.", 10);
-  addText("Paragrafo 4. Em caso de inadimplencia do paciente, a comissao somente sera devida apos a quitacao.", 10);
-  addText("Paragrafo 5. Nao havera pagamento de comissao sobre descontos concedidos, cortesias ou valores nao recebidos.", 10);
-  y += 4;
-
-  // CLAUSULA 4
-  checkPage();
-  addText("CLAUSULA 4a - DAS OBRIGACOES DO PROFISSIONAL", 10, true);
-  ["I - Realizar atendimentos com etica, zelo e observancia as normas tecnicas;",
-   "II - Manter registro profissional regular;",
-   "III - Zelar pelos equipamentos e estrutura da CLINICA;",
-   "IV - Cumprir horarios previamente agendados;",
-   "V - Manter sigilo sobre informacoes comerciais e clinicas;",
-   "VI - Cumprir integralmente a legislacao vigente, inclusive sanitaria e profissional.",
-  ].forEach((o) => addText(o, 10));
-  y += 4;
-
-  // CLAUSULA 5
-  checkPage();
-  addText("CLAUSULA 5a - DAS OBRIGACOES DA CLINICA", 10, true);
-  ["I - Disponibilizar espaco fisico adequado e equipamentos;",
-   "II - Realizar a cobranca dos pacientes;",
-   "III - Fornecer relatorio mensal para conferencia;",
-   "IV - Efetuar o pagamento da comissao conforme pactuado.",
-  ].forEach((o) => addText(o, 10));
-  y += 4;
-
-  // CLAUSULA 6
-  checkPage();
-  addText("CLAUSULA 6a - DA NAO CAPTACAO E NAO DESVIO DE PACIENTES", 10, true);
-  addText("Paragrafo 1. O PROFISSIONAL compromete-se a nao captar, aliciar ou desviar pacientes da CLINICA.", 10);
-  addText("Paragrafo 2. A vedacao aplica-se durante a vigencia do contrato e por 12 (doze) meses apos sua rescisao.", 10);
-  addText("Paragrafo 3. Considera-se infracao qualquer forma de incentivo, convite ou oferta de atendimento externo.", 10);
-  addText("Paragrafo 4. O descumprimento sujeitara o PROFISSIONAL ao pagamento de multa equivalente a 10 (dez) vezes o valor medio da mensalidade por paciente desviado.", 10);
-  y += 4;
-
-  // CLAUSULA 7
-  checkPage();
-  addText("CLAUSULA 7a - DA CONFIDENCIALIDADE E LGPD", 10, true);
-  addText("Paragrafo 1. O PROFISSIONAL obriga-se a manter absoluto sigilo sobre:", 10);
-  ["- Dados pessoais e sensiveis de pacientes",
-   "- Prontuarios e informacoes clinicas",
-   "- Lista de pacientes",
-   "- Valores, estrategias e dados financeiros",
-  ].forEach((s) => addText(s, 10));
-  y += 2;
-  addText("Paragrafo 2. O tratamento de dados devera observar a Lei n 13.709/2018 (LGPD).", 10);
-  addText("Paragrafo 3. E vedado:", 10);
-  addText("I - Compartilhar dados por meios nao seguros;", 10);
-  addText("II - Utilizar dados para fins particulares;", 10);
-  addText("III - Manter copia de prontuarios apos o termino do contrato.", 10);
-  addText("Paragrafo 4. O dever de confidencialidade permanece por prazo indeterminado.", 10);
-  addText("Paragrafo 5. O descumprimento implicara multa, sem prejuizo das medidas judiciais cabiveis.", 10);
-  y += 4;
-
-  // CLAUSULA 8-11
-  checkPage();
-  addText("CLAUSULA 8a - DA RESPONSABILIDADE TECNICA", 10, true);
-  addText("O PROFISSIONAL e responsavel tecnico pelos atendimentos realizados, respondendo civil, etica e administrativamente por sua conduta.", 10);
-  y += 4;
-
-  checkPage();
-  addText("CLAUSULA 9a - DA RESCISAO", 10, true);
-  addText("O contrato podera ser rescindido por qualquer das partes mediante aviso previo de 30 (trinta) dias, por escrito.", 10);
-  addText("Paragrafo unico: As comissoes ja apuradas deverao ser quitadas normalmente.", 10);
-  y += 4;
-
-  checkPage();
-  addText("CLAUSULA 10a - DO PRAZO", 10, true);
-  addText("O presente contrato vigorara por prazo indeterminado, iniciando-se em ___/___/______.", 10);
-  y += 4;
-
-  checkPage();
-  addText("CLAUSULA 11a - DO FORO", 10, true);
-  addText(`Fica eleito o foro da comarca de ${settings.cidade || "Barbacena"}/${settings.estado || "MG"}, com renuncia a qualquer outro.`, 10);
-  y += 8;
-
-  // Signatures
-  checkPage();
-  const hoje = new Date();
-  const meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  addText(`${settings.cidade || "Barbacena"}/${settings.estado || "MG"}, ____ de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}.`, 10);
+  y += 10;
+  addText("Assinaturas:", 10, true);
   y += 12;
 
+  checkPage();
   doc.line(margin, y, margin + 70, y);
-  y += 5;
-  addText(`CLINICA - ${settings.nome}`, 9);
-  y += 10;
+  addText("CLÍNICA", 9);
+  addText(settings.nome, 8);
+  y += 12;
 
   checkPage();
   doc.line(margin, y, margin + 70, y);
-  y += 5;
-  addText(`PROFISSIONAL - ${data.profissionalNome}`, 9);
-  if (data.registroProfissional) {
-    const regText = data.conselhoProfissional ? `${data.conselhoProfissional}: ${data.registroProfissional}` : `Registro: ${data.registroProfissional}`;
-    addText(regText, 9);
+  addText("PROFISSIONAL", 9);
+  addText(data.profissionalNome, 8);
+
+  // Witnesses
+  if (data.witness1Name || data.witness2Name) {
+    y += 10;
+    checkPage();
+    addText("Testemunhas:", 10, true);
+    y += 10;
+    const witnessY = y;
+
+    if (data.witness1Name) {
+      doc.line(margin, y, margin + 70, y);
+      doc.text("1. ____________________________", margin, y + 5);
+      doc.text(`Nome: ${data.witness1Name}`, margin, y + 9);
+      if (data.witness1Cpf) doc.text(`CPF: ${data.witness1Cpf}`, margin, y + 12);
+    }
+
+    if (data.witness2Name) {
+      const w2X = pageWidth - margin - 70;
+      doc.line(w2X, witnessY, pageWidth - margin, witnessY);
+      doc.text("2. ____________________________", w2X, witnessY + 5);
+      doc.text(`Nome: ${data.witness2Name}`, w2X, witnessY + 9);
+      if (data.witness2Cpf) doc.text(`CPF: ${data.witness2Cpf}`, w2X, witnessY + 12);
+    }
   }
-  if (data.cpf) addText(`CPF: ${data.cpf}`, 9);
+
+  // EXTRA PAGE: Política Interna Profissional
+  doc.addPage(); y = 20;
+  addText("POLÍTICA INTERNA – PROFISSIONAIS", 14, true, "center");
+  y += 10;
+  const profPolicies = [
+    { t: "1. CONDUTA", d: "Ética e respeito. Seguir protocolos técnicos. Postura profissional irrepreensível." },
+    { t: "2. CONFIDENCIALIDADE", d: "Proibido compartilhar dados, fotografar prontuários ou usar dados fora da clínica." },
+    { t: "3. RELACIONAMENTO", d: "Vedado atendimento particular de pacientes da clínica ou desvio para outros locais." },
+    { t: "4. ESTRUTURA", d: "Zelo absoluto pelos equipamentos. Notificar danos imediatamente." },
+    { t: "5. AGENDA", d: "Cumprimento rigoroso de horários. Aviso prévio obrigatório para ausências." },
+    { t: "6. LGPD", d: "Tratamento de dados com sigilo absoluto. Não armazenar dados em dispositivos pessoais." }
+  ];
+  profPolicies.forEach(p => {
+    addText(p.t, 10, true);
+    addText(p.d, 10);
+    y += 2;
+  });
 
   await addWatermarkToAllPages(doc);
   return doc;

@@ -209,6 +209,13 @@ const Profissionais = () => {
             commission_fixed: parseFloat(data.commission_fixed) || 0,
             permissions: data.role === "admin" ? [] : toPermEntries(DEFAULT_PERMISSIONS[data.role] || []),
             clinic_id: activeClinicId || null,
+            // Novos campos de contrato
+            contract_raio_nao_concorrencia_km: data.contract_raio_nao_concorrencia_km ? parseFloat(data.contract_raio_nao_concorrencia_km) : null,
+            contract_multa_nao_captacao_fator: data.contract_multa_nao_captacao_fator ? parseInt(data.contract_multa_nao_captacao_fator) : null,
+            contract_multa_nao_captacao_valor: data.contract_multa_nao_captacao_valor ? parseFloat(data.contract_multa_nao_captacao_valor) : null,
+            contract_dia_pagamento_comissao: data.contract_dia_pagamento_comissao ? parseInt(data.contract_dia_pagamento_comissao) : null,
+            contract_prazo_aviso_previo_dias: data.contract_prazo_aviso_previo_dias ? parseInt(data.contract_prazo_aviso_previo_dias) : null,
+            contract_multa_uso_marca_valor: data.contract_multa_uso_marca_valor ? parseFloat(data.contract_multa_uso_marca_valor) : null,
           }
         });
         if (fnError) throw new Error(result?.error || fnError.message || "Erro ao criar usuário");
@@ -246,6 +253,13 @@ const Profissionais = () => {
             conselho_profissional: data.conselho_profissional || null,
             registro_conselho: data.registro_conselho || null,
             foto_url: data.foto_url || null,
+            // Novos campos de contrato
+            contract_raio_nao_concorrencia_km: data.contract_raio_nao_concorrencia_km ? parseFloat(data.contract_raio_nao_concorrencia_km) : null,
+            contract_multa_nao_captacao_fator: data.contract_multa_nao_captacao_fator ? parseInt(data.contract_multa_nao_captacao_fator) : null,
+            contract_multa_nao_captacao_valor: data.contract_multa_nao_captacao_valor ? parseFloat(data.contract_multa_nao_captacao_valor) : null,
+            contract_dia_pagamento_comissao: data.contract_dia_pagamento_comissao ? parseInt(data.contract_dia_pagamento_comissao) : null,
+            contract_prazo_aviso_previo_dias: data.contract_prazo_aviso_previo_dias ? parseInt(data.contract_prazo_aviso_previo_dias) : null,
+            contract_multa_uso_marca_valor: data.contract_multa_uso_marca_valor ? parseFloat(data.contract_multa_uso_marca_valor) : null,
           } as any)
           .eq("id", editingId);
         if (error) throw error;

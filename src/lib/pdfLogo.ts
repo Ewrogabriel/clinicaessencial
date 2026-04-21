@@ -15,6 +15,21 @@ interface ClinicSettings {
   telefone: string | null;
   rubrica_url?: string | null;
   assinatura_url?: string | null;
+  // Campos de contrato
+  contract_multa_atraso_pct?: number;
+  contract_juros_mensal_pct?: number;
+  contract_prazo_cancelamento_h?: number;
+  contract_dia_vencimento?: number;
+  contract_prazo_reposicao_dias?: number;
+  contract_vigencia_meses?: number;
+  contract_cidade_foro?: string;
+  contract_estado_foro?: string;
+  contract_raio_nao_concorrencia_km?: number;
+  contract_multa_nao_captacao_fator?: number;
+  contract_multa_nao_captacao_valor?: number;
+  contract_dia_pagamento_comissao?: number;
+  contract_prazo_aviso_previo_dias?: number;
+  contract_multa_uso_marca_valor?: number;
 }
 
 let cachedSettings: ClinicSettings | null = null;
@@ -24,7 +39,13 @@ export async function getClinicSettings(): Promise<ClinicSettings> {
   
   const { data } = await supabase
     .from("clinic_settings")
-    .select("logo_url, nome, cnpj, endereco, numero, bairro, cidade, estado, whatsapp, instagram, email, telefone, rubrica_url, assinatura_url")
+    .select(`
+      logo_url, nome, cnpj, endereco, numero, bairro, cidade, estado, whatsapp, instagram, email, telefone, rubrica_url, assinatura_url,
+      contract_multa_atraso_pct, contract_juros_mensal_pct, contract_prazo_cancelamento_h, contract_dia_vencimento,
+      contract_prazo_reposicao_dias, contract_vigencia_meses, contract_cidade_foro, contract_estado_foro,
+      contract_raio_nao_concorrencia_km, contract_multa_nao_captacao_fator, contract_multa_nao_captacao_valor,
+      contract_dia_pagamento_comissao, contract_prazo_aviso_previo_dias, contract_multa_uso_marca_valor
+    `)
     .limit(1)
     .single() as any;
   

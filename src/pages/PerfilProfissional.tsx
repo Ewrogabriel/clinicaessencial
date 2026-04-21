@@ -88,6 +88,13 @@ const PerfilProfissional = () => {
         cidade: formData.cidade || null,
         estado: formData.estado || null,
         cep: formData.cep || null,
+        // Novos campos de contrato
+        contract_raio_nao_concorrencia_km: formData.contract_raio_nao_concorrencia_km ? parseFloat(formData.contract_raio_nao_concorrencia_km) : null,
+        contract_multa_nao_captacao_fator: formData.contract_multa_nao_captacao_fator ? parseInt(formData.contract_multa_nao_captacao_fator) : null,
+        contract_multa_nao_captacao_valor: formData.contract_multa_nao_captacao_valor ? parseFloat(formData.contract_multa_nao_captacao_valor) : null,
+        contract_dia_pagamento_comissao: formData.contract_dia_pagamento_comissao ? parseInt(formData.contract_dia_pagamento_comissao) : null,
+        contract_prazo_aviso_previo_dias: formData.contract_prazo_aviso_previo_dias ? parseInt(formData.contract_prazo_aviso_previo_dias) : null,
+        contract_multa_uso_marca_valor: formData.contract_multa_uso_marca_valor ? parseFloat(formData.contract_multa_uso_marca_valor) : null,
       };
 
       const { error } = await supabase
@@ -203,6 +210,7 @@ const PerfilProfissional = () => {
                 multiple
                 accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                 className="hidden"
+                title="Upload de documentos"
                 onChange={handleUpload}
               />
               <Button

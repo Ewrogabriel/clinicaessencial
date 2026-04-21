@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Link as LinkIcon, Copy, Camera, Upload, ShieldCheck, FileText } from "lucide-react";
 import defaultAvatarImg from "@/assets/default-avatar.png";
 import defaultAvatarMale from "@/assets/default-avatar-male.png";
 import defaultAvatarFemale from "@/assets/default-avatar-female.png";
@@ -28,6 +28,7 @@ const PacienteForm = () => {
     guardian, setGuardian, setGuardianField,
     invoice, setInvoiceField,
     clinical, setClinicalField,
+    contract, setContractField,
     lgpdConsentimento, setLgpdConsentimento,
     codigoAcesso,
     loading, loadingData, uploadingPhoto,
@@ -112,6 +113,7 @@ const PacienteForm = () => {
                 type="file"
                 accept="image/*"
                 className="hidden"
+                title="Upload de foto"
                 onChange={handlePhotoUpload}
               />
             </div>
@@ -425,6 +427,114 @@ const PacienteForm = () => {
             <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="observacoes">Observações Clínicas</Label>
               <Textarea id="observacoes" placeholder="Anotações sobre o paciente, histórico clínico, restrições..." rows={4} value={clinical.observacoes} onChange={(e) => setClinicalField("observacoes", e.target.value)} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contract Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" /> Configurações de Contrato
+            </CardTitle>
+            <CardDescription>
+              Personalize as cláusulas contratuais para este paciente. Se deixado em branco, o sistema usará os padrões da clínica.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Multa por Atraso (%)</Label>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.multaAtrasoPct ?? ""} 
+                  onChange={(e) => setContractField("multaAtrasoPct", e.target.value ? parseFloat(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Juros Mensais (%)</Label>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.jurosMensalPct ?? ""} 
+                  onChange={(e) => setContractField("jurosMensalPct", e.target.value ? parseFloat(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Prazo Cancelamento (h)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.prazoCancelamentoH ?? ""} 
+                  onChange={(e) => setContractField("prazoCancelamentoH", e.target.value ? parseInt(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Dia de Vencimento</Label>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="31" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.diaVencimento ?? ""} 
+                  onChange={(e) => setContractField("diaVencimento", e.target.value ? parseInt(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Prazo Reposição (dias)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.prazoReposicaoDias ?? ""} 
+                  onChange={(e) => setContractField("prazoReposicaoDias", e.target.value ? parseInt(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Vigência do Contrato (meses)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.vigenciaMeses ?? ""} 
+                  onChange={(e) => setContractField("vigenciaMeses", e.target.value ? parseInt(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Taxa de Matrícula (R$)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Padrão da clínica" 
+                  value={contract.enrollmentFee ?? ""} 
+                  onChange={(e) => setContractField("enrollmentFee", e.target.value ? parseFloat(e.target.value) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Forma de Pagamento Preferencial</Label>
+                <Input 
+                  placeholder="Ex: Pix, Cartão, Dinheiro" 
+                  value={contract.paymentMethod ?? ""} 
+                  onChange={(e) => setContractField("paymentMethod", e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cidade do Foro</Label>
+                <Input 
+                  placeholder="Cidade onde o contrato será assinado" 
+                  value={contract.cidadeForo ?? ""} 
+                  onChange={(e) => setContractField("cidadeForo", e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado do Foro (UF)</Label>
+                <Input 
+                  placeholder="MG" 
+                  maxLength={2}
+                  value={contract.estadoForo ?? ""} 
+                  onChange={(e) => setContractField("estadoForo", e.target.value)} 
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

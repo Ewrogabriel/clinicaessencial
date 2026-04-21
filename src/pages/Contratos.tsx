@@ -21,6 +21,7 @@ import { PenTool } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SignaturePad } from "@/components/clinical/SignaturePad";
 import { toast } from "sonner";
+import { History, Search, Eye, Trash2 } from "lucide-react";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
@@ -38,6 +39,8 @@ const Contratos = () => {
   const [usarAssinaturaClinica, setUsarAssinaturaClinica] = useState(false);
   const [pacienteSignature, setPacienteSignature] = useState<string | null>(null);
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
+  const [overrideEnrollmentFee, setOverrideEnrollmentFee] = useState<string>("");
+  const [overridePaymentMethod, setOverridePaymentMethod] = useState<string>("");
   const clinicNome = clinicSettings?.nome || "Essencial Fisio Pilates";
   const clinicCNPJ = clinicSettings?.cnpj || "";
   const clinicEnderecoFull = [clinicSettings?.endereco, clinicSettings?.numero ? `nº ${clinicSettings.numero}` : "", clinicSettings?.bairro, clinicSettings?.cidade ? `${clinicSettings.cidade}/${clinicSettings.estado}` : ""].filter(Boolean).join(", ");
@@ -48,7 +51,9 @@ const Contratos = () => {
     queryKey: ["pacientes-contrato", activeClinicId],
     queryFn: async () => {
       if (isPatient && patientId) {
-        const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("id", patientId);
+        const { data } = await supabase.from("pacientes")
+          .select("id, nome, cpf, rg, telefone, email, rua, numero, complemento, bairro, cidade, estado, cep, contract_multa_atraso_pct, contract_juros_mensal_pct, contract_prazo_cancelamento_h, contract_dia_vencimento, contract_prazo_reposicao_dias, contract_vigencia_meses, contract_cidade_foro, contract_estado_foro, contract_enrollment_fee, contract_payment_method")
+          .eq("id", patientId);
         return data ?? [];
       }
       if (activeClinicId) {
@@ -57,12 +62,26 @@ const Contratos = () => {
         const ids = (cp || []).map(c => c.paciente_id);
         if (!ids.length) return [];
         const { data } = await supabase.from("pacientes")
-          .select("id, nome, cpf, rg, telefone, email").in("id", ids).eq("status", "ativo").order("nome");
+          .select("id, nome, cpf, rg, telefone, email, rua, numero, complemento, bairro, cidade, estado, cep, contract_multa_atraso_pct, contract_juros_mensal_pct, contract_prazo_cancelamento_h, contract_dia_vencimento, contract_prazo_reposicao_dias, contract_vigencia_meses, contract_cidade_foro, contract_estado_foro, contract_enrollment_fee, contract_payment_method")
+          .in("id", ids).eq("status", "ativo").order("nome");
         return data ?? [];
       }
-      const { data } = await supabase.from("pacientes").select("id, nome, cpf, rg, telefone, email").eq("status", "ativo").order("nome");
+      const { data } = await supabase.from("pacientes")
+        .select("id, nome, cpf, rg, telefone, email, rua, numero, complemento, bairro, cidade, estado, cep, contract_multa_atraso_pct, contract_juros_mensal_pct, contract_prazo_cancelamento_h, contract_dia_vencimento, contract_prazo_reposicao_dias, contract_vigencia_meses, contract_cidade_foro, contract_estado_foro, contract_enrollment_fee, contract_payment_method")
+        .eq("status", "ativo").order("nome");
       return data ?? [];
     },
+  });
+
+  const { data: contractHistory = [], refetch: refetchHistory } = useQuery({
+    queryKey: ["documentos-contratos", activeClinicId, patientId],
+    queryFn: async () => {
+      let query = supabase.from("documentos_contratos").select("*, pacientes(nome)").order("criado_em", { ascending: false });
+      if (activeClinicId) query = query.eq("clinic_id", activeClinicId);
+      if (isPatient && patientId) query = query.eq("paciente_id", patientId);
+      const { data } = await query;
+      return data ?? [];
+    }
   });
 
   const { data: planos = [] } = useQuery({
@@ -103,14 +122,18 @@ const Contratos = () => {
     queryKey: ["profissionais-contrato"],
     queryFn: async () => {
       if (isProfissional) {
-        const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").eq("user_id", user?.id).order("nome");
+        const { data } = await supabase.from("profiles")
+          .select("*, assinatura_url, nome, user_id, rua, numero, complemento, bairro, cidade, estado, cep, registro_conselho, conselho_profissional, registro_profissional, contract_raio_nao_concorrencia_km, contract_multa_nao_captacao_fator, contract_multa_nao_captacao_valor, contract_dia_pagamento_comissao, contract_prazo_aviso_previo_dias, contract_multa_uso_marca_valor")
+          .eq("user_id", user?.id).order("nome");
         return (data as any[]) ?? [];
       }
       if (!canManage) return [];
       const { data: roleData } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
       const userIds = roleData?.map(r => r.user_id) ?? [];
       if (userIds.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("*, assinatura_url, nome, user_id").in("user_id", userIds).order("nome");
+      const { data } = await supabase.from("profiles")
+        .select("*, assinatura_url, nome, user_id, rua, numero, complemento, bairro, cidade, estado, cep, registro_conselho, conselho_profissional, registro_profissional, contract_raio_nao_concorrencia_km, contract_multa_nao_captacao_fator, contract_multa_nao_captacao_valor, contract_dia_pagamento_comissao, contract_prazo_aviso_previo_dias, contract_multa_uso_marca_valor")
+        .in("user_id", userIds).order("nome");
       return (data as any[]) ?? [];
     },
     enabled: canManage || isProfissional,
@@ -119,7 +142,9 @@ const Contratos = () => {
   const { data: currentUserProfile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho").eq("user_id", user?.id).single();
+      const { data } = await supabase.from("profiles")
+        .select("nome, assinatura_url, rubrica_url, registro_profissional, conselho_profissional, registro_conselho, rua, numero, complemento, bairro, cidade, estado, cep, contract_raio_nao_concorrencia_km, contract_multa_nao_captacao_fator, contract_multa_nao_captacao_valor, contract_dia_pagamento_comissao, contract_prazo_aviso_previo_dias, contract_multa_uso_marca_valor")
+        .eq("user_id", user?.id).single();
       return data;
     },
     enabled: !!user?.id,
@@ -169,16 +194,27 @@ const Contratos = () => {
     const sigUrl = usarAssinaturaClinica ? clinicSettings?.assinatura_url : prof?.assinatura_url;
     const rubUrl = usarAssinaturaClinica ? clinicSettings?.rubrica_url : prof?.rubrica_url;
 
+    const pacienteEndereco = [
+      paciente?.rua,
+      paciente?.numero ? `nº ${paciente.numero}` : "",
+      paciente?.complemento,
+      paciente?.bairro,
+      paciente?.cidade ? `${paciente.cidade}/${paciente.estado}` : ""
+    ].filter(Boolean).join(", ");
+
     return {
       pacienteNome: paciente?.nome || "",
       cpf: paciente?.cpf || "",
       rg: paciente?.rg || "",
+      pacienteEndereco: pacienteEndereco,
+      pacienteTelefone: paciente?.telefone || "",
       planoNome: plano?.nome || "A definir",
       planoFrequencia: plano?.frequencia_semanal || 1,
       planoModalidade: plano?.modalidade || "grupo",
       planoValor: matricula?.valor_mensal || plano?.valor || 0,
       desconto: desconto?.percentual_desconto || 0,
       dataContrato: format(new Date(), "dd/MM/yyyy"),
+      horarios: matricula?.horarios || "A definir",
       pacienteSignature: pacienteSignature || undefined,
       profissionalSignature: sigUrl || undefined,
       profissionalNome: usarAssinaturaClinica ? clinicNome : (prof?.nome || clinicNome),
@@ -189,6 +225,20 @@ const Contratos = () => {
       profissionalRegistro: usarAssinaturaClinica ? clinicSettings?.cnpj : (prof?.registro_conselho || prof?.registro_profissional),
       conselhoProfissional: usarAssinaturaClinica ? undefined : prof?.conselho_profissional,
       contractId: crypto.randomUUID(),
+      // Novos campos com fallback
+      contractMultaAtrasoPct: paciente?.contract_multa_atraso_pct ?? clinicSettings?.pref_contract_multa_atraso_pct ?? 2,
+      contractJurosMensalPct: paciente?.contract_juros_mensal_pct ?? clinicSettings?.pref_contract_juros_mensal_pct ?? 1,
+      contractPrazoCancelamentoH: paciente?.contract_prazo_cancelamento_h ?? clinicSettings?.pref_contract_prazo_cancelamento_h ?? 3,
+      contractPrazoReposicaoDias: paciente?.contract_prazo_reposicao_dias ?? clinicSettings?.pref_contract_prazo_reposicao_dias ?? 30,
+      contractVigenciaMeses: paciente?.contract_vigencia_meses ?? clinicSettings?.pref_contract_vigencia_meses ?? 6,
+      contractCidadeForo: paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena",
+      contractEstadoForo: paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG",
+      contractEnrollmentFee: Number(overrideEnrollmentFee) || 0,
+      contractPaymentMethod: overridePaymentMethod || "Pix",
+      witness1Name: clinicSettings?.pref_contract_witness1_name,
+      witness1Cpf: clinicSettings?.pref_contract_witness1_cpf,
+      witness2Name: clinicSettings?.pref_contract_witness2_name,
+      witness2Cpf: clinicSettings?.pref_contract_witness2_cpf,
     };
   };
 
@@ -196,9 +246,40 @@ const Contratos = () => {
 
   const handleDownload = async () => {
     if (!paciente) { toast.error("Selecione um paciente"); return; }
-    const pdf = await generateContractPDF(getContractData());
+    const contractData = getContractData();
+    const pdf = await generateContractPDF(contractData);
+    
+    // Automatic Storage
+    try {
+      const pdfBlob = pdf.output("blob");
+      const fileName = `contrato_${paciente.id}_${Date.now()}.pdf`;
+      const filePath = `${activeClinicId}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("contratos")
+        .upload(filePath, pdfBlob);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: publicUrl } = supabase.storage.from("contratos").getPublicUrl(filePath);
+      
+      await supabase.from("documentos_contratos").insert({
+        clinic_id: activeClinicId,
+        paciente_id: paciente.id,
+        tipo_documento: "paciente",
+        arquivo_url: publicUrl.publicUrl,
+        versao: 1,
+        metadados: contractData
+      });
+      
+      refetchHistory();
+    } catch (e) {
+      console.error("Erro ao salvar contrato:", e);
+      toast.error("Não foi possível arquivar o contrato automaticamente, mas o download seguirá.");
+    }
+
     pdf.save(`Contrato_${paciente.nome.replace(/\s/g, "_")}.pdf`);
-    toast.success("Contrato gerado com sucesso!");
+    toast.success("Contrato gerado e arquivado com sucesso!");
   };
 
   const handleWhatsAppSend = async () => {
@@ -212,7 +293,7 @@ const Contratos = () => {
 
   const handleProfissionalDownload = async () => {
     if (!profissional) { toast.error("Selecione um profissional"); return; }
-    const endParts = [profissional.endereco, profissional.numero ? `nº ${profissional.numero}` : "", profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ");
+    const endParts = [profissional.rua, profissional.numero ? `nº ${profissional.numero}` : "", profissional.complemento, profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ");
     const doc = await generateProfessionalContractPDF({
       profissionalNome: profissional.nome,
       registroProfissional: profissional.registro_conselho || profissional.registro_profissional || "",
@@ -222,9 +303,17 @@ const Contratos = () => {
       commissionRate: profissional.commission_rate || 0,
       cpf: profissional.cpf || "",
       rg: profissional.rg || "",
-      endereco: endParts,
+      endereco: endParts || "",
       estadoCivil: profissional.estado_civil || "",
       telefone: profissional.telefone || "",
+      diaPagamento: profissional.contract_dia_pagamento_comissao ?? clinicSettings?.pref_contract_dia_pagamento_comissao ?? 10,
+      raioNaoConcorrencia: profissional.contract_raio_nao_concorrencia_km ?? clinicSettings?.pref_contract_raio_nao_concorrencia_km ?? 5,
+      multaNaoCaptacaoFator: profissional.contract_multa_nao_captacao_fator ?? clinicSettings?.pref_contract_multa_nao_captacao_fator,
+      multaNaoCaptacaoValor: profissional.contract_multa_nao_captacao_valor ?? clinicSettings?.pref_contract_multa_nao_captacao_valor,
+      prazoAvisoPrevio: profissional.contract_prazo_aviso_previo_dias ?? clinicSettings?.pref_contract_prazo_aviso_previo_dias ?? 30,
+      multaUsoMarca: profissional.contract_multa_uso_marca_valor ?? clinicSettings?.pref_contract_multa_uso_marca_valor ?? 5000,
+      valorSessaoFixo: profissional.contract_valor_sessao_fixo ?? 0,
+      dataInicio: format(new Date(), "dd/MM/yyyy"),
     });
     doc.save(`contrato-profissional-${profissional.nome.replace(/\s+/g, "-").toLowerCase()}.pdf`);
     toast.success("Contrato profissional gerado!");
@@ -232,7 +321,11 @@ const Contratos = () => {
 
   useEffect(() => {
     if (isPatient && patientId && !selectedPaciente && pacientes.length > 0) setSelectedPaciente(patientId);
-  }, [isPatient, patientId, selectedPaciente, pacientes]);
+    if (paciente) {
+      setOverrideEnrollmentFee((paciente.contract_enrollment_fee ?? clinicSettings?.pref_contract_enrollment_fee ?? 0).toString());
+      setOverridePaymentMethod(paciente.contract_payment_method ?? "Pix");
+    }
+  }, [isPatient, patientId, selectedPaciente, pacientes, paciente, clinicSettings]);
 
   useEffect(() => {
     if (isProfissional && profissionais.length > 0 && !selectedProfissional) {
@@ -262,29 +355,40 @@ const Contratos = () => {
               <Users className="h-4 w-4" /> {isProfissional ? "Meu Contrato" : "Profissional"}
             </TabsTrigger>
           )}
+          <TabsTrigger value="historico" className="flex items-center gap-2">
+            <History className="h-4 w-4" /> Histórico
+          </TabsTrigger>
         </TabsList>
 
-        {/* ===== PACIENTE TAB ===== */}
+        {/* ===== TAB PACIENTE ===== */}
         <TabsContent value="paciente">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-1">
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Dados do Contrato</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Dados do Contrato
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
                 {!isPatient && (
-                  <div>
-                    <PatientCombobox
-                      patients={pacientes as any[]}
-                      value={selectedPaciente}
-                      onValueChange={setSelectedPaciente}
-                      placeholder="Selecione o paciente"
-                    />
-                  </div>
+                  <PatientCombobox
+                    patients={pacientes as any[]}
+                    value={selectedPaciente}
+                    onValueChange={setSelectedPaciente}
+                    placeholder="Selecione o paciente"
+                  />
                 )}
                 <div>
                   <Label>Plano</Label>
                   <Select value={selectedPlano} onValueChange={setSelectedPlano}>
                     <SelectTrigger><SelectValue placeholder="Selecione o plano" /></SelectTrigger>
-                    <SelectContent>{(planos as any[]).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome} – R$ {Number(p.valor).toFixed(2)}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      {(planos as any[]).map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nome} – R$ {Number(p.valor).toFixed(2)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 {selectedPaciente && (matriculas as any[]).length > 0 && (
@@ -295,7 +399,7 @@ const Contratos = () => {
                       <SelectContent>
                         {(matriculas as any[]).map((m: any) => (
                           <SelectItem key={m.id} value={m.id}>
-                            {m.tipo_atendimento} – R$ {Number(m.valor_mensal).toFixed(2)} (início {format(new Date(m.data_inicio), "dd/MM/yyyy")})
+                            {m.tipo_atendimento} – R$ {Number(m.valor_mensal).toFixed(2)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -303,184 +407,109 @@ const Contratos = () => {
                   </div>
                 )}
                 {paciente && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs" htmlFor="override-enrollment">Taxa Matrícula (R$)</Label>
+                      <Input
+                        id="override-enrollment"
+                        type="number"
+                        className="h-8"
+                        value={overrideEnrollmentFee}
+                        onChange={(e) => setOverrideEnrollmentFee(e.target.value)}
+                        placeholder="0.00"
+                        title="Taxa de matrícula"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs" htmlFor="override-payment">Forma de Pagto.</Label>
+                      <Input
+                        id="override-payment"
+                        type="text"
+                        className="h-8"
+                        value={overridePaymentMethod}
+                        onChange={(e) => setOverridePaymentMethod(e.target.value)}
+                        placeholder="Ex: Pix"
+                        title="Forma de pagamento"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {paciente && (
                   <div className="rounded-lg border p-3 space-y-1 text-sm bg-muted/30">
                     <p><strong>Nome:</strong> {paciente.nome}</p>
                     <p><strong>CPF:</strong> {paciente.cpf || "Não informado"}</p>
                     <p><strong>RG:</strong> {paciente.rg || "Não informado"}</p>
-                    {matricula && (
-                      <>
-                        <p className="pt-2 border-t mt-2"><strong>Matrícula:</strong> {matricula.tipo_atendimento} – R$ {Number(matricula.valor_mensal).toFixed(2)}/mês</p>
-                      </>
-                    )}
                     {plano && (
-                      <>
-                        <p className={matricula ? "" : "pt-2 border-t mt-2"}><strong>Plano:</strong> {plano.nome}</p>
-                        <p><strong>Frequência:</strong> {plano.frequencia_semanal}x/semana</p>
-                        <p><strong>Modalidade:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>
-                        <p><strong>Valor:</strong> R$ {Number(matricula?.valor_mensal || plano.valor).toFixed(2)}</p>
-                        {desconto && desconto.percentual_desconto > 0 && (
-                          <>
-                            <p className="text-green-600 font-medium"><strong>Desconto:</strong> {desconto.percentual_desconto}% ({desconto.motivo || "—"})</p>
-                            <p className="text-primary font-bold"><strong>Valor final:</strong> R$ {valorFinal.toFixed(2)}</p>
-                          </>
-                        )}
-                      </>
+                      <p className="pt-2 border-t mt-2">
+                        <strong>Plano:</strong> {plano.nome} ({plano.frequencia_semanal}x/semana)
+                      </p>
                     )}
+                    <p className="text-primary font-bold"><strong>Valor:</strong> R$ {valorFinal.toFixed(2)}</p>
                   </div>
                 )}
 
                 {!isPatient && (
-                <div className="space-y-3 pt-2 border-t mt-2">
-                  <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="space-y-0.5">
+                  <div className="space-y-4 pt-2 border-t mt-2">
+                    <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
                       <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-assinatura-clinica">Usar assinatura da clínica</Label>
-                    </div>
-                    <input
-                      id="inc-assinatura-clinica"
-                      type="checkbox"
-                      title="Usar assinatura da clínica"
-                      aria-label="Usar assinatura da clínica"
-                      className="h-4 w-4 rounded border-gray-300"
-                      checked={usarAssinaturaClinica}
-                      onChange={(e) => setUsarAssinaturaClinica(e.target.checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="space-y-0.5">
-                      <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-carimbo">Incluir Carimbo</Label>
-                    </div>
-                    <input
-                      id="inc-carimbo"
-                      type="checkbox"
-                      title="Incluir Carimbo"
-                      aria-label="Incluir Carimbo"
-                      className="h-4 w-4 rounded border-gray-300"
-                      checked={incluirCarimbo}
-                      onChange={(e) => setIncluirCarimbo(e.target.checked)}
-                    />
-                  </div>
-
-                  {incluirCarimbo && (currentUserProfile as any)?.rubrica_url && (
-                    <div className="flex items-center justify-between p-2 rounded-md bg-blue-50/30 border border-blue-100 ml-2">
-                      <Label className="text-[10px] font-medium cursor-pointer" htmlFor="rub-carimbo">Rubrica no Carimbo</Label>
                       <input
-                        id="rub-carimbo"
+                        id="inc-assinatura-clinica"
                         type="checkbox"
-                        title="Rubrica no Carimbo"
-                        aria-label="Rubrica no Carimbo"
-                        className="h-3 w-3 rounded border-gray-300"
-                        checked={rubricaNoCarimbo}
-                        onChange={(e) => setRubricaNoCarimbo(e.target.checked)}
+                        title="Usar assinatura da clínica"
+                        className="h-4 w-4 rounded border-gray-300"
+                        checked={usarAssinaturaClinica}
+                        onChange={(e) => setUsarAssinaturaClinica(e.target.checked)}
                       />
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="space-y-0.5">
-                      <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-rubrica">Rubrica (Rodapé)</Label>
+                    <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                      <Label className="text-xs font-semibold cursor-pointer" htmlFor="inc-carimbo">Incluir Carimbo</Label>
+                      <input
+                        id="inc-carimbo"
+                        type="checkbox"
+                        title="Incluir Carimbo"
+                        className="h-4 w-4 rounded border-gray-300"
+                        checked={incluirCarimbo}
+                        onChange={(e) => setIncluirCarimbo(e.target.checked)}
+                      />
                     </div>
-                    <input
-                      id="inc-rubrica"
-                      type="checkbox"
-                      title="Rubrica no Rodapé"
-                      aria-label="Rubrica no Rodapé"
-                      className="h-4 w-4 rounded border-gray-300"
-                      checked={incluirRubrica}
-                      onChange={(e) => setIncluirRubrica(e.target.checked)}
-                    />
                   </div>
-                </div>
                 )}
 
-                  <div className="flex flex-col gap-2 pt-2">
-                    <Button onClick={() => setIsSignatureDialogOpen(true)} variant="outline" disabled={!paciente} className="w-full border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700">
-                      <PenTool className="h-4 w-4 mr-2" /> 
-                      {pacienteSignature ? "Assinatura Capturada (Modificar)" : "Coletar Assinatura do Paciente"}
-                    </Button>
-                    <Button onClick={handleDownload} disabled={!paciente} className="w-full">
-                      <Download className="h-4 w-4 mr-2" /> Gerar PDF do Contrato
-                    </Button>
-                    {!isPatient && <Button variant="outline" onClick={handleWhatsAppSend} disabled={!paciente} className="w-full"><Send className="h-4 w-4 mr-2" /> Enviar PDF via WhatsApp</Button>}
-                  </div>
+                <div className="flex flex-col gap-2 pt-2">
+                  <Button onClick={() => setIsSignatureDialogOpen(true)} variant="outline" disabled={!paciente} className="w-full">
+                    <PenTool className="h-4 w-4 mr-2" /> Assinar
+                  </Button>
+                  <Button onClick={handleDownload} disabled={!paciente} className="w-full">
+                    <Download className="h-4 w-4 mr-2" /> PDF
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Pré-visualização</CardTitle></CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none text-foreground space-y-4 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
                   <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
-                  {clinicCNPJ && <p className="text-center text-xs text-muted-foreground">CNPJ: {clinicCNPJ}</p>}
-                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS{matricula ? ` DE ${matricula.tipo_atendimento.toUpperCase()}` : plano ? ` DE ${(plano.modalidade || "PILATES").toUpperCase()}` : " DE PILATES"}</h3>
-                  <p>Pelo presente instrumento particular, de um lado:</p>
-                  <p><strong>CONTRATADA:</strong> {clinicNome}, pessoa jurídica de direito privado{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}{clinicTelefone ? `, telefone/WhatsApp ${clinicTelefone}` : ""}{clinicInstagram ? `, Instagram ${clinicInstagram}` : ""}.</p>
-                  <p>E, de outro lado:</p>
-                  <p><strong>CONTRATANTE:</strong> <span className="bg-primary/10 px-1 rounded font-semibold">{paciente?.nome || "___________________________"}</span>, CPF nº <span className="bg-primary/10 px-1 rounded">{paciente?.cpf || "_______________"}</span>, RG nº <span className="bg-primary/10 px-1 rounded">{paciente?.rg || "_______________"}</span>.</p>
-                  <h4 className="font-bold mt-4">CLÁUSULA 1ª – DO OBJETO</h4>
-                  <p>Prestação de serviços de {matricula?.tipo_atendimento || plano?.modalidade || "Pilates"}, conforme plano contratado, com dias e horários previamente agendados.</p>
-                  <h4 className="font-bold">CLÁUSULA 2ª – DA NATUREZA DO SERVIÇO</h4>
-                  <p>O CONTRATANTE declara estar ciente de que o Pilates é um serviço mensal, não sendo contratado por aula, por dia ou por comparecimento.</p>
-                  <p><em>Parágrafo único: Faltas não geram desconto ou devolução de valores.</em></p>
-                  <h4 className="font-bold">CLÁUSULA 3ª – DO VALOR E PAGAMENTO</h4>
-                  <p>O valor da mensalidade será conforme o plano contratado.</p>
-                  <p>§1º A mensalidade deverá ser paga no primeiro dia de aula do mês.</p>
-                  <p>§2º O não pagamento autoriza a suspensão das aulas até a regularização.</p>
-                  <h4 className="font-bold">CLÁUSULA 4ª – CANCELAMENTOS E REPOSIÇÕES</h4>
-                  <p>§1º Somente haverá reposição de aulas desmarcadas com antecedência mínima de 3 horas.</p>
-                  <p>§2º Cancelamentos fora desse prazo não geram reposição.</p>
-                  <p>§3º As reposições devem ocorrer em até 30 dias, sob pena de perda da aula.</p>
-                  <h4 className="font-bold">CLÁUSULA 5ª – DOS FERIADOS E RECESSOS</h4>
-                  <p>Não haverá aulas em feriados ou durante recessos previamente comunicados pela clínica.</p>
-                  <h4 className="font-bold">CLÁUSULA 6ª – DAS CONDIÇÕES DE SAÚDE</h4>
-                  <p>O CONTRATANTE declara estar apto à prática do Pilates.</p>
-                  <h4 className="font-bold">CLÁUSULA 7ª – DO DIREITO DE IMAGEM</h4>
-                  <p>O CONTRATANTE autoriza o uso de sua imagem e voz para fins institucionais.</p>
-                  <h4 className="font-bold">CLÁUSULA 8ª – DA SUSPENSÃO TEMPORÁRIA</h4>
-                  <p>Suspensões somente serão aceitas mediante solicitação prévia e aprovação da CONTRATADA.</p>
-                  <h4 className="font-bold">CLÁUSULA 9ª – DA RESCISÃO</h4>
-                  <p>O contrato poderá ser rescindido por qualquer das partes.</p>
-                  <h4 className="font-bold">CLÁUSULA 10ª – DO FORO</h4>
-                  <p>Fica eleito o foro da comarca de Barbacena/MG.</p>
-                  {(plano || matricula) && (
-                    <div className="border-t pt-4 mt-6">
-                      <h3 className="font-bold text-center">PLANO CONTRATADO</h3>
-                      <div className="bg-primary/5 rounded-lg p-4 mt-2 space-y-1">
-                        {matricula && <p><strong>Modalidade:</strong> {matricula.tipo_atendimento}</p>}
-                        {plano && <p><strong>Plano:</strong> {plano.nome}</p>}
-                        {plano && <p><strong>Frequência:</strong> {plano.frequencia_semanal}x por semana</p>}
-                        {plano && <p><strong>Tipo:</strong> {plano.modalidade === "individual" ? "Individual" : "Grupo"}</p>}
-                        <p><strong>Valor mensal:</strong> R$ {valorFinal.toFixed(2)}{desconto && desconto.percentual_desconto > 0 && <span className="text-green-600 ml-2">(desconto de {desconto.percentual_desconto}%)</span>}</p>
-                        {matricula && <p><strong>Início da matrícula:</strong> {format(new Date(matricula.data_inicio), "dd/MM/yyyy")}</p>}
-                      </div>
+                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS – PILATES</h3>
+                  <p><strong>CONTRATADA:</strong> {clinicNome}, com sede à {clinicEnderecoFull}.</p>
+                  <p><strong>CONTRATANTE:</strong> {paciente?.nome || "___________________"}</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
+                  <p>Prestação de serviços de Pilates, conforme plano contratado.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DO PAGAMENTO</h4>
+                  <p>Valor: R$ {valorFinal.toFixed(2)}. Pagamento no primeiro dia de aula. Multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.contract_multa_atraso_pct ?? 2}% em caso de atraso.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 20ª – DO FORO</h4>
+                  <p>Foro de {paciente?.contract_cidade_foro ?? clinicSettings?.contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.contract_estado_foro ?? clinicSettings?.estado ?? "MG"}.</p>
+
+                  <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
+                    <div>
+                      {pacienteSignature ? <img src={pacienteSignature} alt="Assinatura" className="h-12 mx-auto mb-2" /> : <div className="h-12" />}
+                      <div className="border-t border-muted-foreground pt-2">CONTRATANTE</div>
                     </div>
-                  )}
-                  <div className="border-t pt-6 mt-6 space-y-2">
-                    <h4 className="font-bold text-center">CONTRATO-RESUMO</h4>
-                    <ul className="space-y-1">
-                      <li>✔ O Pilates é mensal, não é por aula ou por dia</li>
-                      <li>✔ A mensalidade é paga no primeiro dia de aula do mês</li>
-                      <li>✔ Faltas não geram desconto</li>
-                      <li>✔ Reposição somente se avisar com 3 horas de antecedência</li>
-                      <li>✔ Reposição deve ocorrer em até 30 dias</li>
-                      <li>✔ Feriados e recessos não têm reposição</li>
-                      <li>✔ Aulas sem aviso prévio são perdidas</li>
-                      <li>✔ Autorizo o uso de imagem para divulgação da clínica</li>
-                    </ul>
-                  </div>
-                  <div className="mt-8 pt-4 border-t">
-                    <p>Data: {format(new Date(), "dd/MM/yyyy")}</p>
-                    <div className="grid grid-cols-2 gap-8 mt-8">
-                      <div className="text-center"><div className="border-t border-foreground/40 pt-2">CONTRATADA</div><p className="text-xs text-muted-foreground">{clinicNome}</p></div>
-                      <div className="text-center flex flex-col items-center">
-                        {pacienteSignature ? (
-                           <img src={pacienteSignature} alt="Assinatura Paciente" className="h-16 object-contain mb-2" />
-                        ) : (
-                           <div className="h-16 mb-2"></div>
-                        )}
-                        <div className="border-t border-foreground/40 pt-2 w-full">CONTRATANTE</div>
-                        <p className="text-xs text-muted-foreground">{paciente?.nome || "_______________"}</p>
-                      </div>
+                    <div>
+                      <div className="h-12" />
+                      <div className="border-t border-muted-foreground pt-2">CONTRATADA</div>
                     </div>
                   </div>
                 </div>
@@ -489,130 +518,110 @@ const Contratos = () => {
           </div>
         </TabsContent>
 
-        {/* ===== PROFISSIONAL TAB ===== */}
+        {/* ===== TAB PROFISSIONAL ===== */}
         {(canManage || isProfissional) && (
           <TabsContent value="profissional">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-1">
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> Contrato Profissional</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> Profissional</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label>Profissional</Label>
+                  {!isProfissional && (
                     <Select value={selectedProfissional} onValueChange={setSelectedProfissional}>
                       <SelectTrigger><SelectValue placeholder="Selecione o profissional" /></SelectTrigger>
-                      <SelectContent>{(profissionais as any[]).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
+                      <SelectContent>
+                        {(profissionais as any[]).map((p: any) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                  </div>
+                  )}
                   {profissional && (
                     <div className="rounded-lg border p-3 space-y-1 text-sm bg-muted/30">
                       <p><strong>Nome:</strong> {profissional.nome}</p>
-                      <p><strong>CPF:</strong> {profissional.cpf || "Não informado"}</p>
-                      <p><strong>RG:</strong> {profissional.rg || "Não informado"}</p>
-                      <p><strong>Estado Civil:</strong> {profissional.estado_civil ? estadoCivilLabel(profissional.estado_civil) : "Não informado"}</p>
-                      <p><strong>Telefone:</strong> {profissional.telefone || "Não informado"}</p>
-                      <p><strong>Endereço:</strong> {[profissional.endereco, profissional.numero, profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ") || "Não informado"}</p>
-                      <p className="pt-2 border-t mt-2"><strong>CREFITO:</strong> {profissional.registro_profissional || "Não informado"}</p>
-                      <p><strong>Vínculo:</strong> {profissional.tipo_contratacao ? tipoLabel(profissional.tipo_contratacao) : "Não definido"}</p>
-                      {profissional.tipo_contratacao === "pj" && <p><strong>CNPJ:</strong> {profissional.cnpj || "Não informado"}</p>}
-                      <p><strong>Comissão:</strong> {profissional.commission_rate || 0}%</p>
+                      <p><strong>CREFITO:</strong> {profissional.registro_profissional}</p>
+                      <p><strong>Vínculo:</strong> {tipoLabel(profissional.tipo_contratacao || "")}</p>
                     </div>
                   )}
-                  <Button onClick={handleProfissionalDownload} disabled={!profissional} className="w-full"><Download className="h-4 w-4 mr-2" /> Baixar PDF</Button>
+                  <Button onClick={handleProfissionalDownload} disabled={!profissional} className="w-full">
+                    <Download className="h-4 w-4 mr-2" /> Baixar PDF
+                  </Button>
                 </CardContent>
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato Profissional</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato</CardTitle></CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none text-foreground space-y-4 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
                     <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
-                    {clinicCNPJ && <p className="text-center text-xs text-muted-foreground">CNPJ: {clinicCNPJ}</p>}
                     <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS</h3>
-
-                    <p>Pelo presente instrumento particular, de um lado:</p>
-                    <p><strong>CLÍNICA:</strong> {clinicNome}, pessoa jurídica de direito privado{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}{clinicTelefone ? `, telefone/WhatsApp ${clinicTelefone}` : ""}.</p>
-                    <p>E, de outro lado:</p>
-                    <p>
-                      <strong>PROFISSIONAL:</strong>{" "}
-                      <span className="bg-primary/10 px-1 rounded font-semibold">{profissional?.nome || "___________________________"}</span>
-                      {profissional?.estado_civil && <>, {estadoCivilLabel(profissional.estado_civil)}</>}
-                      , CPF nº <span className="bg-primary/10 px-1 rounded">{profissional?.cpf || "_______________"}</span>
-                      , RG nº <span className="bg-primary/10 px-1 rounded">{profissional?.rg || "_______________"}</span>
-                      {profissional?.endereco && <>, residente à {[profissional.endereco, profissional.numero ? `nº ${profissional.numero}` : "", profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ")}</>}
-                      {profissional?.telefone && <>, telefone {profissional.telefone}</>}
-                      , Registro Profissional: <span className="bg-primary/10 px-1 rounded">{profissional?.registro_profissional || "_______________"}</span>
-                    </p>
-
-                    <h4 className="font-bold mt-4">CLÁUSULA 1ª – DO OBJETO</h4>
-                    <p>O presente contrato tem por objeto a prestação de serviços profissionais na área de Fisioterapia/Pilates pelo PROFISSIONAL, nas dependências da CLÍNICA.</p>
-
-                    <h4 className="font-bold">CLÁUSULA 2ª – DA NATUREZA JURÍDICA</h4>
-                    <p>§1º O presente instrumento possui natureza estritamente civil, inexistindo vínculo empregatício.</p>
-                    <p>§2º O PROFISSIONAL atuará com autonomia técnica.</p>
-                    <p>§3º O PROFISSIONAL declara atuar como:</p>
-                    <div className="pl-4 space-y-1">
-                      <p>({profissional?.tipo_contratacao === "autonomo" ? "X" : " "}) Autônomo</p>
-                      <p>({profissional?.tipo_contratacao === "mei" ? "X" : " "}) MEI</p>
-                      <p>({profissional?.tipo_contratacao === "pj" ? "X" : " "}) Pessoa Jurídica – CNPJ nº <span className="bg-primary/10 px-1 rounded">{profissional?.cnpj || "______________________"}</span></p>
-                      <p>({profissional?.tipo_contratacao === "clt" ? "X" : " "}) CLT</p>
-                    </div>
-
-                    <h4 className="font-bold">CLÁUSULA 3ª – DA REMUNERAÇÃO</h4>
-                    <p>§1º Comissão de <span className="bg-primary/10 px-1 rounded font-semibold">{profissional?.commission_rate || "___"}%</span> sobre valores efetivamente pagos pelos pacientes.</p>
-                    <p>§2º A comissão incidirá exclusivamente sobre valores recebidos e compensados.</p>
-                    <p>§3º Pagamento até o dia 10 do mês subsequente.</p>
-                    <p>§4º Em caso de inadimplência, comissão devida apenas após quitação.</p>
-                    <p>§5º Sem comissão sobre descontos, cortesias ou valores não recebidos.</p>
-
-                    <h4 className="font-bold">CLÁUSULA 4ª – DAS OBRIGAÇÕES DO PROFISSIONAL</h4>
-                    <ul className="space-y-1">
-                      <li>I – Realizar atendimentos com ética e zelo;</li>
-                      <li>II – Manter registro profissional regular;</li>
-                      <li>III – Zelar pelos equipamentos da CLÍNICA;</li>
-                      <li>IV – Cumprir horários agendados;</li>
-                      <li>V – Manter sigilo sobre informações;</li>
-                      <li>VI – Cumprir legislação vigente.</li>
-                    </ul>
-
-                    <h4 className="font-bold">CLÁUSULA 5ª – DAS OBRIGAÇÕES DA CLÍNICA</h4>
-                    <ul className="space-y-1">
-                      <li>I – Disponibilizar espaço e equipamentos;</li>
-                      <li>II – Realizar cobrança dos pacientes;</li>
-                      <li>III – Fornecer relatório mensal;</li>
-                      <li>IV – Efetuar pagamento da comissão.</li>
-                    </ul>
-
-                    <h4 className="font-bold">CLÁUSULA 6ª – DA NÃO CAPTAÇÃO E NÃO DESVIO DE PACIENTES</h4>
-                    <p>§1º Vedado captar ou desviar pacientes. §2º Vedação vigente por 12 meses após rescisão. §3º Multa de 10x o valor médio da mensalidade por paciente desviado.</p>
-
-                    <h4 className="font-bold">CLÁUSULA 7ª – DA CONFIDENCIALIDADE E LGPD</h4>
-                    <p>Sigilo absoluto sobre dados pessoais, prontuários, lista de pacientes e dados financeiros. Observância à Lei nº 13.709/2018 (LGPD).</p>
-
-                    <h4 className="font-bold">CLÁUSULA 8ª – DA RESPONSABILIDADE TÉCNICA</h4>
-                    <p>O PROFISSIONAL é responsável técnico pelos atendimentos realizados.</p>
-
-                    <h4 className="font-bold">CLÁUSULA 9ª – DA RESCISÃO</h4>
-                    <p>Rescisão mediante aviso prévio de 30 dias. Comissões apuradas serão quitadas normalmente.</p>
-
-                    <h4 className="font-bold">CLÁUSULA 10ª – DO PRAZO</h4>
-                    <p>Prazo indeterminado, iniciando-se em ___/___/______.</p>
-
-                    <h4 className="font-bold">CLÁUSULA 11ª – DO FORO</h4>
-                    <p>Foro da comarca de Barbacena/MG.</p>
-
-                    <div className="mt-8 pt-4 border-t">
-                      <p>Data: {format(new Date(), "dd/MM/yyyy")}</p>
-                      <div className="grid grid-cols-2 gap-8 mt-8">
-                        <div className="text-center"><div className="border-t border-foreground/40 pt-2">CLÍNICA</div><p className="text-xs text-muted-foreground">{clinicNome}</p></div>
-                        <div className="text-center"><div className="border-t border-foreground/40 pt-2">PROFISSIONAL</div><p className="text-xs text-muted-foreground">{profissional?.nome || "_______________"}</p></div>
-                      </div>
-                    </div>
+                    <p><strong>CLÍNICA:</strong> {clinicNome}</p>
+                    <p><strong>PROFISSIONAL:</strong> {profissional?.nome || "___________________"}</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
+                    <p>Prestação de serviços profissionais de Pilates/Fisioterapia.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DA REMUNERAÇÃO</h4>
+                    <p>Comissão de {profissional?.commission_rate || "___"}% sobre valores recebidos. Pagamento até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.contract_dia_pagamento_comissao ?? 10}.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 17ª – DO FORO</h4>
+                    <p>Foro de {clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.estado || "MG"}.</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
         )}
+
+        {/* ===== TAB HISTÓRICO ===== */}
+        <TabsContent value="historico">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" /> Histórico de Contratos Gerados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-md">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="px-4 py-3 text-left font-medium">Data</th>
+                      <th className="px-4 py-3 text-left font-medium">Paciente</th>
+                      <th className="px-4 py-3 text-left font-medium">Tipo</th>
+                      <th className="px-4 py-3 text-right font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-muted-foreground">
+                    {contractHistory.length > 0 ? (
+                      contractHistory.map((doc: any) => (
+                        <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3">{format(new Date(doc.criado_em), "dd/MM/yyyy HH:mm", { locale: ptBR })}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{doc.pacientes?.nome || "Profissional"}</td>
+                          <td className="px-4 py-3 capitalize">{doc.tipo_documento}</td>
+                          <td className="px-4 py-3 text-right space-x-2">
+                            <Button variant="ghost" size="icon" asChild>
+                              <a href={doc.arquivo_url} target="_blank" rel="noreferrer" title="Visualizar">
+                                <Eye className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button variant="ghost" size="icon" asChild>
+                              <a href={doc.arquivo_url} download title="Download">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground italic">
+                          Nenhum contrato gerado e arquivado ainda.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <Dialog open={isSignatureDialogOpen} onOpenChange={setIsSignatureDialogOpen}>

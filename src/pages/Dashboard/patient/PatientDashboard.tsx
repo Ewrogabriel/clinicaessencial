@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -52,7 +53,10 @@ const DEFAULT_CARDS: DashboardCard[] = [
 export default function PatientDashboard() {
   const { user, profile } = useAuth();
   const { activeClinicId } = useClinic();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { cards, visibleCards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("patient", DEFAULT_CARDS);
   const [feriadosDialogOpen, setFeriadosDialogOpen] = useState(false);
 
@@ -123,7 +127,11 @@ export default function PatientDashboard() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
-          <button onClick={() => navigate("/meu-perfil")} className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors">
+          <button 
+            aria-label="Ver meu perfil"
+            onClick={() => navigate("/meu-perfil")} 
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+          >
             <User className="h-5 w-5 text-primary" />
           </button>
         </div>
@@ -167,9 +175,9 @@ export default function PatientDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Sessões", value: d.nextAppointments.length, icon: Calendar, color: "text-blue-600", bg: "bg-blue-50", to: "/minha-agenda" },
-          { label: "Exercícios", value: d.planosExercicios.length, icon: Dumbbell, color: "text-purple-600", bg: "bg-purple-50", to: "/planos-exercicios" },
-          { label: "Pendentes", value: d.pendingPayments.length, icon: CreditCard, color: d.pendingPayments.length > 0 ? "text-destructive" : "text-green-600", bg: d.pendingPayments.length > 0 ? "bg-destructive/10" : "bg-green-50", to: "/meus-pagamentos", border: d.pendingPayments.length > 0 ? "border-destructive/30" : "" },
+          { label: "Sessões", value: d.nextAppointments.length, icon: Calendar, color: "text-primary", bg: "bg-primary/10", to: "/minha-agenda" },
+          { label: "Exercícios", value: d.planosExercicios.length, icon: Dumbbell, color: "text-primary", bg: "bg-primary/10", to: "/planos-exercicios" },
+          { label: "Pendentes", value: d.pendingPayments.length, icon: CreditCard, color: d.pendingPayments.length > 0 ? "text-destructive" : "text-primary", bg: d.pendingPayments.length > 0 ? "bg-destructive/10" : "bg-primary/10", to: "/meus-pagamentos", border: d.pendingPayments.length > 0 ? "border-destructive/30" : "" },
           { label: "Pontos", value: d.totalPoints || 0, icon: Trophy, color: "text-amber-500", bg: "bg-amber-50", to: "/meu-perfil" },
         ].map(kpi => (
           <Card key={kpi.label} className={`hover:shadow-md transition-shadow cursor-pointer ${kpi.border || ""}`} onClick={() => navigate(kpi.to)}>
@@ -184,28 +192,41 @@ export default function PatientDashboard() {
         ))}
       </div>
 
-      {/* Cards em 2 colunas (desktop) */}
-      {isCardVisible("tips") && <DailyTipsCard tipo="paciente" />}
+      {/* Dashboard Grid - Strictly 2 columns on all screens as requested */}
+      <div className="grid grid-cols-2 gap-4 md:gap-6">
+        {isCardVisible("tips") && <div className="col-span-2"><DailyTipsCard tipo="paciente" /></div>}
 
-      <div className="grid gap-4 md:grid-cols-2">
 
         {/* Next sessions */}
         {isCardVisible("sessoes") && (
-          <DashboardListCard title="Próximas Sessões" icon={Calendar} iconColor="text-blue-600" onViewAll={() => navigate("/minha-agenda")} isEmpty={d.nextAppointments.length === 0} emptyMessage="Nenhuma sessão agendada" emptyAction={{ label: "Agendar sessão", onClick: () => navigate("/minha-agenda") }}>
+          <DashboardListCard 
+            title={t("dashboard.patient_next_sessions")} 
+            icon={Calendar} 
+            iconColor="text-primary" 
+            onViewAll={() => navigate("/minha-agenda")} 
+            isEmpty={d.nextAppointments.length === 0} 
+            emptyMessage="Nenhuma sessão agendada" 
+            emptyAction={{ label: "Agendar sessão", onClick: () => navigate("/minha-agenda") }}
+          >
             <div className="space-y-1">
               {d.nextAppointments.map((apt, idx) => (
                 <div key={apt.id}>
                   <button onClick={() => navigate("/minha-agenda")} className="w-full text-left group">
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-lg shrink-0"><Clock className="h-5 w-5 text-blue-600" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{format(new Date(apt.data_horario), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg shrink-0">
+                        <Clock className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm font-medium text-foreground">
+                          {format(new Date(apt.data_horario), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </p>
                         <p className="text-xs text-muted-foreground truncate">{apt.tipo_atendimento}</p>
                       </div>
-                      <Badge variant={apt.status === "confirmado" ? "default" : "secondary"} className="text-xs shrink-0">
-                        {apt.status === "confirmado" && <CheckCircle2 className="h-3 w-3 mr-1" />}{apt.status}
+                      <Badge variant={apt.status === "confirmado" ? "default" : "secondary"} className="text-xs shrink-0 self-start sm:self-center">
+                        {apt.status === "confirmado" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                        {apt.status}
                       </Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform hidden sm:block" />
                     </div>
                   </button>
                   {idx < d.nextAppointments.length - 1 && <Separator />}
@@ -217,19 +238,19 @@ export default function PatientDashboard() {
 
         {/* Session history */}
         {isCardVisible("historico") && (
-          <DashboardListCard title="Histórico de Sessões" icon={CalendarDays} iconColor="text-gray-600" onViewAll={() => navigate("/meu-historico")} isEmpty={d.pastSessions.length === 0} emptyMessage="Nenhuma sessão realizada ainda">
+          <DashboardListCard title={t("dashboard.patient_history")} icon={CalendarDays} iconColor="text-primary" onViewAll={() => navigate("/meu-historico")} isEmpty={d.pastSessions.length === 0} emptyMessage="Nenhuma sessão realizada ainda">
             <div className="space-y-1">
               {d.pastSessions.map((s: any, idx: number) => {
                 const statusColors: Record<string, string> = { realizado: "bg-green-50 text-green-700", falta: "bg-amber-50 text-amber-700", cancelado: "bg-red-50 text-red-700" };
                 return (
                   <div key={s.id}>
                     <div className="flex items-center gap-3 p-3 rounded-lg">
-                      <div className="flex items-center justify-center w-10 h-10 bg-muted rounded-lg shrink-0"><CalendarDays className="h-5 w-5 text-muted-foreground" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">{format(new Date(s.data_horario), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                        <p className="text-xs text-muted-foreground">{s.tipo_atendimento} • {s.duracao_minutos}min</p>
+                      <div className="flex items-center justify-center w-10 h-10 bg-primary/5 rounded-lg shrink-0"><CalendarDays className="h-5 w-5 text-primary/70" /></div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm font-medium text-foreground">{format(new Date(s.data_horario), "dd/MM/yyyy", { locale: ptBR })}</p>
+                        <p className="text-[10px] text-muted-foreground">{s.tipo_atendimento}</p>
                       </div>
-                      <Badge variant="outline" className={`text-xs ${statusColors[s.status] || ""}`}>
+                      <Badge variant="outline" className={`text-[10px] sm:text-xs ${statusColors[s.status] || ""}`}>
                         {s.status === "realizado" ? "Realizada" : s.status === "falta" ? "Falta" : "Cancelada"}
                       </Badge>
                     </div>
@@ -243,20 +264,19 @@ export default function PatientDashboard() {
 
         {/* Enrollments */}
         {isCardVisible("matriculas") && (
-          <DashboardListCard title="Matrículas Ativas" icon={Star} iconColor="text-indigo-600" onViewAll={() => navigate("/matriculas")} isEmpty={d.matriculasAtivas.length === 0} emptyMessage="Nenhuma matrícula ativa">
+          <DashboardListCard title={t("dashboard.patient_enrollments")} icon={Star} iconColor="text-primary" onViewAll={() => navigate("/matriculas")} isEmpty={d.matriculasAtivas.length === 0} emptyMessage="Nenhuma matrícula ativa">
             <div className="space-y-1">
               {d.matriculasAtivas.map((m: any, idx: number) => (
                 <div key={m.id}>
                   <div className="flex items-center gap-3 p-3 rounded-lg">
-                    <div className="flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-lg shrink-0"><Star className="h-5 w-5 text-indigo-600" /></div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg shrink-0"><Star className="h-5 w-5 text-primary" /></div>
+                    <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium text-foreground truncate">{m.tipo_atendimento || "Matrícula"}</p>
                       <p className="text-xs text-muted-foreground">
                         {m.valor_mensal ? `R$ ${Number(m.valor_mensal).toFixed(2)}/mês` : ""}
-                        {m.data_inicio ? ` • desde ${format(new Date(m.data_inicio), "dd/MM/yyyy")}` : ""}
                       </p>
                     </div>
-                    <Badge variant="default" className="text-xs shrink-0">Ativa</Badge>
+                    <Badge variant="default" className="text-xs shrink-0 bg-green-500 hover:bg-green-600">Ativa</Badge>
                   </div>
                   {idx < d.matriculasAtivas.length - 1 && <Separator />}
                 </div>
@@ -267,16 +287,16 @@ export default function PatientDashboard() {
 
         {/* Exercises */}
         {isCardVisible("exercicios") && (
-          <DashboardListCard title="Exercícios" icon={Dumbbell} iconColor="text-purple-600" onViewAll={() => navigate("/planos-exercicios")} isEmpty={d.planosExercicios.length === 0} emptyMessage="Nenhum plano de exercício ativo">
+          <DashboardListCard title={t("dashboard.patient_exercises")} icon={Dumbbell} iconColor="text-primary" onViewAll={() => navigate("/planos-exercicios")} isEmpty={d.planosExercicios.length === 0} emptyMessage="Nenhum plano de exercício ativo">
             <div className="space-y-1">
               {d.planosExercicios.map((plano: any, idx) => (
                 <div key={plano.id}>
                   <button onClick={() => navigate("/planos-exercicios")} className="w-full text-left group">
                     <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-center w-10 h-10 bg-purple-50 rounded-lg shrink-0"><Dumbbell className="h-5 w-5 text-purple-600" /></div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg shrink-0"><Dumbbell className="h-5 w-5 text-primary" /></div>
+                      <div className="flex-1 min-w-0 text-left">
                         <p className="text-sm font-medium text-foreground">{plano.nome}</p>
-                        {plano.descricao && <p className="text-xs text-muted-foreground truncate">{plano.descricao}</p>}
+                        {plano.descricao && <p className="text-[10px] text-muted-foreground truncate">{plano.descricao}</p>}
                       </div>
                       <Badge variant="secondary" className="text-xs shrink-0">Ativo</Badge>
                       <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
