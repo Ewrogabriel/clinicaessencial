@@ -14,6 +14,7 @@ import { ConvenioCard } from "@/components/dashboard/ConvenioCard";
 import { DashboardCustomizer } from "@/components/dashboard/DashboardCustomizer";
 import { DashboardAgenda } from "@/components/dashboard/DashboardAgenda";
 import { useDashboardLayout, DashboardCard } from "@/modules/shared/hooks/useDashboardLayout";
+import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +47,7 @@ import { useProfissionais } from "@/modules/shared/hooks/useProfissionais";
 import { toast } from "sonner";
 
 const ADMIN_DEFAULT_CARDS: DashboardCard[] = [
+  { id: "alerts", label: "Alertas Proativos", visible: true },
   { id: "today-agenda", label: "Agenda de Hoje", visible: true },
   { id: "tips", label: "Dicas do Dia", visible: true },
   { id: "stats", label: "Indicadores (KPIs)", visible: true },
@@ -383,6 +385,7 @@ const Dashboard = () => {
   // Build ordered sections map
   const renderSection = (cardId: string) => {
     switch (cardId) {
+      case "alerts": return <AlertsWidget key="alerts" />;
       case "tips": return <DailyTipsCard key="tips" tipo={tipRole} />;
       case "convenios": return <ConvenioCard key="convenios" />;
       case "birthdays": return (

@@ -18,27 +18,12 @@ import { FileText, Brain, Loader2 } from "lucide-react";
 import { SignaturePad } from "./SignaturePad";
 import { toast } from "sonner";
 
-const EVOLUTION_TEMPLATES = [
-  {
-    label: "Sessão Padrão",
-    descricao: "Paciente realizou sessão de tratamento conforme protocolo estabelecido. Boa adesão aos exercícios propostos. Sem queixas álgicas durante a execução.",
-    conduta: "Manter protocolo atual. Progredir carga/repetições na próxima sessão conforme tolerância.",
-  },
-  {
-    label: "Reavaliação",
-    descricao: "Realizada reavaliação funcional. Paciente apresenta melhora em relação à avaliação anterior nos seguintes parâmetros: amplitude de movimento, força muscular e funcionalidade.",
-    conduta: "Atualizar protocolo de tratamento conforme novos achados. Reavaliar em 30 dias.",
-  },
-  {
-    label: "Alta / Última Sessão",
-    descricao: "Paciente atingiu os objetivos terapêuticos propostos. Apresenta independência funcional para atividades de vida diária. Orientado sobre manutenção dos ganhos em domicílio.",
-    conduta: "Alta do tratamento. Orientações domiciliares entregues. Retorno preventivo em 3 meses.",
-  },
-  {
-    label: "Falta / Não Compareceu",
-    descricao: "Paciente não compareceu à sessão agendada. Tentativa de contato realizada.",
-    conduta: "Reagendar sessão. Reforçar importância da regularidade no tratamento.",
-  },
+// Static fallback (used if DB has no templates yet)
+const FALLBACK_TEMPLATES = [
+  { label: "Sessão Padrão", descricao: "Paciente realizou sessão de tratamento conforme protocolo estabelecido. Boa adesão aos exercícios propostos. Sem queixas álgicas durante a execução.", conduta: "Manter protocolo atual. Progredir carga/repetições na próxima sessão conforme tolerância." },
+  { label: "Reavaliação", descricao: "Realizada reavaliação funcional. Paciente apresenta melhora em relação à avaliação anterior nos seguintes parâmetros: amplitude de movimento, força muscular e funcionalidade.", conduta: "Atualizar protocolo de tratamento conforme novos achados. Reavaliar em 30 dias." },
+  { label: "Alta / Última Sessão", descricao: "Paciente atingiu os objetivos terapêuticos propostos. Apresenta independência funcional para atividades de vida diária. Orientado sobre manutenção dos ganhos em domicílio.", conduta: "Alta do tratamento. Orientações domiciliares entregues. Retorno preventivo em 3 meses." },
+  { label: "Falta / Não Compareceu", descricao: "Paciente não compareceu à sessão agendada. Tentativa de contato realizada.", conduta: "Reagendar sessão. Reforçar importância da regularidade no tratamento." },
 ];
 
 interface EvolutionFormProps {
@@ -55,6 +40,25 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
     const [conduta, setConduta] = useState("");
     const [assinaturaUrl, setAssinaturaUrl] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
+
+    // Load templates dynamically from DB
+    const { data: dbTemplates } = useQuery({
+        queryKey: ["evolution-templates", activeClinicId],
+        queryFn: async () => {
+            if (!activeClinicId) return FALLBACK_TEMPLATES;
+            const { data, error } = await (supabase as any)
+                .from("evolution_templates")
+                .select("label, descricao, conduta")
+                .or(`clinic_id.eq.${activeClinicId},is_default.eq.true`)
+                .order("is_default", { ascending: false })
+                .order("label");
+            if (error || !data || data.length === 0) return FALLBACK_TEMPLATES;
+            return data as { label: string; descricao: string; conduta: string }[];
+        },
+        staleTime: 1000 * 60 * 10,
+    });
+
+    const templates = dbTemplates ?? FALLBACK_TEMPLATES;
 
     // Fetch patient data for AI context
     const { data: paciente } = useQuery({
@@ -213,7 +217,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
                                 Templates Rápidos
                             </Label>
                             <div className="flex flex-wrap gap-2">
-                                {EVOLUTION_TEMPLATES.map((t) => (
+                                {templates.map((t) => (
                                     <Badge
                                         key={t.label}
                                         variant="outline"

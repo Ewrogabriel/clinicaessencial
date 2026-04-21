@@ -452,7 +452,7 @@ export default function Indicadores() {
                       <p className="text-sm font-bold">{p.taxa}%</p>
                       <div className="w-24 h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${p.taxa >= 80 ? "bg-green-500" : p.taxa >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                          className={`h-full rounded-full transition-all ${p.taxa >= 80 ? "bg-green-500" : p.taxa >= 50 ? "bg-amber-500" : "bg-red-500"}`}
                           style={{ width: `${p.taxa}%` }}
                         />
                       </div>

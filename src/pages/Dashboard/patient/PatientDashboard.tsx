@@ -80,7 +80,7 @@ export default function PatientDashboard() {
 
   const redeemReward = async (reward: any) => {
     if (!d.paciente?.id) return;
-    if (d.totalPoints < reward.pontos_necessarios) { toast.error("Pontos insuficientes para este resgate."); return; }
+    if (d.totalPoints < reward.pontos_necessarios) { toast("Pontos insuficientes para este resgate.", { icon: '⚠️' }); return; }
     try {
       const expiresAt = reward.validade_dias ? new Date(Date.now() + reward.validade_dias * 86400000).toISOString() : null;
       const { error } = await supabase.from("rewards_redemptions").insert({
@@ -89,7 +89,7 @@ export default function PatientDashboard() {
       });
       if (error) throw error;
       toast.success("Resgate solicitado! Aguarde aprovação da clínica.");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message || "Erro ao resgatar recompensa"); }
   };
 
   const openWhatsApp = () => {

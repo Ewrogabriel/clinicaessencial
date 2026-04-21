@@ -23,6 +23,7 @@ import { ScheduleAccessManager } from "@/components/permissions/ScheduleAccessMa
 import { AccessAuditPanel } from "@/components/permissions/AccessAuditPanel";
 
 import { HolidaysTab } from "@/components/settings/HolidaysTab";
+import { EvolutionTemplateManager } from "@/components/clinical/EvolutionTemplateManager";
 import { Calendar, ShieldCheck, CheckCircle2, XCircle, Rocket } from "lucide-react";
 import { useSaaS } from "@/modules/shared/hooks/useSaaS";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
@@ -697,6 +698,11 @@ const ClinicSettings = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Evolution Templates Manager */}
+            <div className="md:col-span-2">
+              <EvolutionTemplateManager />
+            </div>
           </div>
           <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 mt-6">
             <Save className="h-4 w-4" /> Salvar Padrões de Contrato

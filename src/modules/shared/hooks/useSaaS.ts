@@ -60,16 +60,13 @@ export const useSaaS = () => {
     }
 
     if (type === 'professionals') {
-      const { data: roles } = await (supabase as any)
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["profissional", "admin"]);
-      
+      // FIX: Count professionals scoped to this clinic only (multi-tenant safe)
+      // Join user_roles with profiles filtering by clinic_id to avoid cross-clinic contamination
       const { count } = await (supabase as any)
         .from("profiles")
-        .select("*", { count: 'exact', head: true })
-        .in("user_id", (roles || []).map((r: any) => r.user_id))
-        .eq("clinic_id", activeClinicId);
+        .select("user_roles!inner(role)", { count: 'exact', head: true })
+        .eq("clinic_id", activeClinicId)
+        .in("user_roles.role", ["profissional", "admin"]);
 
       return (count ?? 0) >= saasStatus.max_professionals;
     }
