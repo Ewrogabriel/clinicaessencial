@@ -26,6 +26,9 @@ const PerfilProfissional = () => {
   const { user } = useAuth();
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [docNome, setDocNome] = useState("");
 
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ["my-professional-profile", user?.id],
@@ -106,6 +109,49 @@ const PerfilProfissional = () => {
     await (supabase.from("professional_documents") as any).delete().eq("id", doc.id);
     queryClient.invalidateQueries({ queryKey: ["my-professional-docs"] });
     toast.success(t("profile.doc_removed"));
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const safeName = sanitizeFileName(file.name);
+        const filePath = `${user.id}/${Date.now()}_${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("professional-documents").upload(filePath, file);
+        if (upErr) throw upErr;
+        const { error: dbErr } = await (supabase.from("professional_documents") as any).insert({
+          profissional_id: user.id,
+          nome: docNome.trim() || file.name,
+          file_name: file.name,
+          file_path: filePath,
+          file_type: file.type,
+          file_size: file.size,
+        });
+        if (dbErr) throw dbErr;
+      }
+      queryClient.invalidateQueries({ queryKey: ["my-professional-docs"] });
+      toast.success("Documento(s) enviado(s)!");
+      setDocNome("");
+    } catch (err: any) {
+      toast.error("Erro no upload: " + err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDownload = async (doc: any) => {
+    const { data, error } = await supabase.storage
+      .from("professional-documents")
+      .createSignedUrl(doc.file_path, 60);
+    if (error || !data?.signedUrl) {
+      toast.error("Erro ao gerar link de download.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
   };
 
   if (profileLoading) {
