@@ -23,44 +23,28 @@ export default function PacienteAccess() {
     setLoading(true);
     try {
       const cleanCode = codigoAcesso.trim().toUpperCase();
-      
-      // Find patient by access code
-      const { data: pacientes, error: searchError } = await supabase.from("pacientes")
-        .select("id, nome, cpf")
-        .eq("codigo_acesso", cleanCode);
-      
-      if (searchError) {
-        console.error("Search error:", searchError);
-        toast.error("Erro", { description: "Erro ao buscar código" });
-        setLoading(false);
-        return;
-      }
-      
-      if (!pacientes || pacientes.length === 0) {
-        toast.error("Erro", { description: "Código de acesso inválido" });
+
+      // Ensure auth account exists & patient is linked to a clinic.
+      // The function returns the email/password we should use to sign in.
+      const { data: ensured, error: ensureError } = await supabase.functions.invoke(
+        "ensure-patient-auth",
+        { body: { codigo_acesso: cleanCode } }
+      );
+
+      if (ensureError || !ensured?.ok) {
+        const msg = (ensured as any)?.error || ensureError?.message || "Código de acesso inválido";
+        toast.error("Erro", { description: msg });
         setLoading(false);
         return;
       }
 
-      const paciente = pacientes[0];
-      const cpfClean = paciente.cpf?.replace(/\D/g, "");
+      const { email, password, paciente } = ensured as { email: string; password: string; paciente: { id: string; nome: string } };
 
-      if (!cpfClean || cpfClean.length !== 11) {
-        toast.error("Erro", { description: "Paciente sem CPF cadastrado. Entre em contato com a clínica." });
-        setLoading(false);
-        return;
-      }
-
-      // Sign in via Supabase Auth using CPF-based credentials
-      const email = `${cpfClean}@paciente.essencial.com`;
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: cpfClean,
-      });
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (signInError) {
         console.error("Sign in error:", signInError);
-        toast.error("Erro", { description: "Erro ao autenticar. Sua conta pode não estar configurada. Entre em contato com a clínica." });
+        toast.error("Erro", { description: "Erro ao autenticar. Entre em contato com a clínica." });
         setLoading(false);
         return;
       }
