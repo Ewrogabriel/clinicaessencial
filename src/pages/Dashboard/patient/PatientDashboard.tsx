@@ -13,7 +13,7 @@ import {
   Phone, MapPin, AlertTriangle, CheckCircle2, Clock,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -55,7 +55,6 @@ export default function PatientDashboard() {
   const { activeClinicId } = useClinic();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { cards, visibleCards, reorderCards, toggleCard, resetToDefault } = useDashboardLayout("patient", DEFAULT_CARDS);
   const [feriadosDialogOpen, setFeriadosDialogOpen] = useState(false);
