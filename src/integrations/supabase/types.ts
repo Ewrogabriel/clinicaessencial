@@ -835,6 +835,25 @@ export type Database = {
           logo_url: string | null
           nome: string
           numero: string | null
+          pref_contract_cidade_foro: string | null
+          pref_contract_dia_pagamento_comissao: number | null
+          pref_contract_dia_vencimento: number | null
+          pref_contract_enrollment_fee: number | null
+          pref_contract_estado_foro: string | null
+          pref_contract_juros_mensal_pct: number | null
+          pref_contract_multa_atraso_pct: number | null
+          pref_contract_multa_nao_captacao_fator: number | null
+          pref_contract_multa_nao_captacao_valor: number | null
+          pref_contract_multa_uso_marca_valor: number | null
+          pref_contract_prazo_aviso_previo_dias: number | null
+          pref_contract_prazo_cancelamento_h: number | null
+          pref_contract_prazo_reposicao_dias: number | null
+          pref_contract_raio_nao_concorrencia_km: number | null
+          pref_contract_vigencia_meses: number | null
+          pref_contract_witness1_cpf: string | null
+          pref_contract_witness1_name: string | null
+          pref_contract_witness2_cpf: string | null
+          pref_contract_witness2_name: string | null
           rubrica_url: string | null
           telefone: string | null
           updated_at: string
@@ -855,6 +874,25 @@ export type Database = {
           logo_url?: string | null
           nome?: string
           numero?: string | null
+          pref_contract_cidade_foro?: string | null
+          pref_contract_dia_pagamento_comissao?: number | null
+          pref_contract_dia_vencimento?: number | null
+          pref_contract_enrollment_fee?: number | null
+          pref_contract_estado_foro?: string | null
+          pref_contract_juros_mensal_pct?: number | null
+          pref_contract_multa_atraso_pct?: number | null
+          pref_contract_multa_nao_captacao_fator?: number | null
+          pref_contract_multa_nao_captacao_valor?: number | null
+          pref_contract_multa_uso_marca_valor?: number | null
+          pref_contract_prazo_aviso_previo_dias?: number | null
+          pref_contract_prazo_cancelamento_h?: number | null
+          pref_contract_prazo_reposicao_dias?: number | null
+          pref_contract_raio_nao_concorrencia_km?: number | null
+          pref_contract_vigencia_meses?: number | null
+          pref_contract_witness1_cpf?: string | null
+          pref_contract_witness1_name?: string | null
+          pref_contract_witness2_cpf?: string | null
+          pref_contract_witness2_name?: string | null
           rubrica_url?: string | null
           telefone?: string | null
           updated_at?: string
@@ -875,6 +913,25 @@ export type Database = {
           logo_url?: string | null
           nome?: string
           numero?: string | null
+          pref_contract_cidade_foro?: string | null
+          pref_contract_dia_pagamento_comissao?: number | null
+          pref_contract_dia_vencimento?: number | null
+          pref_contract_enrollment_fee?: number | null
+          pref_contract_estado_foro?: string | null
+          pref_contract_juros_mensal_pct?: number | null
+          pref_contract_multa_atraso_pct?: number | null
+          pref_contract_multa_nao_captacao_fator?: number | null
+          pref_contract_multa_nao_captacao_valor?: number | null
+          pref_contract_multa_uso_marca_valor?: number | null
+          pref_contract_prazo_aviso_previo_dias?: number | null
+          pref_contract_prazo_cancelamento_h?: number | null
+          pref_contract_prazo_reposicao_dias?: number | null
+          pref_contract_raio_nao_concorrencia_km?: number | null
+          pref_contract_vigencia_meses?: number | null
+          pref_contract_witness1_cpf?: string | null
+          pref_contract_witness1_name?: string | null
+          pref_contract_witness2_cpf?: string | null
+          pref_contract_witness2_name?: string | null
           rubrica_url?: string | null
           telefone?: string | null
           updated_at?: string
@@ -1808,6 +1865,67 @@ export type Database = {
           },
           {
             foreignKeyName: "documentos_clinicos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_contratos: {
+        Row: {
+          arquivo_url: string
+          clinic_id: string | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          metadados: Json | null
+          paciente_id: string | null
+          profissional_id: string | null
+          tipo_documento: string
+          versao: number | null
+        }
+        Insert: {
+          arquivo_url: string
+          clinic_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          metadados?: Json | null
+          paciente_id?: string | null
+          profissional_id?: string | null
+          tipo_documento?: string
+          versao?: number | null
+        }
+        Update: {
+          arquivo_url?: string
+          clinic_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          metadados?: Json | null
+          paciente_id?: string | null
+          profissional_id?: string | null
+          tipo_documento?: string
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_contratos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_contratos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
+            foreignKeyName: "documentos_contratos_paciente_id_fkey"
             columns: ["paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
@@ -3128,6 +3246,16 @@ export type Database = {
           cidade: string | null
           codigo_acesso: string | null
           complemento: string | null
+          contract_cidade_foro: string | null
+          contract_dia_vencimento: number | null
+          contract_enrollment_fee: number | null
+          contract_estado_foro: string | null
+          contract_juros_mensal_pct: number | null
+          contract_multa_atraso_pct: number | null
+          contract_payment_method: string | null
+          contract_prazo_cancelamento_h: number | null
+          contract_prazo_reposicao_dias: number | null
+          contract_vigencia_meses: number | null
           convenio_id: string | null
           cpf: string | null
           created_at: string
@@ -3184,6 +3312,16 @@ export type Database = {
           cidade?: string | null
           codigo_acesso?: string | null
           complemento?: string | null
+          contract_cidade_foro?: string | null
+          contract_dia_vencimento?: number | null
+          contract_enrollment_fee?: number | null
+          contract_estado_foro?: string | null
+          contract_juros_mensal_pct?: number | null
+          contract_multa_atraso_pct?: number | null
+          contract_payment_method?: string | null
+          contract_prazo_cancelamento_h?: number | null
+          contract_prazo_reposicao_dias?: number | null
+          contract_vigencia_meses?: number | null
           convenio_id?: string | null
           cpf?: string | null
           created_at?: string
@@ -3240,6 +3378,16 @@ export type Database = {
           cidade?: string | null
           codigo_acesso?: string | null
           complemento?: string | null
+          contract_cidade_foro?: string | null
+          contract_dia_vencimento?: number | null
+          contract_enrollment_fee?: number | null
+          contract_estado_foro?: string | null
+          contract_juros_mensal_pct?: number | null
+          contract_multa_atraso_pct?: number | null
+          contract_payment_method?: string | null
+          contract_prazo_cancelamento_h?: number | null
+          contract_prazo_reposicao_dias?: number | null
+          contract_vigencia_meses?: number | null
           convenio_id?: string | null
           cpf?: string | null
           created_at?: string
@@ -4451,6 +4599,13 @@ export type Database = {
           commission_fixed: number | null
           commission_rate: number | null
           conselho_profissional: string | null
+          contract_dia_pagamento_comissao: number | null
+          contract_multa_nao_captacao_fator: number | null
+          contract_multa_nao_captacao_valor: number | null
+          contract_multa_uso_marca_valor: number | null
+          contract_prazo_aviso_previo_dias: number | null
+          contract_raio_nao_concorrencia_km: number | null
+          contract_valor_sessao_fixo: number | null
           cor_agenda: string | null
           cpf: string | null
           created_at: string
@@ -4493,6 +4648,13 @@ export type Database = {
           commission_fixed?: number | null
           commission_rate?: number | null
           conselho_profissional?: string | null
+          contract_dia_pagamento_comissao?: number | null
+          contract_multa_nao_captacao_fator?: number | null
+          contract_multa_nao_captacao_valor?: number | null
+          contract_multa_uso_marca_valor?: number | null
+          contract_prazo_aviso_previo_dias?: number | null
+          contract_raio_nao_concorrencia_km?: number | null
+          contract_valor_sessao_fixo?: number | null
           cor_agenda?: string | null
           cpf?: string | null
           created_at?: string
@@ -4535,6 +4697,13 @@ export type Database = {
           commission_fixed?: number | null
           commission_rate?: number | null
           conselho_profissional?: string | null
+          contract_dia_pagamento_comissao?: number | null
+          contract_multa_nao_captacao_fator?: number | null
+          contract_multa_nao_captacao_valor?: number | null
+          contract_multa_uso_marca_valor?: number | null
+          contract_prazo_aviso_previo_dias?: number | null
+          contract_raio_nao_concorrencia_km?: number | null
+          contract_valor_sessao_fixo?: number | null
           cor_agenda?: string | null
           cpf?: string | null
           created_at?: string
@@ -5589,6 +5758,12 @@ export type Database = {
       }
     }
     Functions: {
+      auto_mark_realizado_after_24h: {
+        Args: never
+        Returns: {
+          updated_count: number
+        }[]
+      }
       book_appointment: {
         Args: {
           p_clinic_id?: string
