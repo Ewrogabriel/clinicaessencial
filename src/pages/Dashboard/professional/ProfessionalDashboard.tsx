@@ -279,19 +279,19 @@ const ProfessionalDashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
                   <p className="text-2xl font-bold text-blue-600">{comissoesMes?.totalSessoes || 0}</p>
                   <p className="text-xs text-muted-foreground">Sessões Realizadas</p>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-green-600 break-words">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(comissoesMes?.valorTotal || 0)}
                   </p>
                   <p className="text-xs text-muted-foreground">Valor Total</p>
                 </div>
                 <div className="text-center p-3 bg-orange-50 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-xl font-bold text-orange-600 break-words">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(comissoesMes?.comissaoEstimada || 0)}
                   </p>
                   <p className="text-xs text-muted-foreground">Comissão Estimada</p>
