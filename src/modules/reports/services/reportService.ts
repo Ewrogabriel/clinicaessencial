@@ -504,140 +504,64 @@ export const reportService = {
   },
 
   async getRelatorioPorPaciente(mesInicio: string, mesFim: string, clinicId: string | null): Promise<RelatorioPorPaciente[]> {
-    if (!clinicId) return [];
-
-    const [pacientes, agendamentos, pagamentos] = await Promise.all([
-      this.getPacientes(clinicId),
-      this.getAgendamentos(mesInicio, mesFim, clinicId),
-      getUnifiedPayments(mesInicio, mesFim, clinicId),
-    ]);
-
-    const byPatient = new Map<string, RelatorioPorPaciente>();
-
-    const ensurePatient = (patientId: string, patientName: string) => {
-      if (!byPatient.has(patientId)) {
-        byPatient.set(patientId, {
-          paciente_id: patientId,
-          paciente_nome: patientName,
-          total_sessoes: 0,
-          sessoes_realizadas: 0,
-          sessoes_falta: 0,
-          taxa_faltas: 0,
-          total_pago: 0,
-          total_pendente: 0,
-          ultima_sessao: null,
-        });
-      }
-
-      return byPatient.get(patientId)!;
-    };
-
-    pacientes.forEach((patient) => ensurePatient(patient.id, patient.nome));
-
-    agendamentos.forEach((appointment) => {
-      const entry = ensurePatient(
-        appointment.paciente_id,
-        appointment.pacientes?.nome ?? "Paciente sem nome",
-      );
-
-      entry.total_sessoes += 1;
-      if (appointment.status === "realizado") entry.sessoes_realizadas += 1;
-      if (appointment.status === "falta") entry.sessoes_falta += 1;
-
-      if (!entry.ultima_sessao || appointment.data_horario > entry.ultima_sessao) {
-        entry.ultima_sessao = appointment.data_horario;
-      }
+    const { startDate, endDateExclusive } = getMonthRange(mesInicio, mesFim);
+    
+    const { data: results, error } = await supabase.rpc("get_patient_reports_summary", {
+      p_start_date: startDate,
+      p_end_date: endDateExclusive,
+      p_clinic_id: clinicId || undefined
     });
+    
+    if (error) {
+      console.error("Error from get_patient_reports_summary:", error);
+      throw error;
+    }
 
-    pagamentos.forEach((payment) => {
-      const entry = ensurePatient(
-        payment.paciente_id,
-        payment.pacientes?.nome ?? "Paciente sem nome",
-      );
-
-      if (payment.status === "pago") {
-        entry.total_pago += Number(payment.valor);
-      } else if (isPendingStatus(payment.status)) {
-        entry.total_pendente += Number(payment.valor);
-      }
-    });
-
-    return Array.from(byPatient.values())
-      .map((entry) => ({
-        ...entry,
-        taxa_faltas: entry.total_sessoes > 0
-          ? Number(((entry.sessoes_falta / entry.total_sessoes) * 100).toFixed(1))
-          : 0,
+    return (results || [])
+      .map((row: any) => ({
+        paciente_id: row.paciente_id,
+        paciente_nome: row.paciente_nome,
+        total_sessoes: Number(row.total_sessoes),
+        sessoes_realizadas: Number(row.sessoes_realizadas),
+        sessoes_falta: Number(row.sessoes_falta),
+        taxa_faltas: Number(row.taxa_faltas),
+        total_pago: Number(row.total_pago),
+        total_pendente: Number(row.total_pendente),
+        ultima_sessao: row.ultima_sessao,
       }))
       .filter((entry) =>
         entry.total_sessoes > 0 || entry.total_pago > 0 || entry.total_pendente > 0,
       )
-      .sort((left, right) => left.paciente_nome.localeCompare(right.paciente_nome));
+      .sort((a, b) => a.paciente_nome.localeCompare(b.paciente_nome));
   },
 
   async getRelatorioPorProfissional(mesInicio: string, mesFim: string, clinicId: string | null): Promise<RelatorioPorProfissional[]> {
-    if (!clinicId) return [];
-
-    const [profissionais, agendamentos, pagamentos] = await Promise.all([
-      this.getProfissionais(clinicId),
-      this.getAgendamentos(mesInicio, mesFim, clinicId),
-      getUnifiedPayments(mesInicio, mesFim, clinicId),
-    ]);
-
-    const byProfessional = new Map<string, RelatorioPorProfissional>();
-
-    const ensureProfessional = (professionalId: string, professionalName: string) => {
-      if (!professionalId) return null;
-
-      if (!byProfessional.has(professionalId)) {
-        byProfessional.set(professionalId, {
-          profissional_id: professionalId,
-          profissional_nome: professionalName,
-          total_sessoes: 0,
-          sessoes_realizadas: 0,
-          sessoes_falta: 0,
-          faturamento_total: 0,
-          faturamento_recebido: 0,
-          faturamento_pendente: 0,
-        });
-      }
-
-      return byProfessional.get(professionalId)!;
-    };
-
-    profissionais.forEach((professional) => ensureProfessional(professional.user_id, professional.nome));
-
-    agendamentos.forEach((appointment) => {
-      const entry = ensureProfessional(
-        appointment.profissional_id,
-        appointment.profiles?.nome ?? "Profissional sem nome",
-      );
-      if (!entry) return;
-
-      entry.total_sessoes += 1;
-      if (appointment.status === "realizado") entry.sessoes_realizadas += 1;
-      if (appointment.status === "falta") entry.sessoes_falta = (entry.sessoes_falta ?? 0) + 1;
+    const { startDate, endDateExclusive } = getMonthRange(mesInicio, mesFim);
+    
+    const { data: results, error } = await supabase.rpc("get_professional_reports_summary", {
+      p_start_date: startDate,
+      p_end_date: endDateExclusive,
+      p_clinic_id: clinicId || undefined
     });
 
-    pagamentos.forEach((payment) => {
-      const entry = ensureProfessional(
-        payment.profissional_id,
-        payment.profiles?.nome ?? "Profissional sem nome",
-      );
-      if (!entry) return;
+    if (error) {
+      console.error("Error from get_professional_reports_summary:", error);
+      throw error;
+    }
 
-      if (payment.status === "pago") {
-        entry.faturamento_recebido += Number(payment.valor);
-      } else if (isPendingStatus(payment.status)) {
-        entry.faturamento_pendente += Number(payment.valor);
-      }
-
-      entry.faturamento_total = entry.faturamento_recebido + entry.faturamento_pendente;
-    });
-
-    return Array.from(byProfessional.values())
+    return (results || [])
+      .map((row: any) => ({
+        profissional_id: row.profissional_id,
+        profissional_nome: row.profissional_nome,
+        total_sessoes: Number(row.total_sessoes),
+        sessoes_realizadas: Number(row.sessoes_realizadas),
+        sessoes_falta: Number(row.sessoes_falta),
+        faturamento_total: Number(row.faturamento_total),
+        faturamento_recebido: Number(row.faturamento_recebido),
+        faturamento_pendente: Number(row.faturamento_pendente),
+      }))
       .filter((entry) => entry.total_sessoes > 0 || entry.faturamento_total > 0)
-      .sort((left, right) => left.profissional_nome.localeCompare(right.profissional_nome));
+      .sort((a, b) => a.profissional_nome.localeCompare(b.profissional_nome));
   },
 
   async getRelatorioFaturamentoMensal(mesInicio: string, mesFim: string, clinicId: string | null): Promise<RelatorioFaturamentoMensal[]> {
