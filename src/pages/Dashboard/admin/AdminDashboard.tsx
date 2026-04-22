@@ -611,8 +611,31 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Dynamic card rendering based on user preferences */}
-      {visibleCards.map(card => renderSection(card.id))}
+      {/* Dynamic card rendering: wide cards full-width, small cards paired in 2 cols on md+ */}
+      {(() => {
+        const WIDE_CARDS = new Set(["today-agenda", "tips", "stats", "ai-insights", "chart"]);
+        const elements: JSX.Element[] = [];
+        let buffer: typeof visibleCards = [];
+        const flushBuffer = () => {
+          if (buffer.length === 0) return;
+          elements.push(
+            <div key={`pair-${elements.length}`} className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+              {buffer.map(c => <div key={c.id}>{renderSection(c.id)}</div>)}
+            </div>
+          );
+          buffer = [];
+        };
+        visibleCards.forEach(card => {
+          if (WIDE_CARDS.has(card.id)) {
+            flushBuffer();
+            elements.push(<div key={card.id}>{renderSection(card.id)}</div>);
+          } else {
+            buffer.push(card);
+          }
+        });
+        flushBuffer();
+        return elements;
+      })()}
 
       {/* Session Details Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
