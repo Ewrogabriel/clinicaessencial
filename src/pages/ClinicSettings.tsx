@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle, Palette, Lock } from "lucide-react";
+import { Building2, Save, Upload, CreditCard, Settings2, Shield, Database, FileText, Zap, MessageCircle, Palette, Lock, Users } from "lucide-react";
 import { useClinicSettings, useUpdateClinicSettings } from "@/modules/clinic/hooks/useClinicSettings";
 import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,7 +203,23 @@ const ClinicSettings = () => {
   }, [settings]);
 
   const handleSave = () => {
-    updateMutation.mutate({ id: settings?.id, ...form }, {
+    // Convert numeric fields back to numbers before saving
+    const numericFields = [
+      "pref_contract_multa_atraso_pct", "pref_contract_juros_mensal_pct",
+      "pref_contract_prazo_cancelamento_h", "pref_contract_dia_vencimento",
+      "pref_contract_prazo_reposicao_dias", "pref_contract_vigencia_meses",
+      "pref_contract_raio_nao_concorrencia_km", "pref_contract_multa_nao_captacao_fator",
+      "pref_contract_dia_pagamento_comissao", "pref_contract_prazo_aviso_previo_dias",
+      "pref_contract_multa_uso_marca_valor", "pref_contract_enrollment_fee",
+    ];
+    const payload: any = { id: settings?.id, ...form };
+    numericFields.forEach((f) => {
+      if (payload[f] !== undefined && payload[f] !== "") {
+        const n = Number(payload[f]);
+        if (!Number.isNaN(n)) payload[f] = n;
+      }
+    });
+    updateMutation.mutate(payload, {
       onSuccess: () => toast.success("Dados da clínica atualizados!"),
       onError: () => toast.error("Erro ao salvar"),
     });

@@ -9,6 +9,7 @@ import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -490,28 +491,68 @@ const Contratos = () => {
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="text-base">Pré-visualização</CardTitle></CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none text-foreground space-y-4 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
+                <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
                   <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
-                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS – PILATES</h3>
-                  <p><strong>CONTRATADA:</strong> {clinicNome}, com sede à {clinicEnderecoFull}.</p>
-                  <p><strong>CONTRATANTE:</strong> {paciente?.nome || "___________________"}</p>
+                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h3>
+                  <p><strong>CONTRATADA:</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}.</p>
+                  <p><strong>CONTRATANTE:</strong> {paciente?.nome || "___________________"}{paciente?.cpf ? `, CPF ${paciente.cpf}` : ""}{paciente?.rg ? `, RG ${paciente.rg}` : ""}.</p>
+
                   <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
-                  <p>Prestação de serviços de Pilates, conforme plano contratado.</p>
+                  <p>O presente contrato tem por objeto a prestação de serviços de {plano?.modalidade || "atendimento"}, conforme plano contratado: <strong>{plano?.nome || "a definir"}</strong>, com frequência de {plano?.frequencia_semanal || 1}x por semana.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 2ª – DA VIGÊNCIA</h4>
+                  <p>Este contrato vigorará pelo prazo de {paciente?.contract_vigencia_meses ?? clinicSettings?.pref_contract_vigencia_meses ?? 6} meses a contar da data de assinatura, renovando-se automaticamente por iguais períodos, salvo manifestação contrária por escrito de qualquer das partes com antecedência mínima de 30 dias.</p>
+
                   <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DO PAGAMENTO</h4>
-                  <p>Valor: R$ {valorFinal.toFixed(2)}. Pagamento no primeiro dia de aula. Multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.contract_multa_atraso_pct ?? 2}% em caso de atraso.</p>
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 20ª – DO FORO</h4>
-                  <p>Foro de {paciente?.contract_cidade_foro ?? clinicSettings?.contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.contract_estado_foro ?? clinicSettings?.estado ?? "MG"}.</p>
+                  <p>O CONTRATANTE pagará à CONTRATADA o valor mensal de R$ {valorFinal.toFixed(2)}{Number(overrideEnrollmentFee) > 0 ? `, acrescido de taxa de matrícula de R$ ${Number(overrideEnrollmentFee).toFixed(2)}` : ""}, com vencimento todo dia {paciente?.contract_dia_vencimento ?? clinicSettings?.pref_contract_dia_vencimento ?? 10}, via {overridePaymentMethod || "Pix"}. O atraso ensejará multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.pref_contract_multa_atraso_pct ?? 2}% e juros de {paciente?.contract_juros_mensal_pct ?? clinicSettings?.pref_contract_juros_mensal_pct ?? 1}% ao mês.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 4ª – DAS FALTAS E REPOSIÇÕES</h4>
+                  <p>O CONTRATANTE poderá cancelar uma sessão com antecedência mínima de {paciente?.contract_prazo_cancelamento_h ?? clinicSettings?.pref_contract_prazo_cancelamento_h ?? 3} horas, sendo a reposição garantida em até {paciente?.contract_prazo_reposicao_dias ?? clinicSettings?.pref_contract_prazo_reposicao_dias ?? 30} dias. Faltas sem aviso prévio não geram direito à reposição.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 5ª – DAS OBRIGAÇÕES DA CONTRATADA</h4>
+                  <p>Prestar os serviços com zelo, técnica e ética profissional, mantendo equipamentos e instalações adequadas, e respeitando o sigilo das informações do CONTRATANTE conforme a LGPD.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 6ª – DAS OBRIGAÇÕES DO CONTRATANTE</h4>
+                  <p>Comparecer pontualmente às sessões, informar quaisquer condições de saúde relevantes, seguir as orientações dos profissionais e efetuar os pagamentos nas datas acordadas.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 7ª – DA RESCISÃO</h4>
+                  <p>O contrato poderá ser rescindido por qualquer das partes mediante comunicação por escrito com antecedência mínima de 30 dias, ressalvado o pagamento das mensalidades vencidas até a efetiva rescisão.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 8ª – DA PROTEÇÃO DE DADOS (LGPD)</h4>
+                  <p>O CONTRATANTE autoriza o tratamento dos seus dados pessoais e de saúde para fins de prestação dos serviços, comunicação e cumprimento de obrigações legais, em conformidade com a Lei nº 13.709/2018.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 9ª – DO FORO</h4>
+                  <p>Fica eleito o foro da comarca de {paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG"} para dirimir quaisquer controvérsias oriundas deste contrato.</p>
+
+                  <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
 
                   <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                     <div>
                       {pacienteSignature ? <img src={pacienteSignature} alt="Assinatura" className="h-12 mx-auto mb-2" /> : <div className="h-12" />}
-                      <div className="border-t border-muted-foreground pt-2">CONTRATANTE</div>
+                      <div className="border-t border-muted-foreground pt-2">CONTRATANTE<br/><span className="text-xs">{paciente?.nome || ""}</span></div>
                     </div>
                     <div>
                       <div className="h-12" />
-                      <div className="border-t border-muted-foreground pt-2">CONTRATADA</div>
+                      <div className="border-t border-muted-foreground pt-2">CONTRATADA<br/><span className="text-xs">{clinicNome}</span></div>
                     </div>
                   </div>
+
+                  {(clinicSettings?.pref_contract_witness1_name || clinicSettings?.pref_contract_witness2_name) && (
+                    <div className="mt-6 grid grid-cols-2 gap-8 text-center border-t pt-6 text-xs">
+                      {clinicSettings?.pref_contract_witness1_name && (
+                        <div>
+                          <div className="h-8" />
+                          <div className="border-t border-muted-foreground pt-1">TESTEMUNHA 1<br/>{clinicSettings.pref_contract_witness1_name}<br/>CPF: {clinicSettings.pref_contract_witness1_cpf || "—"}</div>
+                        </div>
+                      )}
+                      {clinicSettings?.pref_contract_witness2_name && (
+                        <div>
+                          <div className="h-8" />
+                          <div className="border-t border-muted-foreground pt-1">TESTEMUNHA 2<br/>{clinicSettings.pref_contract_witness2_name}<br/>CPF: {clinicSettings.pref_contract_witness2_cpf || "—"}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -551,17 +592,45 @@ const Contratos = () => {
               <Card className="lg:col-span-2">
                 <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none text-foreground space-y-4 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
+                  <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
                     <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                     <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS</h3>
-                    <p><strong>CLÍNICA:</strong> {clinicNome}</p>
-                    <p><strong>PROFISSIONAL:</strong> {profissional?.nome || "___________________"}</p>
+                    <p><strong>CLÍNICA (CONTRATANTE):</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, sede ${clinicEnderecoFull}` : ""}.</p>
+                    <p><strong>PROFISSIONAL (CONTRATADO):</strong> {profissional?.nome || "___________________"}{profissional?.cpf ? `, CPF ${profissional.cpf}` : ""}{profissional?.registro_profissional ? `, ${profissional?.conselho_profissional || "Conselho"} ${profissional.registro_profissional}` : ""}.</p>
+
                     <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
-                    <p>Prestação de serviços profissionais de Pilates/Fisioterapia.</p>
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DA REMUNERAÇÃO</h4>
-                    <p>Comissão de {profissional?.commission_rate || "___"}% sobre valores recebidos. Pagamento até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.contract_dia_pagamento_comissao ?? 10}.</p>
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 17ª – DO FORO</h4>
-                    <p>Foro de {clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.estado || "MG"}.</p>
+                    <p>Prestação de serviços profissionais autônomos pelo CONTRATADO em favor da CONTRATANTE, sem vínculo empregatício, observada a legislação do respectivo conselho de classe.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 2ª – DA REMUNERAÇÃO</h4>
+                    <p>Comissão de {profissional?.commission_rate || "___"}% sobre os valores efetivamente recebidos pela CONTRATANTE referentes aos atendimentos prestados pelo CONTRATADO. O pagamento será efetuado até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.pref_contract_dia_pagamento_comissao ?? 10} do mês subsequente.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DA NÃO CAPTAÇÃO DE CLIENTES</h4>
+                    <p>Fica vedado ao CONTRATADO, durante a vigência deste contrato e por 12 (doze) meses após sua rescisão, atender clientes da CONTRATANTE em consultório próprio ou de terceiros num raio de {profissional?.contract_raio_nao_concorrencia_km ?? clinicSettings?.pref_contract_raio_nao_concorrencia_km ?? 5} km, sob pena de multa equivalente a {profissional?.contract_multa_nao_captacao_fator ?? clinicSettings?.pref_contract_multa_nao_captacao_fator ?? 10}x o valor mensal recebido pelo cliente captado.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 4ª – DA RESCISÃO E AVISO PRÉVIO</h4>
+                    <p>Qualquer das partes poderá rescindir o contrato mediante aviso prévio de {profissional?.contract_prazo_aviso_previo_dias ?? clinicSettings?.pref_contract_prazo_aviso_previo_dias ?? 30} dias, garantindo a continuidade dos atendimentos em curso.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 5ª – DO USO DA MARCA</h4>
+                    <p>O uso indevido da marca, logotipo ou imagem da CONTRATANTE pelo CONTRATADO acarretará multa de R$ {Number(profissional?.contract_multa_uso_marca_valor ?? clinicSettings?.pref_contract_multa_uso_marca_valor ?? 5000).toFixed(2)}, sem prejuízo de demais perdas e danos.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 6ª – DA CONFIDENCIALIDADE</h4>
+                    <p>O CONTRATADO compromete-se a manter sigilo absoluto sobre informações de pacientes, fluxos internos e dados estratégicos da CONTRATANTE, em conformidade com a LGPD.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 7ª – DO FORO</h4>
+                    <p>Fica eleito o foro da comarca de {clinicSettings?.pref_contract_cidade_foro || clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.pref_contract_estado_foro || clinicSettings?.estado || "MG"}.</p>
+
+                    <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
+
+                    <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
+                      <div>
+                        <div className="h-12" />
+                        <div className="border-t border-muted-foreground pt-2">CONTRATANTE<br/><span className="text-xs">{clinicNome}</span></div>
+                      </div>
+                      <div>
+                        <div className="h-12" />
+                        <div className="border-t border-muted-foreground pt-2">CONTRATADO<br/><span className="text-xs">{profissional?.nome || ""}</span></div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
