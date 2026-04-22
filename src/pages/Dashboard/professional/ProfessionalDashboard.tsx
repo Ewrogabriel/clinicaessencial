@@ -330,28 +330,28 @@ const ProfessionalDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight truncate">
             {saudacao}{profile?.nome ? `, ${profile.nome.split(" ")[0]}` : ""}!
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" className="gap-2" onClick={() => navigate("/agenda")}>
-            <Calendar className="h-4 w-4" /> Novo Agendamento
+        <div className="flex gap-2 flex-wrap w-full md:w-auto">
+          <Button size="sm" className="gap-2 flex-1 sm:flex-none min-w-0" onClick={() => navigate("/agenda")}>
+            <Calendar className="h-4 w-4 shrink-0" /> <span className="truncate">Novo Agendamento</span>
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate("/matriculas")}>
-            <UserPlus className="h-4 w-4" /> Nova Matrícula
+          <Button size="sm" variant="outline" className="gap-2 flex-1 sm:flex-none min-w-0" onClick={() => navigate("/matriculas")}>
+            <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Nova Matrícula</span>
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => {
+          <Button size="sm" variant="outline" className="gap-2 flex-1 sm:flex-none min-w-0" onClick={() => {
             const link = `${window.location.origin}/pre-cadastro`;
             const msg = `Olá! Para agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição.`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
           }}>
-            <UserPlus className="h-4 w-4" /> Enviar Pré-Cadastro
+            <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Pré-Cadastro</span>
           </Button>
           <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
         </div>
