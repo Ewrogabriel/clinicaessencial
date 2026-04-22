@@ -22,6 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PatientCombobox } from "@/components/ui/patient-combobox";
 
 import { generateReceiptPDF, getReceiptNumber } from "@/lib/generateReceiptPDF";
@@ -86,6 +87,12 @@ const Financeiro = () => {
     observacoes: "",
   });
 
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  const [selectedPagamentos, setSelectedPagamentos] = useState<string[]>([]);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkConfirmDataObj, setBulkConfirmDataObj] = useState({ data_pagamento: format(new Date(), "yyyy-MM-dd"), forma_pagamento_id: "" });
+
   // ── Formas de pagamento lookup (for mensalidade/sessoes that use FK) ──
   const { data: formasPagamentoList = [] } = useQuery({
     queryKey: ["formas-pagamento-lookup"],
@@ -102,10 +109,27 @@ const Financeiro = () => {
     return map;
   }, [formasPagamentoList]);
 
-  // ── Fetch all 3 payment tables in parallel via Service Layer ──
+  // KPIs
+  const { data: financeKpis } = useQuery({
+    queryKey: ["finance-kpis", activeClinicId],
+    queryFn: () => financeService.getFinanceKPIs(activeClinicId),
+    enabled: !!activeClinicId,
+  });
+
+  // Server-side paginated history
+  const { data: paginatedResult, isLoading: isPaginatedLoading } = useQuery({
+    queryKey: ["paginated-payments", activeClinicId, page, filterMes, filterForma, filterOrigem, filterPaciente],
+    queryFn: () => financeService.getPaginatedUnifiedPayments({
+      page, pageSize, filterMes, filterForma, filterOrigem, filterPaciente, clinicId: activeClinicId
+    }),
+    enabled: !!activeClinicId && !isPatient,
+  });
+
+  // ── Fetch future payments only for forecast tab ──
   const { data: allPayments = [], isLoading } = useQuery<any[]>({
     queryKey: ["all-payments-unified", activeClinicId],
     queryFn: () => financeService.getUnifiedPayments(activeClinicId),
+    enabled: !!activeClinicId,
   });
 
   const { data: pacientes = [] } = useQuery({
@@ -174,53 +198,19 @@ const Financeiro = () => {
   });
 
   const kpis = useMemo(() => {
-    const paid = allPayments.filter((p) => p.status === "pago");
-    const pending = allPayments.filter((p) => p.status === "pendente" || p.status === "aberto");
-    const overdue = allPayments.filter((p) => p.status === "vencido");
-    const refunded = allPayments.filter((p) => p.status === "reembolsado");
-    const totalRecebido = paid.reduce((sum, p) => sum + p.valor, 0);
-    const totalPendente = pending.reduce((sum, p) => sum + p.valor, 0);
-    const totalDespesas = (despesasForDre || []).filter((d) => d.status === "pago").reduce((sum, d) => sum + Number(d.valor), 0);
-    const totalComissoes = (comissoesForDre || [])
-      .filter((c) => c.status === "pago")
-      .reduce((sum, c) => sum + Number(c.valor), 0);
-    const lucroLiquido = totalRecebido - refunded.reduce((sum, p) => sum + p.valor, 0) - totalDespesas - totalComissoes;
+    if (financeKpis) return financeKpis;
     return {
-      totalRecebido, totalPendente, totalDespesas, totalComissoes,
-      countPagos: paid.length, countPendentes: pending.length,
-      countVencidos: overdue.length, valorVencidos: overdue.reduce((sum, p) => sum + p.valor, 0),
-      countReembolsados: refunded.length, valorReembolsados: refunded.reduce((sum, p) => sum + p.valor, 0),
-      lucroLiquido,
+      totalRecebido: 0, totalPendente: 0, totalDespesas: 0, totalComissoes: 0,
+      countPagos: 0, countPendentes: 0, countVencidos: 0, valorVencidos: 0,
+      countReembolsados: 0, valorReembolsados: 0, lucroLiquido: 0,
     };
-  }, [allPayments, despesasForDre, comissoesForDre]);
+  }, [financeKpis]);
 
   const { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido } = kpis;
 
-  // Pagamentos tab: show only confirmed (pago) payments
-  const filteredPagamentos = useMemo(() => {
-    let filtered = allPayments.filter((p) => p.status === "pago");
-    if (filterMes && filterMes !== "all") {
-      filtered = filtered.filter((p) => {
-        const datePago = p.data_pagamento?.substring(0, 7);
-        const dateVenc = p.data_vencimento?.substring(0, 7);
-        const dateCreated = p.created_at?.substring(0, 7);
-        return datePago === filterMes || dateVenc === filterMes || dateCreated === filterMes;
-      });
-    }
-    if (filterForma && filterForma !== "all") {
-      filtered = filtered.filter((p) => {
-        const fp = p.forma_pagamento?.toLowerCase() ?? "";
-        return fp.includes(filterForma);
-      });
-    }
-    if (filterOrigem && filterOrigem !== "all") {
-      filtered = filtered.filter((p) => p.origem_tipo === filterOrigem);
-    }
-    if (filterPaciente && filterPaciente !== "all") {
-      filtered = filtered.filter((p) => p.paciente_nome.toLowerCase().includes(filterPaciente.toLowerCase()));
-    }
-    return filtered;
-  }, [allPayments, filterMes, filterForma, filterOrigem, filterPaciente]);
+  // Pagamentos tab: show from paginated
+  const filteredPagamentos = paginatedResult?.data || [];
+
 
   const previsaoPagamentos = useMemo(() => {
     let items = allPayments
@@ -333,7 +323,9 @@ const Financeiro = () => {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["paginated-payments"] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-kpis"] });
       setConfirmDialog(null);
       toast.success("Pagamento confirmado!");
     },
@@ -345,8 +337,29 @@ const Financeiro = () => {
       await financeService.refundPayment(id);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["paginated-payments"] });
       queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-kpis"] });
       toast.success("Pagamento reembolsado!");
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
+
+  const bulkConfirmMutation = useMutation({
+    mutationFn: async () => {
+      const items = selectedPagamentos.map(idStr => {
+        const [source, ...idParts] = idStr.split('::');
+        return { source_table: source, id: idParts.join('::') };
+      });
+      await financeService.bulkConfirmPayments(items, bulkConfirmDataObj.forma_pagamento_id, bulkConfirmDataObj.data_pagamento);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["paginated-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["all-payments-unified"] });
+      queryClient.invalidateQueries({ queryKey: ["finance-kpis"] });
+      setBulkConfirmOpen(false);
+      setSelectedPagamentos([]);
+      toast.success("Pagamentos confirmados em lote!");
     },
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
@@ -490,6 +503,33 @@ const Financeiro = () => {
               </div>
             </div>
           )}
+
+          {/* Pagination Controls */}
+          {paginatedResult && paginatedResult.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <span className="text-sm text-muted-foreground">
+                Página {page} de {paginatedResult.totalPages} (Total: {paginatedResult.totalCount})
+              </span>
+              <div className="space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Anterior
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPage(p => Math.min(paginatedResult.totalPages, p + 1))}
+                  disabled={page === paginatedResult.totalPages}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -567,6 +607,24 @@ const Financeiro = () => {
           />
         </div>
       </div>
+      
+      {/* Bulk Action Bar */}
+      {selectedPagamentos.length > 0 && !isPatient && (
+        <div className="bg-primary/10 border border-primary/20 rounded-md p-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">
+           <span className="text-sm font-medium text-primary">
+             {selectedPagamentos.length} selecionado(s)
+           </span>
+           <div className="flex gap-2">
+             <Button variant="outline" size="sm" onClick={() => setSelectedPagamentos([])}>
+               Cancelar
+             </Button>
+             <Button size="sm" onClick={() => setBulkConfirmOpen(true)}>
+               Confirmar Pagamentos
+             </Button>
+           </div>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -580,6 +638,20 @@ const Financeiro = () => {
             <div className="w-full overflow-x-auto">
               <div className="min-w-[800px]">
                 <div className="flex items-center px-4 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {!isPatient && (
+                    <div className="w-[40px] pr-2">
+                      <Checkbox 
+                        checked={previsaoPagamentos.length > 0 && selectedPagamentos.length === previsaoPagamentos.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPagamentos(previsaoPagamentos.map(p => `${p.source_table}::${p.id}`));
+                          } else {
+                            setSelectedPagamentos([]);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
                   {!isPatient && <div className="flex-1 pr-4">Paciente</div>}
                   <div className="w-[100px] pr-2">Tipo</div>
                   <div className="w-[180px] pr-4">Descrição</div>
@@ -596,8 +668,24 @@ const Financeiro = () => {
                     const isOverdue = pagamento.data_vencimento
                       ? isBefore(startOfDay(new Date(pagamento.data_vencimento)), today)
                       : false;
+                    const itemId = `${pagamento.source_table}::${pagamento.id}`;
+                    const isSelected = selectedPagamentos.includes(itemId);
                     return (
-                      <div key={`${pagamento.source_table}-${pagamento.id}`} className={`border-b border-border/50 flex items-center px-4 py-3 hover:bg-muted/50 transition-colors ${isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""}`}>
+                      <div key={itemId} className={`border-b border-border/50 flex items-center px-4 py-3 hover:bg-muted/50 transition-colors ${isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
+                        {!isPatient && (
+                          <div className="w-[40px] pr-2">
+                            <Checkbox 
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedPagamentos([...selectedPagamentos, itemId]);
+                                } else {
+                                  setSelectedPagamentos(selectedPagamentos.filter(id => id !== itemId));
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
                         {!isPatient && <div className="flex-1 font-medium truncate pr-4">{pagamento.paciente_nome}</div>}
                         <div className="w-[100px] pr-2">
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${origemInfo.className}`}>
@@ -827,6 +915,39 @@ const Financeiro = () => {
                 {confirmPayment.isPending ? "Confirmando..." : "Confirmar Pagamento"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Bulk Confirm */}
+      <Dialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Recebimento em Lote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">Você está confirmando {selectedPagamentos.length} pagamentos pendentes.</p>
+            <div className="space-y-2">
+              <Label>Data do Pagamento</Label>
+              <Input type="date" value={bulkConfirmDataObj.data_pagamento} onChange={e => setBulkConfirmDataObj(d => ({ ...d, data_pagamento: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Forma de Pagamento (Padrão para todos)</Label>
+              <Select value={bulkConfirmDataObj.forma_pagamento_id} onValueChange={(val) => setBulkConfirmDataObj(d => ({ ...d, forma_pagamento_id: val }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {formasPagamentoList.map(f => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setBulkConfirmOpen(false)}>Cancelar</Button>
+            <Button onClick={() => bulkConfirmMutation.mutate()} disabled={bulkConfirmMutation.isPending || !bulkConfirmDataObj.forma_pagamento_id}>
+              {bulkConfirmMutation.isPending ? "Confirmando..." : "Confirmar Todos"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -199,191 +199,147 @@ export const financeService = {
     },
 
     async getUnifiedPayments(clinicId: string | null): Promise<UnifiedPayment[]> {
-        const results: any[] = [];
+        if (!clinicId) return [];
+        // Agora podemos usar a view unificada em vez de 4 chamadas gigantes,
+        // E só trazemos os que NÂO estão 'pago' para a Previsão/Forecast. 
+        // Eliminando o download massivo do histórico na carga inicial!
+        const { data, error } = await supabase
+            .from("vw_unified_payments")
+            .select("*")
+            .eq("clinic_id", clinicId)
+            .neq("status", "pago")
+            .order("data_vencimento", { ascending: true });
+
+        if (error) {
+            console.error("Error fetching forecast unified payments:", error);
+            return [];
+        }
+
+        // Mapear os campos para o formato esperado pelo frontend
+        return (data || []).map((row: any) => ({
+            ...row,
+            valor: Number(row.valor),
+            origem_tipo: row.origem_tipo,
+            source_table: row.source_table,
+            paciente_nome: row.paciente_nome ?? "—",
+        }));
+    },
+
+    async getPaginatedUnifiedPayments(params: {
+        page: number;
+        pageSize: number;
+        filterMes: string;
+        filterForma: string;
+        filterOrigem: string;
+        filterPaciente: string;
+        clinicId: string | null;
+    }) {
+        let query = supabase.from("vw_unified_payments").select("*", { count: "exact" });
+
+        if (params.clinicId) {
+            query = query.eq("clinic_id", params.clinicId);
+        }
+
+        // Apply filters
+        if (params.filterMes && params.filterMes !== "all") {
+            const y = params.filterMes.split('-')[0];
+            const m = params.filterMes.split('-')[1];
+            query = query.or(`data_pagamento.gte.${y}-${m}-01,data_vencimento.gte.${y}-${m}-01,created_at.gte.${y}-${m}-01`);
+            query = query.or(`data_pagamento.lte.${y}-${m}-31,data_vencimento.lte.${y}-${m}-31,created_at.lte.${y}-${m}-31`);
+        }
+        if (params.filterForma && params.filterForma !== "all") {
+            query = query.ilike("forma_pagamento", `%${params.filterForma}%`);
+        }
+        if (params.filterOrigem && params.filterOrigem !== "all") {
+            query = query.eq("origem_tipo", params.filterOrigem);
+        }
+        if (params.filterPaciente && params.filterPaciente !== "") {
+            query = query.ilike("paciente_nome", `%${params.filterPaciente}%`);
+        }
+
+        // Only paid items are shown in the main pagamentos list
+        query = query.eq("status", "pago");
+
+        // Pagination
+        const from = (params.page - 1) * params.pageSize;
+        const to = from + params.pageSize - 1;
         
-        // 1. pagamentos (Manual, Planos, etc.)
-        try {
-            let q1 = supabase
-                .from("pagamentos")
-                .select("id, valor, data_pagamento, data_vencimento, status, forma_pagamento, descricao, observacoes, created_at, paciente_id, pacientes(nome), plano_id")
-                .order("created_at", { ascending: false });
-            if (clinicId) q1 = q1.eq("clinic_id", clinicId);
-            const { data: pgtos, error: err1 } = await q1;
-            
-            if (err1) {
-                console.error("Error fetching 'pagamentos':", err1);
-            } else {
-                (pgtos || []).forEach((p: any) => {
-                    const formaLabel: Record<string, string> = {
-                        pix: "PIX", dinheiro: "Dinheiro", boleto: "Boleto",
-                        cartao_credito: "Cartão Crédito", cartao_debito: "Cartão Débito",
-                        transferencia: "Transferência",
-                    };
-                    results.push({
-                        ...p,
-                        valor: Number(p.valor),
-                        forma_pagamento: formaLabel[p.forma_pagamento] || p.forma_pagamento || "—",
-                        descricao: p.descricao || p.observacoes || (p.plano_id ? "Plano de Sessões" : "Pagamento Manual"),
-                        paciente_nome: p.pacientes?.nome ?? "—",
-                        origem_tipo: p.plano_id ? "plano" : "manual",
-                        source_table: "pagamentos",
-                    });
-                });
-            }
-        } catch (e) {
-            console.error("Critical error in 'pagamentos' fetch:", e);
+        query = query.order("data_pagamento", { ascending: false }).range(from, to);
+
+        const { data, count, error } = await query;
+        if (error) {
+            console.error("Error fetching paginated unified payments:", error);
+            throw error;
         }
 
-        // 2. pagamentos_mensalidade
-        try {
-            let q2 = supabase
-                .from("pagamentos_mensalidade")
-                .select("id, valor, data_pagamento, status, mes_referencia, forma_pagamento_id, observacoes, created_at, paciente_id, pacientes(nome), matricula_id, formas_pagamento:forma_pagamento_id(nome)")
-                .order("created_at", { ascending: false });
-            if (clinicId) q2 = q2.eq("clinic_id", clinicId);
-            const { data: mensalidades, error: err2 } = await q2;
-            
-            if (err2) {
-                console.error("Error fetching 'pagamentos_mensalidade':", err2);
-            } else {
-                (mensalidades || []).forEach((m: any) => {
-                    results.push({
-                        ...m,
-                        valor: Number(m.valor),
-                        data_vencimento: m.mes_referencia,
-                        status: m.status ?? "aberto",
-                        forma_pagamento: (m as any).formas_pagamento?.nome || "—",
-                        descricao: `Mensalidade - ${m.mes_referencia}`,
-                        paciente_nome: m.pacientes?.nome ?? "—",
-                        origem_tipo: "mensalidade",
-                        source_table: "pagamentos_mensalidade",
-                    });
-                });
-            }
-        } catch (e) {
-            console.error("Critical error in 'pagamentos_mensalidade' fetch:", e);
-        }
+        return {
+            data: data || [],
+            totalCount: count || 0,
+            totalPages: Math.ceil((count || 0) / params.pageSize),
+        };
+    },
 
-        // 2.1 Forecast for active matriculas (Virtual Mensualities)
-        try {
-            const currentMonth = new Date().toISOString().substring(0, 7);
-            let qMatriculas = supabase
-                .from("matriculas")
-                .select("id, paciente_id, valor_mensal, data_inicio, status, pacientes(nome)")
-                .eq("status", "ativo");
-            if (clinicId) qMatriculas = qMatriculas.eq("clinic_id", clinicId);
-            
-            const { data: activeMatriculas, error: errM } = await qMatriculas;
-            if (!errM && activeMatriculas) {
-                activeMatriculas.forEach((m: any) => {
-                    // Check if a payment for current month already exists in results
-                    const hasPayment = results.some(r => 
-                        r.source_table === "pagamentos_mensalidade" && 
-                        r.matricula_id === m.id && 
-                        r.mes_referencia === currentMonth
-                    );
+    async bulkConfirmPayments(payments: { id: string, source_table: string }[], forma_pagamento_id: string, data_pagamento: string) {
+        if (!payments || payments.length === 0) return 0;
+        
+        let confirmedCount = 0;
+        for (const payment of payments) {
+             const table = payment.source_table as "pagamentos" | "pagamentos_mensalidade" | "pagamentos_sessoes";
+             try {
+                if (table === "pagamentos") {
+                    const formasData = await this.getFormasPagamento();
+                    const tipo = formasData.find(f => f.id === forma_pagamento_id)?.tipo ?? "pix";
                     
-                    if (!hasPayment) {
-                        results.push({
-                            id: `virtual-m-${m.id}-${currentMonth}`,
-                            valor: Number(m.valor_mensal),
-                            data_pagamento: null,
-                            data_vencimento: `${currentMonth}-10`, // Suggest 10th as default
-                            status: "pendente",
-                            forma_pagamento: "—",
-                            descricao: `Mensalidade Prevista - ${currentMonth}`,
-                            created_at: new Date().toISOString(),
-                            paciente_nome: m.pacientes?.nome ?? "—",
-                            paciente_id: m.paciente_id,
-                            matricula_id: m.id,
-                            origem_tipo: "mensalidade",
-                            source_table: "matriculas_virtual",
-                        });
+                    const TIPO_TO_FORMA_ENUM: Record<string, string> = {
+                        pix: "pix", dinheiro: "dinheiro", boleto: "boleto",
+                        transferencia: "transferencia", cartao: "cartao_credito",
+                        cartao_credito: "cartao_credito", cartao_debito: "cartao_debito", cheque: "transferencia",
+                    };
+                    const formaEnum = TIPO_TO_FORMA_ENUM[tipo] ?? "pix";
+                    const { error } = await supabase.from("pagamentos").update({ status: "pago", data_pagamento, forma_pagamento: formaEnum as any }).eq("id", payment.id);
+                    if (!error) confirmedCount++;
+                } else if (table === "pagamentos_mensalidade") {
+                    const { error } = await supabase.from("pagamentos_mensalidade").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", payment.id);
+                    if (!error) {
+                         confirmedCount++;
+                         // Note: We skip commission release here for bulk to avoid massive function calls.
+                         // Commission engine will run on a trigger or sync soon.
                     }
-                });
-            }
-        } catch (e) {
-            console.error("Error in virtual monthly forecast:", e);
+                } else if (table === "pagamentos_sessoes") {
+                    const { error } = await supabase.from("pagamentos_sessoes").update({ status: "pago", data_pagamento, forma_pagamento_id: forma_pagamento_id || null }).eq("id", payment.id);
+                    if (!error) confirmedCount++;
+                } else if (payment.source_table === "agendamentos") {
+                     // Since this isn't a payment table initially, we skip it for bulk.
+                     // A user should confirm these individually. Or we could insert them, but it's risky
+                     // without patient info.
+                     console.warn("Skipping bulk insertion of agendamentos.");
+                }
+             } catch(err) {
+                 console.error("Bulk confirm error for item", payment.id, err);
+             }
         }
+        return confirmedCount;
+    },
 
-        // 3. pagamentos_sessoes (Sessões Avulsas REALIZADAS)
-        try {
-            let q3 = supabase
-                .from("pagamentos_sessoes")
-                .select("id, valor, data_pagamento, status, observacoes, created_at, paciente_id, forma_pagamento_id, pacientes(nome), agendamento_id, formas_pagamento:forma_pagamento_id(nome)")
-                .order("created_at", { ascending: false });
-            if (clinicId) q3 = q3.eq("clinic_id", clinicId);
-            const { data: sessoes, error: err3 } = await q3;
-            
-            if (err3) {
-                console.error("Error fetching 'pagamentos_sessoes':", err3);
-            } else {
-                (sessoes || []).forEach((s: any) => {
-                    results.push({
-                        ...s,
-                        valor: Number(s.valor),
-                        data_vencimento: s.status === "pago" ? null : s.data_pagamento,
-                        status: s.status ?? "aberto",
-                        forma_pagamento: (s as any).formas_pagamento?.nome || "—",
-                        descricao: s.observacoes || "Sessão avulsa",
-                        paciente_nome: s.pacientes?.nome ?? "—",
-                        origem_tipo: "sessao",
-                        source_table: "pagamentos_sessoes",
-                    });
-                });
-            }
-        } catch (e) {
-            console.error("Critical error in 'pagamentos_sessoes' fetch:", e);
+    async getFinanceKPIs(clinicId: string | null) {
+        if (!clinicId) return null;
+        const { data, error } = await supabase.rpc("get_finance_kpis", { p_clinic_id: clinicId });
+        if (error) {
+            console.error("Error fetching finance KPIs:", error);
+            throw error;
         }
-
-        // 4. agendamentos com valor (Previsão de Sessões FUTURAS)
-        try {
-            let q4 = supabase
-                .from("agendamentos")
-                .select("id, valor_sessao, data_horario, status, tipo_sessao, paciente_id, pacientes(nome), enrollment_id")
-                // Pegar qualquer agendamento que não esteja realizado/cancelado
-                .neq("status", "realizado")
-                .neq("status", "cancelado")
-                .order("data_horario", { ascending: false });
-            if (clinicId) q4 = q4.eq("clinic_id", clinicId);
-            const { data: upcoming, error: err4 } = await q4;
-
-            if (err4) {
-                console.error("Error fetching upcoming appointments for forecast:", err4);
-            } else {
-                (upcoming || []).forEach((u: any) => {
-                    // Skip enrollment-linked sessions (already in matriculas_virtual forecast)
-                    if (u.enrollment_id) return;
-                    // Evitar duplicidade com pagamentos_sessoes
-                    const alreadyHasPayment = results.some(r => r.agendamento_id === u.id);
-                    if (!alreadyHasPayment && Number(u.valor_sessao || 0) > 0) {
-                        results.push({
-                            id: u.id,
-                            valor: Number(u.valor_sessao || 0),
-                            data_pagamento: null,
-                            data_vencimento: u.data_horario,
-                            status: "pendente",
-                            forma_pagamento: "—",
-                            descricao: `Sessão Avulsa (${u.pacientes?.nome ?? "—"})`,
-                            created_at: u.data_horario,
-                            paciente_nome: u.pacientes?.nome ?? "—",
-                            paciente_id: u.paciente_id,
-                            agendamento_id: u.id,
-                            origem_tipo: "sessao",
-                            source_table: "agendamentos",
-                        });
-                    }
-                });
-            }
-        } catch (e) {
-            console.error("Critical error in 'agendamentos' forecast fetch:", e);
-        }
-
-        return results.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return dateB - dateA;
-        });
+        return data as {
+            totalRecebido: number;
+            totalPendente: number;
+            totalDespesas: number;
+            totalComissoes: number;
+            countPagos: number;
+            countPendentes: number;
+            countVencidos: number;
+            valorVencidos: number;
+            countReembolsados: number;
+            valorReembolsados: number;
+            lucroLiquido: number;
+        };
     }
-
 };

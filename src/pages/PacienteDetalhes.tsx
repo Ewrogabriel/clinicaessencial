@@ -20,6 +20,7 @@ import { PatientAttachments } from "@/components/clinical/PatientAttachments";
 import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
+import { AIDischargeReportButton } from "@/components/patient/AIDischargeReportButton";
 import { PaymentHistoryTab } from "@/components/financial/PaymentHistoryTab";
 import { PatientTimeline } from "@/components/patient/PatientTimeline";
 import { PatientContractsTab } from "@/components/patient/PatientContractsTab";
@@ -151,6 +152,7 @@ const PacienteDetalhes = () => {
                 <div className="flex gap-2 ml-auto">
                     <ExportPatientPDFButton pacienteId={id!} />
                     <AIPatientAnalysisButton pacienteId={id!} pacienteNome={paciente.nome} />
+                    <AIDischargeReportButton pacienteId={id!} pacienteNome={paciente.nome} />
                 </div>
             </div>
 
