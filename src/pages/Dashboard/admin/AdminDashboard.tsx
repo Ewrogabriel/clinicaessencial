@@ -556,41 +556,41 @@ const Dashboard = () => {
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
           {(isAdmin || isGestor) && <ClinicReportButton />}
           <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
-          <span className="inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">
+          <span className="hidden sm:inline-flex items-center gap-1 text-foreground font-medium bg-muted/50 px-3 py-1.5 rounded-full text-sm">
             <Clock className="h-4 w-4 text-primary" />
             {format(currentTime, "HH:mm:ss")}
           </span>
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-w-0"
             onClick={() => navigate("/agenda")}
           >
-            <CalendarCheck className="h-4 w-4" /> Novo Agendamento
+            <CalendarCheck className="h-4 w-4 shrink-0" /> <span className="truncate">Novo Agendamento</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-w-0"
             onClick={() => navigate("/planos")}
           >
-            <Activity className="h-4 w-4" /> Novo Plano
+            <Activity className="h-4 w-4 shrink-0" /> <span className="truncate">Novo Plano</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-w-0"
             onClick={() => navigate("/matriculas")}
           >
-            <Users className="h-4 w-4" /> Nova Matrícula
+            <Users className="h-4 w-4 shrink-0" /> <span className="truncate">Nova Matrícula</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-w-0"
             onClick={() => {
               const link = `${window.location.origin}/pre-cadastro`;
               const msg = `Olá! 👋\n\nPara agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n📋 ${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição. 😊`;
@@ -598,21 +598,44 @@ const Dashboard = () => {
               window.open(`https://wa.me/?text=${encoded}`, "_blank");
             }}
           >
-            <UserPlus className="h-4 w-4" /> Enviar Pré-Cadastro
+            <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Pré-Cadastro</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800"
+            className="gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 flex-1 sm:flex-none min-w-0"
             onClick={() => window.open(`https://wa.me/5581900000000`, "_blank")}
           >
-            <MessageCircle className="h-4 w-4" /> Falar com a Clínica
+            <MessageCircle className="h-4 w-4 shrink-0" /> <span className="truncate">Falar com a Clínica</span>
           </Button>
         </div>
       </div>
 
-      {/* Dynamic card rendering based on user preferences */}
-      {visibleCards.map(card => renderSection(card.id))}
+      {/* Dynamic card rendering: wide cards full-width, small cards paired in 2 cols on md+ */}
+      {(() => {
+        const WIDE_CARDS = new Set(["today-agenda", "tips", "stats", "ai-insights", "chart"]);
+        const elements: JSX.Element[] = [];
+        let buffer: typeof visibleCards = [];
+        const flushBuffer = () => {
+          if (buffer.length === 0) return;
+          elements.push(
+            <div key={`pair-${elements.length}`} className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+              {buffer.map(c => <div key={c.id}>{renderSection(c.id)}</div>)}
+            </div>
+          );
+          buffer = [];
+        };
+        visibleCards.forEach(card => {
+          if (WIDE_CARDS.has(card.id)) {
+            flushBuffer();
+            elements.push(<div key={card.id}>{renderSection(card.id)}</div>);
+          } else {
+            buffer.push(card);
+          }
+        });
+        flushBuffer();
+        return elements;
+      })()}
 
       {/* Session Details Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>

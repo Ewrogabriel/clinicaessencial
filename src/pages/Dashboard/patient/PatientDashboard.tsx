@@ -196,9 +196,9 @@ export default function PatientDashboard() {
         ))}
       </div>
 
-      {/* Dashboard Grid - Strictly 2 columns on all screens as requested */}
-      <div className="grid grid-cols-2 gap-4 md:gap-6">
-        {isCardVisible("tips") && <div className="col-span-2"><DailyTipsCard tipo="paciente" /></div>}
+      {/* Dashboard Grid - 1 col on mobile (better readability), 2 cols on tablet+ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        {isCardVisible("tips") && <div className="md:col-span-2"><DailyTipsCard tipo="paciente" /></div>}
 
 
         {/* Next sessions */}
