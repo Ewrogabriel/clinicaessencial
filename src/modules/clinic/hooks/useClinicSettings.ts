@@ -27,6 +27,7 @@ export interface ClinicSettings {
   pref_contract_vigencia_meses: number;
   pref_contract_raio_nao_concorrencia_km: number;
   pref_contract_multa_nao_captacao_fator: number;
+  pref_contract_multa_nao_captacao_valor: number | null;
   pref_contract_dia_pagamento_comissao: number;
   pref_contract_prazo_aviso_previo_dias: number;
   pref_contract_multa_uso_marca_valor: number;
@@ -50,7 +51,7 @@ export function useClinicSettings() {
           telefone, whatsapp, email, instagram, logo_url, rubrica_url, assinatura_url,
           pref_contract_multa_atraso_pct, pref_contract_juros_mensal_pct, pref_contract_prazo_cancelamento_h,
           pref_contract_dia_vencimento, pref_contract_prazo_reposicao_dias, pref_contract_vigencia_meses,
-          pref_contract_raio_nao_concorrencia_km, pref_contract_multa_nao_captacao_fator,
+          pref_contract_raio_nao_concorrencia_km, pref_contract_multa_nao_captacao_fator, pref_contract_multa_nao_captacao_valor,
           pref_contract_dia_pagamento_comissao, pref_contract_prazo_aviso_previo_dias,
           pref_contract_multa_uso_marca_valor, pref_contract_cidade_foro, pref_contract_estado_foro,
           pref_contract_enrollment_fee, pref_contract_witness1_name, pref_contract_witness1_cpf,

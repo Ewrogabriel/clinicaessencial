@@ -279,19 +279,19 @@ const ProfessionalDashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
                   <p className="text-2xl font-bold text-blue-600">{comissoesMes?.totalSessoes || 0}</p>
                   <p className="text-xs text-muted-foreground">Sessões Realizadas</p>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-green-600 break-words">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(comissoesMes?.valorTotal || 0)}
                   </p>
                   <p className="text-xs text-muted-foreground">Valor Total</p>
                 </div>
                 <div className="text-center p-3 bg-orange-50 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-xl font-bold text-orange-600 break-words">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(comissoesMes?.comissaoEstimada || 0)}
                   </p>
                   <p className="text-xs text-muted-foreground">Comissão Estimada</p>
@@ -330,35 +330,58 @@ const ProfessionalDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight truncate">
             {saudacao}{profile?.nome ? `, ${profile.nome.split(" ")[0]}` : ""}!
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {format(hoje, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" className="gap-2" onClick={() => navigate("/agenda")}>
-            <Calendar className="h-4 w-4" /> Novo Agendamento
+        <div className="flex gap-2 flex-wrap w-full md:w-auto">
+          <Button size="sm" className="gap-2 flex-1 sm:flex-none min-w-0" onClick={() => navigate("/agenda")}>
+            <Calendar className="h-4 w-4 shrink-0" /> <span className="truncate">Novo Agendamento</span>
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate("/matriculas")}>
-            <UserPlus className="h-4 w-4" /> Nova Matrícula
+          <Button size="sm" variant="outline" className="gap-2 flex-1 sm:flex-none min-w-0" onClick={() => navigate("/matriculas")}>
+            <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Nova Matrícula</span>
           </Button>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => {
+          <Button size="sm" variant="outline" className="gap-2 flex-1 sm:flex-none min-w-0" onClick={() => {
             const link = `${window.location.origin}/pre-cadastro`;
             const msg = `Olá! Para agilizar seu cadastro em nossa clínica, preencha o formulário abaixo:\n\n${link}\n\nÉ rápido e fácil! Qualquer dúvida, estamos à disposição.`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
           }}>
-            <UserPlus className="h-4 w-4" /> Enviar Pré-Cadastro
+            <UserPlus className="h-4 w-4 shrink-0" /> <span className="truncate">Pré-Cadastro</span>
           </Button>
           <DashboardCustomizer cards={cards} onReorder={reorderCards} onToggle={toggleCard} onReset={resetToDefault} />
         </div>
       </div>
 
-      {/* Dynamic card rendering */}
-      {visibleCards.map(card => renderSection(card.id))}
+      {/* Dynamic card rendering: wide cards full-width, small cards paired in 2 cols on md+ */}
+      {(() => {
+        const WIDE_CARDS = new Set(["today-agenda", "tips", "kpis", "ai-insights", "charts"]);
+        const elements: JSX.Element[] = [];
+        let buffer: typeof visibleCards = [];
+        const flushBuffer = () => {
+          if (buffer.length === 0) return;
+          elements.push(
+            <div key={`pair-${elements.length}`} className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+              {buffer.map(c => <div key={c.id}>{renderSection(c.id)}</div>)}
+            </div>
+          );
+          buffer = [];
+        };
+        visibleCards.forEach(card => {
+          if (WIDE_CARDS.has(card.id)) {
+            flushBuffer();
+            elements.push(<div key={card.id}>{renderSection(card.id)}</div>);
+          } else {
+            buffer.push(card);
+          }
+        });
+        flushBuffer();
+        return elements;
+      })()}
     </div>
   );
 };
