@@ -15,7 +15,12 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from "react-i18next";
+import { useTranslation as useReactI18n } from "react-i18next";
+const useTranslation = () => {
+  const { t: rawT, ...rest } = useReactI18n();
+  const t = (key: string, opts?: any) => (rawT as any)(key, opts);
+  return { t, ...rest };
+};
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";

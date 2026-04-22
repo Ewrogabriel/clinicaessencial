@@ -499,9 +499,9 @@ const Contratos = () => {
                   <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
                   <p>Prestação de serviços de Pilates, conforme plano contratado.</p>
                   <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DO PAGAMENTO</h4>
-                  <p>Valor: R$ {valorFinal.toFixed(2)}. Pagamento no primeiro dia de aula. Multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.contract_multa_atraso_pct ?? 2}% em caso de atraso.</p>
+                  <p>Valor: R$ {valorFinal.toFixed(2)}. Pagamento no primeiro dia de aula. Multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.pref_contract_multa_atraso_pct ?? 2}% em caso de atraso.</p>
                   <h4 className="font-bold border-b pb-1">CLÁUSULA 20ª – DO FORO</h4>
-                  <p>Foro de {paciente?.contract_cidade_foro ?? clinicSettings?.contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.contract_estado_foro ?? clinicSettings?.estado ?? "MG"}.</p>
+                  <p>Foro de {paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG"}.</p>
 
                   <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                     <div>
@@ -560,7 +560,7 @@ const Contratos = () => {
                     <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
                     <p>Prestação de serviços profissionais de Pilates/Fisioterapia.</p>
                     <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DA REMUNERAÇÃO</h4>
-                    <p>Comissão de {profissional?.commission_rate || "___"}% sobre valores recebidos. Pagamento até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.contract_dia_pagamento_comissao ?? 10}.</p>
+                    <p>Comissão de {profissional?.commission_rate || "___"}% sobre valores recebidos. Pagamento até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.pref_contract_dia_pagamento_comissao ?? 10}.</p>
                     <h4 className="font-bold border-b pb-1">CLÁUSULA 17ª – DO FORO</h4>
                     <p>Foro de {clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.estado || "MG"}.</p>
                   </div>
