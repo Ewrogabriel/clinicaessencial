@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { CommissionEngine } from "@/modules/commissions/commissionEngine";
 import { Plus, DollarSign, TrendingUp, AlertCircle, CheckCircle, Download, Filter, CalendarClock, Clock, Loader2 } from "lucide-react";
 import { FinanceExportButton } from "@/components/reports/FinanceExportButton";
+import { ImportarNotasFiscais } from "@/components/notas-fiscais/ImportarNotasFiscais";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Enums } from "@/types/database.types";
@@ -770,6 +771,7 @@ const Financeiro = () => {
         <h1 className="text-2xl sm:text-3xl font-bold font-[Plus_Jakarta_Sans]">{isPatient ? "Meus Pagamentos" : "Financeiro"}</h1>
         <div className="flex gap-2 flex-wrap">
           {!isPatient && <FinanceExportButton pagamentos={allPayments} />}
+          {!isPatient && <ImportarNotasFiscais />}
           {!isPatient && (
             <Button onClick={() => setFormOpen(true)}><Plus className="mr-2 h-4 w-4" /> Novo Pagamento</Button>
           )}
