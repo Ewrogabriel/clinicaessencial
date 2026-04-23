@@ -17,6 +17,7 @@ import { EvolutionForm } from "@/components/clinical/EvolutionForm";
 import { EvaluationForm } from "@/components/clinical/EvaluationForm";
 import { PatientScheduleTab } from "@/components/clinical/PatientScheduleTab";
 import { PatientAttachments } from "@/components/clinical/PatientAttachments";
+import { NotasFiscaisPaciente } from "@/components/notas-fiscais/NotasFiscaisPaciente";
 import { AIClinicalAssistant } from "@/components/clinical/AIClinicalAssistant";
 import { ExportPatientPDFButton } from "@/components/patient/ExportPatientPDFButton";
 import { AIPatientAnalysisButton } from "@/components/patient/AIPatientAnalysisButton";
@@ -295,6 +296,11 @@ const PacienteDetalhes = () => {
                     )}
 
                     <PatientAttachments pacienteId={id!} />
+                    <NotasFiscaisPaciente
+                      pacienteId={id!}
+                      pacienteNome={paciente?.nome}
+                      pacienteWhatsapp={paciente?.whatsapp || paciente?.telefone}
+                    />
                     <AIClinicalAssistant pacienteId={id!} modalidade={paciente?.tipo_atendimento} />
                 </TabsContent>
 
