@@ -3168,6 +3168,91 @@ export type Database = {
           },
         ]
       }
+      notas_fiscais: {
+        Row: {
+          arquivo_path: string
+          clinic_id: string | null
+          created_at: string
+          data_upload: string
+          enviado_em: string | null
+          enviado_via: string | null
+          hash_arquivo: string | null
+          id: string
+          mes_referencia: string
+          nome_arquivo: string
+          observacoes: string | null
+          paciente_id: string | null
+          public_token: string | null
+          public_token_expires_at: string | null
+          status: string
+          tamanho_bytes: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          arquivo_path: string
+          clinic_id?: string | null
+          created_at?: string
+          data_upload?: string
+          enviado_em?: string | null
+          enviado_via?: string | null
+          hash_arquivo?: string | null
+          id?: string
+          mes_referencia: string
+          nome_arquivo: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          public_token?: string | null
+          public_token_expires_at?: string | null
+          status?: string
+          tamanho_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          arquivo_path?: string
+          clinic_id?: string | null
+          created_at?: string
+          data_upload?: string
+          enviado_em?: string | null
+          enviado_via?: string | null
+          hash_arquivo?: string | null
+          id?: string
+          mes_referencia?: string
+          nome_arquivo?: string
+          observacoes?: string | null
+          paciente_id?: string | null
+          public_token?: string | null
+          public_token_expires_at?: string | null
+          status?: string
+          tamanho_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacoes: {
         Row: {
           conteudo: string | null
@@ -5807,6 +5892,7 @@ export type Database = {
           total_pontos: number
         }[]
       }
+      get_nota_fiscal_by_token: { Args: { p_token: string }; Returns: Json }
       get_public_receipt: { Args: { p_payment_id: string }; Returns: Json }
       has_role: {
         Args: {
