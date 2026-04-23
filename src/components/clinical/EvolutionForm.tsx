@@ -197,7 +197,7 @@ export const EvolutionForm = ({ open, onOpenChange, pacienteId }: EvolutionFormP
         evolutionMutation.mutate();
     };
 
-    const applyTemplate = (template: typeof EVOLUTION_TEMPLATES[0]) => {
+    const applyTemplate = (template: { descricao: string; conduta: string }) => {
         setDescricao(template.descricao);
         setConduta(template.conduta);
     };

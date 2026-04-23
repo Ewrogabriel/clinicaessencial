@@ -27,7 +27,7 @@ export const AIDischargeReportButton = ({ pacienteId, pacienteNome }: Props) => 
     
     try {
       // 1. Criar registro do relatório (pendente)
-      const { data: reportRecord, error: insertError } = await supabase
+      const { data: reportRecord, error: insertError } = await (supabase as any)
         .from("ai_discharge_reports")
         .insert({
           paciente_id: pacienteId,
@@ -39,7 +39,7 @@ export const AIDischargeReportButton = ({ pacienteId, pacienteNome }: Props) => 
         
       if (insertError) throw insertError;
       
-      const newReportId = reportRecord.id;
+      const newReportId = (reportRecord as any).id;
       setReportId(newReportId);
 
       // 2. Invocar Edge Function
@@ -50,19 +50,20 @@ export const AIDischargeReportButton = ({ pacienteId, pacienteNome }: Props) => 
       if (error) throw error;
 
       // 3. Buscar o conteúdo atualizado no banco
-      const { data: updatedReport, error: fetchError } = await supabase
+      const { data: updatedReport, error: fetchError } = await (supabase as any)
         .from("ai_discharge_reports")
         .select("conteudo_markdown, status")
         .eq("id", newReportId)
         .single();
         
       if (fetchError) throw fetchError;
+      const updatedAny = updatedReport as any;
       
-      if (updatedReport.status === "erro") {
+      if (updatedAny?.status === "erro") {
          throw new Error("Erro ocorrido na geração do Edge Function.");
       }
 
-      setReportResult(updatedReport.conteudo_markdown || "Relatório gerado sem conteúdo.");
+      setReportResult(updatedAny?.conteudo_markdown || "Relatório gerado sem conteúdo.");
       toast.success("Relatório de alta gerado com sucesso!");
 
     } catch (err: any) {

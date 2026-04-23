@@ -506,7 +506,7 @@ export const reportService = {
   async getRelatorioPorPaciente(mesInicio: string, mesFim: string, clinicId: string | null): Promise<RelatorioPorPaciente[]> {
     const { startDate, endDateExclusive } = getMonthRange(mesInicio, mesFim);
     
-    const { data: results, error } = await supabase.rpc("get_patient_reports_summary", {
+    const { data: results, error } = await (supabase as any).rpc("get_patient_reports_summary", {
       p_start_date: startDate,
       p_end_date: endDateExclusive,
       p_clinic_id: clinicId || undefined
@@ -538,7 +538,7 @@ export const reportService = {
   async getRelatorioPorProfissional(mesInicio: string, mesFim: string, clinicId: string | null): Promise<RelatorioPorProfissional[]> {
     const { startDate, endDateExclusive } = getMonthRange(mesInicio, mesFim);
     
-    const { data: results, error } = await supabase.rpc("get_professional_reports_summary", {
+    const { data: results, error } = await (supabase as any).rpc("get_professional_reports_summary", {
       p_start_date: startDate,
       p_end_date: endDateExclusive,
       p_clinic_id: clinicId || undefined
