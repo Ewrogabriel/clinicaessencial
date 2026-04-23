@@ -299,7 +299,7 @@ const PacienteDetalhes = () => {
                     <NotasFiscaisPaciente
                       pacienteId={id!}
                       pacienteNome={paciente?.nome}
-                      pacienteWhatsapp={paciente?.whatsapp || paciente?.telefone}
+                      pacienteWhatsapp={(paciente as any)?.whatsapp || paciente?.telefone}
                     />
                     <AIClinicalAssistant pacienteId={id!} modalidade={paciente?.tipo_atendimento} />
                 </TabsContent>
