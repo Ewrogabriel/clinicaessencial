@@ -209,7 +209,7 @@ const Financeiro = () => {
   const { totalRecebido, totalPendente, totalDespesas, totalComissoes, countPagos, countPendentes, lucroLiquido } = kpis;
 
   // Pagamentos tab: show from paginated
-  const filteredPagamentos = paginatedResult?.data || [];
+  const filteredPagamentos: any[] = (paginatedResult?.data as any[]) || [];
 
 
   const previsaoPagamentos = useMemo(() => {

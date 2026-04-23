@@ -201,9 +201,9 @@ export const financeService = {
     async getUnifiedPayments(clinicId: string | null): Promise<UnifiedPayment[]> {
         if (!clinicId) return [];
         // Agora podemos usar a view unificada em vez de 4 chamadas gigantes,
-        // E só trazemos os que NÂO estão 'pago' para a Previsão/Forecast. 
+        // E só trazemos os que NÂO estão 'pago' para a Previsão/Forecast.
         // Eliminando o download massivo do histórico na carga inicial!
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from("vw_unified_payments")
             .select("*")
             .eq("clinic_id", clinicId)
@@ -216,7 +216,7 @@ export const financeService = {
         }
 
         // Mapear os campos para o formato esperado pelo frontend
-        return (data || []).map((row: any) => ({
+        return ((data as any[]) || []).map((row: any) => ({
             ...row,
             valor: Number(row.valor),
             origem_tipo: row.origem_tipo,
@@ -234,7 +234,7 @@ export const financeService = {
         filterPaciente: string;
         clinicId: string | null;
     }) {
-        let query = supabase.from("vw_unified_payments").select("*", { count: "exact" });
+        let query: any = (supabase as any).from("vw_unified_payments").select("*", { count: "exact" });
 
         if (params.clinicId) {
             query = query.eq("clinic_id", params.clinicId);
@@ -263,7 +263,7 @@ export const financeService = {
         // Pagination
         const from = (params.page - 1) * params.pageSize;
         const to = from + params.pageSize - 1;
-        
+
         query = query.order("data_pagamento", { ascending: false }).range(from, to);
 
         const { data, count, error } = await query;
@@ -273,7 +273,7 @@ export const financeService = {
         }
 
         return {
-            data: data || [],
+            data: (data as any[]) || [],
             totalCount: count || 0,
             totalPages: Math.ceil((count || 0) / params.pageSize),
         };
@@ -323,12 +323,12 @@ export const financeService = {
 
     async getFinanceKPIs(clinicId: string | null) {
         if (!clinicId) return null;
-        const { data, error } = await supabase.rpc("get_finance_kpis", { p_clinic_id: clinicId });
+        const { data, error } = await (supabase as any).rpc("get_finance_kpis", { p_clinic_id: clinicId });
         if (error) {
             console.error("Error fetching finance KPIs:", error);
             throw error;
         }
-        return data as {
+        return data as unknown as {
             totalRecebido: number;
             totalPendente: number;
             totalDespesas: number;
