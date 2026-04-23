@@ -104,12 +104,12 @@ export function AlertsWidget() {
       }
 
       // 3. Contracts without signature
-      let contrQ = supabase
+      let contrQ = (supabase as any)
         .from("contratos_pacientes")
         .select("id, titulo")
         .eq("status", "pendente");
       if (activeClinicId) contrQ = contrQ.eq("clinic_id", activeClinicId);
-      const { data: unsignedContracts } = await contrQ;
+      const { data: unsignedContracts } = (await contrQ) as { data: any[] | null };
       if (unsignedContracts && unsignedContracts.length > 0) {
         items.push({
           id: "unsigned-contracts",

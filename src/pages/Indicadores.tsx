@@ -371,7 +371,7 @@ export default function Indicadores() {
                   <YAxis />
                   <Tooltip
                     formatter={(value: number) => `R$ ${value.toFixed(2)}`}
-                    contentClassName="rounded-lg border-none shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+                    wrapperClassName="rounded-lg border-none shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
                   />
                   <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
                     {chartData.map((entry, index) => (
