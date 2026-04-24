@@ -5841,6 +5841,28 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_unified_payments: {
+        Row: {
+          agendamento_id: string | null
+          clinic_id: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          forma_pagamento: string | null
+          forma_pagamento_id: string | null
+          id: string | null
+          matricula_id: string | null
+          observacoes: string | null
+          origem_tipo: string | null
+          paciente_id: string | null
+          paciente_nome: string | null
+          source_table: string | null
+          status: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       auto_mark_realizado_after_24h: {
@@ -5883,6 +5905,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_finance_kpis: { Args: { p_clinic_id: string }; Returns: Json }
       get_gamification_ranking: {
         Args: { limit_count?: number }
         Returns: {
