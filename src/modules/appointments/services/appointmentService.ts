@@ -153,16 +153,21 @@ export const appointmentService = {
 
                 // Create financial record for slot-based bookings too
                 if (params.valor_sessao && params.valor_sessao > 0 && agendamentoId) {
-                    await supabase.from("pagamentos").insert({
+                    const { error: pagError } = await supabase.from("pagamentos").insert({
                         paciente_id: params.paciente_id,
+                        profissional_id: params.profissional_id,
                         agendamento_id: agendamentoId,
                         valor: params.valor_sessao,
                         status: "pendente",
                         data_vencimento: params.data_vencimento ? new Date(params.data_vencimento).toISOString().split('T')[0] : new Date(params.data_horario).toISOString().split('T')[0],
-                        descricao: `Sessão: ${params.tipo_atendimento}`,
+                        forma_pagamento: params.forma_pagamento || null,
+                        descricao: `Sessão Avulsa - ${params.tipo_atendimento}`,
                         clinic_id: params.clinic_id,
+                        created_by: params.created_by,
                         tipo_lancamento: 'sessao',
+                        origem_tipo: 'sessao_avulsa',
                     } as any);
+                    if (pagError) console.error('[appointmentService] Erro ao criar pagamento (slot):', pagError);
                 }
 
                 // Update valor_sessao, forma_pagamento and data_vencimento on the agendamento
@@ -204,17 +209,22 @@ export const appointmentService = {
 
             // Immediately create a pending financial record if there's a value
             if (params.valor_sessao && params.valor_sessao > 0) {
+                const formaPagamentoEnum = params.forma_pagamento || null;
                 const { error: pagError } = await supabase.from("pagamentos").insert({
                     paciente_id: params.paciente_id,
+                    profissional_id: params.profissional_id,
                     agendamento_id: data.id,
                     valor: params.valor_sessao,
                     status: "pendente",
                     data_vencimento: params.data_vencimento
                         ? new Date(params.data_vencimento).toISOString().split('T')[0]
                         : new Date(params.data_horario).toISOString().split('T')[0],
-                    descricao: `Sessão: ${params.tipo_atendimento}`,
+                    forma_pagamento: formaPagamentoEnum,
+                    descricao: `Sessão Avulsa - ${params.tipo_atendimento}`,
                     clinic_id: params.clinic_id,
+                    created_by: params.created_by,
                     tipo_lancamento: 'sessao',
+                    origem_tipo: 'sessao_avulsa',
                 } as any);
                 if (pagError) console.error('[appointmentService] Erro ao criar pagamento:', pagError);
             }
