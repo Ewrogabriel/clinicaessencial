@@ -36,6 +36,7 @@ import { useClinic } from "@/modules/clinic/hooks/useClinic";
 import { PlanLimitBanner, usePlanLimitCheck } from "@/components/planos/PlanLimitBanner";
 import { usePacientes } from "@/modules/shared/hooks/usePacientes";
 import { patientService } from "@/modules/patients/services/patientService";
+import { PacientesExportButton } from "@/components/pacientes/PacientesExportButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -193,7 +194,8 @@ const Pacientes = () => {
           <h1 className="text-2xl font-bold tracking-tight">Pacientes</h1>
           <p className="text-sm text-muted-foreground">Gerencie os pacientes da clínica</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <PacientesExportButton pacientes={filtrados as any} />
           {!isProfissional && (
             <Button size="sm" onClick={() => navigate("/pacientes/novo")} disabled={pacienteLimitReached}>
               <Plus className="h-4 w-4 mr-1" /> Novo Paciente
