@@ -242,10 +242,15 @@ export const financeService = {
 
         // Apply filters
         if (params.filterMes && params.filterMes !== "all") {
-            const y = params.filterMes.split('-')[0];
-            const m = params.filterMes.split('-')[1];
-            query = query.or(`data_pagamento.gte.${y}-${m}-01,data_vencimento.gte.${y}-${m}-01,created_at.gte.${y}-${m}-01`);
-            query = query.or(`data_pagamento.lte.${y}-${m}-31,data_vencimento.lte.${y}-${m}-31,created_at.lte.${y}-${m}-31`);
+            const [yStr, mStr] = params.filterMes.split('-');
+            const y = Number(yStr);
+            const m = Number(mStr);
+            // Last day of the month (day 0 of next month)
+            const lastDay = new Date(y, m, 0).getDate();
+            const mm = mStr.padStart(2, '0');
+            const dd = String(lastDay).padStart(2, '0');
+            query = query.or(`data_pagamento.gte.${y}-${mm}-01,data_vencimento.gte.${y}-${mm}-01,created_at.gte.${y}-${mm}-01`);
+            query = query.or(`data_pagamento.lte.${y}-${mm}-${dd},data_vencimento.lte.${y}-${mm}-${dd},created_at.lte.${y}-${mm}-${dd}`);
         }
         if (params.filterForma && params.filterForma !== "all") {
             query = query.ilike("forma_pagamento", `%${params.filterForma}%`);
