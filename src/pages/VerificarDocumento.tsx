@@ -55,28 +55,22 @@ const VerificarDocumento = () => {
   const fetchDoc = async (docId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("documentos_clinicos")
-        .select("*, pacientes(nome, cpf)")
-        .eq("id", docId)
-        .maybeSingle();
-
+      const { data, error } = await (supabase as any).rpc("verify_documento_clinico", { p_code: docId });
       if (error || !data) { setNotFound(true); setLoading(false); return; }
-      setDoc(data);
 
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("nome, registro_profissional, conselho_profissional, registro_conselho")
-        .eq("user_id", data.profissional_id)
-        .maybeSingle();
-
-      setProfissional(prof);
+      // Normalize to old shape used by the rest of the page
+      setDoc({
+        ...data.documento,
+        pacientes: data.paciente,
+      });
+      setProfissional(data.profissional);
     } catch {
       setNotFound(true);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleCodeSearch = async () => {
     if (!codeInput.trim()) return;
@@ -86,28 +80,15 @@ const VerificarDocumento = () => {
     setProfissional(null);
 
     try {
-      // Search by first 8 chars of ID (case-insensitive)
-      const code = codeInput.trim().toLowerCase();
-      const { data, error } = await supabase
-        .from("documentos_clinicos")
-        .select("*, pacientes(nome, cpf)")
-        .limit(50);
+      const { data, error } = await (supabase as any).rpc("verify_documento_clinico", {
+        p_code: codeInput.trim(),
+      });
 
-      if (error) { setCodeResult("not_found"); return; }
+      if (error || !data) { setCodeResult("not_found"); return; }
 
-      const found = (data || []).find(d => d.id.substring(0, 8).toLowerCase() === code);
-      if (!found) { setCodeResult("not_found"); return; }
-
-      setDoc(found);
+      setDoc({ ...data.documento, pacientes: data.paciente });
+      setProfissional(data.profissional);
       setCodeResult("found");
-
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("nome, registro_profissional, conselho_profissional, registro_conselho")
-        .eq("user_id", found.profissional_id)
-        .maybeSingle();
-
-      setProfissional(prof);
     } catch {
       setCodeResult("not_found");
     } finally {
