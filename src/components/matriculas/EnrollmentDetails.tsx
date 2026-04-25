@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign, TrendingUp } from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign, TrendingUp, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
