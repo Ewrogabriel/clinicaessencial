@@ -184,9 +184,17 @@ export function AgendamentoForm({ open, onOpenChange, onSuccess, defaultDate, de
     if (!user) return;
     if (!activeClinicId) { toast.error("Selecione uma clínica antes de criar um agendamento."); return; }
     const isSingleAppointment = !values.recorrente && (!values.repetir || values.repetir_quantidade <= 1);
+
+    // HARD BLOCK: individual sessions can never overlap others, no override allowed
+    if (values.tipo_sessao === 'individual' && availabilityResult?.isOverCapacity) {
+      toast.error("Sessão individual não pode ser agendada: o horário já possui outro atendimento para este profissional.");
+      return;
+    }
+
     if (isSingleAppointment && availabilityResult?.isOverCapacity) { setOverCapacityPending(values); return; }
     await doSubmit(values);
   };
+
 
   const isRepetir = form.watch("repetir");
   const repetirQuantidade = form.watch("repetir_quantidade");
