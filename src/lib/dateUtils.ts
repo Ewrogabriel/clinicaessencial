@@ -71,3 +71,39 @@ export function parseDateMultiFormat(value: string | number | null | undefined):
   const fallback = new Date(str);
   return isNaN(fallback.getTime()) ? null : fallback.toISOString().slice(0, 10);
 }
+
+/**
+ * Formats a date as DD/MM/YYYY in local timezone, avoiding the
+ * "one day off" problem caused by parsing 'YYYY-MM-DD' as UTC midnight.
+ *
+ * Accepts:
+ *  - 'YYYY-MM-DD' (date-only, treated as local)
+ *  - Full ISO strings 'YYYY-MM-DDTHH:mm:ssZ' (kept as-is)
+ *  - Date objects
+ */
+export function formatDateBR(value: string | Date | null | undefined): string {
+  if (value == null || value === "") return "";
+
+  let d: Date;
+
+  if (value instanceof Date) {
+    d = value;
+  } else {
+    const str = String(value).trim();
+    // Date-only ISO (no time) → parse as local to avoid UTC shift
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, day] = str.split("-").map(Number);
+      d = new Date(y, m - 1, day);
+    } else {
+      d = new Date(str);
+    }
+  }
+
+  if (isNaN(d.getTime())) return "";
+
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
