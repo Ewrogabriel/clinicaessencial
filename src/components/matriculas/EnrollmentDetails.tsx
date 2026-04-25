@@ -240,6 +240,37 @@ export function EnrollmentDetails({ enrollment }: Props) {
         },
     });
 
+    // Cancel a session: cancel in the agenda + auto-generate make-up credit
+    const cancelSession = useMutation({
+        mutationFn: async (sessionId: string) => {
+            const { error: cancelErr } = await (supabase as any)
+                .from("agendamentos")
+                .update({ status: "cancelado" })
+                .eq("id", sessionId);
+            if (cancelErr) throw cancelErr;
+
+            const expDate = new Date();
+            expDate.setDate(expDate.getDate() + 30);
+            const { error: credErr } = await (supabase as any)
+                .from("reschedule_credits")
+                .insert({
+                    enrollment_id: enrollment.id,
+                    generated_from_session_id: sessionId,
+                    expiration_date: expDate.toISOString().split("T")[0],
+                    status: "available",
+                });
+            if (credErr) throw credErr;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["enrollment-sessions", enrollment.id] });
+            queryClient.invalidateQueries({ queryKey: ["enrollment-credits", enrollment.id] });
+            queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+            toast.success("Sessão cancelada. Um crédito de reposição foi gerado para o paciente.");
+        },
+        onError: (err: any) => toast.error("Erro ao cancelar sessão: " + (err?.message ?? "")),
+    });
+
+
     return (
         <div className="space-y-4">
             {/* Reference code */}
