@@ -5953,6 +5953,7 @@ export type Database = {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      verify_documento_clinico: { Args: { p_code: string }; Returns: Json }
       wipe_clinic_data: { Args: { _clinic_id: string }; Returns: undefined }
     }
     Enums: {
