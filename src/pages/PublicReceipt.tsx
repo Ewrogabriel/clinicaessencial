@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReceiptPDF } from "@/lib/generateReceiptPDF";
+import { formatDateBR } from "@/lib/dateUtils";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+
 
 const PublicReceipt = () => {
     const { id } = useParams();
@@ -50,9 +52,11 @@ const PublicReceipt = () => {
         setGenerating(true);
         try {
             const dataPag = payment.data_pagamento || payment.created_at;
-            const dateStr = new Date(dataPag).toLocaleDateString("pt-BR");
-            const yy = new Date(dataPag).getFullYear().toString().slice(-2);
-            const mm = String(new Date(dataPag).getMonth() + 1).padStart(2, "0");
+            const dateStr = formatDateBR(dataPag);
+            // Numbering uses created_at (timestamp with time) — safe to use Date
+            const created = new Date(payment.created_at || dataPag);
+            const yy = created.getFullYear().toString().slice(-2);
+            const mm = String(created.getMonth() + 1).padStart(2, "0");
             const short = payment.id.slice(0, 6).toUpperCase();
             const numero = `${yy}${mm}-${short}`;
 
@@ -67,6 +71,7 @@ const PublicReceipt = () => {
                 referencia: payment.referencia || payment.mes_referencia || "",
             });
             doc.save(`recibo-${paciente.nome.replace(/\s+/g, "-")}.pdf`);
+
             toast.success("Recibo gerado com sucesso!");
         } catch (err) {
             console.error("Error generating PDF:", err);
@@ -113,9 +118,10 @@ const PublicReceipt = () => {
                         <p className="text-slate-500 text-sm">
                             Clique no botão abaixo para baixar o recibo do seu pagamento realizado em{" "}
                             <span className="font-semibold text-slate-700">
-                                {new Date(payment.data_pagamento).toLocaleDateString("pt-BR")}
+                                {formatDateBR(payment.data_pagamento || payment.created_at)}
                             </span>
                         </p>
+
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">

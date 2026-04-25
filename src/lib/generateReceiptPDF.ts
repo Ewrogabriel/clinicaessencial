@@ -54,38 +54,44 @@ const formaLabel: Record<string, string> = {
 export async function generateReceiptPDF(data: ReceiptData) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
   const margin = 20;
-  let y = 20;
+  const contentWidth = pw - margin * 2;
+  let y = 18;
 
-  // Get clinic settings
   const settings = await runReceiptStep(() => getClinicSettings(), fallbackClinicSettings);
 
-  // Border
+  // Outer border
   doc.setDrawColor(0, 120, 120);
-  doc.setLineWidth(0.8);
-  doc.roundedRect(12, 12, pw - 24, 160, 4, 4);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(12, 12, pw - 24, ph - 24, 4, 4);
 
-  // Logo
-  const logoX = pw / 2 - 15;
-  y = await runReceiptStep(() => addLogoToPDF(doc, logoX, y, 30, 25), y);
+  // Logo (centered)
+  y = await runReceiptStep(() => addLogoToPDF(doc, pw / 2 - 15, y, 28, 22), y + 22);
   y += 2;
 
-  // Header
-  doc.setFontSize(18);
+  // Clinic header
+  doc.setFontSize(15);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 80, 80);
   doc.text(settings.nome.toUpperCase(), pw / 2, y, { align: "center" });
-  y += 6;
-  doc.setFontSize(9);
+  y += 5;
+
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
   if (settings.cnpj) {
     doc.text(`CNPJ: ${settings.cnpj}`, pw / 2, y, { align: "center" });
-    y += 4;
+    y += 3.5;
   }
+
   const endereco = formatClinicAddress(settings);
   if (endereco) {
-    doc.text(endereco, pw / 2, y, { align: "center" });
-    y += 4;
+    const enderecoLines = doc.splitTextToSize(endereco, contentWidth);
+    doc.text(enderecoLines, pw / 2, y, { align: "center" });
+    y += enderecoLines.length * 3.5;
   }
+
   const contato = [
     settings.whatsapp ? `WhatsApp: ${settings.whatsapp}` : null,
     settings.instagram || null,
@@ -94,7 +100,7 @@ export async function generateReceiptPDF(data: ReceiptData) {
     doc.text(contato, pw / 2, y, { align: "center" });
     y += 4;
   }
-  y += 4;
+  y += 3;
 
   // Divider
   doc.setDrawColor(200);
@@ -105,71 +111,90 @@ export async function generateReceiptPDF(data: ReceiptData) {
   // Title
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 80, 80);
   doc.text("RECIBO DE PAGAMENTO", pw / 2, y, { align: "center" });
-  y += 6;
-  doc.setFontSize(10);
+  y += 5;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
   doc.text(`Nº ${data.numero}`, pw / 2, y, { align: "center" });
-  y += 10;
+  y += 9;
 
-  // Fields
+  doc.setTextColor(0, 0, 0);
+
+  // Field rendering with wrapping
   const addField = (label: string, value: string) => {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(`${label}:`, margin, y);
+    doc.setFontSize(9.5);
+    const labelText = `${label}:`;
+    doc.text(labelText, margin, y);
+    const labelW = doc.getTextWidth(labelText) + 2;
+
     doc.setFont("helvetica", "normal");
-    doc.text(value, margin + doc.getTextWidth(`${label}: `) + 2, y);
-    y += 7;
+    const valueWidth = contentWidth - labelW;
+    const valueLines = doc.splitTextToSize(String(value || "—"), valueWidth);
+    doc.text(valueLines, margin + labelW, y);
+    y += Math.max(6, valueLines.length * 4.5);
   };
 
   addField("Recebi de", data.pacienteNome);
   addField("CPF", data.cpf || "Não informado");
-  addField("Referência", data.referencia);
+  if (data.referencia) addField("Referência", data.referencia);
   addField("Descrição", data.descricao);
   addField("Forma de pagamento", formaLabel[data.formaPagamento] || data.formaPagamento || "—");
   addField("Data do pagamento", data.dataPagamento);
 
-  y += 4;
+  y += 3;
 
   // Amount box
   doc.setFillColor(240, 249, 249);
-  doc.roundedRect(margin, y - 2, pw - margin * 2, 16, 3, 3, "F");
+  doc.roundedRect(margin, y, contentWidth, 16, 3, 3, "F");
   doc.setDrawColor(0, 120, 120);
   doc.setLineWidth(0.5);
-  doc.roundedRect(margin, y - 2, pw - margin * 2, 16, 3, 3, "S");
-  doc.setFontSize(12);
+  doc.roundedRect(margin, y, contentWidth, 16, 3, 3, "S");
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("VALOR RECEBIDO:", margin + 6, y + 8);
-  doc.setFontSize(16);
-  doc.text(`R$ ${data.valor.toFixed(2)}`, pw - margin - 6, y + 8, { align: "right" });
-  y += 24;
+  doc.setTextColor(0, 80, 80);
+  doc.text("VALOR RECEBIDO:", margin + 5, y + 10);
+  doc.setFontSize(15);
+  doc.text(`R$ ${data.valor.toFixed(2)}`, pw - margin - 5, y + 10, { align: "right" });
+  y += 22;
 
-  // Valor por extenso
-  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+
+  // Legal text
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "italic");
-  doc.text(
-    "Para maior clareza, firmo o presente recibo para que produza os efeitos legais necessários.",
-    pw / 2, y, { align: "center" }
-  );
-  y += 14;
+  const legalText = "Para maior clareza, firmo o presente recibo para que produza os efeitos legais necessários.";
+  const legalLines = doc.splitTextToSize(legalText, contentWidth);
+  doc.text(legalLines, pw / 2, y, { align: "center" });
+  y += legalLines.length * 4 + 8;
 
-  // Signature
+  // City/Date
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   const cidade = settings.cidade || "Barbacena";
   const estado = settings.estado || "MG";
   doc.text(`${cidade}/${estado}, ${data.dataPagamento}`, margin, y);
-  y += 16;
+  y += 14;
 
-  doc.line(margin, y, margin + 70, y);
-  y += 5;
-  doc.setFontSize(9);
+  // Signature line
+  if (y > ph - 45) {
+    // Avoid overlapping the bottom border/watermark contact info
+    y = ph - 45;
+  }
+  doc.setDrawColor(80);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, margin + 75, y);
+  y += 4.5;
+  doc.setFontSize(8.5);
   doc.text(settings.nome, margin, y);
-  y += 4;
+  y += 3.5;
   if (settings.cnpj) {
     doc.text(`CNPJ: ${settings.cnpj}`, margin, y);
   }
 
+  // Watermark + bottom contact info on every page
   await runReceiptStep(() => addWatermarkToAllPages(doc), undefined);
   return doc;
 }
