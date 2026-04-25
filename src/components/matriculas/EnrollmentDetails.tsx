@@ -366,12 +366,25 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                             <TableCell className="text-sm">R$ {(s.valor_sessao || 0).toFixed(2)}</TableCell>
                                             <TableCell className="space-x-1">
                                                 {["agendado", "confirmado"].includes(s.status) && (
-                                                    <Button size="sm" variant="outline" className="text-xs gap-1"
-                                                        onClick={() => setRescheduleSession(s)}>
-                                                        <RefreshCw className="h-3 w-3" />
-                                                        Reagendar
-                                                    </Button>
+                                                    <>
+                                                        <Button size="sm" variant="outline" className="text-xs gap-1"
+                                                            onClick={() => setRescheduleSession(s)}>
+                                                            <RefreshCw className="h-3 w-3" />
+                                                            Reagendar
+                                                        </Button>
+                                                        <Button size="sm" variant="outline" className="text-xs gap-1 text-destructive border-destructive/40 hover:bg-destructive/10"
+                                                            disabled={cancelSession.isPending}
+                                                            onClick={() => {
+                                                                if (confirm("Cancelar esta sessão? Um crédito de reposição será gerado automaticamente para o paciente.")) {
+                                                                    cancelSession.mutate(s.id);
+                                                                }
+                                                            }}>
+                                                            <Ban className="h-3 w-3" />
+                                                            Cancelar
+                                                        </Button>
+                                                    </>
                                                 )}
+
                                                 {isAdmin && s.justification_status === "pending" && (
                                                     <>
                                                         <Button size="sm" variant="outline" className="text-xs"
