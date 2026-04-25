@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign, TrendingUp } from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, RefreshCw, DollarSign, TrendingUp, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -240,6 +240,37 @@ export function EnrollmentDetails({ enrollment }: Props) {
         },
     });
 
+    // Cancel a session: cancel in the agenda + auto-generate make-up credit
+    const cancelSession = useMutation({
+        mutationFn: async (sessionId: string) => {
+            const { error: cancelErr } = await (supabase as any)
+                .from("agendamentos")
+                .update({ status: "cancelado" })
+                .eq("id", sessionId);
+            if (cancelErr) throw cancelErr;
+
+            const expDate = new Date();
+            expDate.setDate(expDate.getDate() + 30);
+            const { error: credErr } = await (supabase as any)
+                .from("reschedule_credits")
+                .insert({
+                    enrollment_id: enrollment.id,
+                    generated_from_session_id: sessionId,
+                    expiration_date: expDate.toISOString().split("T")[0],
+                    status: "available",
+                });
+            if (credErr) throw credErr;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["enrollment-sessions", enrollment.id] });
+            queryClient.invalidateQueries({ queryKey: ["enrollment-credits", enrollment.id] });
+            queryClient.invalidateQueries({ queryKey: ["agendamentos"] });
+            toast.success("Sessão cancelada. Um crédito de reposição foi gerado para o paciente.");
+        },
+        onError: (err: any) => toast.error("Erro ao cancelar sessão: " + (err?.message ?? "")),
+    });
+
+
     return (
         <div className="space-y-4">
             {/* Reference code */}
@@ -335,12 +366,25 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                             <TableCell className="text-sm">R$ {(s.valor_sessao || 0).toFixed(2)}</TableCell>
                                             <TableCell className="space-x-1">
                                                 {["agendado", "confirmado"].includes(s.status) && (
-                                                    <Button size="sm" variant="outline" className="text-xs gap-1"
-                                                        onClick={() => setRescheduleSession(s)}>
-                                                        <RefreshCw className="h-3 w-3" />
-                                                        Reagendar
-                                                    </Button>
+                                                    <>
+                                                        <Button size="sm" variant="outline" className="text-xs gap-1"
+                                                            onClick={() => setRescheduleSession(s)}>
+                                                            <RefreshCw className="h-3 w-3" />
+                                                            Reagendar
+                                                        </Button>
+                                                        <Button size="sm" variant="outline" className="text-xs gap-1 text-destructive border-destructive/40 hover:bg-destructive/10"
+                                                            disabled={cancelSession.isPending}
+                                                            onClick={() => {
+                                                                if (confirm("Cancelar esta sessão? Um crédito de reposição será gerado automaticamente para o paciente.")) {
+                                                                    cancelSession.mutate(s.id);
+                                                                }
+                                                            }}>
+                                                            <Ban className="h-3 w-3" />
+                                                            Cancelar
+                                                        </Button>
+                                                    </>
                                                 )}
+
                                                 {isAdmin && s.justification_status === "pending" && (
                                                     <>
                                                         <Button size="sm" variant="outline" className="text-xs"

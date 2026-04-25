@@ -622,12 +622,17 @@ const Dashboard = () => {
         const flushBuffer = () => {
           if (buffer.length === 0) return;
           elements.push(
-            <div key={`pair-${elements.length}`} className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-              {buffer.map(c => <div key={c.id}>{renderSection(c.id)}</div>)}
+            <div key={`pair-${elements.length}`} className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+              {buffer.map(c => (
+                <div key={c.id} className="h-full flex flex-col [&>*]:flex-1 [&>*]:h-full">
+                  {renderSection(c.id)}
+                </div>
+              ))}
             </div>
           );
           buffer = [];
         };
+
         visibleCards.forEach(card => {
           if (WIDE_CARDS.has(card.id)) {
             flushBuffer();
