@@ -158,11 +158,11 @@ const ProfessionalDashboard = () => {
   ].filter(s => s.value > 0) : [];
 
   const statusColors: Record<string, string> = {
-    agendado: "bg-blue-100 text-blue-700",
-    confirmado: "bg-emerald-100 text-emerald-700",
-    realizado: "bg-gray-100 text-gray-600",
-    cancelado: "bg-red-100 text-red-700",
-    falta: "bg-amber-100 text-amber-700",
+    agendado: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    confirmado: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    realizado: "bg-muted text-muted-foreground",
+    cancelado: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+    falta: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
   };
 
   const isCardVisible = (id: string) => visibleCards.some(c => c.id === id);
