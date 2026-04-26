@@ -36,8 +36,8 @@ export default function SiteEditor() {
     queryKey: ["clinic-site", activeClinicId],
     queryFn: async () => {
       if (!activeClinicId) return null;
-      const { data } = await supabase.from("clinic_sites" as any).select("*").eq("clinic_id", activeClinicId).maybeSingle();
-      return data;
+      const { data } = await (supabase.from("clinic_sites" as any) as any).select("*").eq("clinic_id", activeClinicId).maybeSingle();
+      return data as any;
     },
     enabled: !!activeClinicId,
   });
@@ -67,11 +67,12 @@ export default function SiteEditor() {
     mutationFn: async () => {
       if (!site) throw new Error("Sem dados");
       const payload = { ...site, clinic_id: activeClinicId };
-      if (existing?.id) {
-        const { error } = await supabase.from("clinic_sites" as any).update(payload).eq("id", existing.id);
+      const ex: any = existing;
+      if (ex?.id) {
+        const { error } = await (supabase.from("clinic_sites" as any) as any).update(payload).eq("id", ex.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("clinic_sites" as any).insert(payload);
+        const { error } = await (supabase.from("clinic_sites" as any) as any).insert(payload);
         if (error) throw error;
       }
     },
