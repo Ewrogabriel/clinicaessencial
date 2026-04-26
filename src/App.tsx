@@ -78,6 +78,8 @@ const PublicPartners = lazy(() => import("./pages/PublicPartners"));
 
 const Investimentos = lazy(() => import("./pages/Investimentos"));
 const ConciliacaoBancaria = lazy(() => import("./pages/finance/ConciliacaoBancaria"));
+const PublicClinicSite = lazy(() => import("./pages/PublicClinicSite"));
+const SiteEditor = lazy(() => import("./pages/SiteEditor"));
 
 
 const MeuPerfilToggle = () => {
@@ -124,6 +126,7 @@ const App = () => (
                       <Route path="/nota-fiscal/:token" element={<PublicNotaFiscal />} />
                       <Route path="/sala/:roomId" element={<TeleconsultaPublica />} />
                       <Route path="/parceiros" element={<PublicPartners />} />
+                      <Route path="/c/:slug" element={<PublicClinicSite />} />
                       <Route path="/" element={<Index />} />
                       <Route path="/selecionar-clinica" element={
                         <ProtectedRoute><SelecionarClinica /></ProtectedRoute>
@@ -191,6 +194,7 @@ const App = () => (
                         <Route path="/master/audit" element={<RequireRole roles={["master"]}><AuditLogs /></RequireRole>} />
                         <Route path="/investimentos" element={<RequireRole roles={["admin", "gestor", "master"]}><Investimentos /></RequireRole>} />
                         <Route path="/whatsapp-inbox" element={<RequireRole roles={["admin", "gestor", "master", "profissional"]}><WhatsAppInbox /></RequireRole>} />
+                        <Route path="/site-clinica" element={<RequireRole roles={["admin", "gestor", "master"]}><SiteEditor /></RequireRole>} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>

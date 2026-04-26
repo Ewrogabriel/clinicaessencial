@@ -939,6 +939,90 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_sites: {
+        Row: {
+          clinic_id: string
+          contato: Json
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          created_at: string
+          depoimentos: Json
+          diferenciais: Json
+          equipe_config: Json
+          faq: Json
+          galeria: Json
+          hero: Json
+          hero_image_url: string | null
+          id: string
+          meta_descricao: string | null
+          meta_titulo: string | null
+          publicado: boolean
+          servicos: Json
+          slug: string
+          sobre: Json
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          contato?: Json
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          created_at?: string
+          depoimentos?: Json
+          diferenciais?: Json
+          equipe_config?: Json
+          faq?: Json
+          galeria?: Json
+          hero?: Json
+          hero_image_url?: string | null
+          id?: string
+          meta_descricao?: string | null
+          meta_titulo?: string | null
+          publicado?: boolean
+          servicos?: Json
+          slug: string
+          sobre?: Json
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          contato?: Json
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          created_at?: string
+          depoimentos?: Json
+          diferenciais?: Json
+          equipe_config?: Json
+          faq?: Json
+          galeria?: Json
+          hero?: Json
+          hero_image_url?: string | null
+          id?: string
+          meta_descricao?: string | null
+          meta_titulo?: string | null
+          publicado?: boolean
+          servicos?: Json
+          slug?: string
+          sobre?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_sites_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_sites_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "v_saas_status"
+            referencedColumns: ["clinic_id"]
+          },
+        ]
+      }
       clinic_subscriptions: {
         Row: {
           clinic_id: string
@@ -5932,6 +6016,7 @@ export type Database = {
         }[]
       }
       get_nota_fiscal_by_token: { Args: { p_token: string }; Returns: Json }
+      get_public_clinic_site: { Args: { p_slug: string }; Returns: Json }
       get_public_receipt: { Args: { p_payment_id: string }; Returns: Json }
       has_role: {
         Args: {

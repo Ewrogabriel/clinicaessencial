@@ -130,6 +130,7 @@ export const adminGroups: MenuGroup[] = [
       { labelKey: "nav.partners",     url: "/convenios",         icon: Handshake },
       { labelKey: "nav.contracts",    url: "/contratos",         icon: FileText },
       { labelKey: "nav.marketing",    url: "/marketing",         icon: Target },
+      { labelKey: "nav.clinic_site",  url: "/site-clinica",      icon: Activity },
       { labelKey: "nav.gamification", url: "/gamificacao-admin", icon: Trophy },
       { labelKey: "nav.import",       url: "/importacao",        icon: Upload },
       { labelKey: "nav.messages",     url: "/mensagens",         icon: MessageSquare },
