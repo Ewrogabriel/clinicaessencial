@@ -186,10 +186,10 @@ const PacienteForm = () => {
               <CardDescription>Compartilhe este código com o paciente para que ele acesse sua área</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-white border-2 border-blue-300 rounded-lg p-4 flex items-center justify-between">
+              <div className="bg-card border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Código de Acesso</p>
-                  <p className="text-2xl font-bold font-mono text-blue-600 tracking-widest">{codigoAcesso}</p>
+                  <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-widest">{codigoAcesso}</p>
                 </div>
                 <Button 
                   type="button"
@@ -203,9 +203,9 @@ const PacienteForm = () => {
                   <Copy className="h-4 w-4 mr-2" /> Copiar
                 </Button>
               </div>
-              <div className="bg-white p-3 rounded border text-sm text-muted-foreground">
+              <div className="bg-card p-3 rounded border text-sm text-muted-foreground">
                 <p className="font-semibold mb-2">Link de Acesso:</p>
-                <p className="font-mono text-xs break-all text-blue-600">{window.location.origin}/paciente-access</p>
+                <p className="font-mono text-xs break-all text-blue-600 dark:text-blue-400">{window.location.origin}/paciente-access</p>
               </div>
             </CardContent>
           </Card>

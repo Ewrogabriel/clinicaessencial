@@ -404,7 +404,7 @@ const Dashboard = () => {
                   const day = b.data_nascimento ? b.data_nascimento.substring(8, 10) : "";
                   const isToday = new Date().getDate() === parseInt(day);
                   return (
-                    <div key={b.id} className={`flex items-center justify-between p-2.5 rounded-lg border ${isToday ? "bg-pink-100 border-pink-300" : "bg-white border-pink-100"}`}>
+                    <div key={b.id} className={`flex items-center justify-between p-2.5 rounded-lg border ${isToday ? "bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700" : "bg-card border-pink-100 dark:border-pink-900/40"}`}>
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${isToday ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}>
                           {day}

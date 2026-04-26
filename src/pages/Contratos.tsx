@@ -120,7 +120,7 @@ const Contratos = () => {
   });
 
   const { data: profissionais = [] } = useQuery({
-    queryKey: ["profissionais-contrato"],
+    queryKey: ["profissionais-contrato", activeClinicId, isProfissional, user?.id],
     queryFn: async () => {
       if (isProfissional) {
         const { data } = await supabase.from("profiles")
@@ -129,8 +129,20 @@ const Contratos = () => {
         return (data as any[]) ?? [];
       }
       if (!canManage) return [];
-      const { data: roleData } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin"]);
-      const userIds = roleData?.map(r => r.user_id) ?? [];
+      // Carrega todos os profissionais da clínica ativa (mais robusto que filtrar por role)
+      let userIds: string[] = [];
+      if (activeClinicId) {
+        const { data: cu } = await supabase.from("clinic_users")
+          .select("user_id, role")
+          .eq("clinic_id", activeClinicId)
+          .in("role", ["profissional", "admin", "gestor"]);
+        userIds = (cu || []).map(r => r.user_id);
+      }
+      // Fallback: se não houver clinic_users mapeados, usa user_roles
+      if (userIds.length === 0) {
+        const { data: roleData } = await supabase.from("user_roles").select("user_id").in("role", ["profissional", "admin", "gestor"]);
+        userIds = roleData?.map(r => r.user_id) ?? [];
+      }
       if (userIds.length === 0) return [];
       const { data } = await supabase.from("profiles")
         .select("*, assinatura_url, nome, user_id, rua, numero, complemento, bairro, cidade, estado, cep, registro_conselho, conselho_profissional, registro_profissional, contract_raio_nao_concorrencia_km, contract_multa_nao_captacao_fator, contract_multa_nao_captacao_valor, contract_dia_pagamento_comissao, contract_prazo_aviso_previo_dias, contract_multa_uso_marca_valor")
@@ -592,7 +604,7 @@ const Contratos = () => {
               <Card className="lg:col-span-2">
                 <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
+                  <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
                     <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                     <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS</h3>
                     <p><strong>CLÍNICA (CONTRATANTE):</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, sede ${clinicEnderecoFull}` : ""}.</p>

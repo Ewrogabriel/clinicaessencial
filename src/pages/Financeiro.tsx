@@ -59,6 +59,7 @@ const origemConfig: Record<string, { label: string; className: string }> = {
   mensalidade: { label: "Mensalidade", className: "bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200" },
   plano: { label: "Plano", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200" },
   sessao: { label: "Sessão", className: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" },
+  sessao_avulsa: { label: "Sessão Avulsa", className: "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" },
   manual: { label: "Manual", className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
 };
 
@@ -593,7 +594,7 @@ const Financeiro = () => {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="mensalidade">Mensalidade</SelectItem>
               <SelectItem value="plano">Plano</SelectItem>
-              <SelectItem value="sessao">Sessão</SelectItem>
+              <SelectItem value="sessao_avulsa">Sessão Avulsa</SelectItem>
               <SelectItem value="manual">Manual</SelectItem>
             </SelectContent>
           </Select>

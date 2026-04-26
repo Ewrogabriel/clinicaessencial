@@ -72,9 +72,8 @@ export function AppointmentTypeSelector({
             >
               <div
                 className={cn(
-                  "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border",
-                  color,
-                  "bg-white"
+                  "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-card",
+                  color
                 )}
               >
                 <Icon className="h-5 w-5" />
