@@ -604,7 +604,7 @@ const Contratos = () => {
               <Card className="lg:col-span-2">
                 <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
+                  <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
                     <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                     <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS</h3>
                     <p><strong>CLÍNICA (CONTRATANTE):</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, sede ${clinicEnderecoFull}` : ""}.</p>
