@@ -986,7 +986,7 @@ const Matriculas = () => {
                 type="date"
                 value={editData.valid_from}
                 onChange={(e) => setEditData({ ...editData, valid_from: e.target.value })}
-                className="bg-white"
+                className="bg-background"
               />
               <p className="mt-2 text-xs opacity-80">
                 Sessões agendadas após esta data serão removidas e recriadas com o novo cronograma.

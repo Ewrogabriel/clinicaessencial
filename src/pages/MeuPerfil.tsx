@@ -538,7 +538,7 @@ const MeuPerfil = () => {
                 const expiryDate = new Date(ficha.pdf_available_until);
                 const daysRemaining = differenceInDays(expiryDate, new Date());
                 return (
-                  <div key={ficha.id} className="flex items-center justify-between p-4 bg-white rounded-lg border">
+                  <div key={ficha.id} className="flex items-center justify-between p-4 bg-card rounded-lg border">
                     <div>
                       <p className="font-medium text-sm">Ficha Completa do Prontuário</p>
                       <div className="flex items-center gap-2 mt-1">
