@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { SignaturePad } from "@/components/clinical/SignaturePad";
 import { toast } from "sonner";
 import { History, Search, Eye, Trash2 } from "lucide-react";
+import { renderContractTemplate } from "@/lib/contractTemplates";
+import { Link } from "react-router-dom";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
@@ -185,7 +187,17 @@ const Contratos = () => {
     },
   });
 
-  const { data: desconto } = useQuery({
+  const { data: contractTemplates } = useQuery({
+    queryKey: ["contrato-template-ativo", activeClinicId],
+    queryFn: async () => {
+      let q = supabase.from("contrato_templates").select("tipo, conteudo, ativo").eq("ativo", true);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      const map: Record<string, string> = {};
+      (data || []).forEach((t: any) => { map[t.tipo] = t.conteudo; });
+      return map;
+    },
+  });
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
       if (!selectedPaciente) return null;
