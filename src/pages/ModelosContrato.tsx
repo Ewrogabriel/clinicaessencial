@@ -129,15 +129,20 @@ export default function ModelosContrato() {
     queryKey: ["contrato-templates", activeClinicId],
     queryFn: async () => {
       let q = supabase.from("contrato_templates").select("*");
-      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
-      const { data } = await q;
+      if (activeClinicId) {
+        q = q.or(`clinic_id.eq.${activeClinicId},clinic_id.is.null`);
+      }
+      const { data } = await q.order("updated_at", { ascending: false });
       return data ?? [];
     },
   });
 
   useEffect(() => {
     if (!templates) return;
-    const existing = templates.find((t: any) => t.tipo === tipo);
+    // Prioriza template da clínica ativa sobre o global
+    const ofClinic = templates.find((t: any) => t.tipo === tipo && t.clinic_id === activeClinicId);
+    const global = templates.find((t: any) => t.tipo === tipo && !t.clinic_id);
+    const existing = ofClinic || global;
     if (existing) {
       setDraft(existing as Template);
     } else {
