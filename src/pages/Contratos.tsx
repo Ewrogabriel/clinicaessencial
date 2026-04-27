@@ -198,6 +198,8 @@ const Contratos = () => {
       return map;
     },
   });
+
+  const { data: desconto } = useQuery({
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
       if (!selectedPaciente) return null;
