@@ -45,6 +45,7 @@ const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
 const AvisosAdmin = lazy(() => import("./pages/AvisosAdmin"));
 const MeuPerfil = lazy(() => import("./pages/MeuPerfil"));
 const Contratos = lazy(() => import("./pages/Contratos"));
+const ModelosContrato = lazy(() => import("./pages/ModelosContrato"));
 const PerfilProfissional = lazy(() => import("./pages/PerfilProfissional"));
 const PerfilProfissionalPublico = lazy(() => import("./pages/PerfilProfissionalPublico"));
 const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
@@ -164,6 +165,7 @@ const App = () => (
                         <Route path="/avisos" element={<AvisosAdmin />} />
                         <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
                         <Route path="/contratos" element={<Contratos />} />
+                        <Route path="/modelos-contrato" element={<RequireRole roles={["admin", "gestor", "master"]}><ModelosContrato /></RequireRole>} />
                         <Route path="/comissoes" element={<Comissoes />} />
                         <Route path="/perfil-profissional" element={<PerfilProfissional />} />
                         <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
