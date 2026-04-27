@@ -5053,6 +5053,47 @@ export type Database = {
         }
         Relationships: []
       }
+      reschedule_credits: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          expiration_date: string
+          generated_from_session_id: string
+          id: string
+          status: string
+          updated_at: string
+          used_for_session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          expiration_date: string
+          generated_from_session_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          used_for_session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          expiration_date?: string
+          generated_from_session_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          used_for_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reschedule_credits_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "matriculas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservas_produtos: {
         Row: {
           created_at: string
