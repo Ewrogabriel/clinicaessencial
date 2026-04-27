@@ -515,9 +515,30 @@ const Contratos = () => {
             </Card>
 
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Pré-visualização</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Pré-visualização</CardTitle>
+                {canManage && (
+                  <Link to="/modelos-contrato" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <FileText className="h-3 w-3" /> Editar modelo
+                  </Link>
+                )}
+              </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
+                <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
+                  {contractTemplates?.paciente ? (
+                    <div className="whitespace-pre-wrap font-serif leading-relaxed">
+                      {renderContractTemplate(contractTemplates.paciente, {
+                        clinic: clinicSettings,
+                        clinicSettings,
+                        paciente,
+                        plano,
+                        valorFinal,
+                        taxaMatricula: Number(overrideEnrollmentFee) || 0,
+                        formaPagamento: overridePaymentMethod || "Pix",
+                      })}
+                    </div>
+                  ) : (
+                  <>
                   <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                   <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h3>
                   <p><strong>CONTRATADA:</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}.</p>
@@ -551,6 +572,8 @@ const Contratos = () => {
                   <p>Fica eleito o foro da comarca de {paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG"} para dirimir quaisquer controvérsias oriundas deste contrato.</p>
 
                   <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
+                  </>
+                  )}
 
                   <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                     <div>
