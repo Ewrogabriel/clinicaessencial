@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { SignaturePad } from "@/components/clinical/SignaturePad";
 import { toast } from "sonner";
 import { History, Search, Eye, Trash2 } from "lucide-react";
+import { renderContractTemplate } from "@/lib/contractTemplates";
+import { Link } from "react-router-dom";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
@@ -182,6 +184,18 @@ const Contratos = () => {
     queryFn: async () => {
       const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
       return data ?? [];
+    },
+  });
+
+  const { data: contractTemplates } = useQuery({
+    queryKey: ["contrato-template-ativo", activeClinicId],
+    queryFn: async () => {
+      let q = supabase.from("contrato_templates").select("tipo, conteudo, ativo").eq("ativo", true);
+      if (activeClinicId) q = q.eq("clinic_id", activeClinicId);
+      const { data } = await q;
+      const map: Record<string, string> = {};
+      (data || []).forEach((t: any) => { map[t.tipo] = t.conteudo; });
+      return map;
     },
   });
 
@@ -501,9 +515,30 @@ const Contratos = () => {
             </Card>
 
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Pré-visualização</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Pré-visualização</CardTitle>
+                {canManage && (
+                  <Link to="/modelos-contrato" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <FileText className="h-3 w-3" /> Editar modelo
+                  </Link>
+                )}
+              </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-white dark:bg-muted/20 max-h-[70vh] overflow-y-auto">
+                <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
+                  {contractTemplates?.paciente ? (
+                    <div className="whitespace-pre-wrap font-serif leading-relaxed">
+                      {renderContractTemplate(contractTemplates.paciente, {
+                        clinic: clinicSettings,
+                        clinicSettings,
+                        paciente,
+                        plano,
+                        valorFinal,
+                        taxaMatricula: Number(overrideEnrollmentFee) || 0,
+                        formaPagamento: overridePaymentMethod || "Pix",
+                      })}
+                    </div>
+                  ) : (
+                  <>
                   <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                   <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h3>
                   <p><strong>CONTRATADA:</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}.</p>
@@ -537,6 +572,8 @@ const Contratos = () => {
                   <p>Fica eleito o foro da comarca de {paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG"} para dirimir quaisquer controvérsias oriundas deste contrato.</p>
 
                   <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
+                  </>
+                  )}
 
                   <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                     <div>
@@ -602,9 +639,26 @@ const Contratos = () => {
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader><CardTitle className="text-base">Pré-visualização do Contrato</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base">Pré-visualização do Contrato</CardTitle>
+                  {canManage && (
+                    <Link to="/modelos-contrato" className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Editar modelo
+                    </Link>
+                  )}
+                </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
+                    {contractTemplates?.profissional ? (
+                      <div className="whitespace-pre-wrap font-serif leading-relaxed">
+                        {renderContractTemplate(contractTemplates.profissional, {
+                          clinic: clinicSettings,
+                          clinicSettings,
+                          profissional,
+                        })}
+                      </div>
+                    ) : (
+                    <>
                     <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
                     <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS</h3>
                     <p><strong>CLÍNICA (CONTRATANTE):</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, sede ${clinicEnderecoFull}` : ""}.</p>
@@ -632,6 +686,8 @@ const Contratos = () => {
                     <p>Fica eleito o foro da comarca de {clinicSettings?.pref_contract_cidade_foro || clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.pref_contract_estado_foro || clinicSettings?.estado || "MG"}.</p>
 
                     <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
+                    </>
+                    )}
 
                     <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                       <div>
