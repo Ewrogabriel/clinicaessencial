@@ -172,12 +172,12 @@ export function RescheduleDialog({ session, enrollmentId, open, onClose, presele
                     {credits.length > 0 && (
                         <div>
                             <Label className="text-xs">Usar Crédito de Reposição</Label>
-                            <Select value={selectedCreditId} onValueChange={setSelectedCreditId}>
+                            <Select value={selectedCreditId || "__none__"} onValueChange={(v) => setSelectedCreditId(v === "__none__" ? "" : v)}>
                                 <SelectTrigger className="mt-1">
                                     <SelectValue placeholder="Nenhum crédito (reposição extra)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Nenhum (reagendamento normal)</SelectItem>
+                                    <SelectItem value="__none__">Nenhum (reagendamento normal)</SelectItem>
                                     {credits.map((c) => (
                                         <SelectItem key={c.id} value={c.id}>
                                             Crédito • expira {format(new Date(c.expiration_date), "dd/MM/yyyy", { locale: ptBR })}
