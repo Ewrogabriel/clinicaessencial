@@ -60,6 +60,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
     const [justificationDialog, setJustificationDialog] = useState<{ open: boolean; sessionId: string; text: string }>({ open: false, sessionId: "", text: "" });
     const [activeTab, setActiveTab] = useState("sessions");
     const [rescheduleSession, setRescheduleSession] = useState<Session | null>(null);
+    const [rescheduleCreditId, setRescheduleCreditId] = useState<string | undefined>(undefined);
 
     // Sessions
     const { data: sessions = [], isLoading: loadingSessions } = useQuery({
@@ -426,15 +427,22 @@ export function EnrollmentDetails({ enrollment }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Gerado em</TableHead>
+                                        <TableHead>Sessão de Origem</TableHead>
                                         <TableHead>Expira em</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {credits.map((c) => (
+                                    {credits.map((c) => {
+                                        const origSession = sessions.find((s) => s.id === c.generated_from_session_id);
+                                        return (
                                         <TableRow key={c.id}>
-                                            <TableCell className="text-sm">{c.generated_from_session_id.slice(0, 8)}...</TableCell>
+                                            <TableCell className="text-sm">
+                                                {origSession
+                                                    ? format(new Date(origSession.data_horario), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                                                    : `${c.generated_from_session_id.slice(0, 8)}...`}
+                                            </TableCell>
                                             <TableCell className="text-sm">
                                                 {format(new Date(c.expiration_date), "dd/MM/yyyy", { locale: ptBR })}
                                             </TableCell>
@@ -446,8 +454,31 @@ export function EnrollmentDetails({ enrollment }: Props) {
                                                     {c.status === "available" ? "Disponível" : c.status === "used" ? "Usado" : "Expirado"}
                                                 </Badge>
                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                {c.status === "available" && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="gap-1"
+                                                        onClick={() => {
+                                                            const baseSession = origSession || {
+                                                                id: c.generated_from_session_id,
+                                                                data_horario: new Date().toISOString(),
+                                                                status: "cancelado",
+                                                                profissional_id: "",
+                                                            } as Session;
+                                                            setRescheduleCreditId(c.id);
+                                                            setRescheduleSession(baseSession);
+                                                        }}
+                                                    >
+                                                        <RefreshCw className="h-3 w-3" />
+                                                        Remarcar
+                                                    </Button>
+                                                )}
+                                            </TableCell>
                                         </TableRow>
-                                    ))}
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>
@@ -563,7 +594,8 @@ export function EnrollmentDetails({ enrollment }: Props) {
                     session={rescheduleSession}
                     enrollmentId={enrollment.id}
                     open={!!rescheduleSession}
-                    onClose={() => setRescheduleSession(null)}
+                    onClose={() => { setRescheduleSession(null); setRescheduleCreditId(undefined); }}
+                    preselectedCreditId={rescheduleCreditId}
                 />
             )}
         </div>
