@@ -23,8 +23,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { SignaturePad } from "@/components/clinical/SignaturePad";
 import { toast } from "sonner";
 import { History, Search, Eye, Trash2 } from "lucide-react";
-import { renderContractTemplate } from "@/lib/contractTemplates";
-import { Link } from "react-router-dom";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
