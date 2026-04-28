@@ -594,7 +594,8 @@ export function EnrollmentDetails({ enrollment }: Props) {
                     session={rescheduleSession}
                     enrollmentId={enrollment.id}
                     open={!!rescheduleSession}
-                    onClose={() => setRescheduleSession(null)}
+                    onClose={() => { setRescheduleSession(null); setRescheduleCreditId(undefined); }}
+                    preselectedCreditId={rescheduleCreditId}
                 />
             )}
         </div>
