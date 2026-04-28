@@ -45,7 +45,6 @@ const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
 const AvisosAdmin = lazy(() => import("./pages/AvisosAdmin"));
 const MeuPerfil = lazy(() => import("./pages/MeuPerfil"));
 const Contratos = lazy(() => import("./pages/Contratos"));
-const ModelosContrato = lazy(() => import("./pages/ModelosContrato"));
 const PerfilProfissional = lazy(() => import("./pages/PerfilProfissional"));
 const PerfilProfissionalPublico = lazy(() => import("./pages/PerfilProfissionalPublico"));
 const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
