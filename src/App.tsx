@@ -164,7 +164,6 @@ const App = () => (
                         <Route path="/avisos" element={<AvisosAdmin />} />
                         <Route path="/disponibilidade" element={<DisponibilidadeProfissional />} />
                         <Route path="/contratos" element={<Contratos />} />
-                        <Route path="/modelos-contrato" element={<RequireRole roles={["admin", "gestor", "master"]}><ModelosContrato /></RequireRole>} />
                         <Route path="/comissoes" element={<Comissoes />} />
                         <Route path="/perfil-profissional" element={<PerfilProfissional />} />
                         <Route path="/profissional/:userId" element={<PerfilProfissionalPublico />} />
