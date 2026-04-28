@@ -185,27 +185,6 @@ const Contratos = () => {
     },
   });
 
-  const { data: contractTemplates } = useQuery({
-    queryKey: ["contrato-template-ativo", activeClinicId],
-    queryFn: async () => {
-      // Busca templates da clínica ativa OU globais (clinic_id IS NULL).
-      // Prioriza o template específico da clínica sobre o global se ambos existirem.
-      let q = supabase.from("contrato_templates").select("tipo, conteudo, ativo, clinic_id, updated_at").eq("ativo", true);
-      if (activeClinicId) {
-        q = q.or(`clinic_id.eq.${activeClinicId},clinic_id.is.null`);
-      }
-      const { data } = await q.order("updated_at", { ascending: false });
-      const map: Record<string, string> = {};
-      (data || []).forEach((t: any) => {
-        // Prioriza template da clínica sobre o global; updated_at desc garante o mais recente.
-        if (!map[t.tipo] || (t.clinic_id && t.clinic_id === activeClinicId)) {
-          map[t.tipo] = t.conteudo;
-        }
-      });
-      return map;
-    },
-  });
-
   const { data: desconto } = useQuery({
     queryKey: ["desconto-paciente", selectedPaciente, selectedPlano],
     queryFn: async () => {
