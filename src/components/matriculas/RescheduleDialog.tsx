@@ -33,16 +33,17 @@ type Props = {
     enrollmentId: string;
     open: boolean;
     onClose: () => void;
+    preselectedCreditId?: string;
 };
 
-export function RescheduleDialog({ session, enrollmentId, open, onClose }: Props) {
+export function RescheduleDialog({ session, enrollmentId, open, onClose, preselectedCreditId }: Props) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
     const [newDate, setNewDate] = useState(format(new Date(), "yyyy-MM-dd"));
     const [newTime, setNewTime] = useState("08:00");
     const [newProfessional, setNewProfessional] = useState(session.profissional_id);
-    const [selectedCreditId, setSelectedCreditId] = useState<string>("");
+    const [selectedCreditId, setSelectedCreditId] = useState<string>(preselectedCreditId || "");
 
     const { data: profissionais = [] } = useQuery({
         queryKey: ["profissionais-list"],
