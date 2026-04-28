@@ -155,9 +155,16 @@ export default function PublicClinicSite() {
                     </Avatar>
                     <h3 className="font-semibold">{p.nome}</h3>
                     {p.conselho && <p className="text-xs text-muted-foreground mt-1">{p.conselho} {p.registro}</p>}
-                    {p.especialidades?.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-2">{p.especialidades.slice(0, 3).join(" • ")}</p>
-                    )}
+                    {(() => {
+                      const esp = Array.isArray(p.especialidades)
+                        ? p.especialidades
+                        : typeof p.especialidades === "string"
+                          ? p.especialidades.split(/[,;|]/).map((s: string) => s.trim()).filter(Boolean)
+                          : [];
+                      return esp.length > 0 ? (
+                        <p className="text-sm text-muted-foreground mt-2">{esp.slice(0, 3).join(" • ")}</p>
+                      ) : null;
+                    })()}
                   </CardContent>
                 </Card>
               ))}
