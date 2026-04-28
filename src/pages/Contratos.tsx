@@ -23,8 +23,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { SignaturePad } from "@/components/clinical/SignaturePad";
 import { toast } from "sonner";
 import { History, Search, Eye, Trash2 } from "lucide-react";
-import { renderContractTemplate } from "@/lib/contractTemplates";
-import { Link } from "react-router-dom";
 
 const Contratos = () => {
   const { user, isPatient, patientId, isAdmin, isGestor } = useAuth();
@@ -184,27 +182,6 @@ const Contratos = () => {
     queryFn: async () => {
       const { data } = await supabase.from("modalidades").select("id, nome").eq("ativo", true).order("nome");
       return data ?? [];
-    },
-  });
-
-  const { data: contractTemplates } = useQuery({
-    queryKey: ["contrato-template-ativo", activeClinicId],
-    queryFn: async () => {
-      // Busca templates da clínica ativa OU globais (clinic_id IS NULL).
-      // Prioriza o template específico da clínica sobre o global se ambos existirem.
-      let q = supabase.from("contrato_templates").select("tipo, conteudo, ativo, clinic_id, updated_at").eq("ativo", true);
-      if (activeClinicId) {
-        q = q.or(`clinic_id.eq.${activeClinicId},clinic_id.is.null`);
-      }
-      const { data } = await q.order("updated_at", { ascending: false });
-      const map: Record<string, string> = {};
-      (data || []).forEach((t: any) => {
-        // Prioriza template da clínica sobre o global; updated_at desc garante o mais recente.
-        if (!map[t.tipo] || (t.clinic_id && t.clinic_id === activeClinicId)) {
-          map[t.tipo] = t.conteudo;
-        }
-      });
-      return map;
     },
   });
 
@@ -524,65 +501,82 @@ const Contratos = () => {
             </Card>
 
             <Card className="lg:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader>
                 <CardTitle className="text-base">Pré-visualização</CardTitle>
-                {canManage && (
-                  <Link to="/modelos-contrato" className="text-xs text-primary hover:underline flex items-center gap-1">
-                    <FileText className="h-3 w-3" /> Editar modelo
-                  </Link>
-                )}
+                <p className="text-xs text-muted-foreground">Esta pré-visualização reflete fielmente o PDF que será gerado.</p>
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
-                  {contractTemplates?.paciente ? (
-                    <div className="whitespace-pre-wrap font-serif leading-relaxed">
-                      {renderContractTemplate(contractTemplates.paciente, {
-                        clinic: clinicSettings,
-                        clinicSettings,
-                        paciente,
-                        plano,
-                        valorFinal,
-                        taxaMatricula: Number(overrideEnrollmentFee) || 0,
-                        formaPagamento: overridePaymentMethod || "Pix",
-                      })}
-                    </div>
-                  ) : (
-                  <>
                   <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
-                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h3>
-                  <p><strong>CONTRATADA:</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}.</p>
-                  <p><strong>CONTRATANTE:</strong> {paciente?.nome || "___________________"}{paciente?.cpf ? `, CPF ${paciente.cpf}` : ""}{paciente?.rg ? `, RG ${paciente.rg}` : ""}.</p>
+                  <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS – PILATES</h3>
+
+                  <p><strong>CONTRATADA:</strong> {clinicNome}{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}{clinicTelefone ? `, telefone ${clinicTelefone}` : ""}{clinicInstagram ? `, Instagram ${clinicInstagram}` : ""}.</p>
+                  <p><strong>CONTRATANTE (PACIENTE):</strong> Nome: {paciente?.nome || "___________________"} | CPF: {paciente?.cpf || "_______________"} | RG: {paciente?.rg || "_______________"}{paciente?.telefone ? ` | Telefone: ${paciente.telefone}` : ""}{paciente ? ` | Endereço: ${[paciente.rua, paciente.numero ? `nº ${paciente.numero}` : "", paciente.complemento, paciente.bairro, paciente.cidade ? `${paciente.cidade}/${paciente.estado}` : ""].filter(Boolean).join(", ") || "—"}` : ""}.</p>
 
                   <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
-                  <p>O presente contrato tem por objeto a prestação de serviços de {plano?.modalidade || "atendimento"}, conforme plano contratado: <strong>{plano?.nome || "a definir"}</strong>, com frequência de {plano?.frequencia_semanal || 1}x por semana.</p>
+                  <p>Prestação de serviços de Pilates, conforme plano contratado, com horários previamente agendados.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 2ª – DA VIGÊNCIA</h4>
-                  <p>Este contrato vigorará pelo prazo de {paciente?.contract_vigencia_meses ?? clinicSettings?.pref_contract_vigencia_meses ?? 6} meses a contar da data de assinatura, renovando-se automaticamente por iguais períodos, salvo manifestação contrária por escrito de qualquer das partes com antecedência mínima de 30 dias.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 2ª – DA NATUREZA DO PLANO</h4>
+                  <p className="whitespace-pre-line">O CONTRATANTE declara ciência de que:{"\n"}✔ O serviço é mensal;{"\n"}✔ Não é vinculado a número de aulas frequentadas;{"\n"}✔ A vaga/horário é reservada mensalmente;{"\n"}✔ Faltas não geram desconto ou crédito.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DO PAGAMENTO</h4>
-                  <p>O CONTRATANTE pagará à CONTRATADA o valor mensal de R$ {valorFinal.toFixed(2)}{Number(overrideEnrollmentFee) > 0 ? `, acrescido de taxa de matrícula de R$ ${Number(overrideEnrollmentFee).toFixed(2)}` : ""}, com vencimento todo dia {paciente?.contract_dia_vencimento ?? clinicSettings?.pref_contract_dia_vencimento ?? 10}, via {overridePaymentMethod || "Pix"}. O atraso ensejará multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.pref_contract_multa_atraso_pct ?? 2}% e juros de {paciente?.contract_juros_mensal_pct ?? clinicSettings?.pref_contract_juros_mensal_pct ?? 1}% ao mês.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DO PLANO CONTRATADO</h4>
+                  <p className="whitespace-pre-line">Plano: {plano?.nome || "A definir"}{"\n"}Frequência: {plano?.frequencia_semanal || 1} vez(es) por semana{"\n"}Horário(s): {matricula?.horarios || "A definir"}{"\n"}Valor mensal: R$ {valorFinal.toFixed(2)}{Number(overrideEnrollmentFee) > 0 ? `\nTaxa de matrícula: R$ ${Number(overrideEnrollmentFee).toFixed(2)}` : ""}</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 4ª – DAS FALTAS E REPOSIÇÕES</h4>
-                  <p>O CONTRATANTE poderá cancelar uma sessão com antecedência mínima de {paciente?.contract_prazo_cancelamento_h ?? clinicSettings?.pref_contract_prazo_cancelamento_h ?? 3} horas, sendo a reposição garantida em até {paciente?.contract_prazo_reposicao_dias ?? clinicSettings?.pref_contract_prazo_reposicao_dias ?? 30} dias. Faltas sem aviso prévio não geram direito à reposição.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 4ª – DO PAGAMENTO</h4>
+                  <p className="whitespace-pre-line">§1º O pagamento será realizado no primeiro dia de aula do mês{overridePaymentMethod ? `, via ${overridePaymentMethod}` : ""}.{"\n"}§2º Em caso de atraso: Multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.pref_contract_multa_atraso_pct ?? 2}% e Juros de {paciente?.contract_juros_mensal_pct ?? clinicSettings?.pref_contract_juros_mensal_pct ?? 1}% ao mês.{"\n"}§3º Após inadimplência: Aulas poderão ser suspensas imediatamente e o horário poderá ser liberado para outro paciente.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 5ª – DAS OBRIGAÇÕES DA CONTRATADA</h4>
-                  <p>Prestar os serviços com zelo, técnica e ética profissional, mantendo equipamentos e instalações adequadas, e respeitando o sigilo das informações do CONTRATANTE conforme a LGPD.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 5ª – DAS FALTAS E REPOSIÇÕES</h4>
+                  <p className="whitespace-pre-line">§1º Reposição somente se avisado com mínimo de {paciente?.contract_prazo_cancelamento_h ?? clinicSettings?.pref_contract_prazo_cancelamento_h ?? 3} horas de antecedência.{"\n"}§2º Aulas não desmarcadas no prazo serão consideradas realizadas.{"\n"}§3º Reposição deve ocorrer em até {paciente?.contract_prazo_reposicao_dias ?? clinicSettings?.pref_contract_prazo_reposicao_dias ?? 30} dias.{"\n"}§4º A reposição depende de disponibilidade de vaga.{"\n"}§5º Após {paciente?.contract_prazo_reposicao_dias ?? clinicSettings?.pref_contract_prazo_reposicao_dias ?? 30} dias → aula perdida sem direito a compensação.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 6ª – DAS OBRIGAÇÕES DO CONTRATANTE</h4>
-                  <p>Comparecer pontualmente às sessões, informar quaisquer condições de saúde relevantes, seguir as orientações dos profissionais e efetuar os pagamentos nas datas acordadas.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 6ª – DOS FERIADOS E RECESSOS</h4>
+                  <p className="whitespace-pre-line">§1º Não haverá aulas em feriados ou recessos da clínica.{"\n"}§2º Não há reposição ou desconto nesses casos.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 7ª – DA RESCISÃO</h4>
-                  <p>O contrato poderá ser rescindido por qualquer das partes mediante comunicação por escrito com antecedência mínima de 30 dias, ressalvado o pagamento das mensalidades vencidas até a efetiva rescisão.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 7ª – DOS ATRASOS</h4>
+                  <p>Atrasos do paciente não prolongam a aula e não geram reposição.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 8ª – DA PROTEÇÃO DE DADOS (LGPD)</h4>
-                  <p>O CONTRATANTE autoriza o tratamento dos seus dados pessoais e de saúde para fins de prestação dos serviços, comunicação e cumprimento de obrigações legais, em conformidade com a Lei nº 13.709/2018.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 8ª – DA SAÚDE E RESPONSABILIDADE DO PACIENTE</h4>
+                  <p className="whitespace-pre-line">§1º O paciente declara estar apto à prática.{"\n"}§2º Obriga-se a informar: Lesões, Doenças, Cirurgias, Gravidez ou uso de medicação relevante.{"\n"}§3º A omissão dessas informações transfere a responsabilidade ao paciente.</p>
 
-                  <h4 className="font-bold border-b pb-1">CLÁUSULA 9ª – DO FORO</h4>
-                  <p>Fica eleito o foro da comarca de {paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG"} para dirimir quaisquer controvérsias oriundas deste contrato.</p>
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 9ª – DOS RISCOS DA ATIVIDADE</h4>
+                  <p>O CONTRATANTE reconhece que o Pilates envolve atividade física e riscos inerentes, ainda que mínimos.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 10ª – DO SEGURO E LIMITAÇÃO DE RESPONSABILIDADE</h4>
+                  <p className="whitespace-pre-line">§1º A clínica poderá manter seguro de responsabilidade civil.{"\n"}§2º A responsabilidade da clínica e dos profissionais somente ocorrerá em caso de dolo ou culpa comprovada.{"\n"}§3º Não há responsabilidade nos casos de omissão de informações de saúde, descumprimento de orientações, execução inadequada ou limitações pré-existentes.{"\n"}§4º Eventuais indenizações seguirão os limites legais e da apólice (se houver).</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 11ª – DA PROTEÇÃO DOS PROFISSIONAIS</h4>
+                  <p>O paciente compromete-se a respeitar os profissionais, seguir orientações técnicas e manter conduta adequada. Parágrafo único: Conduta inadequada pode gerar cancelamento imediato.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 12ª – DO DIREITO DE IMAGEM</h4>
+                  <p>Autoriza o uso de imagem para divulgação da clínica. Pode revogar por escrito.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 13ª – DA LGPD (DADOS PESSOAIS)</h4>
+                  <p className="whitespace-pre-line">§1º Dados serão usados para cadastro, atendimento, comunicação e obrigações legais.{"\n"}§2º Dados de saúde são considerados sensíveis.{"\n"}§3º A clínica adota medidas de segurança.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 14ª – DO TRANCAMENTO</h4>
+                  <p className="whitespace-pre-line">§1º Deve ser solicitado com antecedência e depende de aprovação da clínica.{"\n"}§2º Não há devolução de valores.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 15ª – DO CANCELAMENTO</h4>
+                  <p className="whitespace-pre-line">§1º Pode ser solicitado a qualquer momento.{"\n"}§2º Não há devolução de valores pagos.{"\n"}§3º O paciente perde o direito ao horário reservado.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 16ª – DOS OBJETOS PESSOAIS</h4>
+                  <p>A clínica não se responsabiliza por perdas ou danos a objetos pessoais.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 17ª – DO USO DA ESTRUTURA</h4>
+                  <p>O paciente deve zelar pelos equipamentos, seguir orientações e não utilizar aparelhos sem autorização.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 18ª – DO CASO FORTUITO</h4>
+                  <p>A clínica não se responsabiliza por interrupções externas (energia, força maior, etc.).</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 19ª – DA VIGÊNCIA</h4>
+                  <p>Prazo indeterminado.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 20ª – DO FORO</h4>
+                  <p>Fica eleito o foro da comarca de {paciente?.contract_cidade_foro ?? clinicSettings?.pref_contract_cidade_foro ?? clinicSettings?.cidade ?? "Barbacena"}/{paciente?.contract_estado_foro ?? clinicSettings?.pref_contract_estado_foro ?? clinicSettings?.estado ?? "MG"}.</p>
+
+                  <h4 className="font-bold border-b pb-1">CLÁUSULA 21ª – DA VALIDADE DAS ASSINATURAS ELETRÔNICAS</h4>
+                  <p>As partes reconhecem a validade jurídica das assinaturas eletrônicas apostas neste contrato, conforme a Medida Provisória nº 2.200-2/2001 e o Código Civil Brasileiro, outorgando-lhe plena eficácia jurídica e executiva.</p>
 
                   <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
-                  </>
-                  )}
 
                   <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                     <div>
@@ -611,6 +605,40 @@ const Contratos = () => {
                       )}
                     </div>
                   )}
+
+                  {/* PÁGINA EXTRA: TERMO DE SAÚDE */}
+                  <div className="mt-10 pt-6 border-t-2 border-dashed">
+                    <h3 className="text-center font-bold text-base">TERMO DE SAÚDE E RESPONSABILIDADE DO PACIENTE</h3>
+                    <h4 className="font-bold mt-4">1. DECLARAÇÃO DE CONDIÇÃO DE SAÚDE</h4>
+                    <p>Declaro que fui orientado(a) a informar corretamente meu estado de saúde e afirmo que:</p>
+                    <p className="whitespace-pre-line">( ) Estou apto(a) para prática de exercícios físicos{"\n"}( ) Possuo restrições médicas (detalhar abaixo):</p>
+                    <div className="border-b border-muted-foreground h-5" />
+                    <div className="border-b border-muted-foreground h-5 mt-3" />
+
+                    <h4 className="font-bold mt-4">2. INFORMAÇÕES OBRIGATÓRIAS DE SAÚDE (Marque se possuir)</h4>
+                    <p className="whitespace-pre-line">( ) Lesões atuais/antigas{"\n"}( ) Cirurgias prévias{"\n"}( ) Doenças cardiovasculares{"\n"}( ) Problemas ortopédicos{"\n"}( ) Gravidez/Pós-parto{"\n"}( ) Uso de medicamentos contínuos</p>
+
+                    <h4 className="font-bold mt-4">3. RESPONSABILIDADE E ISENÇÃO</h4>
+                    <p className="text-justify">O Pilates é uma atividade orientada, mas há riscos inerentes. A omissão de informações transfere a responsabilidade ao paciente. A clínica não se responsabiliza por lesões decorrentes de omissões ou descumprimento de orientações técnicas.</p>
+                    <div className="mt-6 w-1/2">
+                      <div className="border-t border-muted-foreground pt-1 text-xs">Assinatura do Paciente</div>
+                    </div>
+                  </div>
+
+                  {/* PÁGINA EXTRA: POLÍTICA INTERNA */}
+                  <div className="mt-10 pt-6 border-t-2 border-dashed">
+                    <h3 className="text-center font-bold text-base">POLÍTICA INTERNA – PACIENTES</h3>
+                    <h4 className="font-bold mt-4">1. ORGANIZAÇÃO</h4>
+                    <p>Aulas com horário agendado. Reserva exclusiva da vaga. Atrasos não prorrogam a aula.</p>
+                    <h4 className="font-bold mt-4">2. FALTAS E REPOSIÇÕES</h4>
+                    <p>Cancelamento com mín. {paciente?.contract_prazo_cancelamento_h ?? clinicSettings?.pref_contract_prazo_cancelamento_h ?? 3}h de antecedência. Reposição em até {paciente?.contract_prazo_reposicao_dias ?? clinicSettings?.pref_contract_prazo_reposicao_dias ?? 30} dias, conforme vaga disponível.</p>
+                    <h4 className="font-bold mt-4">3. PAGAMENTOS</h4>
+                    <p>Mensalidade paga no primeiro dia de aula do mês. Atrasos incorrem em multa de {paciente?.contract_multa_atraso_pct ?? clinicSettings?.pref_contract_multa_atraso_pct ?? 2}% e juros de {paciente?.contract_juros_mensal_pct ?? clinicSettings?.pref_contract_juros_mensal_pct ?? 1}% ao mês.</p>
+                    <h4 className="font-bold mt-4">4. CONDUTA</h4>
+                    <p>Respeito profissional. Vestimenta adequada. Proibido usar aparelhos sem orientação.</p>
+                    <h4 className="font-bold mt-4">5. FERIADOS E RECESSOS</h4>
+                    <p>Não há aulas em feriados e recessos. Não há reposição ou abatimento nesses períodos.</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -648,65 +676,100 @@ const Contratos = () => {
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader>
                   <CardTitle className="text-base">Pré-visualização do Contrato</CardTitle>
-                  {canManage && (
-                    <Link to="/modelos-contrato" className="text-xs text-primary hover:underline flex items-center gap-1">
-                      <FileText className="h-3 w-3" /> Editar modelo
-                    </Link>
-                  )}
+                  <p className="text-xs text-muted-foreground">Esta pré-visualização reflete fielmente o PDF que será gerado.</p>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none text-foreground space-y-3 text-sm border rounded-lg p-6 bg-card max-h-[70vh] overflow-y-auto">
-                    {contractTemplates?.profissional ? (
-                      <div className="whitespace-pre-wrap font-serif leading-relaxed">
-                        {renderContractTemplate(contractTemplates.profissional, {
-                          clinic: clinicSettings,
-                          clinicSettings,
-                          profissional,
-                        })}
-                      </div>
-                    ) : (
-                    <>
                     <h2 className="text-center font-bold text-lg">{clinicNome.toUpperCase()}</h2>
-                    <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS</h3>
-                    <p><strong>CLÍNICA (CONTRATANTE):</strong> {clinicNome}{clinicCNPJ ? `, CNPJ ${clinicCNPJ}` : ""}{clinicEnderecoFull ? `, sede ${clinicEnderecoFull}` : ""}.</p>
-                    <p><strong>PROFISSIONAL (CONTRATADO):</strong> {profissional?.nome || "___________________"}{profissional?.cpf ? `, CPF ${profissional.cpf}` : ""}{profissional?.registro_profissional ? `, ${profissional?.conselho_profissional || "Conselho"} ${profissional.registro_profissional}` : ""}.</p>
+                    <h3 className="text-center font-bold">CONTRATO DE PRESTAÇÃO DE SERVIÇOS PROFISSIONAIS – PILATES</h3>
+
+                    <p><strong>CONTRATANTE:</strong> {clinicNome}{clinicEnderecoFull ? `, com sede à ${clinicEnderecoFull}` : ""}{clinicTelefone ? `, telefone ${clinicTelefone}` : ""}, doravante denominada CLÍNICA.</p>
+                    <p><strong>CONTRATADO(A):</strong> Nome: {profissional?.nome || "___________________"} | CPF: {profissional?.cpf || "_______________"} | RG: {profissional?.rg || "_______________"} | {profissional?.conselho_profissional || "REGISTRO"}: {profissional?.registro_conselho || profissional?.registro_profissional || "_______________"}{profissional ? ` | Endereço: ${[profissional.rua, profissional.numero ? `nº ${profissional.numero}` : "", profissional.complemento, profissional.bairro, profissional.cidade, profissional.estado].filter(Boolean).join(", ") || "—"}` : ""}, doravante denominado(a) PROFISSIONAL.</p>
 
                     <h4 className="font-bold border-b pb-1">CLÁUSULA 1ª – DO OBJETO</h4>
-                    <p>Prestação de serviços profissionais autônomos pelo CONTRATADO em favor da CONTRATANTE, sem vínculo empregatício, observada a legislação do respectivo conselho de classe.</p>
+                    <p>Prestação de serviços profissionais de Pilates e/ou atendimentos correlatos nas dependências da CLÍNICA ou em local por ela indicado.</p>
 
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 2ª – DA REMUNERAÇÃO</h4>
-                    <p>Comissão de {profissional?.commission_rate || "___"}% sobre os valores efetivamente recebidos pela CONTRATANTE referentes aos atendimentos prestados pelo CONTRATADO. O pagamento será efetuado até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.pref_contract_dia_pagamento_comissao ?? 10} do mês subsequente.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 2ª – DA NATUREZA JURÍDICA</h4>
+                    <p className="whitespace-pre-line">§1º Este contrato possui natureza civil/autônoma, não gerando vínculo empregatício.{"\n"}§2º Não há subordinação jurídica, controle de jornada ou exclusividade obrigatória, salvo previsão expressa.{"\n"}§3º O PROFISSIONAL declara atuar como: ({(profissional?.tipo_contratacao || "autonomo") === "autonomo" ? "X" : " "}) Autônomo | ({profissional?.tipo_contratacao === "mei" ? "X" : " "}) MEI | ({profissional?.tipo_contratacao === "pj" ? "X" : " "}) Pessoa Jurídica{profissional?.cnpj ? ` – CNPJ nº ${profissional.cnpj}` : ""}</p>
 
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DA NÃO CAPTAÇÃO DE CLIENTES</h4>
-                    <p>Fica vedado ao CONTRATADO, durante a vigência deste contrato e por 12 (doze) meses após sua rescisão, atender clientes da CONTRATANTE em consultório próprio ou de terceiros num raio de {profissional?.contract_raio_nao_concorrencia_km ?? clinicSettings?.pref_contract_raio_nao_concorrencia_km ?? 5} km, sob pena de multa equivalente a {profissional?.contract_multa_nao_captacao_fator ?? clinicSettings?.pref_contract_multa_nao_captacao_fator ?? 10}x o valor mensal recebido pelo cliente captado.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 3ª – DA REMUNERAÇÃO (COMISSÃO)</h4>
+                    <p className="whitespace-pre-line">§1º O PROFISSIONAL receberá {profissional?.commission_rate ?? "___"}% sobre os valores efetivamente pagos pelos pacientes.{"\n"}§2º A comissão incidirá sobre: Mensalidades, Sessões avulsas e Pacotes efetivamente quitados.{"\n"}§3º Não incide comissão sobre: Cortesias, Descontos, Valores inadimplentes e Taxas administrativas.{"\n"}§4º O pagamento será realizado até o dia {profissional?.contract_dia_pagamento_comissao ?? clinicSettings?.pref_contract_dia_pagamento_comissao ?? 10} do mês seguinte.{"\n"}§5º A CLÍNICA poderá reter valores em caso de: Estorno, Chargeback ou Reembolso ao paciente.</p>
 
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 4ª – DA RESCISÃO E AVISO PRÉVIO</h4>
-                    <p>Qualquer das partes poderá rescindir o contrato mediante aviso prévio de {profissional?.contract_prazo_aviso_previo_dias ?? clinicSettings?.pref_contract_prazo_aviso_previo_dias ?? 30} dias, garantindo a continuidade dos atendimentos em curso.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 4ª – DA ORGANIZAÇÃO DOS ATENDIMENTOS</h4>
+                    <p className="whitespace-pre-line">§1º A agenda será organizada em conjunto.{"\n"}§2º O atendimento deve respeitar padrões da clínica.{"\n"}§3º Atrasos recorrentes poderão gerar advertência ou rescisão.</p>
 
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 5ª – DO USO DA MARCA</h4>
-                    <p>O uso indevido da marca, logotipo ou imagem da CONTRATANTE pelo CONTRATADO acarretará multa de R$ {Number(profissional?.contract_multa_uso_marca_valor ?? clinicSettings?.pref_contract_multa_uso_marca_valor ?? 5000).toFixed(2)}, sem prejuízo de demais perdas e danos.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 5ª – DAS OBRIGAÇÕES DO PROFISSIONAL</h4>
+                    <p className="whitespace-pre-line">I – Atuar com ética e técnica;{"\n"}II – Manter registro profissional regular;{"\n"}III – Seguir protocolos da clínica;{"\n"}IV – Zelar por equipamentos;{"\n"}V – Não prestar orientações fora de sua competência;{"\n"}VI – Utilizar uniforme/padrão quando exigido;{"\n"}VII – Cumprir LGPD e sigilo absoluto.</p>
 
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 6ª – DA CONFIDENCIALIDADE</h4>
-                    <p>O CONTRATADO compromete-se a manter sigilo absoluto sobre informações de pacientes, fluxos internos e dados estratégicos da CONTRATANTE, em conformidade com a LGPD.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 6ª – DAS OBRIGAÇÕES DA CLÍNICA</h4>
+                    <p className="whitespace-pre-line">I – Disponibilizar estrutura e equipamentos;{"\n"}II – Realizar cobrança dos pacientes;{"\n"}III – Fornecer demonstrativo financeiro;{"\n"}IV – Efetuar pagamento da comissão.</p>
 
-                    <h4 className="font-bold border-b pb-1">CLÁUSULA 7ª – DO FORO</h4>
-                    <p>Fica eleito o foro da comarca de {clinicSettings?.pref_contract_cidade_foro || clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.pref_contract_estado_foro || clinicSettings?.estado || "MG"}.</p>
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 7ª – DA NÃO CAPTAÇÃO DE PACIENTES</h4>
+                    <p className="whitespace-pre-line">§1º É proibido captar ou desviar pacientes.{"\n"}§2º Vigência: durante o contrato e até 12 meses após saída.{"\n"}§3º Inclui: Oferecer atendimento particular, Passar contato pessoal com finalidade profissional e Levar paciente para outro local.{"\n"}§4º Multa: {profissional?.contract_multa_nao_captacao_valor ? `R$ ${Number(profissional.contract_multa_nao_captacao_valor).toFixed(2)}` : `${profissional?.contract_multa_nao_captacao_fator ?? clinicSettings?.pref_contract_multa_nao_captacao_fator ?? 10}x valor médio da mensalidade`} por paciente desviado, podendo acumular.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 8ª – DA NÃO CONCORRÊNCIA</h4>
+                    <p>§1º O PROFISSIONAL não poderá atuar em clínica concorrente no raio de {profissional?.contract_raio_nao_concorrencia_km ?? clinicSettings?.pref_contract_raio_nao_concorrencia_km ?? 5} km durante a vigência do contrato.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 9ª – CONFIDENCIALIDADE E LGPD</h4>
+                    <p className="whitespace-pre-line">§1º O PROFISSIONAL compromete-se a proteger: Dados pessoais e sensíveis, Prontuários, Lista de pacientes, Dados financeiros e estratégicos.{"\n"}§2º Deverá cumprir a Lei nº 13.709/2018 (LGPD).{"\n"}§3º É proibido: Tirar fotos de prontuários, Compartilhar dados via WhatsApp pessoal sem segurança e Armazenar dados sem proteção.{"\n"}§4º Vazamento gera responsabilidade civil.{"\n"}§5º Sigilo é vitalício (mesmo após saída).{"\n"}§6º Multa: R$ {Number(profissional?.contract_multa_uso_marca_valor ?? clinicSettings?.pref_contract_multa_uso_marca_valor ?? 5000).toFixed(2)} + perdas e danos.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 10ª – DO USO DA MARCA E IMAGEM</h4>
+                    <p className="whitespace-pre-line">§1º O PROFISSIONAL não pode usar a marca da clínica sem autorização.{"\n"}§2º Não pode divulgar pacientes ou atendimentos sem consentimento.{"\n"}§3º Autoriza a clínica a usar sua imagem institucionalmente.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 11ª – DOS DANOS E RESPONSABILIDADES</h4>
+                    <p className="whitespace-pre-line">§1º Danos causados por negligência serão de responsabilidade do PROFISSIONAL.{"\n"}§2º Danos a equipamentos poderão ser cobrados.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 12ª – DAS FALTAS E CANCELAMENTOS</h4>
+                    <p className="whitespace-pre-line">§1º Comissão só é devida sobre atendimento realizado e pago.{"\n"}§2º Falta do profissional sem aviso pode gerar penalidade.{"\n"}§3º Reposição segue regras da clínica.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 13ª – DA AUDITORIA E CONTROLE</h4>
+                    <p>A CLÍNICA poderá auditar atendimentos, agenda e registros para conferência de comissões.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 14ª – DA RESCISÃO</h4>
+                    <p className="whitespace-pre-line">§1º Aviso prévio: {profissional?.contract_prazo_aviso_previo_dias ?? clinicSettings?.pref_contract_prazo_aviso_previo_dias ?? 30} dias.{"\n"}§2º Rescisão imediata em caso de: Quebra de sigilo, Desvio de pacientes ou Conduta antiética.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 15ª – DAS PENALIDADES</h4>
+                    <p>Podem ser aplicadas: Advertência, Suspensão, Multa ou Rescisão.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 16ª – DO PRAZO</h4>
+                    <p>Prazo indeterminado, iniciando em {format(new Date(), "dd/MM/yyyy")}.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 17ª – DO FORO</h4>
+                    <p>Foro de {clinicSettings?.pref_contract_cidade_foro || clinicSettings?.cidade || "Barbacena"}/{clinicSettings?.pref_contract_estado_foro || clinicSettings?.estado || "MG"}.</p>
+
+                    <h4 className="font-bold border-b pb-1">CLÁUSULA 18ª – DA VALIDADE DAS ASSINATURAS ELETRÔNICAS</h4>
+                    <p>As partes reconhecem a validade jurídica das assinaturas eletrônicas apostas neste contrato, conforme a Medida Provisória nº 2.200-2/2001 e o Código Civil Brasileiro, outorgando-lhe plena eficácia jurídica e executiva.</p>
 
                     <p className="pt-3">{clinicSettings?.cidade || "_______________"}, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.</p>
-                    </>
-                    )}
 
                     <div className="mt-8 grid grid-cols-2 gap-8 text-center border-t pt-8">
                       <div>
                         <div className="h-12" />
-                        <div className="border-t border-muted-foreground pt-2">CONTRATANTE<br/><span className="text-xs">{clinicNome}</span></div>
+                        <div className="border-t border-muted-foreground pt-2">CLÍNICA<br/><span className="text-xs">{clinicNome}</span></div>
                       </div>
                       <div>
                         <div className="h-12" />
-                        <div className="border-t border-muted-foreground pt-2">CONTRATADO<br/><span className="text-xs">{profissional?.nome || ""}</span></div>
+                        <div className="border-t border-muted-foreground pt-2">PROFISSIONAL<br/><span className="text-xs">{profissional?.nome || ""}</span></div>
                       </div>
+                    </div>
+
+                    {/* PÁGINA EXTRA: POLÍTICA INTERNA PROFISSIONAL */}
+                    <div className="mt-10 pt-6 border-t-2 border-dashed">
+                      <h3 className="text-center font-bold text-base">POLÍTICA INTERNA – PROFISSIONAIS</h3>
+                      <h4 className="font-bold mt-4">1. CONDUTA</h4>
+                      <p>Ética e respeito. Seguir protocolos técnicos. Postura profissional irrepreensível.</p>
+                      <h4 className="font-bold mt-4">2. CONFIDENCIALIDADE</h4>
+                      <p>Proibido compartilhar dados, fotografar prontuários ou usar dados fora da clínica.</p>
+                      <h4 className="font-bold mt-4">3. RELACIONAMENTO</h4>
+                      <p>Vedado atendimento particular de pacientes da clínica ou desvio para outros locais.</p>
+                      <h4 className="font-bold mt-4">4. ESTRUTURA</h4>
+                      <p>Zelo absoluto pelos equipamentos. Notificar danos imediatamente.</p>
+                      <h4 className="font-bold mt-4">5. AGENDA</h4>
+                      <p>Cumprimento rigoroso de horários. Aviso prévio obrigatório para ausências.</p>
+                      <h4 className="font-bold mt-4">6. LGPD</h4>
+                      <p>Tratamento de dados com sigilo absoluto. Não armazenar dados em dispositivos pessoais.</p>
                     </div>
                   </div>
                 </CardContent>
