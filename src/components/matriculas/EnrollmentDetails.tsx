@@ -60,6 +60,7 @@ export function EnrollmentDetails({ enrollment }: Props) {
     const [justificationDialog, setJustificationDialog] = useState<{ open: boolean; sessionId: string; text: string }>({ open: false, sessionId: "", text: "" });
     const [activeTab, setActiveTab] = useState("sessions");
     const [rescheduleSession, setRescheduleSession] = useState<Session | null>(null);
+    const [rescheduleCreditId, setRescheduleCreditId] = useState<string | undefined>(undefined);
 
     // Sessions
     const { data: sessions = [], isLoading: loadingSessions } = useQuery({
